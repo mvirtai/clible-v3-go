@@ -1,0 +1,2 @@
+-- Migration 001: Initial Schema
+-- Placeholder for initial schema. Table definitions are added in subsequent migrations.
