@@ -78,22 +78,29 @@ tasks:
       - echo "All local quality checks passed flawlessly!"
 
   # --- Git --- #
+  # --- Git & GitHub Automation ---
+  # --- Git & GitHub Automation ---
   git:pr:
-    desc: Push current branch and create GitHub PR using temp_pr_story.md
+    desc: Create a GitHub PR using a permanent PR story file from ./pr_stories/
     vars:
       CURRENT_BRANCH:
-      sh: git branch --show-current
-      # Defaults to the branch name, override is possible
-      TITLE: "{{default: .CURRENT_BRANCH .TITLE}}"
-  preconditions:
-    - sh: command -v gh >/dev/null 2>&1
-      msg: "GitHub CLI (gh) is required but not installed."
-    - sh: test -f temp_pr_story.md
-      msg: "Missing 'temp_pr_story.md'. Please generate the PR story into this file first."
-  cmds:
-    - echo "Pushing branch {{.CURRENT_BRANCH}} to origin..."
-    - git push origin {{.CURRENT_BRANCH}}
-    - echo "Creating pull request..."
-    - gh pr create --title "{{.TITLE}}" --body-file temp_pr_story.md
-    - echo "PR created successfully! Cleaning up temporary file..."
-    - rm temp_pr_story.md
+        sh: git branch --show-current
+      TITLE: "{{default .CURRENT_BRANCH .TITLE}}"
+      # Automatically targets the pr_stories directory
+      STORY_PATH: "pr_stories/{{.FILE}}"
+    preconditions:
+      - sh: command -v gh >/dev/null 2>&1
+        msg: "GitHub CLI (gh) is required but not installed. Run 'brew install gh' or equivalent."
+      - sh: 'test -n "{{.FILE}}"'
+        msg: "Missing FILE argument. Usage: task git:pr FILE=your-story.md"
+      - sh: 'test -f "{{.STORY_PATH}}"'
+        msg: "The file '{{.STORY_PATH}}' does not exist. Ensure it is placed in the ./pr_stories/ directory."
+    cmds:
+      - echo "Staging a temporary deployment copy of {{.STORY_PATH}}..."
+      - cp "{{.STORY_PATH}}" temp_pr_story.md
+      - echo "Pushing branch {{.CURRENT_BRANCH}} to origin..."
+      - git push origin {{.CURRENT_BRANCH}}
+      - echo "Creating pull request via GitHub API..."
+      - gh pr create --title "{{.TITLE}}" --body-file temp_pr_story.md
+      - echo "PR created successfully! Cleaning up intermediate assets..."
+      - rm temp_pr_story.md
