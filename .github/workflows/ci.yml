@@ -1,50 +1,51 @@
 name: CI
 
 on:
-    push:
-        branches: [main]
-    pull_request:
-        branches: [main]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
-    contents: read
-    pull-requests: read
+  contents: read
+  pull-requests: read
 
 jobs:
-    lint:
-        name: Code Quality (Lint)
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout source code
-              uses: actions/checkout@v4
+  lint:
+    name: Code Quality (Lint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-            - name: Set up Go environment
-              uses: actions/setup-go@v5
-              with:
-                  go-version-file: "go.mod" # Automatically uses the Go version defined in go.mod
-                  cache: true
+      - name: Set up Go environment
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod" # Automatically uses the Go version defined in go.mod
+          cache: true
 
-            - name: Run golangci-lint
-              uses: golangci-lint/golangci-lint-action@v6
-              with:
-                  version: latest
-                  args: --timeout=5m
+      # KORJATTU RIVI:
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
 
-    test:
-        name: Execute Tests
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout source code
-              uses: actions/checkout@v4
+  test:
+    name: Execute Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-            - name: Set up Go environment
-              uses: actions/setup-go@v5
-              with:
-                  go-version-file: "go.mod"
-                  cache: true
+      - name: Set up Go environment
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
 
-            - name: Download Go modules
-              run: go mod download
+      - name: Download Go modules
+        run: go mod download
 
-            - name: Run unit and integration tests
-              run: go test -v -race -coverprofile=coverage.txt ./...
+      - name: Run unit and integration tests
+        run: go test -v -race -coverprofile=coverage.txt ./...
