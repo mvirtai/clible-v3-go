@@ -10,18 +10,18 @@ import (
 )
 
 // VerseRepository handles data access operations for the verses table
-// and its associated FTS5 virtual tables.
+// using the explicit domain models and FTS5 triggers.
 type VerseRepository struct {
 	db *sql.DB
 }
 
-// NewVerseRepository creates a new instance of VerseRepository with the provided database connection.
+// NewVerseRepository creates a new instance of VerseRepository.
 func NewVerseRepository(db *sql.DB) *VerseRepository {
 	return &VerseRepository{db: db}
 }
 
-// BulkInsert inserts a large volume of verses inside a single
-// transaction block for optimal performance with the pure-Go SQLite driver.
+// BulkInsert inserts a large volume of verses inside a single transaction
+// ensuring precise column mapping against migration rules.
 func (r *VerseRepository) BulkInsert(ctx context.Context, verses []models.Verse) error {
 	if len(verses) == 0 {
 		return nil
@@ -29,17 +29,16 @@ func (r *VerseRepository) BulkInsert(ctx context.Context, verses []models.Verse)
 
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return fmt.Errorf("failed to begin bulk insert transaction: %w", err)
 	}
-	// Defer rollback; it is a no-op if the transaction successfully committed.
 	defer func() {
 		_ = tx.Rollback()
 	}()
 
-	// Prepare the statement inside the transaction for high-throughput execution.
+	// Adjusted columns to match 'verse' from 002_seed_architecture.sql exactly
 	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO verses (translation_id, book_id, chapter, verse_number, text)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO verses (id, translation_id, book_id, chapter, verse, text)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare insert statement: %w", err)
@@ -49,25 +48,25 @@ func (r *VerseRepository) BulkInsert(ctx context.Context, verses []models.Verse)
 	for _, v := range verses {
 		_, err := stmt.ExecContext(ctx, v.ID, v.TranslationID, v.BookID, v.Chapter, v.Verse, v.Text)
 		if err != nil {
-			return fmt.Errorf("failed to execute insert for verse %s (%s %d:%d): %w", v.ID, v.BookID, v.Chapter, v.Verse, err)
+			return fmt.Errorf("failed to execute insert for verse %s: %w", v.ID, err)
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return fmt.Errorf("failed to commit bulk insert transaction: %w", err)
 	}
 
 	return nil
 }
 
-// Search Params holds configuration options for advanced lookups.
+// SearchParams holds configuration options for advanced lookups.
 type SearchParams struct {
-	FTSQuery     string // Query syntax passing directly into FTS5 MATCH
-	RegexPattern string // Optional legacy regex rule to filter FTS results post-query
+	FTSQuery     string
+	RegexPattern string
 }
 
 // Search performs high-performance text lookups leveraging the SQLite FTS5 table
-// and subsequently applies Go-level regex filtering to match legacy business rules.
+// joined via internal rowid and filters matches via Go's regexp package.
 func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]models.Verse, error) {
 	var regex *regexp.Regexp
 	var err error
@@ -79,19 +78,19 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		}
 	}
 
-	// Query utilizing the FTS5 contentless/external content virtual table index.
-	// Adjust table/column names if your migration schema differs slightly.
+	// Cleaned up: Removed the 'f' alias to prevent SQLite from misinterpreting
+	// the MATCH operand as a standard column identifier.
 	query := `
-			SELECT v.id, v.translation_id, v.book_id, v.chapter, v.verse, v.text
-			FROM verses v
-			JOIN verses_fts f ON v.id = f.rowid
-			WHERE verses_fts MATCH ?
-			ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC
-		`
+		SELECT v.id, v.translation_id, v.book_id, v.chapter, v.verse, v.text
+		FROM verses v
+		JOIN verses_fts ON v.rowid = verses_fts.rowid
+		WHERE verses_fts MATCH ?
+		ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC
+	`
 
 	rows, err := r.db.QueryContext(ctx, query, params.FTSQuery)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute search query: %w", err)
+		return nil, fmt.Errorf("fts5 search query failed: %w", err)
 	}
 	defer rows.Close()
 
@@ -101,7 +100,7 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		var v models.Verse
 		err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan search result: %w", err)
+			return nil, fmt.Errorf("failed to scan search row: %w", err)
 		}
 
 		if regex != nil && !regex.MatchString(v.Text) {
@@ -112,7 +111,7 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating search results: %w", err)
+		return nil, fmt.Errorf("error encountered during row iteration: %w", err)
 	}
 
 	return matchedVerses, nil
