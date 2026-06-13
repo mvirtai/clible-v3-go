@@ -25,10 +25,10 @@ func RunMigrations(db *sql.DB) error {
 	// Read all files embedded in the migrations root package
 	entries, err := migrations.Files.ReadDir(".")
 	if err != nil {
-		return fmt.Errorf("failed to read embedded migrations: %w", err)
+		return fmt.Errorf("failed to read embedded migrations directory: %w", err)
 	}
 
-	// Sort migration files by name to guarantee chronological exec order
+	// Sort migration files by name to guarantee chronological execution order
 	var sqlFiles []string
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
@@ -45,42 +45,44 @@ func RunMigrations(db *sql.DB) error {
 			return fmt.Errorf("invalid migration filename format '%s': %w", filename, err)
 		}
 
-		// Check if this specific version has already been executed previously
+		// Check if this specific version version has already been executed previously
 		var alreadyApplied bool
 		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM _migrations WHERE version = ?)", version).Scan(&alreadyApplied)
 		if err != nil {
-			return fmt.Errorf("failed to check migration version %d: %w", version, err)
+			return fmt.Errorf("failed to check migration state for version %d: %w", version, err)
 		}
 
 		if alreadyApplied {
 			continue
 		}
-		
+
 		// Read the raw SQL statements from the embedded file bundle
 		content, err := migrations.Files.ReadFile(filename)
 		if err != nil {
-			return fmt.Errorf("failed to read migration file '%s': %w", filename, err)
+			return fmt.Errorf("failed to read migration file content '%s': %w", filename, err)
 		}
 
 		// Execute migration logic wrapped in a database transaction block
 		tx, err := db.Begin()
 		if err != nil {
-			return fmt.Errorf("failed to start transaction for migration %d: %w", version, err)
+			return fmt.Errorf("failed to begin transaction for migration %d: %w", version, err)
 		}
 
 		if _, err := tx.Exec(string(content)); err != nil {
-			tx.Rollback()
+			// Explicitly ignore the rollback error to satisfy errcheck since we return the root cause
+			_ = tx.Rollback()
 			return fmt.Errorf("migration script execution failed for version %d (%s): %w", version, filename, err)
 		}
 
 		if _, err := tx.Exec("INSERT INTO _migrations (version) VALUES (?)", version); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("failed to record applied migration version %d: %w", version, err)
+			// Explicitly ignore the rollback error to satisfy errcheck since we return the root cause
+			_ = tx.Rollback()
+			return fmt.Errorf("failed to record migration application state for version %d: %w", version, err)
 		}
 
 		if err := tx.Commit(); err != nil {
-					return fmt.Errorf("failed to commit migration transaction for version %d: %w", version, err)
-				}
+			return fmt.Errorf("failed to commit migration transaction for version %d: %w", version, err)
+		}
 	}
 
 	return nil

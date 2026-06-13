@@ -24,6 +24,7 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
+      # FIXED: Run golangci-lint natively via 'go run' to support Go 1.26.2 cleanly
       - name: Run golangci-lint natively
         run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run --timeout=5m
 
