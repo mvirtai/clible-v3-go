@@ -21,15 +21,11 @@ jobs:
       - name: Set up Go environment
         uses: actions/setup-go@v5
         with:
-          go-version-file: "go.mod" # Automatically uses the Go version defined in go.mod
+          go-version-file: "go.mod"
           cache: true
 
-      # KORJATTU RIVI:
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          args: --timeout=5m
+      - name: Run golangci-lint natively
+        run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run --timeout=5m
 
   test:
     name: Execute Tests
