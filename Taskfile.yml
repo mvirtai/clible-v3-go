@@ -1,0 +1,99 @@
+version: "3"
+
+dotenv:
+  - ".env"
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list
+
+  # --- Backend (Go) Tasks --- #
+  backend:tidy:
+    desc: Tidy and verify Go module dependencies
+    cmds:
+      - go mod tidy
+      - go mod verify
+
+  backend:format:
+    desc: Auto-format Go source code files
+    cmds:
+      - go fmt ./...
+
+  backend:lint:
+    desc: Run golangci-lint on the Go source code
+    cmds:
+      - golangci-lint run ./...
+
+  backend:test:
+    desc: Run all Go unit and integration tests with race detector
+    cmds:
+      - go test -v -race -timeout 30s ./...
+
+  backend:build:
+    desc: Build the Go HTTP API production binary
+    cmds:
+      - go build -v -o bin/server ./cmd/api/main.go
+
+  backend:run:
+    desc: Run the Go HTTP API development bin/server
+    cmds:
+      - go run ./cmd/api/main.go
+
+  # --- Frontend (React) Tasks ---
+  frontend:install:
+    desc: Install frontend dependencies using npm
+    dir: frontend
+    cmds:
+      - npm ci
+
+  frontend:lint:
+    desc: Run linter and type-checks for the React application
+    dir: frontend
+    cmds:
+      - npm run lint
+
+  frontend:build:
+    desc: Build the production frontend assets
+    dir: frontend
+    cmds:
+      - npm run build
+
+  frontend:test:
+    desc: Run frontend unit tests
+    dir: frontend
+    cmds:
+      - npm run test
+
+  # --- Global Quality Gates ---
+  check:
+    desc: Run all backend and frontend quality checks (lint and test)
+    cmds:
+      - task: backend:tidy
+      - task: backend:lint
+      - task: backend:test
+      - task: frontend:lint
+      - task: frontend:test
+      - echo "All local quality checks passed flawlessly!"
+
+  # --- Git --- #
+  git:pr:
+    desc: Push current branch and create GitHub PR using temp_pr_story.md
+    vars:
+      CURRENT_BRANCH:
+      sh: git branch --show-current
+      # Defaults to the branch name, override is possible
+      TITLE: "{{default: .CURRENT_BRANCH .TITLE}}"
+  preconditions:
+    - sh: command -v gh >/dev/null 2>&1
+      msg: "GitHub CLI (gh) is required but not installed."
+    - sh: test -f temp_pr_story.md
+      msg: "Missing 'temp_pr_story.md'. Please generate the PR story into this file first."
+  cmds:
+    - echo "Pushing branch {{.CURRENT_BRANCH}} to origin..."
+    - git push origin {{.CURRENT_BRANCH}}
+    - echo "Creating pull request..."
+    - gh pr create --title "{{.TITLE}}" --body-file temp_pr_story.md
+    - echo "PR created successfully! Cleaning up temporary file..."
+    - rm temp_pr_story.md
