@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
@@ -79,30 +78,4 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 	}
 
 	return nil, fmt.Errorf("unsupported reference scope triggered")
-}
-
-// parseReferenceInput simulates reference breaking rules.
-// In the next development phase, this will be expanded into a dedicated, robust Parser component.
-func (s *VerseService) parseReferenceInput(ref string) (*ParsedReference, error) {
-	cleaned := strings.TrimSpace(ref)
-	if cleaned == "" {
-		return nil, errors.New("reference input cannot be empty")
-	}
-
-	// A highly simplified layout separator loop acting as a placeholder for the full regex pattern engine.
-	parts := strings.Fields(cleaned)
-	if len(parts) == 0 {
-		return nil, errors.New("reference input must contain at least a book name")
-	}
-
-	// Example parsing "Joh 3:16" -> Book: "Joh", Chapter/Verse parsed down the line
-	book := parts[0]
-
-	return &ParsedReference{
-		BookName:   book,
-		Chapter:    3,
-		VerseStart: 16,
-		VerseEnd:   16,
-		Scope:      ScopeVerse,
-	}, nil
 }
