@@ -59,6 +59,30 @@ func (r *VerseRepository) BulkInsert(ctx context.Context, verses []models.Verse)
 	return nil
 }
 
+// GetByReference fetches verses matching exact book/chapter/verse range and translation.
+func (r *VerseRepository) GetByReference(ctx context.Context, translationID, bookID string, chapter, verseStart, verseEnd int) ([]models.Verse, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, translation_id, book_id, chapter, verse, text
+		FROM verses
+		WHERE translation_id = ? AND book_id = ? AND chapter = ? AND verse >= ? AND verse <= ?
+		ORDER BY verse ASC
+	`, translationID, bookID, chapter, verseStart, verseEnd)
+	if err != nil {
+		return nil, fmt.Errorf("reference lookup failed: %w", err)
+	}
+	defer rows.Close()
+
+	var verses []models.Verse
+	for rows.Next() {
+		var v models.Verse
+		if err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); err != nil {
+			return nil, fmt.Errorf("failed to scan verse row: %w", err)
+		}
+		verses = append(verses, v)
+	}
+	return verses, rows.Err()
+}
+
 // SearchParams holds configuration options for advanced lookups.
 type SearchParams struct {
 	FTSQuery     string
