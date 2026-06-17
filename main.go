@@ -31,7 +31,10 @@ func main() {
 
 	// Setup the global multiplexer (router)
 	mux := http.NewServeMux()
+
+	// Registered endpoints
 	mux.HandleFunc("GET /api/verses", bibleHandler.GetVersesByReference)
+	mux.HandleFunc("GET /api/search", bibleHandler.SearchVerses)
 
 	// Configure the HTTP Server production flags for timeout safety
 	server := &http.Server{
