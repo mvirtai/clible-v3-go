@@ -81,3 +81,29 @@ func (h *BibleHandler) GetVersesByReference(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
 }
+
+// SearchVerses orhestrates the search query through the repository layer.
+func (h *BibleHandler) SearchVerses(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query().Get("q")
+	regex := r.URL.Query().Get("regex")
+	translation := r.URL.Query().Get("translation")
+
+	if query == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "query parameter q is required"})
+		return
+	}
+
+	results, err := h.verseService.SearchVerses(ctx, query, regex, translation)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "search operation failed: " + err.Error()})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(results)
+}

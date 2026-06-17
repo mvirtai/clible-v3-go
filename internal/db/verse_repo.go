@@ -85,8 +85,9 @@ func (r *VerseRepository) GetByReference(ctx context.Context, translationID, boo
 
 // SearchParams holds configuration options for advanced lookups.
 type SearchParams struct {
-	FTSQuery     string
-	RegexPattern string
+	FTSQuery      string
+	RegexPattern  string
+	TranslationID string
 }
 
 // Search performs high-performance text lookups leveraging the SQLite FTS5 table
@@ -104,15 +105,20 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 
 	// Cleaned up: Removed the 'f' alias to prevent SQLite from misinterpreting
 	// the MATCH operand as a standard column identifier.
+	args := []any{params.FTSQuery}
 	query := `
 		SELECT v.id, v.translation_id, v.book_id, v.chapter, v.verse, v.text
 		FROM verses v
 		JOIN verses_fts ON v.rowid = verses_fts.rowid
 		WHERE verses_fts MATCH ?
-		ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC
 	`
+	if params.TranslationID != "" {
+		query += " AND v.translation_id = ?"
+		args = append(args, params.TranslationID)
+	}
+	query += " ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC"
 
-	rows, err := r.db.QueryContext(ctx, query, params.FTSQuery)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("fts5 search query failed: %w", err)
 	}

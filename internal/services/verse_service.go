@@ -79,3 +79,13 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 
 	return nil, fmt.Errorf("unsupported reference scope triggered")
 }
+
+// SearchVerses delegates the search operation to the repository layer.
+func (s *VerseService) SearchVerses(ctx context.Context, ftsQuery string, regexPattern string, translationID string) ([]models.Verse, error) {
+	params := db.SearchParams{
+		FTSQuery:      ftsQuery,
+		RegexPattern:  regexPattern,
+		TranslationID: translationID,
+	}
+	return s.verseRepo.Search(ctx, params)
+}
