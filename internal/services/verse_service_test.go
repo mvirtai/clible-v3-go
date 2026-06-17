@@ -108,3 +108,97 @@ func TestVerseService_GetVerses_BookScope(t *testing.T) {
 		t.Fatal("expected error for unimplemented book scope")
 	}
 }
+
+func TestVerseService_SearchVerses_Success(t *testing.T) {
+	dbConn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize connection: %v", err)
+	}
+	defer dbConn.Close()
+
+	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('fin-1992', 'Kirkkoraamattu 1992', 'fi', 'text')`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
+
+	verseRepo := db.NewVerseRepository(dbConn)
+	translationRepo := db.NewTranslationRepository(dbConn)
+	svc := NewVerseService(verseRepo, translationRepo)
+
+	ctx := context.Background()
+	mockVerse := models.Verse{
+		ID:            "fin-1992:Joh:3:16",
+		TranslationID: "fin-1992",
+		BookID:        "Joh",
+		Chapter:       3,
+		Verse:         16,
+		Text:          "Jumala on rakastanut maailmaa",
+	}
+	if err := verseRepo.BulkInsert(ctx, []models.Verse{mockVerse}); err != nil {
+		t.Fatalf("failed to seed verses: %v", err)
+	}
+
+	results, err := svc.SearchVerses(ctx, "Jumala", "", "fin-1992")
+	if err != nil {
+		t.Fatalf("unexpected search error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].ID != mockVerse.ID {
+		t.Errorf("expected verse %s, got %s", mockVerse.ID, results[0].ID)
+	}
+}
+
+func TestVerseService_SearchVerses_RegexFilter(t *testing.T) {
+	dbConn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize connection: %v", err)
+	}
+	defer dbConn.Close()
+
+	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('fin-1992', 'Kirkkoraamattu 1992', 'fi', 'text')`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
+
+	verseRepo := db.NewVerseRepository(dbConn)
+	translationRepo := db.NewTranslationRepository(dbConn)
+	svc := NewVerseService(verseRepo, translationRepo)
+
+	ctx := context.Background()
+	verses := []models.Verse{
+		{ID: "fin-1992:Joh:3:16", TranslationID: "fin-1992", BookID: "Joh", Chapter: 3, Verse: 16, Text: "Jumala on rakastanut maailmaa"},
+		{ID: "fin-1992:Joh:1:1", TranslationID: "fin-1992", BookID: "Joh", Chapter: 1, Verse: 1, Text: "Alussa oli Sana"},
+	}
+	if err := verseRepo.BulkInsert(ctx, verses); err != nil {
+		t.Fatalf("failed to seed verses: %v", err)
+	}
+
+	results, err := svc.SearchVerses(ctx, "Jumala OR Sana", `^Jumala`, "fin-1992")
+	if err != nil {
+		t.Fatalf("unexpected search error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result after regex filter, got %d", len(results))
+	}
+	if results[0].Verse != 16 {
+		t.Errorf("expected verse 16, got %d", results[0].Verse)
+	}
+}
+
+func TestVerseService_SearchVerses_InvalidRegex(t *testing.T) {
+	dbConn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize connection: %v", err)
+	}
+	defer dbConn.Close()
+
+	verseRepo := db.NewVerseRepository(dbConn)
+	translationRepo := db.NewTranslationRepository(dbConn)
+	svc := NewVerseService(verseRepo, translationRepo)
+
+	_, err = svc.SearchVerses(context.Background(), "test", "[invalid", "")
+	if err == nil {
+		t.Fatal("expected error for invalid regex pattern")
+	}
+	if !strings.Contains(err.Error(), "invalid regex pattern") {
+		t.Errorf("expected regex error message, got: %v", err)
+	}
+}
