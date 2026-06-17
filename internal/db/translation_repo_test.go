@@ -8,7 +8,7 @@ import (
 
 func TestTranslationRepository_CreateAndGetAll(t *testing.T) {
 	// Setup a clean isolated in-memory context for this test case
-	db, err := NewConnection(":memory:")
+	db, err := InitializeDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to set up database connection: %v", err)
 	}

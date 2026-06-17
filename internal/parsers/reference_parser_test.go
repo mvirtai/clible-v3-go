@@ -62,6 +62,12 @@ func TestParseReference_TableDriven(t *testing.T) {
 			expectedRef: nil,
 			expectError: true,
 		},
+		{
+			name:        "Invalid Format",
+			input:       "!!!",
+			expectedRef: nil,
+			expectError: true,
+		},
 	}
 
 	for _, tt := range tests {

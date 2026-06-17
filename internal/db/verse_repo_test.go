@@ -1,65 +1,136 @@
-package db
+package db_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
-
-	_ "modernc.org/sqlite"
 )
 
-func TestVerseRepository_BulkInsertAndSearch(t *testing.T) {
-	// Bootstraps a real in-memory connection and runs your 6 embedded SQL migrations
-	db, err := NewConnection(":memory:")
+func TestVerseRepository_GetByReference(t *testing.T) {
+	conn, err := db.InitializeDB(":memory:")
 	if err != nil {
-		t.Fatalf("failed to initialize operational test cluster: %v", err)
+		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	// Seed required parent records due to FOREIGN KEY constraints
-	_, err = db.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('KR38', 'Pyhä Raamattu', 'fi', 'text')`)
-	if err != nil {
-		t.Fatalf("failed to seed parent translation: %v", err)
-	}
-	_, err = db.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Gen', 'Genesis', 'OT', 1, 50)`)
-	if err != nil {
-		t.Fatalf("failed to seed parent book: %v", err)
-	}
-
-	repo := NewVerseRepository(db)
 	ctx := context.Background()
 
+	// Seed required FK parents before inserting verses
+	_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
+	_, _ = conn.ExecContext(ctx, `INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'John', 'NT', 4, 21)`)
+
+	repo := db.NewVerseRepository(conn)
+
 	verses := []models.Verse{
-		{ID: "KR38:Gen:1:1", TranslationID: "KR38", BookID: "Gen", Chapter: 1, Verse: 1, Text: "Alussa loi Jumala taivaan ja maan."},
-		{ID: "KR38:Gen:1:2", TranslationID: "KR38", BookID: "Gen", Chapter: 1, Verse: 2, Text: "Ja maa oli autio ja tyhjä."},
-		{ID: "KR38:Gen:1:3", TranslationID: "KR38", BookID: "Gen", Chapter: 1, Verse: 3, Text: "Jumala sanoi: 'Tulkoon valkeus'. Ja valkeus tuli."},
+		{ID: "web:Joh:3:16", TranslationID: "web", BookID: "Joh", Chapter: 3, Verse: 16, Text: "For God so loved the world..."},
+		{ID: "web:Joh:3:17", TranslationID: "web", BookID: "Joh", Chapter: 3, Verse: 17, Text: "For God did not send his Son..."},
 	}
-
 	if err := repo.BulkInsert(ctx, verses); err != nil {
-		t.Fatalf("BulkInsert failed: %v", err)
+		t.Fatalf("failed to seed test data: %v", err)
 	}
 
-	// Validate FTS5 token search + regex filter engine integrity
-	params := SearchParams{
-		FTSQuery:     "Jumala",
-		RegexPattern: `valkeus`,
-	}
+	t.Run("single verse", func(t *testing.T) {
+		result, err := repo.GetByReference(ctx, "web", "Joh", 3, 16, 16)
+		if err != nil {
+			t.Fatalf("GetByReference failed: %v", err)
+		}
+		if len(result) != 1 {
+			t.Fatalf("expected 1 verse, got %d", len(result))
+		}
+		if result[0].Text != "For God so loved the world..." {
+			t.Errorf("unexpected verse text: %s", result[0].Text)
+		}
+	})
 
-	results, err := repo.Search(ctx, params)
+	t.Run("verse range", func(t *testing.T) {
+		result, err := repo.GetByReference(ctx, "web", "Joh", 3, 16, 17)
+		if err != nil {
+			t.Fatalf("GetByReference failed: %v", err)
+		}
+		if len(result) != 2 {
+			t.Fatalf("expected 2 verses, got %d", len(result))
+		}
+	})
+
+	t.Run("no match returns empty", func(t *testing.T) {
+		result, err := repo.GetByReference(ctx, "web", "Joh", 99, 1, 1)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result) != 0 {
+			t.Errorf("expected 0 verses, got %d", len(result))
+		}
+	})
+}
+
+func TestVerseRepository_BulkInsert_Empty(t *testing.T) {
+	conn, err := db.InitializeDB(":memory:")
 	if err != nil {
-		t.Fatalf("Search execution failed: %v", err)
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+	defer conn.Close()
+
+	repo := db.NewVerseRepository(conn)
+	if err := repo.BulkInsert(context.Background(), nil); err != nil {
+		t.Errorf("BulkInsert with nil slice should be a no-op, got error: %v", err)
+	}
+}
+
+func TestVerseRepository_Search(t *testing.T) {
+	conn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+	defer conn.Close()
+
+	ctx := context.Background()
+	_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
+	_, _ = conn.ExecContext(ctx, `INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'John', 'NT', 4, 21)`)
+
+	repo := db.NewVerseRepository(conn)
+	verses := []models.Verse{
+		{ID: "web:Joh:3:16", TranslationID: "web", BookID: "Joh", Chapter: 3, Verse: 16, Text: "For God so loved the world"},
+	}
+	if err := repo.BulkInsert(ctx, verses); err != nil {
+		t.Fatalf("failed to seed verses: %v", err)
 	}
 
-	if len(results) != 1 {
-		t.Fatalf("expected 1 final validated match, got %d", len(results))
-	}
+	t.Run("fts match", func(t *testing.T) {
+		results, err := repo.Search(ctx, db.SearchParams{FTSQuery: "loved"})
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Errorf("expected 1 result, got %d", len(results))
+		}
+	})
 
-	if results[0].Verse != 3 {
-		t.Errorf("expected verse 3, got %d", results[0].Verse)
-	}
+	t.Run("fts with regex filter", func(t *testing.T) {
+		results, err := repo.Search(ctx, db.SearchParams{FTSQuery: "loved", RegexPattern: "God"})
+		if err != nil {
+			t.Fatalf("Search with regex failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Errorf("expected 1 result with matching regex, got %d", len(results))
+		}
+	})
 
-	if results[0].ID != "KR38:Gen:1:3" {
-		t.Errorf("expected global composite key 'KR38:Gen:1:3', got '%s'", results[0].ID)
-	}
+	t.Run("regex filters out all results", func(t *testing.T) {
+		results, err := repo.Search(ctx, db.SearchParams{FTSQuery: "loved", RegexPattern: "NOMATCH"})
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 0 {
+			t.Errorf("expected 0 results after regex filter, got %d", len(results))
+		}
+	})
+
+	t.Run("invalid regex returns error", func(t *testing.T) {
+		_, err := repo.Search(ctx, db.SearchParams{FTSQuery: "loved", RegexPattern: "["})
+		if err == nil {
+			t.Error("expected error for invalid regex pattern")
+		}
+	})
 }
