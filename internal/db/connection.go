@@ -8,7 +8,7 @@ import (
 )
 
 // NewConnection open a SQLite database, configures it, and executes pending migrations.
-func NewConnection(dbPath string) (*sql.DB, error) {
+func InitializeDB(dbPath string) (*sql.DB, error) {
 	// Open the database using the pure-Go modernc driver
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {

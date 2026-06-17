@@ -6,7 +6,7 @@ import (
 
 func TestNewConnection_InMemory(t *testing.T) {
 	// Initialize an in-memory database to test bootstrapping and migrations
-	db, err := NewConnection(":memory:")
+	db, err := InitializeDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to initialize database connection: %v", err)
 	}
