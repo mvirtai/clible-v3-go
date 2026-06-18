@@ -29,8 +29,19 @@ tasks:
   backend:test-cov:
     desc: Run all Go unit and integration tests with race detector
     cmds:
-      - go test -coverprofile=coverage.out ./internal/...
-      - go tool cover -func=coverage.out
+      - go test -coverprofile=.cov/coverage.out ./internal/...
+      - go tool cover -func=.cov/coverage.out | tee .cov/coverage.txt
+
+  backend:test-pkg:
+    desc: "Run tests for a specific package and produce coverage report. Usage: task backend:test-pkg PKG=middleware"
+    vars:
+      PKG: '{{default "" .PKG}}'
+    preconditions:
+      - sh: 'test -n "{{.PKG}}"'
+        msg: "Missing PKG argument. Usage: task backend:test-pkg PKG=middleware"
+    cmds:
+      - go test -v -coverprofile=.cov/{{.PKG}}.out ./internal/{{.PKG}}/...
+      - go tool cover -func=.cov/{{.PKG}}.out | tee .cov/{{.PKG}}.txt
 
   backend:build:
     desc: Build the Go HTTP API production binary
