@@ -29,7 +29,7 @@ tasks:
   backend:test-cov:
     desc: Run all Go unit and integration tests with race detector
     cmds:
-      - go test -coverprofile=.cov/coverage.out ./internal/...
+      - go test -v -coverprofile=.cov/coverage.out ./internal/...
       - go tool cover -func=.cov/coverage.out | tee .cov/coverage.txt
 
   backend:test-pkg:

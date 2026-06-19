@@ -1,2 +1,11 @@
 .amazonq/
 pr_stories/
+clible.db
+Taskfile.yml
+.cov/coverage.out
+.cov/coverage.txt
+.cov/db.out
+.cov/db.txt
+.cov/middleware.out
+.cov/middleware.txt
+.notes/roadmap_061826.md
