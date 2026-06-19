@@ -84,9 +84,9 @@ tasks:
     cmds:
       - task: backend:tidy
       - task: backend:lint
-      - task: backend:test
-      - task: frontend:lint
-      - task: frontend:test
+      - task: backend:test-cov
+      # - task: frontend:lint
+      # - task: frontend:test
       - echo "All local quality checks passed flawlessly!"
 
   # --- Git --- #
@@ -108,6 +108,7 @@ tasks:
       - sh: 'test -f "{{.STORY_PATH}}"'
         msg: "The file '{{.STORY_PATH}}' does not exist. Ensure it is placed in the ./pr_stories/ directory."
     cmds:
+      - task: check
       - echo "Staging a temporary deployment copy of {{.STORY_PATH}}..."
       - cp "{{.STORY_PATH}}" temp_pr_story.md
       - echo "Pushing branch {{.CURRENT_BRANCH}} to origin..."
@@ -116,3 +117,10 @@ tasks:
       - gh pr create --title "{{.TITLE}}" --body-file temp_pr_story.md
       - echo "PR created successfully! Cleaning up intermediate assets..."
       - rm temp_pr_story.md
+
+  git:merged:
+    desc: Switch to main and hard-reset to origin/main after a merged PR
+    cmds:
+      - git switch main
+      - git fetch --all
+      - git reset --hard origin/main

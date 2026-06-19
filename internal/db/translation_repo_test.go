@@ -12,7 +12,7 @@ func TestTranslationRepository_CreateAndGetAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to set up database connection: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := NewTranslationRepository(db)
 

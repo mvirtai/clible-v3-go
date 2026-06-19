@@ -15,7 +15,7 @@ func TestVerseService_GetVerses_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize connection: %v", err)
 	}
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	// 2. Seed required structural schema lookup relations
 	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('fin-1992', 'Kirkkoraamattu 1992', 'fi', 'text')`)
@@ -77,7 +77,7 @@ func TestVerseService_GetVerses_FallbackTranslation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize connection: %v", err)
 	}
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('fin-1992', 'Kirkkoraamattu 1992', 'fi', 'text')`)
 	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
@@ -114,7 +114,7 @@ func TestVerseService_SearchVerses_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize connection: %v", err)
 	}
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('fin-1992', 'Kirkkoraamattu 1992', 'fi', 'text')`)
 	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
@@ -153,7 +153,7 @@ func TestVerseService_SearchVerses_RegexFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize connection: %v", err)
 	}
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('fin-1992', 'Kirkkoraamattu 1992', 'fi', 'text')`)
 	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
@@ -188,7 +188,7 @@ func TestVerseService_SearchVerses_InvalidRegex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize connection: %v", err)
 	}
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	verseRepo := db.NewVerseRepository(dbConn)
 	translationRepo := db.NewTranslationRepository(dbConn)

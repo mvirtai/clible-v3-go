@@ -10,7 +10,7 @@ func TestNewConnection_InMemory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to initialize database connection: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Verify that the migrations tracking table has recorded exactly 6 migrations (001 -> 006)
 	var count int

@@ -43,7 +43,7 @@ func (r *VerseRepository) BulkInsert(ctx context.Context, verses []models.Verse)
 	if err != nil {
 		return fmt.Errorf("failed to prepare insert statement: %w", err)
 	}
-	defer stmt.Close()
+	defer func() { _ = stmt.Close() }()
 
 	for _, v := range verses {
 		_, err := stmt.ExecContext(ctx, v.ID, v.TranslationID, v.BookID, v.Chapter, v.Verse, v.Text)
@@ -70,7 +70,7 @@ func (r *VerseRepository) GetByReference(ctx context.Context, translationID, boo
 	if err != nil {
 		return nil, fmt.Errorf("reference lookup failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var verses []models.Verse
 	for rows.Next() {
@@ -122,7 +122,7 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 	if err != nil {
 		return nil, fmt.Errorf("fts5 search query failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var matchedVerses []models.Verse
 

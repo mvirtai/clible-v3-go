@@ -1,52 +1,92 @@
 package main
 
 import (
-	"log"
+	"context"
+	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/mvirtai/clible-v3-go/internal/api"
+	"github.com/mvirtai/clible-v3-go/internal/config"
 	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
 
 func main() {
-	// TODO: Verify the exact connection function name inside internal/db/connection.go
-	// If it is named differently (e.g., db.Connect or db.InitDB), change it here.
-	dbConn, err := db.InitializeDB("clible.db")
-	if err != nil {
-		log.Fatalf("Critical database boot initialization failed: %v", err)
-	}
-	defer dbConn.Close()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 
-	// Initialize both repositories required by the synchronized services contract
+	cfg := config.Load()
+
+	dbConn, err := db.InitializeDB(cfg.DBPath)
+	if err != nil {
+		slog.Error("Critical database boot initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = dbConn.Close() }()
+
+	// --- Repositories ---
 	verseRepo := db.NewVerseRepository(dbConn)
 	translationRepo := db.NewTranslationRepository(dbConn)
+	historyRepo := db.NewSearchHistoryRepository(dbConn) // Injected history repo block
 
-	// Fixes Error #3: Inject both initialized repositories into the service constructor
+	// --- Services ---
 	verseService := services.NewVerseService(verseRepo, translationRepo)
+	historyService := services.NewSearchHistoryService(historyRepo) // Injected history service orchestration
 
-	// Fixes Error #1 & #4: Use 'api' package prefix instead of the undefined 'handlers'
+	// --- API Handlers ---
 	bibleHandler := api.NewBibleHandler(verseService)
+	historyHandler := api.NewHistoryHandler(historyService) // Injected handler controller endpoint entry
 
-	// Setup the global multiplexer (router)
 	mux := http.NewServeMux()
 
-	// Registered endpoints
+	// Verse endpoints
 	mux.HandleFunc("GET /api/verses", bibleHandler.GetVersesByReference)
 	mux.HandleFunc("GET /api/search", bibleHandler.SearchVerses)
 
-	// Configure the HTTP Server production flags for timeout safety
+	// User Telemetry History endpoints
+	mux.HandleFunc("POST /api/history", historyHandler.AddSearch)
+	mux.HandleFunc("GET /api/history", historyHandler.GetRecentHistory)
+
+	var handler http.Handler = mux
+	handler = middleware.Logger(handler)
+	handler = middleware.CORS(handler)
+	handler = middleware.Recovery(handler)
+
 	server := &http.Server{
-		Addr:         ":8080",
-		Handler:      mux,
+		Addr:         ":" + cfg.Port,
+		Handler:      handler,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	log.Printf("Unified Clible-v3 REST backend cleanly executing on http://localhost:8080")
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Server orchestration failed: %v", err)
+	serverErrors := make(chan error, 1)
+	go func() {
+		slog.Info("Unified Clible-v3 REST backend cleanly executing", "port", cfg.Port)
+		serverErrors <- server.ListenAndServe()
+	}()
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErrors:
+		slog.Error("Server orchestration failed unexpectedly", "error", err)
+		os.Exit(1)
+	case sig := <-shutdown:
+		slog.Info("Graceful shutdown sequence triggered cleanly", "signal", sig)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			slog.Error("Server forced to close before completing inflight jobs", "error", err)
+			_ = server.Close()
+			os.Exit(1)
+		}
 	}
 }
