@@ -66,7 +66,7 @@ func (r *SearchHistoryRepository) GetLatest(ctx context.Context, limit int) ([]m
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query for search history: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var history []models.SearchHistory
 	for rows.Next() {

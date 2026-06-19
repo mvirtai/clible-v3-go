@@ -19,7 +19,7 @@ func TestHistoryHandler_Endpoints(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to setup mock db: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	ctx := context.Background()
 	_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)

@@ -27,7 +27,7 @@ func (r *TranslationRepository) GetAll() ([]models.Translation, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query translations: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var translations []models.Translation
 	for rows.Next() {

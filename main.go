@@ -27,7 +27,7 @@ func main() {
 		slog.Error("Critical database boot initialization failed", "error", err)
 		os.Exit(1)
 	}
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	// --- Repositories ---
 	verseRepo := db.NewVerseRepository(dbConn)

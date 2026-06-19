@@ -15,7 +15,7 @@ func TestSearchHistoryRepository_SaveAndGetLatest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	ctx := context.Background()
 

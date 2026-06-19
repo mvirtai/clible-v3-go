@@ -17,7 +17,7 @@ func newTestHandler(t *testing.T) *api.BibleHandler {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	t.Cleanup(func() { conn.Close() })
+	t.Cleanup(func() { _ = conn.Close() })
 
 	_, _ = conn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
 	_, _ = conn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'John', 'NT', 4, 21)`)

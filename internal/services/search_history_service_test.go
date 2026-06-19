@@ -15,7 +15,7 @@ func TestSearchHistoryService_AddAndGetHistory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize test database: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	ctx := context.Background()
 

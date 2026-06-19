@@ -17,13 +17,13 @@ func InitializeDB(dbPath string) (*sql.DB, error) {
 
 	// Enforce foreign key constraints, which are disabled by default in SQLite
 	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to enable foreign key constraints: %w", err)
 	}
 
 	// Execute embedded structural migrations sequentally
 	if err := RunMigrations(db); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to run database migrations: %w", err)
 	}
 

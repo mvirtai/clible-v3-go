@@ -1,6 +1,6 @@
 module github.com/mvirtai/clible-v3-go
 
-go 1.26.2
+go 1.25.0
 
 require (
 	github.com/google/uuid v1.6.0
