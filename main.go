@@ -32,25 +32,37 @@ func main() {
 	// --- Repositories ---
 	verseRepo := db.NewVerseRepository(dbConn)
 	translationRepo := db.NewTranslationRepository(dbConn)
-	historyRepo := db.NewSearchHistoryRepository(dbConn) // Injected history repo block
+	historyRepo := db.NewSearchHistoryRepository(dbConn)
+	scopeRepo := db.NewScopeRepository(dbConn) // Injected scopes repository
+	savedRepo := db.NewSavedRepository(dbConn) // Injected saved asset repository
 
 	// --- Services ---
 	verseService := services.NewVerseService(verseRepo, translationRepo)
-	historyService := services.NewSearchHistoryService(historyRepo) // Injected history service orchestration
+	historyService := services.NewSearchHistoryService(historyRepo)
+	scopeService := services.NewScopeService(scopeRepo, savedRepo) // Injected scopes service business layers
 
 	// --- API Handlers ---
 	bibleHandler := api.NewBibleHandler(verseService)
-	historyHandler := api.NewHistoryHandler(historyService) // Injected handler controller endpoint entry
+	historyHandler := api.NewHistoryHandler(historyService)
+	scopeHandler := api.NewScopeHandler(scopeService) // Injected scopes presentation layer controller
 
 	mux := http.NewServeMux()
 
-	// Verse endpoints
+	// Core Verse & Bible lookup points
 	mux.HandleFunc("GET /api/verses", bibleHandler.GetVersesByReference)
 	mux.HandleFunc("GET /api/search", bibleHandler.SearchVerses)
 
-	// User Telemetry History endpoints
+	// User Telemetry History endpoint paths
 	mux.HandleFunc("POST /api/history", historyHandler.AddSearch)
 	mux.HandleFunc("GET /api/history", historyHandler.GetRecentHistory)
+
+	// Workspace Scopes & Saved Analytics endpoint structures
+	mux.HandleFunc("POST /api/scopes", scopeHandler.CreateScope)
+	mux.HandleFunc("GET /api/scopes", scopeHandler.GetScopes)
+	mux.HandleFunc("DELETE /api/scopes", scopeHandler.DeleteScope)
+	mux.HandleFunc("POST /api/scopes/saved-searches", scopeHandler.SaveSearch)
+	mux.HandleFunc("POST /api/scopes/saved-analyses", scopeHandler.SaveAnalysis)
+	mux.HandleFunc("GET /api/scopes/workspace", scopeHandler.GetScopeWorkspace)
 
 	var handler http.Handler = mux
 	handler = middleware.Logger(handler)
