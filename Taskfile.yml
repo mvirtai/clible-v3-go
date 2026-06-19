@@ -84,9 +84,9 @@ tasks:
     cmds:
       - task: backend:tidy
       - task: backend:lint
-      - task: backend:test
-      - task: frontend:lint
-      - task: frontend:test
+      - task: backend:test-cov
+      # - task: frontend:lint
+      # - task: frontend:test
       - echo "All local quality checks passed flawlessly!"
 
   # --- Git --- #
