@@ -29,7 +29,7 @@ tasks:
   backend:test-cov:
     desc: Run all Go unit and integration tests with race detector
     cmds:
-      - go test -coverprofile=.cov/coverage.out ./internal/...
+      - go test -v -coverprofile=.cov/coverage.out ./internal/...
       - go tool cover -func=.cov/coverage.out | tee .cov/coverage.txt
 
   backend:test-pkg:
@@ -120,7 +120,12 @@ tasks:
 
   git:merged:
     desc: Switch to main and hard-reset to origin/main after a merged PR
+    vars:
+      MERGED_BRANCH:
+        sh: git branch --show-current
     cmds:
       - git switch main
+      - git branch --delete
       - git fetch --all
       - git reset --hard origin/main
+      - git branch -d {{.MERGED_BRANCH}}
