@@ -19,10 +19,9 @@ func NewTranslationHandler(repo *db.TranslationRepository) *TranslationHandler {
 
 // GetTranslations handles GET /api/translations to serve a simple listing array.
 func (h *TranslationHandler) GetTranslations(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	w.Header().Set("Content-Type", "application/json")
 
-	translations, err := h.translationRepo.GetAll(ctx)
+	translations, err := h.translationRepo.GetAll()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to gather installed translations catalog"})
