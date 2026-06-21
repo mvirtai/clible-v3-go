@@ -12,28 +12,33 @@ tasks:
   # --- Backend (Go) Tasks --- #
   backend:tidy:
     desc: Tidy and verify Go module dependencies
+    dir: backend
     cmds:
       - go mod tidy
       - go mod verify
 
   backend:format:
     desc: Auto-format Go source code files
+    dir: backend
     cmds:
       - go fmt ./...
 
   backend:lint:
     desc: Run golangci-lint on the Go source code
+    dir: backend
     cmds:
       - golangci-lint run ./...
 
   backend:test-cov:
     desc: Run all Go unit and integration tests with race detector
+    dir: backend
     cmds:
       - go test -v -coverprofile=.cov/coverage.out ./internal/...
       - go tool cover -func=.cov/coverage.out | tee .cov/coverage.txt
 
   backend:test-pkg:
     desc: "Run tests for a specific package and produce coverage report. Usage: task backend:test-pkg PKG=middleware"
+    dir: backend
     vars:
       PKG: '{{default "" .PKG}}'
     preconditions:
@@ -45,13 +50,21 @@ tasks:
 
   backend:build:
     desc: Build the Go HTTP API production binary
+    dir: backend
     cmds:
       - go build -v -o bin/server ./cmd/api/main.go
 
   backend:run:
     desc: Run the Go HTTP API development bin/server
+    dir: backend
     cmds:
       - go run ./cmd/api/main.go
+
+  backend:dev:
+    desc: Run the Go web-native REST API in watch/live mode
+    dir: backend
+    cmds:
+      - go run main.go
 
   # --- Frontend (React) Tasks ---
   frontend:install:
@@ -78,7 +91,21 @@ tasks:
     cmds:
       - npm run test
 
-  # --- Global Quality Gates ---
+  frontend:dev:
+    desc: Run the React+Vite frontend development bin/server
+    dir: frontend
+    cmds:
+      - pnpm dev
+
+  # --- Global Development --- #
+
+  dev:
+    desc: Boot up both systems concurrently for fullstack workspace development
+    deps:
+      - task: backend:dev
+      - task: frontend:dev
+
+  # --- Global Quality Gates --- #
   check:
     desc: Run all backend and frontend quality checks (lint and test)
     cmds:
