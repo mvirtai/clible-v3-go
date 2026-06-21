@@ -27,3 +27,11 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+backend/.cov/api.out
+backend/.cov/api.txt
+backend/.cov/coverage.out
+backend/.cov/coverage.txt
+backend/.cov/db.out
+backend/.cov/db.txt
+backend/.cov/middleware.out
+backend/.cov/middleware.txt
