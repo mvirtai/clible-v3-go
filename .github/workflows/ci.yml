@@ -11,9 +11,13 @@ permissions:
   pull-requests: read
 
 jobs:
-  lint:
-    name: Code Quality (Lint)
+  backend-pipeline:
+    name: Backend Quality & Tests
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Enforce all commands to run inside the decoupled backend folder
+        working-directory: backend
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -21,28 +25,48 @@ jobs:
       - name: Set up Go environment
         uses: actions/setup-go@v5
         with:
-          go-version-file: "go.mod"
+          # Point straight to the relocated module configuration
+          go-version-file: "backend/go.mod"
           cache: true
 
-      # FIXED: Run golangci-lint natively via 'go run' to support Go 1.26.2 cleanly
       - name: Run golangci-lint natively
         run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run --timeout=5m
-
-  test:
-    name: Execute Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Set up Go environment
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: "go.mod"
-          cache: true
 
       - name: Download Go modules
         run: go mod download
 
       - name: Run unit and integration tests
         run: go test -v -race -coverprofile=coverage.txt ./...
+
+  frontend-pipeline:
+    name: Frontend Quality & Build Verification
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Enforce all commands to run inside the React app layout
+        working-directory: frontend
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up pnpm dependency engine
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify TypeScript strict compilation
+        run: pnpm exec tsc --noEmit
+
+      - name: Run ESLint quality code gates
+        run: pnpm lint
+
+      - name: Execute production build smoke-test
+        run: pnpm build
