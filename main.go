@@ -13,6 +13,7 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/config"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/middleware"
+	"github.com/mvirtai/clible-v3-go/internal/parsers"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
 
@@ -32,25 +33,55 @@ func main() {
 	// --- Repositories ---
 	verseRepo := db.NewVerseRepository(dbConn)
 	translationRepo := db.NewTranslationRepository(dbConn)
-	historyRepo := db.NewSearchHistoryRepository(dbConn) // Injected history repo block
+	historyRepo := db.NewSearchHistoryRepository(dbConn)
+	scopeRepo := db.NewScopeRepository(dbConn)
+	savedRepo := db.NewSavedRepository(dbConn)
 
-	// --- Services ---
+	// --- Services & Parsers ---
 	verseService := services.NewVerseService(verseRepo, translationRepo)
-	historyService := services.NewSearchHistoryService(historyRepo) // Injected history service orchestration
+	historyService := services.NewSearchHistoryService(historyRepo)
+	scopeService := services.NewScopeService(scopeRepo, savedRepo)
+	xmlParser := parsers.NewXMLVerseParser()
+	seedService := services.NewSeedService(verseRepo, xmlParser)
+
+	analyticService, err := services.NewAnalyticService(verseRepo, true, "en")
+	if err != nil {
+		slog.Error("Critical analytics service initialization failed", "error", err)
+		os.Exit(1)
+	}
 
 	// --- API Handlers ---
 	bibleHandler := api.NewBibleHandler(verseService)
-	historyHandler := api.NewHistoryHandler(historyService) // Injected handler controller endpoint entry
+	historyHandler := api.NewHistoryHandler(historyService)
+	scopeHandler := api.NewScopeHandler(scopeService)
+	translationHandler := api.NewTranslationHandler(translationRepo, seedService)
+	analyticsHandler := api.NewAnalyticsHandler(analyticService, verseService)
 
 	mux := http.NewServeMux()
 
-	// Verse endpoints
+	// Verse & Bible endpoints
 	mux.HandleFunc("GET /api/verses", bibleHandler.GetVersesByReference)
 	mux.HandleFunc("GET /api/search", bibleHandler.SearchVerses)
 
-	// User Telemetry History endpoints
+	// Search History endpoints (Clean Go 1.22+ method matching)
 	mux.HandleFunc("POST /api/history", historyHandler.AddSearch)
 	mux.HandleFunc("GET /api/history", historyHandler.GetRecentHistory)
+
+	// Catalog & Streaming Import endpoints
+	mux.HandleFunc("GET /api/translations", translationHandler.GetTranslations)
+	mux.HandleFunc("POST /api/translations/import", translationHandler.ImportTranslation)
+
+	// Workspace Scopes & Saved Analytics endpoints
+	mux.HandleFunc("POST /api/scopes", scopeHandler.CreateScope)
+	mux.HandleFunc("GET /api/scopes", scopeHandler.GetScopes)
+	mux.HandleFunc("DELETE /api/scopes", scopeHandler.DeleteScope)
+	mux.HandleFunc("POST /api/scopes/saved-searches", scopeHandler.SaveSearch)
+	mux.HandleFunc("POST /api/scopes/saved-analyses", scopeHandler.SaveAnalysis)
+	mux.HandleFunc("GET /api/scopes/workspace", scopeHandler.GetScopeWorkspace)
+
+	// Text Analysis Engine endpoints
+	mux.HandleFunc("POST /api/analytics/analyze", analyticsHandler.Analyze)
+	mux.HandleFunc("POST /api/analytics/compare", analyticsHandler.Compare)
 
 	var handler http.Handler = mux
 	handler = middleware.Logger(handler)
