@@ -10,3 +10,20 @@ pr_stories/
 .cov/middleware.txt
 clible.db
 .notes/roadmap_061826.md
+
+# frontend build and dependency artifacts
+frontend/node_modules/
+frontend/dist/
+node_modules/
+dist/
+
+# environment and editor artifacts
+.env
+*.env
+.DS_Store
+.vscode/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
