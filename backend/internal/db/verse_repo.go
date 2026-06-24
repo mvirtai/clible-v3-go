@@ -146,3 +146,9 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 
 	return matchedVerses, nil
 }
+
+// DB returns the underlying sql.DB connection.
+func (r *VerseRepository) DB() *sql.DB {
+	return r.db
+}
+

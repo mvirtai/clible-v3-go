@@ -26,6 +26,29 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 	var inVerse bool
 	var verseNum int
 	var textBuilder strings.Builder
+	var skipDepth int
+
+	emitVerse := func() error {
+		if !inVerse {
+			return nil
+		}
+		inVerse = false
+		cleanText := strings.TrimSpace(strings.Join(strings.Fields(textBuilder.String()), " "))
+		textBuilder.Reset()
+
+		if currentBook != "" && currentChapter > 0 && verseNum > 0 && cleanText != "" {
+			v := models.Verse{
+				BookID:  currentBook,
+				Chapter: currentChapter,
+				Verse:   verseNum,
+				Text:    cleanText,
+			}
+			if err := callback(v); err != nil {
+				return fmt.Errorf("parser streaming callback execution aborted: %w", err)
+			}
+		}
+		return nil
+	}
 
 	for {
 		token, err := decoder.Token()
@@ -40,7 +63,6 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 		case xml.StartElement:
 			tagName := se.Name.Local
 
-			// Handle USFX format element boundaries
 			switch tagName {
 			case "book":
 				for _, attr := range se.Attr {
@@ -56,6 +78,9 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 					}
 				}
 			case "v":
+				if err := emitVerse(); err != nil {
+					return err
+				}
 				for _, attr := range se.Attr {
 					if attr.Name.Local == "id" {
 						// Explicitly ignore returns to pass errcheck lint rules safely
@@ -64,10 +89,14 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 				}
 				inVerse = true
 				textBuilder.Reset()
-			}
-
-			// Handle OSIS container verse format alternative path mapping
-			if tagName == "verse" {
+			case "ve":
+				if err := emitVerse(); err != nil {
+					return err
+				}
+			case "verse":
+				if err := emitVerse(); err != nil {
+					return err
+				}
 				var osisID string
 				for _, attr := range se.Attr {
 					if attr.Name.Local == "osisID" {
@@ -84,33 +113,39 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 					inVerse = true
 					textBuilder.Reset()
 				}
+			case "f", "x":
+				skipDepth++
 			}
 
 		case xml.EndElement:
 			tagName := se.Name.Local
-			if (tagName == "v" || tagName == "verse") && inVerse {
-				inVerse = false
-				cleanText := strings.TrimSpace(strings.Join(strings.Fields(textBuilder.String()), " "))
-
-				if currentBook != "" && currentChapter > 0 && verseNum > 0 && cleanText != "" {
-					v := models.Verse{
-						BookID:  currentBook,
-						Chapter: currentChapter,
-						Verse:   verseNum,
-						Text:    cleanText,
+			switch tagName {
+			case "v":
+				// Only emit if we have text (meaning it was a container tag: <v>text</v>)
+				// If it was self-closing (<v id="1"/>), textBuilder is empty, so we don't emit yet.
+				if inVerse && textBuilder.Len() > 0 {
+					if err := emitVerse(); err != nil {
+						return err
 					}
-					if err := callback(v); err != nil {
-						return fmt.Errorf("parser streaming callback execution aborted: %w", err)
+				}
+			case "verse":
+				if inVerse {
+					if err := emitVerse(); err != nil {
+						return err
 					}
+				}
+			case "f", "x":
+				if skipDepth > 0 {
+					skipDepth--
 				}
 			}
 
 		case xml.CharData:
-			if inVerse {
+			if inVerse && skipDepth == 0 {
 				textBuilder.Write(se)
 			}
 		}
 	}
 
-	return nil
+	return emitVerse()
 }

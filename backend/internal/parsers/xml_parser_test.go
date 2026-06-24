@@ -45,6 +45,41 @@ func TestXMLVerseParser_StreamingFormats(t *testing.T) {
 		}
 	})
 
+	t.Run("successfully streams valid USFX format self-closing tags with footnotes", func(t *testing.T) {
+		usfxMock := `
+		<usfx>
+			<book id="GEN">
+				<c id="1">
+					<v id="1"/>In the beginning, God<f caller="+">Footnote text here</f> created the heavens and the earth.<ve/>
+					<v id="2"/>And the earth was formless.<ve/>
+				</c>
+			</book>
+		</usfx>`
+
+		var results []models.Verse
+		err := parser.ParseStream(strings.NewReader(usfxMock), func(v models.Verse) error {
+			results = append(results, v)
+			return nil
+		})
+
+		if err != nil {
+			t.Fatalf("unexpected parsing collapse error: %v", err)
+		}
+
+		if len(results) != 2 {
+			t.Fatalf("expected 2 structured verses streamed, got %d", len(results))
+		}
+
+		if results[0].Text != "In the beginning, God created the heavens and the earth." {
+			t.Errorf("verse text extracted incorrectly (possibly failed to strip footnote): %q", results[0].Text)
+		}
+
+		if results[1].Text != "And the earth was formless." {
+			t.Errorf("verse text extracted incorrectly: %q", results[1].Text)
+		}
+	})
+
+
 	t.Run("successfully streams valid OSIS standard container element structures", func(t *testing.T) {
 		osisMock := `
 		<osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace">
