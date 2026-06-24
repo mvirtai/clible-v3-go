@@ -66,3 +66,14 @@ func (r *TranslationRepository) Exists(id string) (bool, error) {
 	}
 	return exists, nil
 }
+
+// Delete removes a translation metadata record (and cascades to verses).
+func (r *TranslationRepository) Delete(id string) error {
+	query := "DELETE FROM translations WHERE id = ?"
+	_, err := r.db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete translation: %w", err)
+	}
+	return nil
+}
+

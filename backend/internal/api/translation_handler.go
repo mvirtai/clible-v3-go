@@ -66,6 +66,21 @@ func (h *TranslationHandler) ImportTranslation(w http.ResponseWriter, r *http.Re
 	}
 	defer func() { _ = file.Close() }()
 
+	// If translation already exists, delete it first to ensure clean overwrite (with cascading verses)
+	exists, err := h.translationRepo.Exists(translationID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to check translation existence: " + err.Error()})
+		return
+	}
+	if exists {
+		if err := h.translationRepo.Delete(translationID); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to remove existing translation: " + err.Error()})
+			return
+		}
+	}
+
 	// 1. Create and commit the translation index row metadata footprint first
 	tMeta := models.Translation{
 		ID:       translationID,
