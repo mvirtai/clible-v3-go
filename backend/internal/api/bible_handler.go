@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
@@ -57,7 +58,10 @@ func (h *BibleHandler) GetVersesByReference(w http.ResponseWriter, r *http.Reque
 
 	// Map internal models into the explicit contract expected by the React client
 	frontendVerses := make([]FrontendVerse, len(dbVerses))
-	combinedText := ""
+
+	var combinedText strings.Builder
+	combinedText.Grow(len(dbVerses) * 100)
+
 	for i, v := range dbVerses {
 		frontendVerses[i] = FrontendVerse{
 			BookName: v.BookID,
@@ -66,15 +70,15 @@ func (h *BibleHandler) GetVersesByReference(w http.ResponseWriter, r *http.Reque
 			Text:     v.Text,
 		}
 		if i > 0 {
-			combinedText += " "
+			combinedText.WriteString(" ")
 		}
-		combinedText += v.Text
+		combinedText.WriteString(v.Text)
 	}
 
 	response := FrontendBibleResponse{
 		Reference:       ref,
 		TranslationName: translation,
-		Text:            combinedText,
+		Text:            combinedText.String(),
 		Verses:          frontendVerses,
 	}
 

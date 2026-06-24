@@ -39,3 +39,6 @@ backend/.cov/middleware.txt
 # plans, notes and other internal documents
 .plans
 .notes/
+
+# agents files
+.agents/
