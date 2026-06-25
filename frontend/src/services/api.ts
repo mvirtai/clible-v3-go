@@ -1,7 +1,8 @@
 // src/services/api.ts
-// src/services/api.ts
 import type { BibleResponse, InstalledTranslation, TextStats, ComparisonResult } from "../types/bible";
 import type { SearchHistoryEntry } from "../types/searchQuery";
+import type { SearchVerse } from "../types/search";
+
 
 export class ApiService {
     private baseUrl = '/api';
@@ -20,7 +21,6 @@ export class ApiService {
             , { credentials: 'include' }
         );
         if (!res.ok) throw new Error(`GET ${this.baseUrl}/verses returned ${res.status}`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         return await res.json();
     }
 
@@ -33,13 +33,12 @@ export class ApiService {
      * @throws Error if the request fails.
      * GET /api/search?q=...&translation=...&regex=...
      */
-    async search(query: string, translation: string, regex: boolean): Promise<any> {
+    async search(query: string, translation: string, regex: boolean): Promise<SearchVerse[]> {
         const res = await fetch(
             `   ${this.baseUrl}/search?q=${encodeURIComponent(query)}&translation=${encodeURIComponent(translation)}&regex=${regex}`
             , { credentials: 'include' }
         );
         if (!res.ok) throw new Error(`GET ${this.baseUrl}/search returned ${res.status}`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         return await res.json();
     }
 
@@ -52,7 +51,6 @@ export class ApiService {
     async getTranslations(): Promise<InstalledTranslation[]> {
         const res = await fetch(`${this.baseUrl}/translations`, { credentials: 'include' });
         if (!res.ok) throw new Error(`GET ${this.baseUrl}/translations returned ${res.status}`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         return await res.json();
     }
 

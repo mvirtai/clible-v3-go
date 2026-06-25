@@ -1,6 +1,6 @@
 // src/types/search.ts
 
-import { Verse } from './bible';
+import type { Verse } from './bible';
 
 /**
  * Represents search statistics returned by the FTS5 search engine.
@@ -17,3 +17,17 @@ export interface SearchResponse {
   rows: Verse[];
   statistics?: SearchStatistics;
 }
+
+/**
+ * Represents a single verse returned from the database search.
+ * Matches the backend's models.Verse struct.
+ */
+export interface SearchVerse {
+  id: string;
+  translationId: string;
+  bookId: string;
+  chapter: number;
+  verse: number;
+  text: string;
+}
+
