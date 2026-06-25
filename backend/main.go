@@ -24,7 +24,7 @@ func main() {
 	cfg := config.Load()
 
 	dbConn, err := db.InitializeDB(cfg.DBPath)
-	if err != nil {
+	if err != nil {	
 		slog.Error("Critical database boot initialization failed", "error", err)
 		os.Exit(1)
 	}

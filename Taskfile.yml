@@ -68,34 +68,34 @@ tasks:
 
   # --- Frontend (React) Tasks ---
   frontend:install:
-    desc: Install frontend dependencies using npm
+    desc: Install frontend dependencies using pnpm
     dir: frontend
     cmds:
-      - npm ci
+      - pnpm install
 
   frontend:lint:
     desc: Run linter and type-checks for the React application
     dir: frontend
     cmds:
-      - npm run lint
+      - pnpm run lint
 
   frontend:build:
     desc: Build the production frontend assets
     dir: frontend
     cmds:
-      - npm run build
+      - pnpm run build
 
   frontend:test:
     desc: Run frontend unit tests
     dir: frontend
     cmds:
-      - npm run test
+      - pnpm run test
 
   frontend:dev:
     desc: Run the React+Vite frontend development bin/server
     dir: frontend
     cmds:
-      - pnpm dev
+      - pnpm run dev
 
   # --- Global Development --- #
 
@@ -112,8 +112,8 @@ tasks:
       - task: backend:tidy
       - task: backend:lint
       - task: backend:test-cov
-      # - task: frontend:lint
-      # - task: frontend:test
+      - task: frontend:lint
+      - task: frontend:test
       - echo "All local quality checks passed flawlessly!"
 
   # --- Git --- #
@@ -145,14 +145,58 @@ tasks:
       - echo "PR created successfully! Cleaning up intermediate assets..."
       - rm temp_pr_story.md
 
-  git:merged:
+  git:post-merge-branch:
     desc: Switch to main and hard-reset to origin/main after a merged PR
-    vars:
-      MERGED_BRANCH:
-        sh: git branch --show-current
     cmds:
-      - git switch main
-      - git branch --delete
-      - git fetch --all
-      - git reset --hard origin/main
-      - git branch -d {{.MERGED_BRANCH}}
+      - |
+        CURRENT_BRANCH=$(git branch --show-current)
+        if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+          echo "Error: You are already on $CURRENT_BRANCH. Run this command from your topic branch before switching."
+          exit 1
+        fi
+        echo "Post-merge cleanup for branch: $CURRENT_BRANCH"
+        git switch main
+        git fetch --all
+        git reset --hard origin/main
+        git branch -d "$CURRENT_BRANCH"
+
+
+  git:merge:
+    desc: Squash and merge the current branch's PR on GitHub and delete the branch
+    preconditions:
+      - sh: command -v gh >/dev/null 2>&1
+        msg: "GitHub CLI (gh) is required but not installed."
+    cmds:
+      - gh pr merge --squash --delete-branch
+
+  git:status:
+    desc: Check the status and checks of the current PR on GitHub
+    preconditions:
+      - sh: command -v gh >/dev/null 2>&1
+        msg: "GitHub CLI (gh) is required but not installed."
+    cmds:
+      - gh pr status
+      - gh pr checks
+
+  git:diff:
+    desc: Show diff of the current branch against main branch
+    cmds:
+      - git diff origin/main...HEAD
+
+  git:sync:
+    desc: Fetch latest main and merge it into the current branch
+    cmds:
+      - git fetch origin main
+      - git merge origin/main --no-edit
+
+  git:stage-commit-push:
+    desc: "Stage, commit and push the current branch to origin. USAGE: task git:stage-commit-push MESSAGE='feat: add new feature'"
+    vars:
+      FORCE: '{{.FORCE | default "false"}}'
+    preconditions:
+      - sh: 'test -n "{{.MESSAGE}}"'
+        msg: "Missing MESSAGE argument. Usage: task git:stage-commit-push MESSAGE='feat: add new feature'"
+    cmds:
+      - git add .
+      - git commit -m "{{.MESSAGE}}"
+      - if [ "{{.FORCE}}" = "true" ]; then git push -u origin HEAD --force-with-lease; else git push -u origin HEAD; fi
