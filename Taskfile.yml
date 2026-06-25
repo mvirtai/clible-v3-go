@@ -68,34 +68,34 @@ tasks:
 
   # --- Frontend (React) Tasks ---
   frontend:install:
-    desc: Install frontend dependencies using npm
+    desc: Install frontend dependencies using pnpm
     dir: frontend
     cmds:
-      - npm ci
+      - pnpm install
 
   frontend:lint:
     desc: Run linter and type-checks for the React application
     dir: frontend
     cmds:
-      - npm run lint
+      - pnpm run lint
 
   frontend:build:
     desc: Build the production frontend assets
     dir: frontend
     cmds:
-      - npm run build
+      - pnpm run build
 
   frontend:test:
     desc: Run frontend unit tests
     dir: frontend
     cmds:
-      - npm run test
+      - pnpm run test
 
   frontend:dev:
     desc: Run the React+Vite frontend development bin/server
     dir: frontend
     cmds:
-      - pnpm dev
+      - pnpm run dev
 
   # --- Global Development --- #
 
@@ -112,8 +112,8 @@ tasks:
       - task: backend:tidy
       - task: backend:lint
       - task: backend:test-cov
-      # - task: frontend:lint
-      # - task: frontend:test
+      - task: frontend:lint
+      - task: frontend:test
       - echo "All local quality checks passed flawlessly!"
 
   # --- Git --- #
