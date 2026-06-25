@@ -11,7 +11,7 @@ describe('bookNames utilities', () => {
   describe('bookCitationAbbrevFi', () => {
     it('returns Finnish citation abbreviations correctly', () => {
       expect(bookCitationAbbrevFi('JHN')).toBe('Joh.');
-      expect(bookCitationAbbrevFi('ACT')).toBe('Ap.');
+      expect(bookCitationAbbrevFi('ACT')).toBe('Ap. t.');
       expect(bookCitationAbbrevFi('ROM')).toBe('Room.');
     });
 
