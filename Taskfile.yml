@@ -189,3 +189,14 @@ tasks:
       - git fetch origin main
       - git merge origin/main --no-edit
 
+  git:stage-commit-push:
+    desc: "Stage, commit and push the current branch to origin. USAGE: task git:stage-commit-push MESSAGE='feat: add new feature'"
+    vars:
+      FORCE: '{{.FORCE | default "false"}}'
+    preconditions:
+      - sh: 'test -n "{{.MESSAGE}}"'
+        msg: "Missing MESSAGE argument. Usage: task git:stage-commit-push MESSAGE='feat: add new feature'"
+    cmds:
+      - git add .
+      - git commit -m "{{.MESSAGE}}"
+      - if [ "{{.FORCE}}" = "true" ]; then git push -u origin HEAD --force-with-lease; else git push -u origin HEAD; fi
