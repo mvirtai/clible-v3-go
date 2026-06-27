@@ -1,0 +1,15 @@
+{
+  "name": "clible-v3-docs",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "VitePress documentation site for the clible-v3-go Bible study platform.",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}
