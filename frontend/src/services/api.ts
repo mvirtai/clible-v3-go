@@ -127,6 +127,40 @@ export class ApiService {
             `POST ${this.baseUrl}/analytics/compare returned ${res.status}`);
         return res.json()
     }
+
+    /**
+     * Imports a new translation by sending metadata and XML payload via multipart/form-data.
+     * @param translationId - Short code for the translation (e.g. "web").
+     * @param name - The human readable version of the translation.
+     * @param language - Language code (e.g. "en", "fi")
+     * @param file - The XML File object (USFX, OSIS, Zefania, Beblia format)
+     * @returns A promise resolving to the status message.
+     * POST /api/translations/import
+     */
+    async importTranslation(
+        translationId: string,
+        name: string,
+        language: string,
+        file: File
+    ): Promise<{ id: string, status: string }> {
+        const formData = new FormData();
+        formData.append('translationId', translationId);
+        formData.append('name', name);
+        formData.append('language', language);
+        formData.append('file', file);
+
+        const res = await fetch(`${this.baseUrl}/translations/import`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(`POST ${this.baseUrl}/translations/import returned ${res.status} - ${errData.error || errData.message || 'Unknown error'}`);
+        }
+
+        return await res.json();
+    }
 }
 
 export const apiService = new ApiService();

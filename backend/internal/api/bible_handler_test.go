@@ -83,3 +83,67 @@ func TestBibleHandler_GetVersesByReference_ServiceError(t *testing.T) {
 		t.Errorf("expected status 500 for unimplemented scope, got %d", rr.Code)
 	}
 }
+
+func TestBibleHandler_SearchVerses_Success(t *testing.T) {
+	handler := newTestHandler(t)
+
+	// FTS match test
+	req := httptest.NewRequest(http.MethodGet, "/api/search?q=loved&translation=web", nil)
+	rr := httptest.NewRecorder()
+	handler.SearchVerses(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var results []map[string]any
+	if err := json.NewDecoder(rr.Body).Decode(&results); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("expected 1 search result, got %d", len(results))
+	}
+
+	// Regex match test
+	req = httptest.NewRequest(http.MethodGet, "/api/search?q=^For&translation=web&regex=true", nil)
+	rr = httptest.NewRecorder()
+	handler.SearchVerses(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	if err := json.NewDecoder(rr.Body).Decode(&results); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("expected 1 search result with regex, got %d", len(results))
+	}
+}
+
+func TestBibleHandler_SearchVerses_MissingQuery(t *testing.T) {
+	handler := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/search?translation=web", nil)
+	rr := httptest.NewRecorder()
+	handler.SearchVerses(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestBibleHandler_SearchVerses_InvalidRegexError(t *testing.T) {
+	handler := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/search?q=[invalid&regex=true", nil)
+	rr := httptest.NewRecorder()
+	handler.SearchVerses(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("expected status 500 for invalid regex query, got %d", rr.Code)
+	}
+}
+

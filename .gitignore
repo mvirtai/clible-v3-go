@@ -1,13 +1,7 @@
 .amazonq/
 pr_stories/
-.cov/api.out
-.cov/api.txt
-.cov/coverage.out
-.cov/coverage.txt
-.cov/db.out
-.cov/db.txt
-.cov/middleware.out
-.cov/middleware.txt
+.cov/
+frontend/coverage/
 clible.db
 .notes/roadmap_061826.md
 
@@ -27,14 +21,6 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-backend/.cov/api.out
-backend/.cov/api.txt
-backend/.cov/coverage.out
-backend/.cov/coverage.txt
-backend/.cov/db.out
-backend/.cov/db.txt
-backend/.cov/middleware.out
-backend/.cov/middleware.txt
 
 # plans, notes and other internal documents
 .plans
