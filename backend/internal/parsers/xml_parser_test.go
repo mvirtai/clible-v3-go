@@ -79,7 +79,6 @@ func TestXMLVerseParser_StreamingFormats(t *testing.T) {
 		}
 	})
 
-
 	t.Run("successfully streams valid OSIS standard container element structures", func(t *testing.T) {
 		osisMock := `
 		<osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace">
@@ -106,6 +105,43 @@ func TestXMLVerseParser_StreamingFormats(t *testing.T) {
 
 		if results[0].BookID != "Gen" || results[0].Chapter != 1 || results[0].Verse != 1 {
 			t.Errorf("unexpected OSIS coordinates unpack parameters: %v", results[0])
+		}
+	})
+
+	t.Run("successfully streams valid BEBLIA simple elements structure", func(t *testing.T) {
+		bebliaMock := `
+	  <bible translation="Finnish 1992">
+	   <testament name="Old">
+		<book number="1">
+		 <chapter number="1">
+		  <verse number="1">Alussa Jumala loi taivaan ja maan.</verse>
+		  <verse number="2">Maa oli autio ja tyhjä.</verse>
+		 </chapter>
+		</book>
+	   </testament>
+	  </bible>`
+
+		var results []models.Verse
+		err := parser.ParseStream(strings.NewReader(bebliaMock), func(v models.Verse) error {
+			results = append(results, v)
+			return nil
+		})
+
+		if err != nil {
+			t.Fatalf("unexpected beblia parsing collapse error: %v", err)
+		}
+
+		if len(results) != 2 {
+			t.Fatalf("expected 2 structured verses streamed, got %d", len(results))
+		}
+
+		// Kirja numero 1 on GEN
+		if results[0].BookID != "GEN" || results[0].Chapter != 1 || results[0].Verse != 1 {
+			t.Errorf("beblia coordinates unpacked incorrectly: %v", results[0])
+		}
+
+		if results[0].Text != "Alussa Jumala loi taivaan ja maan." {
+			t.Errorf("beblia verse text extracted incorrectly: %q", results[0].Text)
 		}
 	})
 }
