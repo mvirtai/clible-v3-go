@@ -33,8 +33,9 @@ tasks:
     desc: Run all Go unit and integration tests with race detector
     dir: backend
     cmds:
-      - go test -v -coverprofile=.cov/coverage.out ./internal/...
-      - go tool cover -func=.cov/coverage.out | tee .cov/coverage.txt
+      - mkdir -p ../.cov/backend
+      - go test -v -race -coverprofile=../.cov/backend/coverage.out ./internal/...
+      - go tool cover -func=../.cov/backend/coverage.out | tee ../.cov/backend/coverage.txt
 
   backend:test-pkg:
     desc: "Run tests for a specific package and produce coverage report. Usage: task backend:test-pkg PKG=middleware"
@@ -45,8 +46,10 @@ tasks:
       - sh: 'test -n "{{.PKG}}"'
         msg: "Missing PKG argument. Usage: task backend:test-pkg PKG=middleware"
     cmds:
-      - go test -v -coverprofile=.cov/{{.PKG}}.out ./internal/{{.PKG}}/...
-      - go tool cover -func=.cov/{{.PKG}}.out | tee .cov/{{.PKG}}.txt
+      - mkdir -p ../.cov/backend
+      - go test -v -race -coverprofile=../.cov/backend/{{.PKG}}.out ./internal/{{.PKG}}/...
+      - go tool cover -func=../.cov/backend/{{.PKG}}.out | tee ../.cov/backend/{{.PKG}}.txt
+
 
   backend:build:
     desc: Build the Go HTTP API production binary
@@ -89,7 +92,20 @@ tasks:
     desc: Run frontend unit tests
     dir: frontend
     cmds:
-      - pnpm run test
+      - pnpm run test -- --reporter=verbose
+
+  frontend:test-cov:
+    desc: Run frontend unit tests and produce coverage report
+    dir: frontend
+    cmds:
+      - pnpm run test -- --coverage --reporter=verbose
+
+  frontend:test-ui:
+    desc: Run frontend unit tests with Vitest UI
+    dir: frontend
+    cmds:
+      - pnpm run test -- --coverage --reporter=html
+
 
   frontend:dev:
     desc: Run the React+Vite frontend development bin/server
@@ -107,14 +123,28 @@ tasks:
 
   # --- Global Quality Gates --- #
   check:
-    desc: Run all backend and frontend quality checks (lint and test)
+    desc: Run all backend and frontend quality checks concurrently (lint and test)
+    deps:
+      - task: backend:check
+      - task: frontend:check
+    cmds:
+      - echo "All local quality checks passed flawlessly!"
+
+  backend:check:
+    desc: Run all backend quality checks (tidy, lint, and test-cov)
+    dir: backend
     cmds:
       - task: backend:tidy
       - task: backend:lint
       - task: backend:test-cov
+
+  frontend:check:
+    desc: Run all frontend quality checks (lint and test-cov)
+    dir: frontend
+    cmds:
       - task: frontend:lint
-      - task: frontend:test
-      - echo "All local quality checks passed flawlessly!"
+      - task: frontend:test-cov
+
 
   # --- Git --- #
   # --- Git & GitHub Automation ---
@@ -183,11 +213,11 @@ tasks:
     cmds:
       - git diff origin/main...HEAD
 
-  git:sync:
+  git:sync-after-merge:
     desc: Fetch latest main and merge it into the current branch
     cmds:
-      - git fetch origin main
-      - git merge origin/main --no-edit
+      - git fetch --all
+      - git reset --hard origin/main 
 
   git:stage-commit-push:
     desc: "Stage, commit and push the current branch to origin. USAGE: task git:stage-commit-push MESSAGE='feat: add new feature'"
