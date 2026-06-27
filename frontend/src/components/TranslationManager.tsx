@@ -11,13 +11,40 @@ interface PresetTranslation {
   id: string;
   name: string;
   lang: string;
-  filename: string;
+  url: string;
 }
 
 const PRESET_TRANSLATIONS: PresetTranslation[] = [
-  { id: 'fin-biblia', name: 'Biblia (1776)', lang: 'fi', filename: 'fin-biblia.osis.xml' },
-  { id: 'web', name: 'World English Bible', lang: 'en', filename: 'eng-web.osis.xml' },
-  { id: 'kjv', name: 'King James Version', lang: 'en', filename: 'eng-kjv.osis.xml' },
+  {
+    id: 'fin-1992',
+    name: 'Kirkkoraamattu (1992)',
+    lang: 'fi',
+    url: 'https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/Finnish1992Bible.xml'
+  },
+  {
+    id: 'fin-biblia-33-38',
+    name: 'Kirkkoraamattu (1933/38)',
+    lang: 'fi',
+    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/fin-biblia.osis.xml'
+  },
+  {
+    id: 'fin-1776',
+    name: 'Biblia (1776)',
+    lang: 'fi',
+    url: 'https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/Finnish1776Bible.xml'
+  },
+  {
+    id: 'web',
+    name: 'World English Bible',
+    lang: 'en',
+    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/eng-web.usfx.xml'
+  },
+  {
+    id: 'kjv',
+    name: 'King James Version',
+    lang: 'en',
+    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/eng-kjv.osis.xml'
+  },
 ];
 
 export const TranslationManager: React.FC<Props> = ({ onTranslationInstalled }) => {
@@ -67,7 +94,8 @@ export const TranslationManager: React.FC<Props> = ({ onTranslationInstalled }) 
   const handleInstallPreset = async (preset: PresetTranslation) => {
     setLoading(true);
     setStatus(null);
-    const url = `https://raw.githubusercontent.com/seven1m/open-bibles/master/${preset.filename}`;
+    const url = preset.url;
+    const filename = url.substring(url.lastIndexOf('/') + 1);
 
     try {
       setStatus({ type: 'success', message: `Downloading translation "${preset.name}" from GitHub...` });
@@ -76,20 +104,23 @@ export const TranslationManager: React.FC<Props> = ({ onTranslationInstalled }) 
       if (!response.ok) throw new Error(`File download failed (HTTP ${response.status})`);
 
       const blob = await response.blob();
-      const xmlFile = new File([blob], preset.filename, { type: "text/xml" });
+      const xmlFile = new File([blob], filename, { type: "text/xml" });
 
-      setStatus({ type: 'success', message: `Translation file downloaded. Installing into database "${preset.id}" (this may take 10-30 seconds)...` });
+      setStatus({ type: 'success', message: `Translation file downloaded. Installing into database "${preset.id}" (this may take 10-30 seconds...)` });
       await apiService.importTranslation(preset.id, preset.name, preset.lang, xmlFile);
 
-      setStatus({ type: 'success', message: `Translation "${preset.name}" successfully installed!` });
+      setStatus({ type: 'success', message: `Translation "${preset.name}" successfully installed and ready to use!` });
       if (onTranslationInstalled) onTranslationInstalled();
-    } catch (err: unknown) {
+    }
+    catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setStatus({ type: 'error', message: msg || `Installation of ${preset.name} failed.` });
-    } finally {
+      setStatus({ type: 'error', message: msg || 'Installation failed. Please check the file format and try again.' });
+    }
+    finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="rounded-3xl p-8 space-y-6" style={{
@@ -113,7 +144,7 @@ export const TranslationManager: React.FC<Props> = ({ onTranslationInstalled }) 
       {/* Preset installations */}
       <div className="space-y-3 pb-6" style={{ borderBottom: '1px solid var(--border-soft)' }}>
         <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
-          Install from Web (GitHub: open-bibles)
+          Install from Web (GitHub presets)
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {PRESET_TRANSLATIONS.map((preset) => (

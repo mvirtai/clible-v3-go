@@ -4,11 +4,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('ApiService', () => {
     beforeEach(() => {
-        // Tyhjennetään mahdolliset aiemmat mock-kutsut ennen jokaista testiä
+        // Clear potential previous mock calls before each test
         vi.restoreAllMocks();
     });
 
-    it('hakee jakeet onnistuneesti backendiltä (getVerses)', async () => {
+    it('fetches verses successfully from backend (getVerses)', async () => {
         const mockResponse = {
             reference: 'John 3:16',
             verses: [{ bookName: 'John', chapter: 3, verse: 16, text: 'For God so loved...' }],
@@ -16,7 +16,7 @@ describe('ApiService', () => {
             translationName: 'World English Bible',
         };
 
-        // Asetetaan globaali fetch palauttamaan valevastaus
+        // Set global fetch to return a mock response
         globalThis.fetch = vi.fn().mockResolvedValue({
             ok: true,
             json: async () => mockResponse,
@@ -32,7 +32,7 @@ describe('ApiService', () => {
         );
     });
 
-    it('heittää virheen jos verses-pyyntö epäonnistuu', async () => {
+    it('throws an error if verses request fails', async () => {
         globalThis.fetch = vi.fn().mockResolvedValue({
             ok: false,
             status: 500,
@@ -41,7 +41,7 @@ describe('ApiService', () => {
         await expect(apiService.getVerses('John 3:16', 'web')).rejects.toThrow('GET /api/verses returned 500');
     });
 
-    it('hakee asennetut käännökset onnistuneesti (getTranslations)', async () => {
+    it('fetches installed translations successfully (getTranslations)', async () => {
         const mockTranslations = [
             { id: 'web', name: 'World English Bible', language: 'en', format: 'xml', sourceUrl: '', installedAt: '' }
         ];
@@ -61,7 +61,7 @@ describe('ApiService', () => {
         );
     });
 
-    it('tallentaa hakuhistorian onnistuneesti (addSearch)', async () => {
+    it('saves search history successfully (addSearch)', async () => {
         globalThis.fetch = vi.fn().mockResolvedValue({
             ok: true,
         } as Response);
@@ -82,6 +82,27 @@ describe('ApiService', () => {
             expect.objectContaining({
                 method: 'POST',
                 body: JSON.stringify(payload)
+            })
+        );
+    });
+
+    it('imports a new translation successfully (importTranslation)', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ id: 'fin-1992', status: 'imported' }),
+        } as Response);
+
+        const file = new File(['<bible></bible>'], 'Finnish1992Bible.xml', { type: 'text/xml' });
+
+        const result = await apiService.importTranslation('fin-1992', 'Kirkkoraamattu 1992', 'fi', file);
+
+        expect(result.id).toBe('fin-1992');
+        expect(result.status).toBe('imported');
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/translations/import'),
+            expect.objectContaining({
+                method: 'POST',
+                body: expect.any(FormData),
             })
         );
     });

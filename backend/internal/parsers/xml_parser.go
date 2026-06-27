@@ -9,6 +9,19 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
 
+// orderedBookIDs is a mapping of book numbers to canonical book IDs used by Beblia-XML format.
+var orderedBookIDs = []string{
+	// Old Testament
+	"GEN", "EXO", "LEV", "NUM", "DEU", "JOS", "JDG", "RUT", "1SA", "2SA",
+	"1KI", "2KI", "1CH", "2CH", "EZR", "NEH", "EST", "JOB", "PSA", "PRO",
+	"ECC", "SNG", "ISA", "JER", "LAM", "EZK", "DAN", "HOS", "JOL", "AMO",
+	"OBD", "JON", "MIC", "NAM", "HAB", "ZEP", "HAG", "ZEC", "MAL",
+	// New Testament
+	"MAT", "MRK", "LUK", "JHN", "ACT", "ROM", "1CO", "2CO", "GAL", "EPH",
+	"PHP", "COL", "1TH", "2TH", "1TI", "2TI", "TIT", "PHM", "HEB", "JAS",
+	"1PE", "2PE", "1JN", "2JN", "3JN", "JUD", "REV",
+}
+
 // XMLVerseParser defines the streaming core block for scripture files decoding.
 type XMLVerseParser struct{}
 
@@ -65,26 +78,47 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 
 			switch tagName {
 			case "book":
+				currentBook = ""
 				for _, attr := range se.Attr {
-					if attr.Name.Local == "id" {
+					switch attr.Name.Local {
+					case "id":
 						currentBook = attr.Value
+					case "number":
+						var bookNum int
+						if _, err := fmt.Sscanf(attr.Value, "%d", &bookNum); err == nil {
+							if bookNum >= 1 && bookNum <= len(orderedBookIDs) {
+								currentBook = orderedBookIDs[bookNum-1]
+							}
+						}
 					}
 				}
-			case "c":
+			case "c", "chapter":
+				currentChapter = 0
 				for _, attr := range se.Attr {
-					if attr.Name.Local == "id" {
+					if attr.Name.Local == "id" || attr.Name.Local == "number" {
 						// Explicitly ignore returns to pass errcheck lint rules safely
 						_, _ = fmt.Sscanf(attr.Value, "%d", &currentChapter)
 					}
 				}
-			case "v":
+			case "v", "verse":
 				if err := emitVerse(); err != nil {
 					return err
 				}
+				verseNum = 0
 				for _, attr := range se.Attr {
-					if attr.Name.Local == "id" {
+					switch attr.Name.Local {
+					case "id", "number":
 						// Explicitly ignore returns to pass errcheck lint rules safely
 						_, _ = fmt.Sscanf(strings.Split(attr.Value, "-")[0], "%d", &verseNum)
+					case "osisID":
+						// Parse standard OSIS format like "Gen.1.1"
+						parts := strings.Split(attr.Value, ".")
+						if len(parts) == 3 {
+							currentBook = parts[0]
+							// Explicitly ignore returns to pass errcheck lint rules safely
+							_, _ = fmt.Sscanf(parts[1], "%d", &currentChapter)
+							_, _ = fmt.Sscanf(parts[2], "%d", &verseNum)
+						}
 					}
 				}
 				inVerse = true
@@ -93,26 +127,6 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 				if err := emitVerse(); err != nil {
 					return err
 				}
-			case "verse":
-				if err := emitVerse(); err != nil {
-					return err
-				}
-				var osisID string
-				for _, attr := range se.Attr {
-					if attr.Name.Local == "osisID" {
-						osisID = attr.Value
-					}
-				}
-				// Parse standard format like "Gen.1.1"
-				parts := strings.Split(osisID, ".")
-				if len(parts) == 3 {
-					currentBook = parts[0]
-					// Explicitly ignore returns to pass errcheck lint rules safely
-					_, _ = fmt.Sscanf(parts[1], "%d", &currentChapter)
-					_, _ = fmt.Sscanf(parts[2], "%d", &verseNum)
-					inVerse = true
-					textBuilder.Reset()
-				}
 			case "f", "x":
 				skipDepth++
 			}
@@ -120,16 +134,8 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 		case xml.EndElement:
 			tagName := se.Name.Local
 			switch tagName {
-			case "v":
-				// Only emit if we have text (meaning it was a container tag: <v>text</v>)
-				// If it was self-closing (<v id="1"/>), textBuilder is empty, so we don't emit yet.
-				if inVerse && textBuilder.Len() > 0 {
-					if err := emitVerse(); err != nil {
-						return err
-					}
-				}
-			case "verse":
-				if inVerse {
+			case "v", "verse":
+				if inVerse && (tagName == "verse" || textBuilder.Len() > 0) {
 					if err := emitVerse(); err != nil {
 						return err
 					}
