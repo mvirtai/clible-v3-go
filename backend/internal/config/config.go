@@ -4,8 +4,9 @@ import "os"
 
 // Config holds all environmental runtime settings for the application
 type Config struct {
-	Port   string
-	DBPath string
+	Port       string
+	DBPath      string
+	FrontendDir string
 }
 
 // Load read configuration from environment variables or applies fallback defaults.
@@ -20,8 +21,14 @@ func Load() *Config {
 		dbPath = "clible.db"
 	}
 
+	frontendDir := os.Getenv("FRONTEND_DIR")
+	if frontendDir == "" {
+		frontendDir = "../frontend/dist"
+	}
+
 	return &Config{
-		Port:   port,
-		DBPath: dbPath,
+		Port:       port,
+		DBPath:      dbPath,
+		FrontendDir: frontendDir,
 	}
 }

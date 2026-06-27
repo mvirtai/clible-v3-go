@@ -6,8 +6,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/mvirtai/clible-v3-go/internal/api"
 	"github.com/mvirtai/clible-v3-go/internal/config"
@@ -24,7 +28,7 @@ func main() {
 	cfg := config.Load()
 
 	dbConn, err := db.InitializeDB(cfg.DBPath)
-	if err != nil {	
+	if err != nil {
 		slog.Error("Critical database boot initialization failed", "error", err)
 		os.Exit(1)
 	}
@@ -83,7 +87,29 @@ func main() {
 	mux.HandleFunc("POST /api/analytics/analyze", analyticsHandler.Analyze)
 	mux.HandleFunc("POST /api/analytics/compare", analyticsHandler.Compare)
 
+	// Static SPA fallback
+	fs := http.FileServer(http.Dir(cfg.FrontendDir))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			http.Error(w, "API endpoint not found", http.StatusNotFound)
+			return
+		}
+
+		filePath := filepath.Join(cfg.FrontendDir, r.URL.Path)
+		info, err := os.Stat(filePath)
+
+		if os.IsNotExist(err) || info.IsDir() {
+			http.ServeFile(w, r, filepath.Join(cfg.FrontendDir, "index.html"))
+			return
+		}
+
+		fs.ServeHTTP(w, r)
+	})
+
+	limiter := middleware.NewIPRateLimiter(rate.Limit(2), 10)
+
 	var handler http.Handler = mux
+	handler = middleware.RateLimitMiddleware(limiter)(handler)
 	handler = middleware.Logger(handler)
 	handler = middleware.CORS(handler)
 	handler = middleware.Recovery(handler)
