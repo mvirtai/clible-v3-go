@@ -34,9 +34,10 @@ describe('TranslationManager', () => {
   });
 
   it('renders preset translation cards', async () => {
-    root = createRoot(container!);
+    const r = createRoot(container!);
+    root = r;
     await act(async () => {
-      root.render(<TranslationManager />);
+      r.render(<TranslationManager />);
     });
 
     const textContent = container!.textContent || '';
@@ -53,9 +54,10 @@ describe('TranslationManager', () => {
       blob: async () => mockBlob,
     } as Response);
 
-    root = createRoot(container!);
+    const r = createRoot(container!);
+    root = r;
     await act(async () => {
-      root.render(<TranslationManager />);
+      r.render(<TranslationManager />);
     });
 
     // Find the Kirkkoraamattu (1992) button
