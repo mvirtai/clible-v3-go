@@ -90,65 +90,84 @@ type SearchParams struct {
 	TranslationID string
 }
 
-// Search performs high-performance text lookups leveraging the SQLite FTS5 table
-// joined via internal rowid and filters matches via Go's regexp package.
+// Search performs high-performance text lookups.
+// When FTSQuery is set, it uses the SQLite FTS5 virtual table for fast word matching.
+// When RegexPattern is set, it performs a full table scan filtered by Go's regexp engine.
 func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]models.Verse, error) {
-	var regex *regexp.Regexp
-	var err error
+	var (
+		rows *sql.Rows
+		err  error
+	)
 
 	if params.RegexPattern != "" {
-		regex, err = regexp.Compile(params.RegexPattern)
-		if err != nil {
-			return nil, fmt.Errorf("invalid regex pattern: %w", err)
+		// --- Regex mode: full table scan + Go regexp filter ---
+		regex, compileErr := regexp.Compile(params.RegexPattern)
+		if compileErr != nil {
+			return nil, fmt.Errorf("invalid regex pattern: %w", compileErr)
 		}
+
+		baseQuery := `
+			SELECT id, translation_id, book_id, chapter, verse, text
+			FROM verses
+		`
+		args := []any{}
+		if params.TranslationID != "" {
+			baseQuery += " WHERE translation_id = ?"
+			args = append(args, params.TranslationID)
+		}
+		baseQuery += " ORDER BY book_id ASC, chapter ASC, verse ASC"
+
+		rows, err = r.db.QueryContext(ctx, baseQuery, args...)
+		if err != nil {
+			return nil, fmt.Errorf("regex table scan query failed: %w", err)
+		}
+		defer func() { _ = rows.Close() }()
+
+		var matched []models.Verse
+		for rows.Next() {
+			var v models.Verse
+			if scanErr := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); scanErr != nil {
+				return nil, fmt.Errorf("failed to scan verse row: %w", scanErr)
+			}
+			if regex.MatchString(v.Text) {
+				matched = append(matched, v)
+			}
+		}
+		return matched, rows.Err()
 	}
 
-	// Cleaned up: Removed the 'f' alias to prevent SQLite from misinterpreting
-	// the MATCH operand as a standard column identifier.
+	// --- FTS5 mode: fast full-text search via virtual table ---
 	args := []any{params.FTSQuery}
-	query := `
+	ftsQuery := `
 		SELECT v.id, v.translation_id, v.book_id, v.chapter, v.verse, v.text
 		FROM verses v
 		JOIN verses_fts ON v.rowid = verses_fts.rowid
 		WHERE verses_fts MATCH ?
 	`
 	if params.TranslationID != "" {
-		query += " AND v.translation_id = ?"
+		ftsQuery += " AND v.translation_id = ?"
 		args = append(args, params.TranslationID)
 	}
-	query += " ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC"
+	ftsQuery += " ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC"
 
-	rows, err := r.db.QueryContext(ctx, query, args...)
+	rows, err = r.db.QueryContext(ctx, ftsQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("fts5 search query failed: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
 	var matchedVerses []models.Verse
-
 	for rows.Next() {
 		var v models.Verse
-		err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan search row: %w", err)
+		if scanErr := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); scanErr != nil {
+			return nil, fmt.Errorf("failed to scan search row: %w", scanErr)
 		}
-
-		if regex != nil && !regex.MatchString(v.Text) {
-			continue
-		}
-
 		matchedVerses = append(matchedVerses, v)
 	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error encountered during row iteration: %w", err)
-	}
-
-	return matchedVerses, nil
+	return matchedVerses, rows.Err()
 }
 
 // DB returns the underlying sql.DB connection.
 func (r *VerseRepository) DB() *sql.DB {
 	return r.db
 }
-

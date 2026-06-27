@@ -92,7 +92,7 @@ func (h *BibleHandler) SearchVerses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	query := r.URL.Query().Get("q")
-	regex := r.URL.Query().Get("regex")
+	useRegex := r.URL.Query().Get("regex") == "true"
 	translation := r.URL.Query().Get("translation")
 
 	if query == "" {
@@ -101,7 +101,7 @@ func (h *BibleHandler) SearchVerses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results, err := h.verseService.SearchVerses(ctx, query, regex, translation)
+	results, err := h.verseService.SearchVerses(ctx, query, useRegex, translation)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "search operation failed: " + err.Error()})

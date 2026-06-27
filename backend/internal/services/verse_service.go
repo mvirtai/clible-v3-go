@@ -81,11 +81,16 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 }
 
 // SearchVerses delegates the search operation to the repository layer.
-func (s *VerseService) SearchVerses(ctx context.Context, ftsQuery string, regexPattern string, translationID string) ([]models.Verse, error) {
+// When useRegex is true, the query is treated as a Go regexp pattern applied
+// against a full table scan. When false, FTS5 MATCH is used for fast full-text search.
+func (s *VerseService) SearchVerses(ctx context.Context, query string, useRegex bool, translationID string) ([]models.Verse, error) {
 	params := db.SearchParams{
-		FTSQuery:      ftsQuery,
-		RegexPattern:  regexPattern,
 		TranslationID: translationID,
+	}
+	if useRegex {
+		params.RegexPattern = query
+	} else {
+		params.FTSQuery = query
 	}
 	return s.verseRepo.Search(ctx, params)
 }
