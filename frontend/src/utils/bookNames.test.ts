@@ -5,6 +5,7 @@ import {
   bookAbbrevOrId,
   bookName,
   bookNameLocalized,
+  resolveBookId,
 } from './bookNames';
 
 describe('bookNames utilities', () => {
@@ -54,6 +55,34 @@ describe('bookNames utilities', () => {
     it('resolves localized book names correctly', () => {
       expect(bookNameLocalized('GEN', 'fi')).toBe('1. Mooseksen kirja');
       expect(bookNameLocalized('GEN', 'en')).toBe('Genesis');
+    });
+  });
+
+  describe('resolveBookId', () => {
+    it('resolves exact book IDs', () => {
+      expect(resolveBookId('jhn')).toBe('JHN');
+      expect(resolveBookId('GEN')).toBe('GEN');
+    });
+
+    it('resolves English names and abbreviations case-insensitively', () => {
+      expect(resolveBookId('john')).toBe('JHN');
+      expect(resolveBookId('John')).toBe('JHN');
+      expect(resolveBookId('genesis')).toBe('GEN');
+    });
+
+    it('resolves Finnish names, abbreviations, and aliases', () => {
+      expect(resolveBookId('joh')).toBe('JHN');
+      expect(resolveBookId('joh.')).toBe('JHN');
+      expect(resolveBookId('Johannes')).toBe('JHN');
+      expect(resolveBookId('1. Moos')).toBe('GEN');
+      expect(resolveBookId('1 Moos')).toBe('GEN');
+      expect(resolveBookId('1Moos')).toBe('GEN');
+      expect(resolveBookId('Ensimmäinen Mooseksen kirja')).toBe('GEN');
+    });
+
+    it('returns null for unknown book representations', () => {
+      expect(resolveBookId('unknownbook')).toBeNull();
+      expect(resolveBookId('')).toBeNull();
     });
   });
 });

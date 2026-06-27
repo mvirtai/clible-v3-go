@@ -96,3 +96,42 @@ export function bookNameLocalized(id: string, lang: UILanguage): string {
   }
   return bookName(id);
 }
+
+/**
+ * Builds a lookup map from every recognizable book alias -> canonical book ID.
+ * Normalisation: lowercase, strip dots, collapse whitespace
+ */
+const buildAliasIndex = (): Map<string, string> => {
+  const map = new Map<string, string>();
+  const normalize = (s: string) =>
+    s.toLowerCase().replace(/\./g, '').replace(/\s+/g, '').trim();
+
+  for (const [id, meta] of Object.entries(BOOK_LOCALE)) {
+    // canonical id itself (e.g. "jhn")
+    map.set(normalize(id), id);
+    // English name (e.g. "john")
+    map.set(normalize(meta.en), id);
+    // Finnish name (e.g. "evankeliumi johanneksen mukaan")
+    map.set(normalize(meta.fi), id);
+    // Finnish abbreviation (e.g. "joh")
+    if (meta.abbr_fi) map.set(normalize(meta.abbr_fi), id);
+    // All Finnish aliases
+    for (const alias of meta.aliases_fi ?? []) {
+      map.set(normalize(alias), id);
+    }
+  }
+
+  return map;
+}
+
+const ALIAS_INDEX: Map<string, string> = buildAliasIndex();
+
+/**
+ * Resolves any user-typed book name to the canonical 3-letter book ID
+ * stored in the database (e.g. "joh.", "John", "johannes" -> "JHN")
+ * Return null if the input is not recognised.
+ */
+export const resolveBookId = (raw: string): string | null => {
+  const key = raw.toLowerCase().replace(/\./g, '').replace(/\s+/g, '').trim();
+  return ALIAS_INDEX.get(key) ?? null;
+}
