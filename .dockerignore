@@ -1,0 +1,25 @@
+# Git and documentation
+.git
+.gitignore
+.github
+.plans
+.notes
+docs
+docs-site
+
+# Local dependencies and build results
+**/node_modules
+**/dist
+**/.cov
+**/cache
+
+# Local databases and secrets
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+.env*
+
+# Go-binaries
+backend/clible-server
+clible-v3-go
