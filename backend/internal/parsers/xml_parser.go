@@ -78,6 +78,7 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 
 			switch tagName {
 			case "book":
+				currentBook = ""
 				for _, attr := range se.Attr {
 					switch attr.Name.Local {
 					case "id":
@@ -92,6 +93,7 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 					}
 				}
 			case "c", "chapter":
+				currentChapter = 0
 				for _, attr := range se.Attr {
 					if attr.Name.Local == "id" || attr.Name.Local == "number" {
 						// Explicitly ignore returns to pass errcheck lint rules safely
@@ -102,6 +104,7 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 				if err := emitVerse(); err != nil {
 					return err
 				}
+				verseNum = 0
 				for _, attr := range se.Attr {
 					switch attr.Name.Local {
 					case "id", "number":
