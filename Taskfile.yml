@@ -230,3 +230,16 @@ tasks:
       - git add .
       - git commit -m "{{.MESSAGE}}"
       - if [ "{{.FORCE}}" = "true" ]; then git push -u origin HEAD --force-with-lease; else git push -u origin HEAD; fi
+
+
+  # --- Docker Tasks --- #
+  docker:build:
+    desc: Build the unified production Docker image using BuildKit
+    cmds: 
+      - docker build -t clible-v3 .
+
+  docker:run:
+    desc: Run the unified production Docker image locally
+    cmds:
+      - echo "Starting Clible-v3 container on http://localhost:8080"
+      - docker run -p 8080:8080 --name clible-v3-app --rm clible-v3
