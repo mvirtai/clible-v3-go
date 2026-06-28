@@ -16,6 +16,18 @@ func TestTranslationRepository_CreateAndGetAll(t *testing.T) {
 
 	repo := NewTranslationRepository(db)
 
+	// Test 0: Verify GetAll returns an empty list (non-nil) when database is empty
+	emptyList, err := repo.GetAll()
+	if err != nil {
+		t.Fatalf("Failed to fetch all translations on empty database: %v", err)
+	}
+	if emptyList == nil {
+		t.Error("Expected empty slice on empty database, got nil")
+	}
+	if len(emptyList) != 0 {
+		t.Errorf("Expected exactly 0 translations on empty database, got %d", len(emptyList))
+	}
+
 	// Construct a dummy translation record matching our model domain
 	mockTranslation := models.Translation{
 		ID:        "web",

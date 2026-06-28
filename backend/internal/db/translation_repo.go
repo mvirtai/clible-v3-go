@@ -29,7 +29,7 @@ func (r *TranslationRepository) GetAll() ([]models.Translation, error) {
 	}
 	defer func() { _ = rows.Close() }()
 
-	var translations []models.Translation
+	translations := []models.Translation{}
 	for rows.Next() {
 		var t models.Translation
 		// Scan matches database row columns cleanly directly into our struct fields
