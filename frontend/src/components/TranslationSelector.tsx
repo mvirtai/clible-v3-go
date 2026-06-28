@@ -47,7 +47,8 @@ export const TranslationSelector: React.FC<Props> = ({
     return () => {
       active = false;
     };
-  }, [refreshTrigger, selectedTranslation, onSelectTranslation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger, onSelectTranslation]);
 
   if (loading && translations.length === 0) {
     return (
