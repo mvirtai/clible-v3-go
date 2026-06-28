@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.cache/turbo \
     pnpm run build
 
 # --- Stage 2: Build Go Backend ---
-FROM golang:1.22-alpine AS backend-builder
+FROM golang:1.25-alpine AS backend-builder
 
 # Install gcc and musl-dev for SQLite CGO compilation
 RUN apk add --no-cache gcc musl-dev
