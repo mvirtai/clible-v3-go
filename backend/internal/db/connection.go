@@ -21,6 +21,18 @@ func InitializeDB(dbPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to enable foreign key constraints: %w", err)
 	}
 
+	// Enable Write-Ahead Logging (WAL) for better read/write concurrency
+	if _, err := db.Exec("PRAGMA journal_mode = WAL"); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
+	}
+
+	// Set busy timeout to 5 seconds to prevent immediate locking failures
+	if _, err := db.Exec("PRAGMA busy_timeout = 5000"); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("failed to set busy timeout: %w", err)
+	}
+
 	// Execute embedded structural migrations sequentally
 	if err := RunMigrations(db); err != nil {
 		_ = db.Close()

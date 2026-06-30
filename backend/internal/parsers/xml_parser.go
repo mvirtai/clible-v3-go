@@ -101,6 +101,21 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 					}
 				}
 			case "v", "verse":
+				isEnd := false
+				for _, attr := range se.Attr {
+					if attr.Name.Local == "eID" {
+						isEnd = true
+						break
+					}
+				}
+				if isEnd {
+					if err := emitVerse(); err != nil {
+						return err
+					}
+					inVerse = false
+					break
+				}
+
 				if err := emitVerse(); err != nil {
 					return err
 				}
@@ -135,7 +150,7 @@ func (p *XMLVerseParser) ParseStream(r io.Reader, callback func(models.Verse) er
 			tagName := se.Name.Local
 			switch tagName {
 			case "v", "verse":
-				if inVerse && (tagName == "verse" || textBuilder.Len() > 0) {
+				if inVerse && textBuilder.Len() > 0 {
 					if err := emitVerse(); err != nil {
 						return err
 					}

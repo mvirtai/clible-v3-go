@@ -29,11 +29,12 @@ export const TranslationSelector: React.FC<Props> = ({
       .getTranslations()
       .then((data) => {
         if (!active) return;
-        setTranslations(data);
-        const exists = data.some((t) => t.id === selectedTranslation);
-        if (data.length > 0 && (!selectedTranslation || !exists)) {
-          onSelectTranslation(data[0].id);
-        } else if (data.length === 0) {
+        const list = data || [];
+        setTranslations(list);
+        const exists = list.some((t) => t.id === selectedTranslation);
+        if (list.length > 0 && (!selectedTranslation || !exists)) {
+          onSelectTranslation(list[0].id);
+        } else if (list.length === 0) {
           onSelectTranslation('');
         }
         setLoading(false);
@@ -47,15 +48,16 @@ export const TranslationSelector: React.FC<Props> = ({
     return () => {
       active = false;
     };
-  }, [refreshTrigger, selectedTranslation, onSelectTranslation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger, onSelectTranslation]);
 
-  if (loading && translations.length === 0) {
+  if (loading && (!translations || translations.length === 0)) {
     return (
       <div className="text-xs animate-pulse" style={{ color: 'var(--muted)' }}>Loading...</div>
     );
   }
 
-  if (error || translations.length === 0) {
+  if (error || !translations || translations.length === 0) {
     return (
       <div className="text-xs px-3 py-1.5 rounded-full"
         style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}>

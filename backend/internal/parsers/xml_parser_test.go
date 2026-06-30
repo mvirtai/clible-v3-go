@@ -109,6 +109,39 @@ func TestXMLVerseParser_StreamingFormats(t *testing.T) {
 		}
 	})
 
+	t.Run("successfully streams valid OSIS milestone-style elements", func(t *testing.T) {
+		osisMock := `
+		<osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace">
+			<osisText osisIDWork="KJV">
+				<div>
+					<verse osisID="Luke.3.5" sID="Luke.3.5" />Every valley shall be filled...<verse eID="Luke.3.5" />
+				</div>
+			</osisText>
+		</osis>`
+
+		var results []models.Verse
+		err := parser.ParseStream(strings.NewReader(osisMock), func(v models.Verse) error {
+			results = append(results, v)
+			return nil
+		})
+
+		if err != nil {
+			t.Fatalf("unexpected osis milestone parsing error: %v", err)
+		}
+
+		if len(results) != 1 {
+			t.Fatalf("expected 1 verse, got %d", len(results))
+		}
+
+		if results[0].BookID != "Luke" || results[0].Chapter != 3 || results[0].Verse != 5 {
+			t.Errorf("unexpected OSIS coordinates: %v", results[0])
+		}
+
+		if results[0].Text != "Every valley shall be filled..." {
+			t.Errorf("unexpected verse text: %q", results[0].Text)
+		}
+	})
+
 	t.Run("successfully streams valid BEBLIA simple elements structure", func(t *testing.T) {
 		bebliaMock := `
 	  <bible translation="Finnish 1992">
