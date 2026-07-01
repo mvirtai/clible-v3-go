@@ -35,6 +35,11 @@ resource "google_project_service" "secretmanager" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "iam_credentials" {
+  service            = "iamcredentials.googleapis.com"
+  disable_on_destroy = false
+}
+
 # --- 2. Artifact Registry Docker-kuville ---
 
 resource "google_artifact_registry_repository" "clible_v3" {
