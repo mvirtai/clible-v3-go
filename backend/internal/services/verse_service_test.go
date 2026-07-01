@@ -94,18 +94,69 @@ func TestVerseService_GetVerses_FallbackTranslation(t *testing.T) {
 }
 
 func TestVerseService_GetVerses_ChapterScope(t *testing.T) {
-	svc := NewVerseService(nil, nil)
-	_, err := svc.GetVerses(context.Background(), "Joh 3", "fin-1992")
-	if err == nil {
-		t.Fatal("expected error for unimplemented chapter scope")
+	dbConn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize connection: %v", err)
+	}
+	defer func() { _ = dbConn.Close() }()
+
+	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('fin-1992', 'Kirkkoraamattu 1992', 'fi', 'text')`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
+
+	verseRepo := db.NewVerseRepository(dbConn)
+	translationRepo := db.NewTranslationRepository(dbConn)
+	svc := NewVerseService(verseRepo, translationRepo)
+
+	ctx := context.Background()
+	verses := []models.Verse{
+		{ID: "fin-1992:Joh:3:1", TranslationID: "fin-1992", BookID: "Joh", Chapter: 3, Verse: 1, Text: "Verse 1"},
+		{ID: "fin-1992:Joh:3:2", TranslationID: "fin-1992", BookID: "Joh", Chapter: 3, Verse: 2, Text: "Verse 2"},
+		{ID: "fin-1992:Joh:4:1", TranslationID: "fin-1992", BookID: "Joh", Chapter: 4, Verse: 1, Text: "Verse 4:1"},
+	}
+	if err := verseRepo.BulkInsert(ctx, verses); err != nil {
+		t.Fatalf("failed to seed test verses: %v", err)
+	}
+
+	results, err := svc.GetVerses(ctx, "Joh 3", "fin-1992")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("expected 2 verses from chapter 3, got %d", len(results))
 	}
 }
 
 func TestVerseService_GetVerses_BookScope(t *testing.T) {
-	svc := NewVerseService(nil, nil)
-	_, err := svc.GetVerses(context.Background(), "Genesis", "fin-1992")
-	if err == nil {
-		t.Fatal("expected error for unimplemented book scope")
+	dbConn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize connection: %v", err)
+	}
+	defer func() { _ = dbConn.Close() }()
+
+	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('fin-1992', 'Kirkkoraamattu 1992', 'fi', 'text')`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
+
+	verseRepo := db.NewVerseRepository(dbConn)
+	translationRepo := db.NewTranslationRepository(dbConn)
+	svc := NewVerseService(verseRepo, translationRepo)
+
+	ctx := context.Background()
+	verses := []models.Verse{
+		{ID: "fin-1992:Joh:1:1", TranslationID: "fin-1992", BookID: "Joh", Chapter: 1, Verse: 1, Text: "Verse 1:1"},
+		{ID: "fin-1992:Joh:3:16", TranslationID: "fin-1992", BookID: "Joh", Chapter: 3, Verse: 16, Text: "Verse 3:16"},
+	}
+	if err := verseRepo.BulkInsert(ctx, verses); err != nil {
+		t.Fatalf("failed to seed test verses: %v", err)
+	}
+
+	results, err := svc.GetVerses(ctx, "Joh", "fin-1992")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("expected 2 verses from book Joh, got %d", len(results))
 	}
 }
 
