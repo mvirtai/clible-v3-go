@@ -4,6 +4,92 @@ import type { SearchHistoryEntry } from "../types/searchQuery";
 import type { SearchVerse } from "../types/search";
 
 
+// raw api types matching the Go backend JSON responses
+interface RawWordCount {
+    word: string;
+    count: number;
+}
+
+interface RawTextStats {
+    token_count: number;
+    unique_token_count: number;
+    type_token_ratio: number;
+    character_count: number;
+    avg_word_length: number;
+    top_words: RawWordCount[];
+    top_bigrams: RawWordCount[];
+    top_trigrams: RawWordCount[];
+}
+
+interface RawAlignedVerse {
+    book_id: string;
+    chapter: number;
+    verse: number;
+    text_a: string;
+    text_b: string;
+    similarity: number;
+    exact_match: boolean;
+}
+
+interface RawComparisonSummary {
+    total_verses: number;
+    fully_aligned_verses: number;
+    exact_matches: number;
+    exact_match_ratio: number;
+    average_similarity: number;
+    top_shared_words: RawWordCount[];
+    most_similar_verse_ref?: string;
+}
+
+interface RawComparisonResult {
+    reference: string;
+    translation_a: string;
+    translation_b: string;
+    aligned_verses: RawAlignedVerse[];
+    summary: RawComparisonSummary;
+}
+
+/**
+ * Maps RawTextStats structure to the camelCase TextStats interface
+ */
+const mapTextStats = (raw: RawTextStats): TextStats => ({
+    tokenCount: raw.token_count,
+    uniqueTokenCount: raw.unique_token_count,
+    typeTokenRatio: raw.type_token_ratio,
+    characterCount: raw.character_count,
+    avgWordLength: raw.avg_word_length,
+    topWords: (raw.top_words || []).map(w => ({ name: w.word, value: w.count })),
+    topBigrams: (raw.top_bigrams || []).map(w => ({ name: w.word, value: w.count })),
+    topTrigrams: (raw.top_trigrams || []).map(w => ({ name: w.word, value: w.count })),
+});
+
+/**
+ * Maps RawComparisonResult structure to the camelCase ComparisonResult interface.
+ */
+const mapComparisonResult = (raw: RawComparisonResult): ComparisonResult => ({
+    reference: raw.reference,
+    translationA: raw.translation_a,
+    translationB: raw.translation_b,
+    alignedVerses: (raw.aligned_verses || []).map(v => ({
+        bookId: v.book_id,
+        chapter: v.chapter,
+        verse: v.verse,
+        textA: v.text_a,
+        textB: v.text_b,
+        similarity: v.similarity,
+        exactMatch: v.exact_match
+    })),
+    summary: {
+        totalVerses: raw.summary.total_verses,
+        fullyAlignedVerses: raw.summary.fully_aligned_verses,
+        exactMatches: raw.summary.exact_matches,
+        exactMatchRatio: raw.summary.exact_match_ratio,
+        averageSimilarity: raw.summary.average_similarity,
+        topSharedWords: (raw.summary.top_shared_words || []).map(w => ({ name: w.word, value: w.count })),
+        mostSimilarVerseRef: raw.summary.most_similar_verse_ref
+    }
+});
+
 export class ApiService {
     private baseUrl = '/api';
 
@@ -101,7 +187,9 @@ export class ApiService {
         });
         if (!res.ok) throw new Error(
             `POST ${this.baseUrl}/analytics/analyze returned ${res.status}`);
-        return res.json()
+
+        const raw = await res.json() as RawTextStats;
+        return mapTextStats(raw);
     }
 
     /**
@@ -125,7 +213,9 @@ export class ApiService {
         });
         if (!res.ok) throw new Error(
             `POST ${this.baseUrl}/analytics/compare returned ${res.status}`);
-        return res.json()
+
+        const raw = await res.json() as RawComparisonResult;
+        return mapComparisonResult(raw);
     }
 
     /**
