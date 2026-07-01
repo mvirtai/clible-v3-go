@@ -1,0 +1,3 @@
+project_id     = "clible-v3-go"
+region         = "europe-north1"
+gemini-api-key = "[GCP_API_KEY]"

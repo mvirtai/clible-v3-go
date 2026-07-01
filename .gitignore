@@ -28,3 +28,9 @@ yarn-error.log*
 
 # agents files
 .agents/
+# Terraform ignores
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform.tfvars
+*.tfplan
