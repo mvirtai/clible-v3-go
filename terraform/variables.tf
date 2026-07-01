@@ -16,3 +16,9 @@ variable "gemini-api-key" {
   sensitive   = true
   default     = "PLACEHOLDER"
 }
+
+variable "github_repository" {
+  description = "The GitHub repository in the format owner/repo"
+  type        = string
+  default     = "mvirtai/clible-v3-go"
+}
