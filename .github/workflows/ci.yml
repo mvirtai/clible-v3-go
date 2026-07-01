@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  id-token: write # Pakollinen WIF-autentikointia varten
 
 jobs:
   backend-pipeline:
@@ -83,6 +84,52 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: false # Vain testataan buildia, ei pushata vielä mihinkään
+          push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy-pipeline:
+    name: Continuous Deployment (CD) to GCP
+    runs-on: ubuntu-latest
+    # Ajetaan vain main-haaran pushauksissa (eli kun PR mergetään mainiin)
+    # ja vaaditaan, että kaikki testit ja Docker-build verification menevät läpi
+    if: github.ref == 'refs/heads/main'
+    needs: [backend-pipeline, frontend-pipeline, docker-pipeline]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # 1. Autentikoituminen GCP:hen WIF:n kautta
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SA }}
+
+      # 2. Kirjautuminen Artifact Registryyn
+      - name: Login to Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: europe-north1-docker.pkg.dev
+          username: _json_key
+          password: ${{ steps.auth.outputs.credentials_json }}
+
+      # 3. Käännetään ja pushataan uusi Docker-kuva
+      - name: Build and push production image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: europe-north1-docker.pkg.dev/clible-v3-go/clible-v3/clible-v3:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 4. Päivitetään Cloud Run uuteen imagiin
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: clible-v3
+          region: europe-north1
+          image: europe-north1-docker.pkg.dev/clible-v3-go/clible-v3/clible-v3:latest
