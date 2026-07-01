@@ -99,6 +99,20 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
+      - name: Debug secret availability
+        run: |
+          echo "Checking if secrets are available in the current environment..."
+          if [ -z "${{ secrets.GCP_WIF_PROVIDER }}" ]; then
+            echo "::error::GCP_WIF_PROVIDER secret is EMPTY or NOT FOUND!"
+          else
+            echo "GCP_WIF_PROVIDER is set."
+          fi
+          if [ -z "${{ secrets.GCP_DEPLOYER_SA }}" ]; then
+            echo "::error::GCP_DEPLOYER_SA secret is EMPTY or NOT FOUND!"
+          else
+            echo "GCP_DEPLOYER_SA is set."
+          fi
+
       # 1. Autentikoituminen GCP:hen WIF:n kautta
       - name: Authenticate to Google Cloud
         id: auth
