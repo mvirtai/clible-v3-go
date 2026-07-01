@@ -157,7 +157,7 @@ func (s *SeedService) SeedTranslationFromFile(ctx context.Context, filePath stri
 	}
 	defer func() { _ = file.Close() }()
 
-	const chunkSize = 500
+	const chunkSize = 5000
 	chunk := make([]models.Verse, 0, chunkSize)
 
 	err = s.parser.ParseStream(file, func(v models.Verse) error {
@@ -201,7 +201,7 @@ func (s *SeedService) ParseStreamShortcut(ctx context.Context, r io.Reader, tran
 		return err
 	}
 
-	const chunkSize = 100
+	const chunkSize = 5000
 	chunk := make([]models.Verse, 0, chunkSize)
 
 	if err := s.parser.ParseStream(r, func(v models.Verse) error {
