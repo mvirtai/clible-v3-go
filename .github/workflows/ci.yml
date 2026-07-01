@@ -29,11 +29,8 @@ jobs:
           cache: true
           cache-dependency-path: backend/go.sum
 
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: backend
+      - name: Run golangci-lint natively (compiled from source for Go 1.25 compatibility)
+        run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5 run --timeout=5m
 
       - name: Download Go modules
         run: go mod download
