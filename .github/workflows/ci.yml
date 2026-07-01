@@ -118,6 +118,7 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
+          token_format: "access_token"
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOYER_SA }}
 
@@ -126,8 +127,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: europe-north1-docker.pkg.dev
-          username: _json_key
-          password: ${{ steps.auth.outputs.credentials_json }}
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
 
       # 3. Käännetään ja pushataan uusi Docker-kuva
       - name: Build and push production image
