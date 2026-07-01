@@ -181,3 +181,66 @@ resource "google_cloud_run_v2_service_iam_member" "public_access" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+# --- 8. Workload Identity Federation (WIF) ---
+
+resource "google_iam_workload_identity_pool" "github_pool" {
+  workload_identity_pool_id = "github-actions-pool"
+  display_name              = "GitHub Actions Pool"
+  description               = "Identity pool for GitHub Actions authentication"
+}
+
+resource "google_iam_workload_identity_pool_provider" "github_provider" {
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github_pool.workload_identity_pool_id
+  workload_identity_pool_provider_id = "github-actions-provider"
+  display_name                       = "GitHub Actions Provider"
+
+  attribute_mapping = {
+    "google.subject"       = "assertion.sub"
+    "attribute.actor"      = "assertion.actor"
+    "attribute.repository" = "assertion.repository"
+  }
+
+  attribute_condition = "assertion.repository == '${var.github_repository}'"
+
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+}
+
+# --- 9. CI/CD Deployer Service Account ---
+
+resource "google_service_account" "clible_deployer" {
+  account_id   = "clible-v3-deployer"
+  display_name = "clible-v3 CI/CD Deployer Service Account"
+}
+
+# Sallitaan vain määritetyn GitHub-repositorion käyttää tätä palvelutiliä WIF:n kautta
+resource "google_service_account_iam_member" "wif_deployer" {
+  service_account_id = google_service_account.clible_deployer.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_pool.name}/attribute.repository/${var.github_repository}"
+}
+
+# Oikeus kirjoittaa Artifact Registryyn
+resource "google_artifact_registry_repository_iam_member" "deployer_registry" {
+  location   = google_artifact_registry_repository.clible_v3.location
+  repository = google_artifact_registry_repository.clible_v3.name
+  role       = "roles/artifactregistry.writer"
+  member     = "serviceAccount:${google_service_account.clible_deployer.email}"
+}
+
+# Oikeus hallinnoida ja päivittää Cloud Runia
+resource "google_cloud_run_v2_service_iam_member" "deployer_run" {
+  location = google_cloud_run_v2_service.clible_v3.location
+  name     = google_cloud_run_v2_service.clible_v3.name
+  role     = "roles/run.developer"
+  member   = "serviceAccount:${google_service_account.clible_deployer.email}"
+}
+
+# Oikeus käyttää Cloud Runin suorituspalvelutiliä (act as clible-v3-sa)
+resource "google_service_account_iam_member" "deployer_act_as" {
+  service_account_id = google_service_account.clible_sa.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.clible_deployer.email}"
+}

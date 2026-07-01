@@ -17,3 +17,13 @@ output "secret_manager_id" {
   description = "The Secret Manager Secret ID for Gemini API Key"
   value       = google_secret_manager_secret.gemini_key.id
 }
+
+output "workload_identity_provider" {
+  description = "The Workload Identity Provider resource name"
+  value       = google_iam_workload_identity_pool_provider.github_provider.name
+}
+
+output "deployer_service_account" {
+  description = "The email of the CI/CD deployer service account"
+  value       = google_service_account.clible_deployer.email
+}
