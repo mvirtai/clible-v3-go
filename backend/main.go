@@ -40,11 +40,13 @@ func main() {
 	historyRepo := db.NewSearchHistoryRepository(dbConn)
 	scopeRepo := db.NewScopeRepository(dbConn)
 	savedRepo := db.NewSavedRepository(dbConn)
+	bookRepo := db.NewBookRepository(dbConn)
 
 	// --- Services & Parsers ---
 	verseService := services.NewVerseService(verseRepo, translationRepo)
 	historyService := services.NewSearchHistoryService(historyRepo)
 	scopeService := services.NewScopeService(scopeRepo, savedRepo)
+	bookService := services.NewBookService(bookRepo)
 	xmlParser := parsers.NewXMLVerseParser()
 	seedService := services.NewSeedService(verseRepo, xmlParser)
 
@@ -60,12 +62,17 @@ func main() {
 	scopeHandler := api.NewScopeHandler(scopeService)
 	translationHandler := api.NewTranslationHandler(translationRepo, seedService)
 	analyticsHandler := api.NewAnalyticsHandler(analyticService, verseService)
+	bookHandler := api.NewBookHandler(bookService)
 
 	mux := http.NewServeMux()
 
 	// Verse & Bible endpoints
 	mux.HandleFunc("GET /api/verses", bibleHandler.GetVersesByReference)
 	mux.HandleFunc("GET /api/search", bibleHandler.SearchVerses)
+
+	// Book metadata endpoints
+	mux.HandleFunc("GET /api/books", bookHandler.GetBooks)
+	mux.HandleFunc("GET /api/books/{id}", bookHandler.GetBookByID)
 
 	// Search History endpoints (Clean Go 1.22+ method matching)
 	mux.HandleFunc("POST /api/history", historyHandler.AddSearch)

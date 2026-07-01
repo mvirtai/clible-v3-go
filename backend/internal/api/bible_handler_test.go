@@ -71,16 +71,16 @@ func TestBibleHandler_GetVersesByReference_MissingParams(t *testing.T) {
 	}
 }
 
-func TestBibleHandler_GetVersesByReference_ServiceError(t *testing.T) {
+func TestBibleHandler_GetVersesByReference_ParseError(t *testing.T) {
 	handler := newTestHandler(t)
 
-	// "Joh 3" parses as ScopeChapter which returns an error from VerseService
-	req := httptest.NewRequest(http.MethodGet, "/api/verses?ref=Joh+3&translation=web", nil)
+	// "123" fails parsing because it does not start with a book name
+	req := httptest.NewRequest(http.MethodGet, "/api/verses?ref=123&translation=web", nil)
 	rr := httptest.NewRecorder()
 	handler.GetVersesByReference(rr, req)
 
 	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500 for unimplemented scope, got %d", rr.Code)
+		t.Errorf("expected status 500 for invalid reference parsing error, got %d", rr.Code)
 	}
 }
 

@@ -167,6 +167,54 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 	return matchedVerses, rows.Err()
 }
 
+// GetByChapter fetches all verses for a given chapter, translation, and book.
+func (r *VerseRepository) GetByChapter(ctx context.Context, translationID string, bookId string, chapter int) ([]models.Verse, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, translation_id, book_id, chapter, verse, text
+		FROM verses
+		WHERE translation_id = ? AND book_id = ? AND chapter = ?
+		ORDER BY verse ASC
+	`, translationID, bookId, chapter)
+	if err != nil {
+		return nil, fmt.Errorf("chapter lookup failed: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var verses []models.Verse
+	for rows.Next() {
+		var v models.Verse
+		if err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); err != nil {
+			return nil, fmt.Errorf("failed to scan verse row: %w", err)
+		}
+		verses = append(verses, v)
+	}
+	return verses, rows.Err()
+}
+
+// GetByBook fetches all verses for an entire book and translation, ordered by chapter and verse.
+func (r *VerseRepository) GetByBook(ctx context.Context, translationID string, bookID string) ([]models.Verse, error) {
+	rows, err := r.db.QueryContext(ctx, `
+	SELECT id, translation_id, book_id, chapter, verse, text
+	FROM verses
+	WHERE translation_id = ? AND book_id = ?
+	ORDER BY chapter ASC, verse ASC
+	`, translationID, bookID)
+	if err != nil {
+		return nil, fmt.Errorf("book lookup failed: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var verses []models.Verse
+	for rows.Next() {
+		var v models.Verse
+		if err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); err != nil {
+			return nil, fmt.Errorf("failed to scan verse row: %w", err)
+		}
+		verses = append(verses, v)
+	}
+	return verses, rows.Err()
+}
+
 // DB returns the underlying sql.DB connection.
 func (r *VerseRepository) DB() *sql.DB {
 	return r.db
