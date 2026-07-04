@@ -1,34 +1,45 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 // Config holds all environmental runtime settings for the application
 type Config struct {
-	Port       string
-	DBPath      string
+	Port        string
+	DatabaseURL string
 	FrontendDir string
+}
+
+func cleanEnv(val string) string {
+	val = strings.TrimSpace(val)
+	if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
+		return val[1 : len(val)-1]
+	}
+	return val
 }
 
 // Load read configuration from environment variables or applies fallback defaults.
 func Load() *Config {
-	port := os.Getenv("PORT")
+	port := cleanEnv(os.Getenv("PORT"))
 	if port == "" {
 		port = "8080"
 	}
 
-	dbPath := os.Getenv("DATABASE_PATH")
-	if dbPath == "" {
-		dbPath = "clible.db"
+	databaseURL := cleanEnv(os.Getenv("DATABASE_URL"))
+	if databaseURL == "" {
+		databaseURL = "clible.db"
 	}
 
-	frontendDir := os.Getenv("FRONTEND_DIR")
+	frontendDir := cleanEnv(os.Getenv("FRONTEND_DIR"))
 	if frontendDir == "" {
 		frontendDir = "../frontend/dist"
 	}
 
 	return &Config{
-		Port:       port,
-		DBPath:      dbPath,
+		Port:        port,
+		DatabaseURL: databaseURL,
 		FrontendDir: frontendDir,
 	}
 }
