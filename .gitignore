@@ -1,5 +1,4 @@
 .amazonq/
-pr_stories/
 .cov/
 frontend/coverage/
 clible.db

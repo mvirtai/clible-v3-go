@@ -69,9 +69,10 @@ func RunMigrations(db *sql.DB) error {
 		isPostgres := db.QueryRow("SELECT version()").Scan(&temp) == nil
 
 		if isPostgres {
-			if filename == "003_add_verse_fts.sql" {
+			switch filename {
+			case "003_add_verse_fts.sql":
 				content = "CREATE INDEX IF NOT EXISTS idx_verses_text_fts ON verses USING GIN(to_tsvector('simple', text));"
-			} else if filename == "004_drop_verses_text_index.sql" {
+			case "004_drop_verses_text_index.sql":
 				content = "-- No-op in PostgreSQL"
 			}
 		}
