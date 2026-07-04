@@ -19,6 +19,7 @@ dist/
 # environment and editor artifacts
 .env
 *.env
+.envrc
 .DS_Store
 .vscode/
 *.log
