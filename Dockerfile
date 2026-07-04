@@ -69,7 +69,7 @@ USER ${APP_USER}:${APP_USER}
 
 # Set environment variables for production
 ENV PORT=8080
-ENV DATABASE_PATH=/data/clible.db
+ENV DATABASE_URL=/data/clible.db
 ENV FRONTEND_DIR=/app/frontend/dist
 
 EXPOSE 8080

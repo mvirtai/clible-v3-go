@@ -27,7 +27,7 @@ func main() {
 
 	cfg := config.Load()
 
-	dbConn, err := db.InitializeDB(cfg.DBPath)
+	dbConn, err := db.InitializeDB(cfg.DatabaseURL)
 	if err != nil {
 		slog.Error("Critical database boot initialization failed", "error", err)
 		os.Exit(1)
@@ -125,7 +125,7 @@ func main() {
 		Addr:         ":" + cfg.Port,
 		Handler:      handler,
 		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
