@@ -22,3 +22,10 @@ variable "github_repository" {
   type        = string
   default     = "mvirtai/clible-v3-go"
 }
+
+variable "database_url" {
+  description = "Connection string for the Neon PostgreSQL database"
+  type        = string
+  sensitive   = true
+  default     = "PLACEHOLDER"
+}
