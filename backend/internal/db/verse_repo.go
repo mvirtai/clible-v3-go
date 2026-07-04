@@ -12,16 +12,18 @@ import (
 // VerseRepository handles data access operations for the verses table
 // using the explicit domain models and FTS5 triggers.
 type VerseRepository struct {
-	db *sql.DB
+	db         *sql.DB
+	isPostgres bool
 }
 
 // NewVerseRepository creates a new instance of VerseRepository.
 func NewVerseRepository(db *sql.DB) *VerseRepository {
-	return &VerseRepository{db: db}
+	var temp string
+	isPostgres := db.QueryRow("SELECT version()").Scan(&temp) == nil
+	return &VerseRepository{db: db, isPostgres: isPostgres}
 }
 
-// BulkInsert inserts a large volume of verses inside a single transaction
-// ensuring precise column mapping against migration rules.
+// BulkInsert inserts a large volume of verses inside a single transaction using batching.
 func (r *VerseRepository) BulkInsert(ctx context.Context, verses []models.Verse) error {
 	if len(verses) == 0 {
 		return nil
@@ -35,20 +37,28 @@ func (r *VerseRepository) BulkInsert(ctx context.Context, verses []models.Verse)
 		_ = tx.Rollback()
 	}()
 
-	// Adjusted columns to match 'verse' from 002_seed_architecture.sql exactly
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO verses (id, translation_id, book_id, chapter, verse, text)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to prepare insert statement: %w", err)
-	}
-	defer func() { _ = stmt.Close() }()
+	const batchSize = 500
+	for i := 0; i < len(verses); i += batchSize {
+		end := i + batchSize
+		if end > len(verses) {
+			end = len(verses)
+		}
+		batch := verses[i:end]
 
-	for _, v := range verses {
-		_, err := stmt.ExecContext(ctx, v.ID, v.TranslationID, v.BookID, v.Chapter, v.Verse, v.Text)
+		queryStr := "INSERT INTO verses (id, translation_id, book_id, chapter, verse, text) VALUES "
+		vals := []any{}
+		for idx, v := range batch {
+			if idx > 0 {
+				queryStr += ", "
+			}
+			p := idx * 6
+			queryStr += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d)", p+1, p+2, p+3, p+4, p+5, p+6)
+			vals = append(vals, v.ID, v.TranslationID, v.BookID, v.Chapter, v.Verse, v.Text)
+		}
+
+		_, err := tx.ExecContext(ctx, queryStr, vals...)
 		if err != nil {
-			return fmt.Errorf("failed to execute insert for verse %s: %w", v.ID, err)
+			return fmt.Errorf("failed to execute batch insert at offset %d: %w", i, err)
 		}
 	}
 
@@ -64,7 +74,7 @@ func (r *VerseRepository) GetByReference(ctx context.Context, translationID, boo
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, translation_id, book_id, chapter, verse, text
 		FROM verses
-		WHERE translation_id = ? AND book_id = ? AND chapter = ? AND verse >= ? AND verse <= ?
+		WHERE translation_id = $1 AND book_id = $2 AND chapter = $3 AND verse >= $4 AND verse <= $5
 		ORDER BY verse ASC
 	`, translationID, bookID, chapter, verseStart, verseEnd)
 	if err != nil {
@@ -112,7 +122,7 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		`
 		args := []any{}
 		if params.TranslationID != "" {
-			baseQuery += " WHERE translation_id = ?"
+			baseQuery += " WHERE translation_id = $1"
 			args = append(args, params.TranslationID)
 		}
 		baseQuery += " ORDER BY book_id ASC, chapter ASC, verse ASC"
@@ -136,23 +146,38 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		return matched, rows.Err()
 	}
 
-	// --- FTS5 mode: fast full-text search via virtual table ---
+	// --- FTS mode: fast full-text search ---
 	args := []any{params.FTSQuery}
-	ftsQuery := `
-		SELECT v.id, v.translation_id, v.book_id, v.chapter, v.verse, v.text
-		FROM verses v
-		JOIN verses_fts ON v.rowid = verses_fts.rowid
-		WHERE verses_fts MATCH ?
-	`
-	if params.TranslationID != "" {
-		ftsQuery += " AND v.translation_id = ?"
-		args = append(args, params.TranslationID)
+	var ftsQuery string
+
+	if r.isPostgres {
+		ftsQuery = `
+			SELECT id, translation_id, book_id, chapter, verse, text
+			FROM verses
+			WHERE to_tsvector('simple', text) @@ to_tsquery('simple', $1)
+		`
+		if params.TranslationID != "" {
+			ftsQuery += " AND translation_id = $2"
+			args = append(args, params.TranslationID)
+		}
+		ftsQuery += " ORDER BY book_id ASC, chapter ASC, verse ASC"
+	} else {
+		ftsQuery = `
+			SELECT v.id, v.translation_id, v.book_id, v.chapter, v.verse, v.text
+			FROM verses v
+			JOIN verses_fts ON v.rowid = verses_fts.rowid
+			WHERE verses_fts MATCH $1
+		`
+		if params.TranslationID != "" {
+			ftsQuery += " AND v.translation_id = $2"
+			args = append(args, params.TranslationID)
+		}
+		ftsQuery += " ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC"
 	}
-	ftsQuery += " ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC"
 
 	rows, err = r.db.QueryContext(ctx, ftsQuery, args...)
 	if err != nil {
-		return nil, fmt.Errorf("fts5 search query failed: %w", err)
+		return nil, fmt.Errorf("fts search query failed: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -172,7 +197,7 @@ func (r *VerseRepository) GetByChapter(ctx context.Context, translationID string
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, translation_id, book_id, chapter, verse, text
 		FROM verses
-		WHERE translation_id = ? AND book_id = ? AND chapter = ?
+		WHERE translation_id = $1 AND book_id = $2 AND chapter = $3
 		ORDER BY verse ASC
 	`, translationID, bookId, chapter)
 	if err != nil {
@@ -196,7 +221,7 @@ func (r *VerseRepository) GetByBook(ctx context.Context, translationID string, b
 	rows, err := r.db.QueryContext(ctx, `
 	SELECT id, translation_id, book_id, chapter, verse, text
 	FROM verses
-	WHERE translation_id = ? AND book_id = ?
+	WHERE translation_id = $1 AND book_id = $2
 	ORDER BY chapter ASC, verse ASC
 	`, translationID, bookID)
 	if err != nil {
