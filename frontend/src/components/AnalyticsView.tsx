@@ -12,6 +12,7 @@ import {
 import { apiService } from '../services/api';
 import { WordCloud } from './WordCloud';
 import type { TextStats } from '../types/bible';
+import { resolveBookId } from '../utils/bookNames';
 
 interface AnalyticsViewProps {
     /** The translation ID selected globally (e.g. "kr92") */
@@ -27,10 +28,14 @@ export const AnalyticsView = ({ defaultTranslation }: AnalyticsViewProps) => {
 
     const runAnalysis = async () => {
         if (!reference.trim() || !defaultTranslation) return;
+        const normalized = reference.trim().replace(
+            /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+            (match) => resolveBookId(match) ?? match,
+        );
         setLoading(true);
         setError(null);
         try {
-            const data = await apiService.analyze(reference.trim(), defaultTranslation)
+            const data = await apiService.analyze(normalized, defaultTranslation)
             setStats(data);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error fetching analysis');
@@ -134,7 +139,9 @@ export const AnalyticsView = ({ defaultTranslation }: AnalyticsViewProps) => {
                                                 width={80}
                                                 axisLine={false}
                                                 tickLine={false}
-                                                tick={{ fontSize: 12, fill: 'var(--muted)' }}
+                                                tick={{ fontSize: 12, fill: 'currentColor' }}
+                                                className="text-[var(--muted)]"
+                                                interval={0}
                                             />
                                             <Tooltip
                                                 cursor={{ fill: 'var(--surface-2)' }}
@@ -142,8 +149,9 @@ export const AnalyticsView = ({ defaultTranslation }: AnalyticsViewProps) => {
                                                     borderRadius: '12px',
                                                     border: '1px solid var(--border)',
                                                     background: 'var(--surface)',
-                                                    color: 'var(--text)',
                                                 }}
+                                                itemStyle={{ color: 'var(--text)' }}
+                                                labelStyle={{ color: 'var(--text-2)' }}
                                             />
                                             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                                                 {stats.topWords.map((_, i) => (

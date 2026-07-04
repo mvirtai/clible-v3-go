@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { WordFrequency } from "../types/bible";
 
 interface WordCloudProps {
@@ -14,12 +15,25 @@ const PALETTE = [
   '#b45309',           // Vibrant orange/amber
 ];
 
+// Simple deterministic hash function to ensure idempotent, stable sorting without Math.random
+const hashString = (str: string): number => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return hash;
+};
+
 /**
  * WordCloud renders a lightweight tag-cloud using proportional font sizing
  * based on word frequencies.
- * Words are randomized on mount to avoid alphabetical ordering.
+ * Words are randomized deterministically to avoid alphabetical ordering.
  */
 export const WordCloud = ({ words }: WordCloudProps) => {
+    const shuffledWords = useMemo(() => {
+        return [...words].sort((a, b) => hashString(a.name) - hashString(b.name));
+    }, [words]);
+
     if (words.length === 0) {
         return null;
     }
@@ -30,7 +44,7 @@ export const WordCloud = ({ words }: WordCloudProps) => {
 
     return (
         <div className="flex flex-wrap gap-x-4 gap-y-3 justify-center items-center p-4 leading-tight select-none">
-              {words.map((w, i) => {
+              {shuffledWords.map((w, i) => {
                 const ratio = (w.value - min) / range;
                 const size = Math.round(13 + ratio * 36);
                 const weight = ratio > 0.6 ? 700 : ratio > 0.3 ? 600 : 400;
