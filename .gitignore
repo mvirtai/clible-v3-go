@@ -3,6 +3,11 @@ pr_stories/
 .cov/
 frontend/coverage/
 clible.db
+clible.db-shm
+clible.db-wal
+*.db-shm
+*.db-wal
+*.db-journal
 .notes/roadmap_061826.md
 
 # frontend build and dependency artifacts
