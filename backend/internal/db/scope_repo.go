@@ -20,7 +20,7 @@ func NewScopeRepository(db *sql.DB) *ScopeRepository {
 
 // Create inserts a fresh research scope context into the SQLite state.
 func (r *ScopeRepository) Create(ctx context.Context, s *models.Scope) error {
-	query := `INSERT INTO scopes (id, name, created_at) VALUES (?, ?, ?)`
+	query := `INSERT INTO scopes (id, name, created_at) VALUES ($1, $2, $3)`
 
 	_, err := r.db.ExecContext(ctx, query, s.ID, s.Name, s.CreatedAt)
 	if err != nil {
@@ -57,7 +57,7 @@ func (r *ScopeRepository) GetAll(ctx context.Context) ([]models.Scope, error) {
 
 // Delete removes a scope record. Downstream saved items are destroyed via cascade constraints.
 func (r *ScopeRepository) Delete(ctx context.Context, id string) error {
-	query := `DELETE FROM scopes WHERE id = ?`
+	query := `DELETE FROM scopes WHERE id = $1`
 
 	_, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {

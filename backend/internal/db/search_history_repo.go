@@ -22,7 +22,7 @@ func NewSearchHistoryRepository(db *sql.DB) *SearchHistoryRepository {
 func (r *SearchHistoryRepository) Save(ctx context.Context, h *models.SearchHistory) error {
 	query := `
 		INSERT INTO search_history (id, query_text, search_scope, scope_value, translation_id, mode, result_count, searched_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	// Convert empty strings to valid SQL NULL parameters to preserve Foreign Key integrity rules
@@ -59,7 +59,7 @@ func (r *SearchHistoryRepository) GetLatest(ctx context.Context, limit int) ([]m
 		SELECT id, query_text, search_scope, scope_value, translation_id, mode, result_count, searched_at
 		FROM search_history
 		ORDER BY searched_at DESC
-		LIMIT ?
+		LIMIT $1
 	`
 
 	rows, err := r.db.QueryContext(ctx, query, limit)
