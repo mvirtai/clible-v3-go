@@ -242,4 +242,4 @@ tasks:
     desc: Run the unified production Docker image locally
     cmds:
       - echo "Starting Clible-v3 container on http://localhost:8080"
-      - docker run -p 8080:8080 --name clible-v3-app --rm clible-v3
+      - docker run -p 8080:8080 --name clible-v3-app --env-file .env --rm clible-v3

@@ -22,7 +22,7 @@ func NewSavedRepository(db *sql.DB) *SavedRepository {
 func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch) error {
 	query := `
 		INSERT INTO saved_searches (id, scope_id, name, query_text, search_scope, scope_value, translation_id, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	var scopeValue sql.NullString
@@ -48,7 +48,7 @@ func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch)
 func (r *SavedRepository) GetSearchesByScope(ctx context.Context, scopeID string) ([]models.SavedSearch, error) {
 	query := `
 		SELECT id, scope_id, name, query_text, search_scope, scope_value, translation_id, created_at
-		FROM saved_searches WHERE scope_id = ? ORDER BY created_at DESC
+		FROM saved_searches WHERE scope_id = $1 ORDER BY created_at DESC
 	`
 
 	rows, err := r.db.QueryContext(ctx, query, scopeID)
@@ -83,7 +83,7 @@ func (r *SavedRepository) GetSearchesByScope(ctx context.Context, scopeID string
 func (r *SavedRepository) SaveAnalysis(ctx context.Context, a *models.SavedAnalysis) error {
 	query := `
 		INSERT INTO saved_analyses (id, scope_id, name, reference, analysis_type, translation_id, params_json, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	var translationID sql.NullString
@@ -109,7 +109,7 @@ func (r *SavedRepository) SaveAnalysis(ctx context.Context, a *models.SavedAnaly
 func (r *SavedRepository) GetAnalysesByScope(ctx context.Context, scopeID string) ([]models.SavedAnalysis, error) {
 	query := `
 		SELECT id, scope_id, name, reference, analysis_type, translation_id, params_json, created_at
-		FROM saved_analyses WHERE scope_id = ? ORDER BY created_at DESC
+		FROM saved_analyses WHERE scope_id = $1 ORDER BY created_at DESC
 	`
 
 	rows, err := r.db.QueryContext(ctx, query, scopeID)

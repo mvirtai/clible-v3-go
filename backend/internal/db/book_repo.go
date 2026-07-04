@@ -48,7 +48,7 @@ func (r *BookRepository) GetByID(ctx context.Context, id string) (*models.Book, 
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, name, testament, position, chapters
 		FROM books
-		WHERE id = ?
+		WHERE id = $1
 	`, id).Scan(&b.ID, &b.Name, &b.Testament, &b.Position, &b.Chapters)
 	
 	 if err != nil {

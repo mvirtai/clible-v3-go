@@ -51,34 +51,13 @@ resource "google_artifact_registry_repository" "clible_v3" {
   depends_on = [google_project_service.artifact_registry]
 }
 
-# --- 3. Cloud Storage (GCS) Bucket SQLite-kannalle ---
-
-resource "google_storage_bucket" "clible_data" {
-  name          = "${var.project_id}-clible-v3-data"
-  location      = var.region
-  force_destroy = false
-
-  uniform_bucket_level_access = true
-
-  versioning {
-    enabled = true
-  }
-
-  depends_on = [google_project_service.storage]
-}
+# --- 3. Cloud Storage (GCS) Bucket (Poistettu PostgreSQL-siirtymän myötä) ---
 
 # --- 4. Service Account (Palvelutili) Cloud Runille ---
 
 resource "google_service_account" "clible_sa" {
   account_id   = "clible-v3-sa"
   display_name = "clible-v3 Cloud Run Service Account"
-}
-
-# Oikeus lukea/kirjoittaa GCS-ämpäriin
-resource "google_storage_bucket_iam_member" "clible_sa_storage" {
-  bucket = google_storage_bucket.clible_data.name
-  role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.clible_sa.email}"
 }
 
 # --- 5. Secret Manager Gemini API-avaimelle ---
@@ -105,6 +84,30 @@ resource "google_secret_manager_secret_iam_member" "clible_sa_secret_access" {
   member    = "serviceAccount:${google_service_account.clible_sa.email}"
 }
 
+# --- 5B. Secret Manager Neon Database URL ---
+
+resource "google_secret_manager_secret" "database_url" {
+  secret_id = "database-url"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.secretmanager]
+}
+
+resource "google_secret_manager_secret_version" "database_url_initial" {
+  secret      = google_secret_manager_secret.database_url.id
+  secret_data = var.database_url
+}
+
+# Palvelutilille oikeus lukea tietokannan yhteysosoite
+resource "google_secret_manager_secret_iam_member" "clible_sa_db_access" {
+  secret_id = google_secret_manager_secret.database_url.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.clible_sa.email}"
+}
+
 # --- 6. Cloud Run v2 -palvelu ---
 
 resource "google_cloud_run_v2_service" "clible_v3" {
@@ -115,7 +118,7 @@ resource "google_cloud_run_v2_service" "clible_v3" {
     service_account = google_service_account.clible_sa.email
 
     scaling {
-      max_instance_count = 1 # Tärkeä SQLite-lukitusten välttämiseksi
+      max_instance_count = 10 # Nyt kun käytetään PostgreSQL:ää, voimme skaalautua vapaasti!
     }
 
     containers {
@@ -124,13 +127,8 @@ resource "google_cloud_run_v2_service" "clible_v3" {
       resources {
         limits = {
           cpu    = "1"
-          memory = "512Mi" # Go-kieli on kevyt ja tehokas, mutta gen2 vaatii vähintään 512Mi
+          memory = "512Mi"
         }
-      }
-
-      env {
-        name  = "DATABASE_PATH"
-        value = "/data/clible.db"
       }
 
       env {
@@ -149,18 +147,15 @@ resource "google_cloud_run_v2_service" "clible_v3" {
         }
       }
 
-      # GCS FUSE volume-mounttaus /data kansioon
-      volume_mounts {
-        name       = "gcs-volume"
-        mount_path = "/data"
-      }
-    }
-
-    volumes {
-      name = "gcs-volume"
-      gcs {
-        bucket    = google_storage_bucket.clible_data.name
-        read_only = false
+      # Neon PostgreSQL-tietokannan osoite luetaan Secret Managerista
+      env {
+        name = "DATABASE_URL"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.database_url.secret_id
+            version = "latest"
+          }
+        }
       }
     }
   }
@@ -173,7 +168,7 @@ resource "google_cloud_run_v2_service" "clible_v3" {
   depends_on = [
     google_project_service.run,
     google_artifact_registry_repository.clible_v3,
-    google_storage_bucket_iam_member.clible_sa_storage,
+    google_secret_manager_secret_iam_member.clible_sa_db_access,
     google_secret_manager_secret_iam_member.clible_sa_secret_access
   ]
 }

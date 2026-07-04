@@ -1,5 +1,5 @@
 -- Migration 007: Seed standard 66 Bible books
-INSERT OR IGNORE INTO books (id, name, testament, position, chapters) VALUES
+INSERT INTO books (id, name, testament, position, chapters) VALUES
 -- Vanha testamentti (OT)
 ('GEN', 'Genesis', 'OT', 1, 50),
 ('EXO', 'Exodus', 'OT', 2, 40),
@@ -67,4 +67,4 @@ INSERT OR IGNORE INTO books (id, name, testament, position, chapters) VALUES
 ('2JN', '2 John', 'NT', 63, 1),
 ('3JN', '3 John', 'NT', 64, 1),
 ('JUD', 'Jude', 'NT', 65, 1),
-('REV', 'Revelation', 'NT', 66, 22);
+('REV', 'Revelation', 'NT', 66, 22) ON CONFLICT (id) DO NOTHING;

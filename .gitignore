@@ -1,5 +1,4 @@
 .amazonq/
-pr_stories/
 .cov/
 frontend/coverage/
 clible.db
@@ -19,6 +18,7 @@ dist/
 # environment and editor artifacts
 .env
 *.env
+.envrc
 .DS_Store
 .vscode/
 *.log

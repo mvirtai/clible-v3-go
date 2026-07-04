@@ -47,7 +47,7 @@ func RunMigrations(db *sql.DB) error {
 
 		// Check if this specific version version has already been executed previously
 		var alreadyApplied bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM _migrations WHERE version = ?)", version).Scan(&alreadyApplied)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM _migrations WHERE version = $1)", version).Scan(&alreadyApplied)
 		if err != nil {
 			return fmt.Errorf("failed to check migration state for version %d: %w", version, err)
 		}
@@ -57,9 +57,24 @@ func RunMigrations(db *sql.DB) error {
 		}
 
 		// Read the raw SQL statements from the embedded file bundle
-		content, err := migrations.Files.ReadFile(filename)
+		contentBytes, err := migrations.Files.ReadFile(filename)
 		if err != nil {
 			return fmt.Errorf("failed to read migration file content '%s': %w", filename, err)
+		}
+
+		content := string(contentBytes)
+
+		// Check if the connection is PostgreSQL
+		var temp string
+		isPostgres := db.QueryRow("SELECT version()").Scan(&temp) == nil
+
+		if isPostgres {
+			switch filename {
+			case "003_add_verse_fts.sql":
+				content = "CREATE INDEX IF NOT EXISTS idx_verses_text_fts ON verses USING GIN(to_tsvector('simple', text));"
+			case "004_drop_verses_text_index.sql":
+				content = "-- No-op in PostgreSQL"
+			}
 		}
 
 		// Execute migration logic wrapped in a database transaction block
@@ -74,7 +89,7 @@ func RunMigrations(db *sql.DB) error {
 			return fmt.Errorf("migration script execution failed for version %d (%s): %w", version, filename, err)
 		}
 
-		if _, err := tx.Exec("INSERT INTO _migrations (version) VALUES (?)", version); err != nil {
+		if _, err := tx.Exec("INSERT INTO _migrations (version) VALUES ($1)", version); err != nil {
 			// Explicitly ignore the rollback error to satisfy errcheck since we return the root cause
 			_ = tx.Rollback()
 			return fmt.Errorf("failed to record migration application state for version %d: %w", version, err)
