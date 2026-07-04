@@ -1,17 +1,35 @@
-// src/App.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TranslationSelector } from './components/TranslationSelector';
 import { TranslationManager } from './components/TranslationManager';
 import { VerseReader } from './components/VerseReader';
 import { VerseSearch } from './components/VerseSearch';
 import { SearchHistory } from './components/SearchHistory';
-import { Terminal, Settings, BookOpen } from 'lucide-react';
+import { AnalyticsView } from './components/AnalyticsView';
+import { CompareView } from './components/CompareView';
+import { apiService } from './services/api';
+import { Terminal, Settings, BookOpen, Activity, GitCompare } from 'lucide-react';
+import type { InstalledTranslation } from './types/bible';
 
 function App() {
   const [selectedTranslation, setSelectedTranslation] = useState<string>('');
   const [historyTrigger, setHistoryTrigger] = useState(false);
   const [translationTrigger, setTranslationTrigger] = useState(false);
   const [showManager, setShowManager] = useState(false);
+  const [viewMode, setViewMode] = useState<'reader' | 'analytics' | 'compare'>('reader');
+  const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
+
+  // Load installed traslations list for CompareView select options
+  useEffect(() => {
+    const loadTranslations = async () => {
+      try {
+        const list = await apiService.getTranslations();
+        setInstalledTranslations(list);
+      } catch (err) {
+        console.error('Failed to load translations list:', err);
+      }
+    };
+    loadTranslations();
+  }, [translationTrigger]);
 
   const handleSearchFinished = () => setHistoryTrigger((p) => !p);
   const handleTranslationInstalled = () => setTranslationTrigger((p) => !p);
@@ -74,56 +92,110 @@ function App() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* View Selection Tabs */}
+        <div className="flex gap-1.5 p-1 rounded-xl w-fit mb-8 bg-[var(--surface-2)] border border-[var(--border-soft)]">
+          <button
+            type="button"
+            onClick={() => setViewMode('reader')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'reader'
+                ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
+                : 'text-[var(--muted)] hover:text-[var(--text)]'
+            }`}
+          >
+            <BookOpen size={16} />
+            <span>Lukukone</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setViewMode('analytics')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'analytics'
+                ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
+                : 'text-[var(--muted)] hover:text-[var(--text)]'
+            }`}
+          >
+            <Activity size={16} />
+            <span>Tekstianalyysi</span>
+          </button>
 
-          {/* Left: Reader & Search */}
-          <div className="lg:col-span-2 space-y-8">
-            {selectedTranslation ? (
-              <>
-                <VerseReader translation={selectedTranslation} />
-                <div onClick={handleSearchFinished}>
-                  <VerseSearch translation={selectedTranslation} />
+          <button
+            type="button"
+            onClick={() => setViewMode('compare')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'compare'
+                ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
+                : 'text-[var(--muted)] hover:text-[var(--text)]'
+            }`}
+          >
+            <GitCompare size={16} />
+            <span>Käännösvertailu</span>
+          </button>
+        </div>
+
+        {viewMode === 'reader' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left: Reader & Search */}
+            <div className="lg:col-span-2 space-y-8">
+              {selectedTranslation ? (
+                <>
+                  <VerseReader translation={selectedTranslation} />
+                  <div onClick={handleSearchFinished}>
+                    <VerseSearch translation={selectedTranslation} />
+                  </div>
+                </>
+              ) : (
+                <div className="py-24 text-center space-y-4" style={{ color: 'var(--muted)' }}>
+                  <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center"
+                    style={{ background: 'var(--surface-2)', color: 'var(--accent)' }}>
+                    <BookOpen size={28} />
+                  </div>
+                  <p className="font-medium" style={{ color: 'var(--text)' }}>No translation selected</p>
+                  <p className="text-sm">Open <strong>Translations</strong> in the header and install one.</p>
+                  <button
+                    onClick={() => setShowManager(true)}
+                    className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
+                    style={{ background: 'var(--accent)', color: '#fff' }}
+                  >
+                    Install a Translation
+                  </button>
                 </div>
-              </>
-            ) : (
-              <div className="py-24 text-center space-y-4" style={{ color: 'var(--muted)' }}>
-                <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center"
-                  style={{ background: 'var(--surface-2)', color: 'var(--accent)' }}>
-                  <BookOpen size={28} />
-                </div>
-                <p className="font-medium" style={{ color: 'var(--text)' }}>No translation selected</p>
-                <p className="text-sm">Open <strong>Translations</strong> in the header and install one.</p>
-                <button
-                  onClick={() => setShowManager(true)}
-                  className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
-                  style={{ background: 'var(--accent)', color: '#fff' }}
-                >
-                  Install a Translation
-                </button>
+              )}
+            </div>
+
+            {/* Right: Sidebar */}
+            <div className="space-y-8">
+              <SearchHistory triggerRefresh={historyTrigger} />
+
+              <div className="rounded-2xl p-6 text-left" style={{
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border-soft)',
+              }}>
+                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
+                  Quick Start
+                </h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
+                  Install a translation, then try reading{' '}
+                  <code>Joh. 3:16</code> or <code>John 3:16</code>, or search
+                  for <code>light</code> in the text search below.
+                </p>
               </div>
-            )}
-          </div>
-
-          {/* Right: Sidebar */}
-          <div className="space-y-8">
-            <SearchHistory triggerRefresh={historyTrigger} />
-
-            <div className="rounded-2xl p-6 text-left" style={{
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border-soft)',
-            }}>
-              <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
-                Quick Start
-              </h3>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
-                Install a translation, then try reading{' '}
-                <code>Joh. 3:16</code> or <code>John 3:16</code>, or search
-                for <code>light</code> in the text search below.
-              </p>
             </div>
           </div>
+        )}
 
-        </div>
+        {viewMode === 'analytics' && (
+          <div className="max-w-5xl mx-auto">
+            <AnalyticsView defaultTranslation={selectedTranslation || (installedTranslations[0]?.id || '')} />
+          </div>
+        )}
+
+        {viewMode === 'compare' && (
+          <div className="max-w-5xl mx-auto">
+            <CompareView installedTranslations={installedTranslations} />
+          </div>
+        )}
       </main>
 
       {/* ── Footer ── */}

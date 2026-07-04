@@ -16,9 +16,40 @@ import (
 
 // stopwordsRaw bakes the entire JSON file directly into the application binary at compile time.
 // This completely eliminates runtime file path errors and path resolution issues.
-//
 //go:embed stopwords.json
 var stopwordsRaw []byte
+
+var properNouns = map[string]string{
+	"jumala":       "Jumala",
+	"jumalan":      "Jumalan",
+	"jumalaan":     "Jumalaan",
+	"jumalasta":    "Jumalasta",
+	"jumalalle":    "Jumalalle",
+	"jumalana":     "Jumalana",
+	"jumalaksi":    "Jumalaksi",
+	"jumalat":      "Jumalat",
+	"jeesus":       "Jeesus",
+	"jeesuksen":    "Jeesuksen",
+	"jeesusta":     "Jeesusta",
+	"jeesukseen":   "Jeesukseen",
+	"kristus":      "Kristus",
+	"kristuksen":   "Kristuksen",
+	"kristuksessa": "Kristuksessa",
+	"herra":        "Herra",
+	"herran":       "Herran",
+	"herraa":       "Herraa",
+	"herralle":     "Herralle",
+	"herraan":      "Herraan",
+	"israel":       "Israel",
+	"israelin":     "Israelin",
+	"israelia":     "Israelia",
+	"god":          "God",
+	"god's":        "God's",
+	"jesus":        "Jesus",
+	"christ":       "Christ",
+	"lord":         "Lord",
+	"lord's":       "Lord's",
+}
 
 // WordCount maps a string token to its frequency.
 type WordCount struct {
@@ -91,9 +122,12 @@ func NewAnalyticService(verseRepo *db.VerseRepository, filterStopwords bool, lan
 		}
 
 		// Extract target language array elements if they exist in the uploaded matrix
-		if langData, exists := schema[lang]; exists {
-			for _, w := range langData.Words {
-				stopwordsMap[strings.ToLower(w)] = true
+		for _, l := range strings.Split(lang, ",") {
+			l = strings.TrimSpace(l)
+			if langData, exists := schema[l]; exists {
+				for _, w := range langData.Words {
+					stopwordsMap[strings.ToLower(w)] = true
+				}
 			}
 		}
 	}
@@ -368,7 +402,11 @@ func (s *AnalyticService) computeSequenceRatio(a, b string) float64 {
 func (s *AnalyticService) extractTopFrequencies(frequencies map[string]int, n int) []WordCount {
 	counts := make([]WordCount, 0, len(frequencies))
 	for k, v := range frequencies {
-		counts = append(counts, WordCount{Word: k, Count: v})
+		word := k
+		if corrected, exists := properNouns[k]; exists {
+			word = corrected
+		}
+		counts = append(counts, WordCount{Word: word, Count: v})
 	}
 
 	sort.Slice(counts, func(i, j int) bool {
@@ -391,7 +429,16 @@ func (s *AnalyticService) extractNGrams(tokens []string, size, n int) []WordCoun
 
 	frequencies := make(map[string]int)
 	for i := 0; i <= len(tokens)-size; i++ {
-		ngram := strings.Join(tokens[i:i+size], " ")
+		words := tokens[i : i+size]
+		correctedWords := make([]string, len(words))
+		for idx, w := range words {
+			if corrected, exists := properNouns[w]; exists {
+				correctedWords[idx] = corrected
+			} else {
+				correctedWords[idx] = w
+			}
+		}
+		ngram := strings.Join(correctedWords, " ")
 		frequencies[ngram]++
 	}
 

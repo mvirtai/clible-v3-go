@@ -50,7 +50,7 @@ func main() {
 	xmlParser := parsers.NewXMLVerseParser()
 	seedService := services.NewSeedService(verseRepo, xmlParser)
 
-	analyticService, err := services.NewAnalyticService(verseRepo, true, "en")
+	analyticService, err := services.NewAnalyticService(verseRepo, true, "en,fi,grc,el")
 	if err != nil {
 		slog.Error("Critical analytics service initialization failed", "error", err)
 		os.Exit(1)
