@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { GitCompareArrows, Loader2 } from 'lucide-react';
 import { apiService } from '../services/api';
 import type { InstalledTranslation, ComparisonResult } from '../types/bible';
+import { resolveBookId } from '../utils/bookNames';
 
 interface CompareViewProps {
     /** All translations currently installed in the workspace. */
@@ -28,10 +29,14 @@ export function CompareView({ installedTranslations }: CompareViewProps) {
 
     const runCompare = async () => {
         if (!reference.trim() || !leftTr || !rightTr) return;
+        const normalized = reference.trim().replace(
+            /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+            (match) => resolveBookId(match) ?? match,
+        );
         setLoading(true);
         setError(null);
         try {
-            const data = await apiService.compare(reference.trim(), leftTr, rightTr);
+            const data = await apiService.compare(normalized, leftTr, rightTr);
             setResult(data);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Comparison failed');
