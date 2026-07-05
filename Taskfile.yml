@@ -154,7 +154,15 @@ tasks:
     vars:
       CURRENT_BRANCH:
         sh: git branch --show-current
-      TITLE: "{{default .CURRENT_BRANCH .TITLE}}"
+      TITLE:
+        sh: |
+          if [ -n "{{.TITLE}}" ]; then
+            echo "{{.TITLE}}"
+          elif [ -n "{{.FILE}}" ]; then
+            echo "{{.FILE}}" | sed -E -e 's/\.md$//' -e 's/^[0-9]+-//' -e 's/^([a-z]+)-/\1: /' -e 's/-/ /g'
+          else
+            git branch --show-current
+          fi
       # Automatically targets the pr_stories directory
       STORY_PATH: "pr_stories/{{.FILE}}"
     preconditions:
