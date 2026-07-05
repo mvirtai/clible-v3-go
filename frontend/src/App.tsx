@@ -7,7 +7,7 @@ import { SearchHistory } from './components/SearchHistory';
 import { AnalyticsView } from './components/AnalyticsView';
 import { CompareView } from './components/CompareView';
 import { apiService } from './services/api';
-import { Terminal, Settings, BookOpen, Activity, GitCompare } from 'lucide-react';
+import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon } from 'lucide-react';
 import type { InstalledTranslation } from './types/bible';
 
 function App() {
@@ -17,6 +17,23 @@ function App() {
   const [showManager, setShowManager] = useState(false);
   const [viewMode, setViewMode] = useState<'reader' | 'analytics' | 'compare'>('reader');
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    // Check if class .dark exists in documentElement
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
+
+  // Sync system prefers-color-scheme changes with theme state
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme)
+
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }
 
   // Load installed traslations list for CompareView select options
   useEffect(() => {
@@ -49,6 +66,20 @@ function App() {
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
+            {/* Theme switch */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Käytä vaaleaa tilaa' : 'Käytä pimeää tilaa'}
+              className="theme-toggle-btn"
+            >
+              {theme === 'dark' ? (
+                <Sun size={15} className="text-amber-400 animate-spin-slow" />
+              ) : (
+                <Moon size={15} className="text-slate-500" />
+              )}
+            </button>
+
             <div className="w-8 h-8 rounded-lg flex items-center justify-center"
               style={{ background: 'var(--text)', color: 'var(--bg)' }}>
               <Terminal size={16} />
@@ -97,24 +128,22 @@ function App() {
           <button
             type="button"
             onClick={() => setViewMode('reader')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === 'reader'
-                ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
-                : 'text-[var(--muted)] hover:text-[var(--text)]'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reader'
+              ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
+              : 'text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
           >
             <BookOpen size={16} />
             <span>Lukukone</span>
           </button>
-          
+
           <button
             type="button"
             onClick={() => setViewMode('analytics')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === 'analytics'
-                ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
-                : 'text-[var(--muted)] hover:text-[var(--text)]'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'analytics'
+              ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
+              : 'text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
           >
             <Activity size={16} />
             <span>Tekstianalyysi</span>
@@ -123,11 +152,10 @@ function App() {
           <button
             type="button"
             onClick={() => setViewMode('compare')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === 'compare'
-                ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
-                : 'text-[var(--muted)] hover:text-[var(--text)]'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'compare'
+              ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
+              : 'text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
           >
             <GitCompare size={16} />
             <span>Käännösvertailu</span>
