@@ -8,10 +8,7 @@ output "artifact_registry_url" {
   value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.clible_v3.repository_id}/clible-v3"
 }
 
-output "gcs_bucket_name" {
-  description = "The name of the Google Cloud Storage bucket"
-  value       = google_storage_bucket.clible_data.name
-}
+
 
 output "secret_manager_id" {
   description = "The Secret Manager Secret ID for Gemini API Key"
