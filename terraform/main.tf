@@ -108,6 +108,30 @@ resource "google_secret_manager_secret_iam_member" "clible_sa_db_access" {
   member    = "serviceAccount:${google_service_account.clible_sa.email}"
 }
 
+# --- 5C. Secret Manager JWT Secret ---
+
+resource "google_secret_manager_secret" "jwt_secret" {
+  secret_id = "jwt-secret"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.secretmanager]
+}
+
+resource "google_secret_manager_secret_version" "jwt_secret_initial" {
+  secret      = google_secret_manager_secret.jwt_secret.id
+  secret_data = var.jwt_secret
+}
+
+# Palvelutilille oikeus lukea JWT-avain
+resource "google_secret_manager_secret_iam_member" "clible_sa_jwt_access" {
+  secret_id = google_secret_manager_secret.jwt_secret.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.clible_sa.email}"
+}
+
 # --- 6. Cloud Run v2 -palvelu ---
 
 resource "google_cloud_run_v2_service" "clible_v3" {
@@ -157,6 +181,17 @@ resource "google_cloud_run_v2_service" "clible_v3" {
           }
         }
       }
+
+      # JWT Secret luetaan Secret Managerista
+      env {
+        name = "JWT_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.jwt_secret.secret_id
+            version = "latest"
+          }
+        }
+      }
     }
   }
 
@@ -169,7 +204,8 @@ resource "google_cloud_run_v2_service" "clible_v3" {
     google_project_service.run,
     google_artifact_registry_repository.clible_v3,
     google_secret_manager_secret_iam_member.clible_sa_db_access,
-    google_secret_manager_secret_iam_member.clible_sa_secret_access
+    google_secret_manager_secret_iam_member.clible_sa_secret_access,
+    google_secret_manager_secret_iam_member.clible_sa_jwt_access
   ]
 }
 
@@ -243,4 +279,10 @@ resource "google_service_account_iam_member" "deployer_act_as" {
   service_account_id = google_service_account.clible_sa.name
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.clible_deployer.email}"
+}
+
+resource "google_storage_bucket" "clible_data" {
+  name          = "clible-v3-go-clible-v3-data"
+  location      = var.region
+  force_destroy = true
 }

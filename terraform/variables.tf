@@ -29,3 +29,10 @@ variable "database_url" {
   sensitive   = true
   default     = "PLACEHOLDER"
 }
+
+variable "jwt_secret" {
+  description = "JWT secret token used for session signature verification (min 32 chars)"
+  type        = string
+  sensitive   = true
+  default     = "PLACEHOLDER_CHANGE_ME_IMMEDIATELY_MIN_32_CHARS"
+}
