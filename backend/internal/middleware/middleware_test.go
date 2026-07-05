@@ -16,8 +16,9 @@ func TestCORS(t *testing.T) {
 
 	corsHandler := CORS(nextHandler)
 
-	t.Run("Standard GET request sets headers and calls downstream", func(t *testing.T) {
+	t.Run("Allowed origin is echoed back in ACAO header", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://localhost/api/verses", nil)
+		req.Header.Set("Origin", "http://localhost:5173")
 		rec := httptest.NewRecorder()
 
 		corsHandler.ServeHTTP(rec, req)
@@ -25,16 +26,29 @@ func TestCORS(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", rec.Code)
 		}
-		if origin := rec.Header().Get("Access-Control-Allow-Origin"); origin != "*" {
-			t.Errorf("expected Access-Control-Allow-Origin to be *, got %s", origin)
+		if origin := rec.Header().Get("Access-Control-Allow-Origin"); origin != "http://localhost:5173" {
+			t.Errorf("expected Access-Control-Allow-Origin to be http://localhost:5173, got %q", origin)
 		}
 		if body := rec.Body.String(); body != "downstream_success" {
 			t.Errorf("expected body 'downstream_success', got %s", body)
 		}
 	})
 
+	t.Run("Disallowed origin returns no header", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://localhost/api/verses", nil)
+		req.Header.Set("Origin", "http://malicious.com")
+		rec := httptest.NewRecorder()
+
+		corsHandler.ServeHTTP(rec, req)
+
+		if rec.Header().Get("Access-Control-Allow-Origin") != "" {
+			t.Errorf("expected empty Access-Control-Allow-Origin for disallowed origin, got %s", rec.Header().Get("Access-Control-Allow-Origin"))
+		}
+	})
+
 	t.Run("OPTIONS preflight request handles context intercept and bypasses downstream", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodOptions, "http://localhost/api/verses", nil)
+		req.Header.Set("Origin", "http://localhost:5173")
 		rec := httptest.NewRecorder()
 
 		corsHandler.ServeHTTP(rec, req)

@@ -10,6 +10,7 @@ type Config struct {
 	Port        string
 	DatabaseURL string
 	FrontendDir string
+	Env         string
 }
 
 func cleanEnv(val string) string {
@@ -37,9 +38,18 @@ func Load() *Config {
 		frontendDir = "../frontend/dist"
 	}
 
+	env := cleanEnv(os.Getenv("ENV"))
+	if env == "" {
+		env = cleanEnv(os.Getenv("APP_ENV"))
+	}
+	if env == "" {
+		env = "development"
+	}
+
 	return &Config{
 		Port:        port,
 		DatabaseURL: databaseURL,
 		FrontendDir: frontendDir,
+		Env:         env,
 	}
 }

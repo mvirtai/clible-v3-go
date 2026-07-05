@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
@@ -94,12 +96,52 @@ var bookIDMap = map[string]string{
 	"EZEK.": "EZK", "DAN.": "DAN", "HOS.": "HOS",
 	"OBAD.": "OBD", "MIC.": "MIC", "NAH.": "NAM", "HAB.": "HAB",
 	"ZEPH.": "ZEP", "HAG.": "HAG", "ZECH.": "ZEC", "MAL.": "MAL", "MATT.": "MAT",
-	"JN.": "JHN",
+	"JN.":   "JHN",
 	"1COR.": "1CO", "2COR.": "2CO", "GAL.": "GAL", "EPH.": "EPH", "PHIL.": "PHP",
 	"COL.": "COL", "1THESS.": "1TH", "2THESS.": "2TH", "1TIM.": "1TI", "2TIM.": "2TI",
 	"TIT.": "TIT", "PHLM.": "PHM", "HEB.": "HEB", "JAS.": "JAS", "1PET.": "1PE",
 	"2PET.": "2PE", "1JN.": "1JN", "2JN.": "2JN", "3JN.": "3JN",
 	"REV.": "REV",
+}
+
+// canonicalBibleBookOrder defines the canonical 66-book sequence used for import progress tracking.
+// Progress is measured as book index position out of total canonical books.
+var canonicalBibleBookOrder = []string{
+	"GEN", "EXO", "LEV", "NUM", "DEU", "JOS", "JDG", "RUT", "1SA", "2SA",
+	"1KI", "2KI", "1CH", "2CH", "EZR", "NEH", "EST", "JOB", "PSA", "PRO",
+	"ECC", "SNG", "ISA", "JER", "LAM", "EZK", "DAN", "HOS", "JOL", "AMO",
+	"OBD", "JON", "MIC", "NAM", "HAB", "ZEP", "HAG", "ZEC", "MAL",
+	"MAT", "MRK", "LUK", "JHN", "ACT", "ROM", "1CO", "2CO", "GAL", "EPH",
+	"PHP", "COL", "1TH", "2TH", "1TI", "2TI", "TIT", "PHM", "HEB", "JAS",
+	"1PE", "2PE", "1JN", "2JN", "3JN", "JUD", "REV",
+}
+
+// bookProgressIndex maps canonical book IDs to their 0-based canonical index.
+var bookProgressIndex = func() map[string]int {
+	m := make(map[string]int, len(canonicalBibleBookOrder))
+	for i, id := range canonicalBibleBookOrder {
+		m[id] = i
+	}
+	return m
+}()
+
+const totalCanonicalBooks = 66
+
+// progressBar renders a simple ASCII progress bar at 20 chars wide.
+//
+//	e.g. "[████████████░░░░░░░░]  60%  (book 40/66)"
+func progressBar(current, total int) string {
+	const width = 20
+	pct := 0
+	if total > 0 {
+		pct = (current * 100) / total
+	}
+	filled := (current * width) / total
+	if filled > width {
+		filled = width
+	}
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
+	return fmt.Sprintf("[%s] %3d%%  (book %d/%d)", bar, pct, current, total)
 }
 
 // SeedService coordinates heavy data imports cleanly respecting structural boundaries.
@@ -144,8 +186,58 @@ func normalizeBookID(bookID string) string {
 	return upper
 }
 
+// importProgress tracks per-book progress during a streaming XML import operation.
+type importProgress struct {
+	translationID string
+	totalVerses   int
+	totalChunks   int
+	lastBookID    string
+	lastBookIndex int
+	// milestones tracks which 20% thresholds have been logged (0=20%, 1=40%, …, 4=100%)
+	milestones [10]bool
+}
+
+// onVerse is called per-verse to update counters and emit milestone progress logs.
+func (p *importProgress) onVerse(bookID string) {
+	p.totalVerses++
+
+	// Detect book boundary to update canonical progress index.
+	if bookID != p.lastBookID {
+		p.lastBookID = bookID
+		if idx, ok := bookProgressIndex[bookID]; ok {
+			p.lastBookIndex = idx + 1 // 1-based for display
+		}
+	}
+
+	// Emit milestone logs at 20%, 40%, 60%, 80%, 100% of canonical books.
+	for i := 0; i < 5; i++ {
+		threshold := (i + 1) * totalCanonicalBooks / 5 // 13, 26, 39, 53, 66
+		if !p.milestones[i] && p.lastBookIndex >= threshold {
+			p.milestones[i] = true
+			pct := (i + 1) * 20
+			bar := progressBar(p.lastBookIndex, totalCanonicalBooks)
+			slog.Info(fmt.Sprintf("  📖 Import progress  %s", bar),
+				"translation", p.translationID,
+				"percent", pct,
+				"verses_so_far", p.totalVerses,
+			)
+		}
+	}
+}
+
+// onChunkFlushed increments the chunk counter.
+func (p *importProgress) onChunkFlushed() {
+	p.totalChunks++
+}
+
 // SeedTranslationFromFile opens a file, streams components, and flushes chunk chunks down.
 func (s *SeedService) SeedTranslationFromFile(ctx context.Context, filePath string, translationID string) error {
+	start := time.Now()
+	slog.Info("📂 Seed import started from file",
+		"translation", translationID,
+		"file", filePath,
+	)
+
 	validBooks, err := s.getValidBooks(ctx)
 	if err != nil {
 		return err
@@ -159,6 +251,7 @@ func (s *SeedService) SeedTranslationFromFile(ctx context.Context, filePath stri
 
 	const chunkSize = 5000
 	chunk := make([]models.Verse, 0, chunkSize)
+	prog := &importProgress{translationID: translationID}
 
 	err = s.parser.ParseStream(file, func(v models.Verse) error {
 		normBook := normalizeBookID(v.BookID)
@@ -171,11 +264,13 @@ func (s *SeedService) SeedTranslationFromFile(ctx context.Context, filePath stri
 		v.TranslationID = translationID
 		v.ID = fmt.Sprintf("%s:%s:%d:%d", translationID, v.BookID, v.Chapter, v.Verse)
 		chunk = append(chunk, v)
+		prog.onVerse(normBook)
 
 		if len(chunk) >= chunkSize {
 			if err := s.verseRepo.BulkInsert(ctx, chunk); err != nil {
 				return fmt.Errorf("failed to flush seed chunk segment to DB: %w", err)
 			}
+			prog.onChunkFlushed()
 			chunk = chunk[:0]
 		}
 		return nil
@@ -189,13 +284,25 @@ func (s *SeedService) SeedTranslationFromFile(ctx context.Context, filePath stri
 		if err := s.verseRepo.BulkInsert(ctx, chunk); err != nil {
 			return fmt.Errorf("failed to flush final seed trailing chunk segment to DB: %w", err)
 		}
+		prog.onChunkFlushed()
 	}
 
+	slog.Info("✅ Seed import completed",
+		"translation", translationID,
+		"total_verses", prog.totalVerses,
+		"total_chunks", prog.totalChunks,
+		"duration", time.Since(start).Round(time.Millisecond).String(),
+	)
 	return nil
 }
 
-// ParseStreamShortcut exposes an option to directly inject a raw stream (useful for tests)
+// ParseStreamShortcut exposes an option to directly inject a raw stream (useful for HTTP import and tests).
 func (s *SeedService) ParseStreamShortcut(ctx context.Context, r io.Reader, translationID string) error {
+	start := time.Now()
+	slog.Info("📡 Stream import started",
+		"translation", translationID,
+	)
+
 	validBooks, err := s.getValidBooks(ctx)
 	if err != nil {
 		return err
@@ -203,6 +310,7 @@ func (s *SeedService) ParseStreamShortcut(ctx context.Context, r io.Reader, tran
 
 	const chunkSize = 5000
 	chunk := make([]models.Verse, 0, chunkSize)
+	prog := &importProgress{translationID: translationID}
 
 	if err := s.parser.ParseStream(r, func(v models.Verse) error {
 		normBook := normalizeBookID(v.BookID)
@@ -215,11 +323,13 @@ func (s *SeedService) ParseStreamShortcut(ctx context.Context, r io.Reader, tran
 		v.TranslationID = translationID
 		v.ID = fmt.Sprintf("%s:%s:%d:%d", translationID, v.BookID, v.Chapter, v.Verse)
 		chunk = append(chunk, v)
+		prog.onVerse(normBook)
 
 		if len(chunk) >= chunkSize {
 			if err := s.verseRepo.BulkInsert(ctx, chunk); err != nil {
 				return err
 			}
+			prog.onChunkFlushed()
 			chunk = chunk[:0]
 		}
 		return nil
@@ -228,7 +338,17 @@ func (s *SeedService) ParseStreamShortcut(ctx context.Context, r io.Reader, tran
 	}
 
 	if len(chunk) > 0 {
-		return s.verseRepo.BulkInsert(ctx, chunk)
+		if err := s.verseRepo.BulkInsert(ctx, chunk); err != nil {
+			return err
+		}
+		prog.onChunkFlushed()
 	}
+
+	slog.Info("✅ Stream import completed",
+		"translation", translationID,
+		"total_verses", prog.totalVerses,
+		"total_chunks", prog.totalChunks,
+		"duration", time.Since(start).Round(time.Millisecond).String(),
+	)
 	return nil
 }

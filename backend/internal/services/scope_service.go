@@ -24,8 +24,8 @@ func NewScopeService(scopeRepo *db.ScopeRepository, savedRepo *db.SavedRepositor
 	}
 }
 
-// CreateScope initializes and inserts a brand new research window boundary.
-func (s *ScopeService) CreateScope(ctx context.Context, name string) (*models.Scope, error) {
+// CreateScope initializes and inserts a brand new research window boundary for a user.
+func (s *ScopeService) CreateScope(ctx context.Context, name string, userID string) (*models.Scope, error) {
 	if name == "" {
 		return nil, fmt.Errorf("scope name parameter cannot be empty")
 	}
@@ -34,6 +34,7 @@ func (s *ScopeService) CreateScope(ctx context.Context, name string) (*models.Sc
 		ID:        uuid.New().String(),
 		Name:      name,
 		CreatedAt: time.Now().UTC(),
+		UserID:    userID,
 	}
 
 	if err := s.scopeRepo.Create(ctx, scope); err != nil {
@@ -43,17 +44,17 @@ func (s *ScopeService) CreateScope(ctx context.Context, name string) (*models.Sc
 	return scope, nil
 }
 
-// GetScopes retrieves all existing workspace scopes sorted chronologically.
-func (s *ScopeService) GetScopes(ctx context.Context) ([]models.Scope, error) {
-	return s.scopeRepo.GetAll(ctx)
+// GetScopes retrieves all existing workspace scopes for a user sorted chronologically.
+func (s *ScopeService) GetScopes(ctx context.Context, userID string) ([]models.Scope, error) {
+	return s.scopeRepo.GetAll(ctx, userID)
 }
 
-// DeleteScope removes a root scope boundary (cascading into children automatically).
-func (s *ScopeService) DeleteScope(ctx context.Context, id string) error {
+// DeleteScope removes a root scope boundary for a specific user (cascading into children automatically).
+func (s *ScopeService) DeleteScope(ctx context.Context, id string, userID string) error {
 	if id == "" {
 		return fmt.Errorf("invalid scope id targeting deletion path")
 	}
-	return s.scopeRepo.Delete(ctx, id)
+	return s.scopeRepo.Delete(ctx, id, userID)
 }
 
 // SaveSearch initializes tracking metrics and preserves an FTS bible search layout.
@@ -89,9 +90,17 @@ func (s *ScopeService) SaveAnalysis(ctx context.Context, analysis *models.SavedA
 }
 
 // GetScopeWorkspace aggregates a single scope entity alongside all its structural nested results.
-func (s *ScopeService) GetScopeWorkspace(ctx context.Context, scopeID string) (*models.ScopeWorkspace, error) {
+func (s *ScopeService) GetScopeWorkspace(ctx context.Context, scopeID string, userID string) (*models.ScopeWorkspace, error) {
 	if scopeID == "" {
 		return nil, fmt.Errorf("target workspace scope id cannot be blank")
+	}
+
+	scope, err := s.scopeRepo.GetByID(ctx, scopeID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get scope: %w", err)
+	}
+	if scope == nil {
+		return nil, fmt.Errorf("scope not found or access denied")
 	}
 
 	searches, err := s.savedRepo.GetSearchesByScope(ctx, scopeID)
@@ -105,7 +114,7 @@ func (s *ScopeService) GetScopeWorkspace(ctx context.Context, scopeID string) (*
 	}
 
 	return &models.ScopeWorkspace{
-		Scope:    models.Scope{ID: scopeID},
+		Scope:    *scope,
 		Searches: searches,
 		Analyses: analyses,
 	}, nil

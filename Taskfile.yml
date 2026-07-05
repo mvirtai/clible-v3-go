@@ -29,6 +29,12 @@ tasks:
     cmds:
       - golangci-lint run ./...
 
+  backend:test:
+    desc: Run all Go unit and integration tests
+    dir: backend
+    cmds:
+      - go test -v ./...
+
   backend:test-cov:
     desc: Run all Go unit and integration tests with race detector
     dir: backend
@@ -251,3 +257,24 @@ tasks:
     cmds:
       - echo "Starting Clible-v3 container on http://localhost:8080"
       - docker run -p 8080:8080 --name clible-v3-app --env-file .env --rm clible-v3
+
+  docker:tag:
+    desc: "Tag the local clible-v3 image for DockerHub. USAGE: task docker:tag TAG=latest"
+    vars:
+      REGISTRY: '{{.REGISTRY | default "mvirtai"}}'
+      IMAGE_NAME: '{{.IMAGE_NAME | default "clible-v3"}}'
+      TAG: '{{.TAG | default "latest"}}'
+    cmds:
+      - docker tag clible-v3 {{.REGISTRY}}/{{.IMAGE_NAME}}:{{.TAG}}
+      - echo "Tagged clible-v3 as {{.REGISTRY}}/{{.IMAGE_NAME}}:{{.TAG}}"
+
+  docker:push:
+    desc: "Tag and push the clible-v3 image to DockerHub. USAGE: task docker:push TAG=latest"
+    vars:
+      REGISTRY: '{{.REGISTRY | default "mvirtai"}}'
+      IMAGE_NAME: '{{.IMAGE_NAME | default "clible-v3"}}'
+      TAG: '{{.TAG | default "latest"}}'
+    cmds:
+      - task: docker:tag
+        vars: { REGISTRY: "{{.REGISTRY}}", IMAGE_NAME: "{{.IMAGE_NAME}}", TAG: "{{.TAG}}" }
+      - docker push {{.REGISTRY}}/{{.IMAGE_NAME}}:{{.TAG}}

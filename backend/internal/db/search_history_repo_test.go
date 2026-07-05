@@ -21,8 +21,8 @@ func TestSearchHistoryRepository_SaveAndGetLatest(t *testing.T) {
 
 	// Seed required FK parent row to prevent PRAGMA foreign_key constraint triggers
 	_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('fin-1992', 'Finnish 1992', 'fi', 'text')`)
+	_, _ = conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES ('test-user-id', 'test@example.com', 'hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
 
-	// NOTE: This will cause a compilation failure initially because the repository is not yet defined.
 	repo := db.NewSearchHistoryRepository(conn)
 
 	t.Run("successfully persist a fresh history record", func(t *testing.T) {
@@ -35,12 +35,12 @@ func TestSearchHistoryRepository_SaveAndGetLatest(t *testing.T) {
 			Mode:          "phrase",
 			ResultCount:   7,
 			SearchedAt:    time.Now().UTC(),
+			UserID:        "test-user-id",
 		}
 
 		if err := repo.Save(ctx, &item); err != nil {
 			t.Fatalf("Save failed: %v", err)
 		}
-
 	})
 
 	t.Run("retrieve latest items honoring limit slices and descending temporal sequence", func(t *testing.T) {
@@ -48,9 +48,9 @@ func TestSearchHistoryRepository_SaveAndGetLatest(t *testing.T) {
 		baseTime := time.Now().UTC().Add(1 * time.Hour)
 
 		items := []models.SearchHistory{
-			{ID: "id-old", QueryText: "oldest query", SearchScope: "bible", Mode: "phrase", SearchedAt: baseTime.Add(-10 * time.Minute)},
-			{ID: "id-mid", QueryText: "middle query", SearchScope: "bible", Mode: "phrase", SearchedAt: baseTime.Add(-5 * time.Minute)},
-			{ID: "id-new", QueryText: "newest query", SearchScope: "bible", Mode: "phrase", SearchedAt: baseTime},
+			{ID: "id-old", QueryText: "oldest query", SearchScope: "bible", Mode: "phrase", SearchedAt: baseTime.Add(-10 * time.Minute), UserID: "test-user-id"},
+			{ID: "id-mid", QueryText: "middle query", SearchScope: "bible", Mode: "phrase", SearchedAt: baseTime.Add(-5 * time.Minute), UserID: "test-user-id"},
+			{ID: "id-new", QueryText: "newest query", SearchScope: "bible", Mode: "phrase", SearchedAt: baseTime, UserID: "test-user-id"},
 		}
 
 		for _, item := range items {
@@ -59,7 +59,7 @@ func TestSearchHistoryRepository_SaveAndGetLatest(t *testing.T) {
 			}
 		}
 
-		results, err := repo.GetLatest(ctx, 2)
+		results, err := repo.GetLatest(ctx, "test-user-id", 2)
 		if err != nil {
 			t.Fatalf("GetLatest failed: %v", err)
 		}

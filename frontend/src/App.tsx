@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TranslationSelector } from './components/TranslationSelector';
 import { TranslationManager } from './components/TranslationManager';
 import { VerseReader } from './components/VerseReader';
@@ -7,10 +8,13 @@ import { SearchHistory } from './components/SearchHistory';
 import { AnalyticsView } from './components/AnalyticsView';
 import { CompareView } from './components/CompareView';
 import { apiService } from './services/api';
-import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon } from 'lucide-react';
+import { useAuth } from './context/AuthContext';
+import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut } from 'lucide-react';
 import type { InstalledTranslation } from './types/bible';
 
 function App() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [selectedTranslation, setSelectedTranslation] = useState<string>('');
   const [historyTrigger, setHistoryTrigger] = useState(false);
   const [translationTrigger, setTranslationTrigger] = useState(false);
@@ -92,6 +96,29 @@ function App() {
 
           {/* Controls */}
           <div className="flex items-center gap-3">
+            {user && (
+              <span className="text-xs max-md:hidden" style={{ color: 'var(--muted)' }}>
+                {user.email}
+              </span>
+            )}
+
+            <button
+              onClick={async () => {
+                await logout();
+                navigate('/login');
+              }}
+              aria-label="Kirjaudu ulos"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+              style={{
+                border: '1px solid var(--border)',
+                background: 'transparent',
+                color: 'var(--muted)',
+              }}
+            >
+              <LogOut size={14} />
+              <span className="max-md:hidden">Log out</span>
+            </button>
+
             <button
               onClick={() => setShowManager(!showManager)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"

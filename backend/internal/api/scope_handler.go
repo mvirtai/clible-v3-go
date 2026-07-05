@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
@@ -48,6 +49,13 @@ func (h *ScopeHandler) CreateScope(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	w.Header().Set("Content-Type", "application/json")
 
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
 	var req ScopeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -55,7 +63,7 @@ func (h *ScopeHandler) CreateScope(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scope, err := h.scopeService.CreateScope(ctx, req.Name)
+	scope, err := h.scopeService.CreateScope(ctx, req.Name, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -71,7 +79,14 @@ func (h *ScopeHandler) GetScopes(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	w.Header().Set("Content-Type", "application/json")
 
-	scopes, err := h.scopeService.GetScopes(ctx)
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	scopes, err := h.scopeService.GetScopes(ctx, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -87,6 +102,13 @@ func (h *ScopeHandler) DeleteScope(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	w.Header().Set("Content-Type", "application/json")
 
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -94,7 +116,7 @@ func (h *ScopeHandler) DeleteScope(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.scopeService.DeleteScope(ctx, id); err != nil {
+	if err := h.scopeService.DeleteScope(ctx, id, userID); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
@@ -171,6 +193,13 @@ func (h *ScopeHandler) GetScopeWorkspace(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	w.Header().Set("Content-Type", "application/json")
 
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -178,7 +207,7 @@ func (h *ScopeHandler) GetScopeWorkspace(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	workspace, err := h.scopeService.GetScopeWorkspace(ctx, id)
+	workspace, err := h.scopeService.GetScopeWorkspace(ctx, id, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})

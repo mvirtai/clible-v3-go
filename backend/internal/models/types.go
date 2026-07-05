@@ -40,6 +40,7 @@ type Scope struct {
 	ID        string    `json:"id" db:"id"`
 	Name      string    `json:"name" db:"name"`
 	CreatedAt time.Time `json:"createdAt" db:"created_at"`
+	UserID    string    `json:"userId" db:"user_id"`
 }
 
 type SearchHistory struct {
@@ -51,6 +52,7 @@ type SearchHistory struct {
 	Mode          string    `json:"mode" db:"mode"`
 	ResultCount   int       `json:"resultCount" db:"result_count"`
 	SearchedAt    time.Time `json:"searchedAt" db:"searched_at"`
+	UserID        string    `json:"userId" db:"user_id"`
 }
 
 type SavedSearch struct {

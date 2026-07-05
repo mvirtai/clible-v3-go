@@ -49,6 +49,11 @@ interface RawComparisonResult {
     summary: RawComparisonSummary;
 }
 
+interface UserResponse {
+    id: string;
+    email: string;
+}
+
 /**
  * Maps RawTextStats structure to the camelCase TextStats interface
  */
@@ -147,9 +152,9 @@ export class ApiService {
      * GET /api/history
      */
     async getHistory(): Promise<SearchHistoryEntry[]> {
-        const res = await fetch(`${this.baseUrl}/history`);
-        if (!res.ok) throw new Error(`GET ${this.baseUrl}/history returned ${res.status}`)
-        return await res.json()
+        const res = await fetch(`${this.baseUrl}/history`, { credentials: 'include' });
+        if (!res.ok) throw new Error(`GET ${this.baseUrl}/history returned ${res.status}`);
+        return await res.json();
     }
 
     /**
@@ -164,6 +169,7 @@ export class ApiService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(historyEntry),
+            credentials: 'include',
         });
         if (!res.ok) throw new Error(
             `POST ${this.baseUrl}/history returned ${res.status}`
@@ -184,6 +190,7 @@ export class ApiService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ reference, translationId }),
+            credentials: 'include',
         });
         if (!res.ok) throw new Error(
             `POST ${this.baseUrl}/analytics/analyze returned ${res.status}`);
@@ -210,6 +217,7 @@ export class ApiService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ reference, translationId1, translationId2 }),
+            credentials: 'include',
         });
         if (!res.ok) throw new Error(
             `POST ${this.baseUrl}/analytics/compare returned ${res.status}`);
@@ -242,6 +250,7 @@ export class ApiService {
         const res = await fetch(`${this.baseUrl}/translations/import`, {
             method: 'POST',
             body: formData,
+            credentials: 'include',
         });
 
         if (!res.ok) {
@@ -249,6 +258,65 @@ export class ApiService {
             throw new Error(`POST ${this.baseUrl}/translations/import returned ${res.status} - ${errData.error || errData.message || 'Unknown error'}`);
         }
 
+        return await res.json();
+    }
+
+    /**
+     * Registers a new user.
+     */
+    async register(email: string, password: string): Promise<UserResponse> {
+        const res = await fetch(`${this.baseUrl}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `POST /auth/register returned ${res.status}`);
+        }
+        return await res.json();
+    }
+
+    /**
+     * Logs in an existing user.
+     */
+    async login(email: string, password: string): Promise<UserResponse> {
+        const res = await fetch(`${this.baseUrl}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `POST /auth/login returned ${res.status}`);
+        }
+        return await res.json();
+    }
+
+    /**
+     * Logs out the current user by clearing the JWT cookie.
+     */
+    async logout(): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/auth/logout`, {
+            method: 'POST',
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /auth/logout returned ${res.status}`);
+    }
+
+    /**
+     * Retrieves the currently logged-in user profile.
+     */
+    async getMe(): Promise<UserResponse> {
+        const res = await fetch(`${this.baseUrl}/auth/me`, {
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `GET /auth/me returned ${res.status}`);
+        }
         return await res.json();
     }
 }
