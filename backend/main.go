@@ -24,6 +24,7 @@ import (
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
+	bootStart := time.Now()
 
 	cfg := config.Load()
 
@@ -41,6 +42,7 @@ func main() {
 	scopeRepo := db.NewScopeRepository(dbConn)
 	savedRepo := db.NewSavedRepository(dbConn)
 	bookRepo := db.NewBookRepository(dbConn)
+	userRepo := db.NewUserRepository(dbConn)
 
 	// --- Services & Parsers ---
 	verseService := services.NewVerseService(verseRepo, translationRepo)
@@ -49,6 +51,17 @@ func main() {
 	bookService := services.NewBookService(bookRepo)
 	xmlParser := parsers.NewXMLVerseParser()
 	seedService := services.NewSeedService(verseRepo, xmlParser)
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		slog.Error("Critical startup failure: JWT_SECRET environment variable is not set")
+		os.Exit(1)
+	}
+	if len(jwtSecret) < 32 {
+		slog.Error("Critical startup failure: JWT_SECRET must be at least 32 characters long")
+		os.Exit(1)
+	}
+	authService := services.NewAuthService(userRepo, jwtSecret)
 
 	analyticService, err := services.NewAnalyticService(verseRepo, true, "en,fi,grc,el")
 	if err != nil {
@@ -63,6 +76,7 @@ func main() {
 	translationHandler := api.NewTranslationHandler(translationRepo, seedService)
 	analyticsHandler := api.NewAnalyticsHandler(analyticService, verseService)
 	bookHandler := api.NewBookHandler(bookService)
+	authHandler := api.NewAuthHandler(authService, userRepo)
 
 	mux := http.NewServeMux()
 
@@ -74,25 +88,32 @@ func main() {
 	mux.HandleFunc("GET /api/books", bookHandler.GetBooks)
 	mux.HandleFunc("GET /api/books/{id}", bookHandler.GetBookByID)
 
-	// Search History endpoints (Clean Go 1.22+ method matching)
-	mux.HandleFunc("POST /api/history", historyHandler.AddSearch)
-	mux.HandleFunc("GET /api/history", historyHandler.GetRecentHistory)
+	// Auth endpoints
+	mux.HandleFunc("POST /api/auth/register", authHandler.Register)
+	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
+	mux.HandleFunc("POST /api/auth/logout", authHandler.Logout)
+	mux.HandleFunc("GET /api/auth/me", authHandler.Me)
+
+	// Search History endpoints (Protected by Auth middleware)
+	requireAuth := middleware.RequireAuth(authService)
+	mux.Handle("POST /api/history", requireAuth(http.HandlerFunc(historyHandler.AddSearch)))
+	mux.Handle("GET /api/history", requireAuth(http.HandlerFunc(historyHandler.GetRecentHistory)))
 
 	// Catalog & Streaming Import endpoints
 	mux.HandleFunc("GET /api/translations", translationHandler.GetTranslations)
-	mux.HandleFunc("POST /api/translations/import", translationHandler.ImportTranslation)
+	mux.Handle("POST /api/translations/import", requireAuth(http.HandlerFunc(translationHandler.ImportTranslation)))
 
-	// Workspace Scopes & Saved Analytics endpoints
-	mux.HandleFunc("POST /api/scopes", scopeHandler.CreateScope)
-	mux.HandleFunc("GET /api/scopes", scopeHandler.GetScopes)
-	mux.HandleFunc("DELETE /api/scopes", scopeHandler.DeleteScope)
-	mux.HandleFunc("POST /api/scopes/saved-searches", scopeHandler.SaveSearch)
-	mux.HandleFunc("POST /api/scopes/saved-analyses", scopeHandler.SaveAnalysis)
-	mux.HandleFunc("GET /api/scopes/workspace", scopeHandler.GetScopeWorkspace)
+	// Workspace Scopes & Saved Analytics endpoints (Protected by Auth middleware)
+	mux.Handle("POST /api/scopes", requireAuth(http.HandlerFunc(scopeHandler.CreateScope)))
+	mux.Handle("GET /api/scopes", requireAuth(http.HandlerFunc(scopeHandler.GetScopes)))
+	mux.Handle("DELETE /api/scopes", requireAuth(http.HandlerFunc(scopeHandler.DeleteScope)))
+	mux.Handle("POST /api/scopes/saved-searches", requireAuth(http.HandlerFunc(scopeHandler.SaveSearch)))
+	mux.Handle("POST /api/scopes/saved-analyses", requireAuth(http.HandlerFunc(scopeHandler.SaveAnalysis)))
+	mux.Handle("GET /api/scopes/workspace", requireAuth(http.HandlerFunc(scopeHandler.GetScopeWorkspace)))
 
 	// Text Analysis Engine endpoints
-	mux.HandleFunc("POST /api/analytics/analyze", analyticsHandler.Analyze)
-	mux.HandleFunc("POST /api/analytics/compare", analyticsHandler.Compare)
+	mux.Handle("POST /api/analytics/analyze", requireAuth(http.HandlerFunc(analyticsHandler.Analyze)))
+	mux.Handle("POST /api/analytics/compare", requireAuth(http.HandlerFunc(analyticsHandler.Compare)))
 
 	// Static SPA fallback
 	fs := http.FileServer(http.Dir(cfg.FrontendDir))
@@ -131,7 +152,41 @@ func main() {
 
 	serverErrors := make(chan error, 1)
 	go func() {
-		slog.Info("Unified Clible-v3 REST backend cleanly executing", "port", cfg.Port)
+		slog.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		slog.Info("🚀 Clible-v3 REST API server starting")
+		slog.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		slog.Info("  ⚙️  Config",
+			"port", cfg.Port,
+			"db", cfg.DatabaseURL,
+			"frontend_dir", cfg.FrontendDir,
+		)
+		slog.Info("  📡 Registered API routes")
+		slog.Info("     GET   /api/verses")
+		slog.Info("     GET   /api/search")
+		slog.Info("     GET   /api/books")
+		slog.Info("     GET   /api/books/{id}")
+		slog.Info("     POST  /api/auth/register")
+		slog.Info("     POST  /api/auth/login")
+		slog.Info("     POST  /api/auth/logout")
+		slog.Info("     GET   /api/auth/me")
+		slog.Info("     POST  /api/history            [protected]")
+		slog.Info("     GET   /api/history            [protected]")
+		slog.Info("     GET   /api/translations")
+		slog.Info("     POST  /api/translations/import")
+		slog.Info("     POST  /api/scopes             [protected]")
+		slog.Info("     GET   /api/scopes             [protected]")
+		slog.Info("     DELETE /api/scopes            [protected]")
+		slog.Info("     POST  /api/scopes/saved-searches [protected]")
+		slog.Info("     POST  /api/scopes/saved-analyses [protected]")
+		slog.Info("     GET   /api/scopes/workspace   [protected]")
+		slog.Info("     POST  /api/analytics/analyze")
+		slog.Info("     POST  /api/analytics/compare")
+		slog.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		slog.Info("✅ Server ready",
+			"addr", "http://localhost:"+cfg.Port,
+			"boot_time", time.Since(bootStart).Round(time.Millisecond).String(),
+		)
+		slog.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		serverErrors <- server.ListenAndServe()
 	}()
 
@@ -143,7 +198,10 @@ func main() {
 		slog.Error("Server orchestration failed unexpectedly", "error", err)
 		os.Exit(1)
 	case sig := <-shutdown:
-		slog.Info("Graceful shutdown sequence triggered cleanly", "signal", sig)
+		slog.Info("🛑 Graceful shutdown sequence triggered",
+			"signal", sig,
+			"uptime", time.Since(bootStart).Round(time.Second).String(),
+		)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 

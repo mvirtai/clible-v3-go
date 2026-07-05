@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
@@ -47,6 +48,13 @@ func (h *HistoryHandler) AddSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	w.Header().Set("Content-Type", "application/json")
 
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
 	var req SearchHistoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -69,6 +77,7 @@ func (h *HistoryHandler) AddSearch(w http.ResponseWriter, r *http.Request) {
 		TranslationID: req.TranslationID,
 		Mode:          req.Mode,
 		ResultCount:   req.ResultCount,
+		UserID:        userID,
 	}
 
 	if err := h.historyService.AddSearch(ctx, &historyItem); err != nil {
@@ -86,15 +95,25 @@ func (h *HistoryHandler) GetRecentHistory(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	w.Header().Set("Content-Type", "application/json")
 
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
 	limitStr := r.URL.Query().Get("limit")
 	limit := 20 // Default safe fallback cap boundary
 	if limitStr != "" {
 		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
 			limit = parsedLimit
+			if limit > 100 {
+				limit = 100
+			}
 		}
 	}
 
-	dbHistory, err := h.historyService.GetRecentHistory(ctx, limit)
+	dbHistory, err := h.historyService.GetRecentHistory(ctx, userID, limit)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to query history log state: " + err.Error()})
