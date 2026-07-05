@@ -2,21 +2,21 @@
 
 /* ─── Design tokens – Light ─────────────────────────────────────────── */
 :root {
-  --bg:           #fdfcfb;
-  --surface:      #ffffff;
-  --surface-2:    #faf9f6;
-  --text:         #1a1a1a;
-  --text-2:       #333333;
-  --muted:        #6b6b6b;
-  --border:       #e5e5e5;
-  --border-soft:  #f0f0f0;
-  --accent:       #d4a373;
-  --accent-bg:    rgba(212, 163, 115, 0.12);
-  --accent-border:rgba(212, 163, 115, 0.4);
+  --bg: #fdfcfb;
+  --surface: #ffffff;
+  --surface-2: #faf9f6;
+  --text: #1a1a1a;
+  --text-2: #333333;
+  --muted: #6b6b6b;
+  --border: #e5e5e5;
+  --border-soft: #f0f0f0;
+  --accent: #d4a373;
+  --accent-bg: rgba(212, 163, 115, 0.12);
+  --accent-border: rgba(212, 163, 115, 0.4);
 
-  --sans:    system-ui, 'Segoe UI', Roboto, sans-serif;
-  --serif:   Georgia, 'Times New Roman', serif;
-  --mono:    ui-monospace, Consolas, monospace;
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --serif: Georgia, 'Times New Roman', serif;
+  --mono: ui-monospace, Consolas, monospace;
 
   font: 17px/155% var(--sans);
   letter-spacing: 0.12px;
@@ -29,24 +29,43 @@
 }
 
 /* ─── Design tokens – Dark ──────────────────────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:           #0f1113;
-    --surface:      #15181b;
-    --surface-2:    #111417;
-    --text:         #f3f4f6;
-    --text-2:       #d6d8dc;
-    --muted:        #a8b0b8;
-    --border:       rgba(255, 255, 255, 0.10);
-    --border-soft:  rgba(255, 255, 255, 0.06);
-    --accent:       #e0b47f;
-    --accent-bg:    rgba(224, 180, 127, 0.12);
-    --accent-border:rgba(224, 180, 127, 0.35);
-  }
+:root.dark {
+  --bg: #0f1113;
+  --surface: #15181b;
+  --surface-2: #111417;
+  --text: #f3f4f6;
+  --text-2: #d6d8dc;
+  --muted: #a8b0b8;
+  --border: rgba(255, 255, 255, 0.10);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --accent: #e0b47f;
+  --accent-bg: rgba(224, 180, 127, 0.12);
+  --accent-border: rgba(224, 180, 127, 0.35);
+}
+
+/* Color transition */
+#root,
+body,
+header,
+main,
+footer,
+button,
+input,
+select,
+div,
+span,
+p,
+h1,
+h2,
+h3,
+code {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 /* ─── Layout ────────────────────────────────────────────────────────── */
-body { margin: 0; }
+body {
+  margin: 0;
+}
 
 #root {
   min-height: 100svh;
@@ -55,14 +74,18 @@ body { margin: 0; }
 }
 
 /* ─── Typography ────────────────────────────────────────────────────── */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: var(--sans);
   font-weight: 500;
   color: var(--text);
   margin: 0;
 }
 
-p { margin: 0; }
+p {
+  margin: 0;
+}
 
 code {
   font-family: var(--mono);
@@ -74,6 +97,79 @@ code {
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────────── */
-.scrollbar-thin::-webkit-scrollbar       { width: 4px; }
-.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
+}
+
+/* Animations */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 15s linear infinite;
+}
+
+/* ─── Theme Toggle Button Hover Effects ───────────────────────────────── */
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  
+  /* Smooth transition for all properties */
+  transition: 
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+  transform: scale(1.08);
+  box-shadow: 0 0 12px var(--accent-bg);
+}
+
+.theme-toggle-btn:active {
+  transform: scale(0.95);
+  transition-duration: 0.1s;
+}
+
+/* Rotate and color moon on hover */
+.theme-toggle-btn .lucide-moon {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease;
+}
+
+.theme-toggle-btn:hover .lucide-moon {
+  transform: rotate(-18deg) scale(1.1);
+  color: var(--accent);
+}
+
+/* Speed up sun spin on hover */
+.theme-toggle-btn:hover .lucide-sun {
+  animation-duration: 4s;
+}
