@@ -41,11 +41,11 @@ func (s *SearchHistoryService) AddSearch(ctx context.Context, h *models.SearchHi
 	return nil
 }
 
-// GetRecentHistory retrieves historical sequences honoring strict upper bound restrictions.
-func (s *SearchHistoryService) GetRecentHistory(ctx context.Context, limit int) ([]models.SearchHistory, error) {
+// GetRecentHistory retrieves historical sequences for a user honoring strict upper bound restrictions.
+func (s *SearchHistoryService) GetRecentHistory(ctx context.Context, userID string, limit int) ([]models.SearchHistory, error) {
 	if limit <= 0 {
 		limit = 10 // Apply a sensible safe fallback limit if invalid bounds are supplied
 	}
 
-	return s.historyRepo.GetLatest(ctx, limit)
+	return s.historyRepo.GetLatest(ctx, userID, limit)
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/mvirtai/clible-v3-go/internal/api"
 	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
 
@@ -23,6 +24,7 @@ func TestHistoryHandler_Endpoints(t *testing.T) {
 
 	ctx := context.Background()
 	_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
+	_, _ = conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES ('test-user-id', 'test@example.com', 'hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
 
 	repo := db.NewSearchHistoryRepository(conn)
 	service := services.NewSearchHistoryService(repo)
@@ -39,6 +41,8 @@ func TestHistoryHandler_Endpoints(t *testing.T) {
 		}
 		body, _ := json.Marshal(payload)
 		req := httptest.NewRequest(http.MethodPost, "/api/history", bytes.NewReader(body))
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "test-user-id")
+		req = req.WithContext(ctx)
 		rec := httptest.NewRecorder()
 
 		handler.AddSearch(rec, req)
@@ -58,6 +62,8 @@ func TestHistoryHandler_Endpoints(t *testing.T) {
 		payload := map[string]interface{}{"queryText": ""}
 		body, _ := json.Marshal(payload)
 		req := httptest.NewRequest(http.MethodPost, "/api/history", bytes.NewReader(body))
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "test-user-id")
+		req = req.WithContext(ctx)
 		rec := httptest.NewRecorder()
 
 		handler.AddSearch(rec, req)
@@ -69,6 +75,8 @@ func TestHistoryHandler_Endpoints(t *testing.T) {
 
 	t.Run("GET /api/history returns 200 OK list tracking recent user queries collection", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/history?limit=5", nil)
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "test-user-id")
+		req = req.WithContext(ctx)
 		rec := httptest.NewRecorder()
 
 		handler.GetRecentHistory(rec, req)

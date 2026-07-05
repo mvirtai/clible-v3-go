@@ -21,6 +21,7 @@ func TestSearchHistoryService_AddAndGetHistory(t *testing.T) {
 
 	// Seed required translation parent rows to keep integrity boundaries clean
 	_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
+	_, _ = conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES ('test-user-id', 'test@example.com', 'hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
 
 	repo := db.NewSearchHistoryRepository(conn)
 	service := services.NewSearchHistoryService(repo)
@@ -31,6 +32,7 @@ func TestSearchHistoryService_AddAndGetHistory(t *testing.T) {
 			SearchScope:   "bible",
 			TranslationID: "web",
 			Mode:          "phrase",
+			UserID:        "test-user-id",
 		}
 
 		if err := service.AddSearch(ctx, item); err != nil {
@@ -49,7 +51,7 @@ func TestSearchHistoryService_AddAndGetHistory(t *testing.T) {
 	})
 
 	t.Run("retrieve historical logs enforcing cap limit criteria", func(t *testing.T) {
-		history, err := service.GetRecentHistory(ctx, 10)
+		history, err := service.GetRecentHistory(ctx, "test-user-id", 10)
 		if err != nil {
 			t.Fatalf("GetRecentHistory query failed: %v", err)
 		}
