@@ -6,9 +6,10 @@ import { Search, Loader2 } from 'lucide-react';
 
 interface Props {
   translation: string;
+  onSelectVerse?: (reference: string) => void;
 }
 
-export const VerseSearch: React.FC<Props> = ({ translation }) => {
+export const VerseSearch: React.FC<Props> = ({ translation, onSelectVerse }) => {
   const [query, setQuery] = useState('');
   const [regex, setRegex] = useState(false);
   const [results, setResults] = useState<SearchVerse[]>([]);
@@ -16,7 +17,7 @@ export const VerseSearch: React.FC<Props> = ({ translation }) => {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!query.trim() || !translation) return;
 
@@ -115,10 +116,11 @@ export const VerseSearch: React.FC<Props> = ({ translation }) => {
               results.map((r, i) => (
                 <div
                   key={`${r.bookId}-${r.chapter}-${r.verse}-${i}`}
-                  className="rounded-2xl p-4 transition-colors text-left"
-                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)' }}
+                  className="rounded-2xl p-4 transition-all text-left cursor-pointer hover:bg-[var(--surface)] hover:border-[var(--accent-border)] border"
+                  style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}
+                  onClick={() => onSelectVerse?.(`${r.bookId} ${r.chapter}:${r.verse}`)}
                 >
-                  <div className="text-xs font-semibold mb-1" style={{ color: 'var(--accent)' }}>
+                  <div className="text-xs font-semibold mb-1 hover:underline" style={{ color: 'var(--accent)' }}>
                     {r.bookId} {r.chapter}:{r.verse}
                   </div>
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>

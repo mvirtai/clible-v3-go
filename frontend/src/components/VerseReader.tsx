@@ -7,17 +7,17 @@ import { resolveBookId } from '../utils/bookNames';
 
 interface Props {
   translation: string;
+  activeReference?: string;
 }
 
-export const VerseReader: React.FC<Props> = ({ translation }) => {
+export const VerseReader: React.FC<Props> = ({ translation, activeReference }) => {
   const [reference, setReference] = useState('');
   const [data, setData] = useState<BibleResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFetch = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const trimmed = reference.trim();
+  const fetchVerses = async (ref: string) => {
+    const trimmed = ref.trim();
     if (!trimmed || !translation) return;
 
     // Normalise book name → canonical DB id (e.g. "Joh." → "JHN")
@@ -38,6 +38,19 @@ export const VerseReader: React.FC<Props> = ({ translation }) => {
       setLoading(false);
     }
   };
+
+  const handleFetch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    fetchVerses(reference);
+  };
+
+  // React to activeReference changes (e.g. clicked from search results)
+  React.useEffect(() => {
+    if (activeReference) {
+      setReference(activeReference);
+      fetchVerses(activeReference);
+    }
+  }, [activeReference, translation]);
 
   return (
     <div className="rounded-3xl p-8 space-y-6" style={{

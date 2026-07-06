@@ -21,6 +21,7 @@ function App() {
   const [showManager, setShowManager] = useState(false);
   const [viewMode, setViewMode] = useState<'reader' | 'analytics' | 'compare'>('reader');
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
+  const [activeReference, setActiveReference] = useState<string>('');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     // Check if class .dark exists in documentElement
     return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
@@ -195,9 +196,9 @@ function App() {
             <div className="lg:col-span-2 space-y-8">
               {selectedTranslation ? (
                 <>
-                  <VerseReader translation={selectedTranslation} />
+                  <VerseReader translation={selectedTranslation} activeReference={activeReference} />
                   <div onClick={handleSearchFinished}>
-                    <VerseSearch translation={selectedTranslation} />
+                    <VerseSearch translation={selectedTranslation} onSelectVerse={setActiveReference} />
                   </div>
                 </>
               ) : (
