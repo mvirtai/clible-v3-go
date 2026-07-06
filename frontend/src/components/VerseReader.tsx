@@ -7,17 +7,24 @@ import { resolveBookId } from '../utils/bookNames';
 
 interface Props {
   translation: string;
+  activeReference?: string;
 }
 
-export const VerseReader: React.FC<Props> = ({ translation }) => {
+export const VerseReader: React.FC<Props> = ({ translation, activeReference }) => {
   const [reference, setReference] = useState('');
+  const [prevActiveReference, setPrevActiveReference] = useState(activeReference);
   const [data, setData] = useState<BibleResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFetch = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const trimmed = reference.trim();
+  // Sync state during render instead of in useEffect to avoid cascading renders warning
+  if (activeReference !== prevActiveReference) {
+    setReference(activeReference || '');
+    setPrevActiveReference(activeReference);
+  }
+
+  const fetchVerses = React.useCallback(async (ref: string) => {
+    const trimmed = ref.trim();
     if (!trimmed || !translation) return;
 
     // Normalise book name → canonical DB id (e.g. "Joh." → "JHN")
@@ -37,7 +44,21 @@ export const VerseReader: React.FC<Props> = ({ translation }) => {
     } finally {
       setLoading(false);
     }
+  }, [translation]);
+
+  const handleFetch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    fetchVerses(reference);
   };
+
+  // React to activeReference changes (e.g. clicked from search results)
+  React.useEffect(() => {
+    if (activeReference) {
+      Promise.resolve().then(() => {
+        fetchVerses(activeReference);
+      });
+    }
+  }, [activeReference, fetchVerses]);
 
   return (
     <div className="rounded-3xl p-8 space-y-6" style={{
