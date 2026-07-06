@@ -46,6 +46,13 @@ To achieve this:
   * **SBL Greek New Testament** (`sblgnt`)
   * **Hebrew Leningrad Codex** (`heb-leningrad`)
 
+### 6. Dev Tools & Workflow
+
+* **[Taskfile.yml](file:///home/vivaldev/code/clible-v3-go/Taskfile.yml)**:
+  * Added `git:new-branch` task with a POSIX-compliant shell precondition check to dynamically spin up new branch patterns following the conventions in `AGENTS.md`.
+  * Added `git:commit-all` task to execute sequential commit scripts defined in `.git-commits.sh` and clean up the script upon successful commit.
+* **[.plans/10-git-commit-all-workflow.md](file:///home/vivaldev/code/clible-v3-go/.plans/10-git-commit-all-workflow.md)**: Created a detailed implementation plan describing the automated git commit-all workflow.
+
 ---
 
 ## Testing & Verification Strategy
