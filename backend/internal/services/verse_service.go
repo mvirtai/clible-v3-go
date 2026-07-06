@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/mvirtai/clible-v3-go/internal/ctxkeys"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 	parser "github.com/mvirtai/clible-v3-go/internal/parsers"
@@ -44,7 +45,6 @@ func NewVerseService(verseRepo *db.VerseRepository, translationRepo *db.Translat
 	}
 }
 
-
 // GetVerses resolves a raw text reference string and fetches matching records from the database.
 // This is a web-first replacement for python subprocess wrappers, returning JSON-ready slices instantly
 func (s *VerseService) GetVerses(ctx context.Context, reference string, translationID string) ([]models.Verse, error) {
@@ -58,11 +58,35 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 	tid := translationID
 	if tid == "" {
 		// Fetch all installed translations and select the first one as default
-		installed, err := s.translationRepo.GetAll()
+		userID, ok := ctxkeys.GetUserID(ctx)
+		var installed []models.Translation
+		var err error
+		if ok {
+			installed, err = s.translationRepo.GetByUser(ctx, userID)
+		} else {
+			installed, err = s.translationRepo.GetAll()
+		}
 		if err == nil && len(installed) > 0 {
 			tid = installed[0].ID
 		} else {
-			tid = "fin-1992" // Fallback default
+			tid = "web" // Fallback default is web
+		}
+	}
+
+	// Verify accessibility of the resolved translation ID
+	userID, ok := ctxkeys.GetUserID(ctx)
+	if ok {
+		accessible, err := s.translationRepo.IsAccessible(ctx, userID, tid)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify translation accessibility: %w", err)
+		}
+		if !accessible {
+			return nil, fmt.Errorf("translation %q is not accessible", tid)
+		}
+	} else {
+		// If not authenticated, restrict to fixed preset (web only)
+		if tid != "web" {
+			return nil, fmt.Errorf("translation %q is not accessible", tid)
 		}
 	}
 
@@ -79,13 +103,27 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 	}
 }
 
-
-
-
 // SearchVerses delegates the search operation to the repository layer.
 // When useRegex is true, the query is treated as a Go regexp pattern applied
 // against a full table scan. When false, FTS5 MATCH is used for fast full-text search.
 func (s *VerseService) SearchVerses(ctx context.Context, query string, useRegex bool, translationID string) ([]models.Verse, error) {
+	// Verify accessibility of the translation ID
+	userID, ok := ctxkeys.GetUserID(ctx)
+	if ok {
+		accessible, err := s.translationRepo.IsAccessible(ctx, userID, translationID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify translation accessibility: %w", err)
+		}
+		if !accessible {
+			return nil, fmt.Errorf("translation %q is not accessible", translationID)
+		}
+	} else {
+		// If not authenticated, restrict to fixed preset (web only)
+		if translationID != "web" {
+			return nil, fmt.Errorf("translation %q is not accessible", translationID)
+		}
+	}
+
 	params := db.SearchParams{
 		TranslationID: translationID,
 	}

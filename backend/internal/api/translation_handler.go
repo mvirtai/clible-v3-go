@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
@@ -24,10 +25,17 @@ func NewTranslationHandler(repo *db.TranslationRepository, ss *services.SeedServ
 func (h *TranslationHandler) GetTranslations(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	translations, err := h.translationRepo.GetAll()
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	translations, err := h.translationRepo.GetByUser(r.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to gather installed translations catalog"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to gather installed translations catalog: " + err.Error()})
 		return
 	}
 
@@ -99,6 +107,16 @@ func (h *TranslationHandler) ImportTranslation(w http.ResponseWriter, r *http.Re
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "metadata saved but file streaming compilation failed: " + err.Error()})
 		return
+	}
+
+	// Link the newly imported translation to the user who uploaded it
+	userID, ok := middleware.GetUserID(ctx)
+	if ok {
+		if err := h.translationRepo.LinkUser(ctx, userID, translationID); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to link translation to user: " + err.Error()})
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)

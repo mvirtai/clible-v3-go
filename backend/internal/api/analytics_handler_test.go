@@ -10,6 +10,7 @@ import (
 
 	"github.com/mvirtai/clible-v3-go/internal/api"
 	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
@@ -22,9 +23,15 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 
 	ctx := context.Background()
-	// Seed metadata rules required by FK constraints
-	_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
-	_, _ = conn.ExecContext(ctx, `INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'John', 'NT', 4, 21)`)
+	if _, err = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`); err != nil {
+		t.Fatalf("failed to seed web translation: %v", err)
+	}
+	if _, err = conn.ExecContext(ctx, `INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'John', 'NT', 4, 21)`); err != nil {
+		t.Fatalf("failed to seed Joh book: %v", err)
+	}
+	if _, err = conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash) VALUES ('test-user-id', 'test@example.com', 'hash')`); err != nil {
+		t.Fatalf("failed to seed test user: %v", err)
+	}
 
 	verseRepo := db.NewVerseRepository(conn)
 	verses := []models.Verse{
@@ -43,6 +50,7 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 	verseService := services.NewVerseService(verseRepo, translationRepo)
 
 	handler := api.NewAnalyticsHandler(analyticService, verseService)
+	userID := "test-user-id"
 
 	t.Run("POST /api/analytics/analyze calculates text parameters successfully", func(t *testing.T) {
 		payload := map[string]interface{}{
@@ -51,6 +59,7 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 		}
 		body, _ := json.Marshal(payload)
 		req := httptest.NewRequest(http.MethodPost, "/api/analytics/analyze", bytes.NewReader(body))
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
 		rec := httptest.NewRecorder()
 
 		handler.Analyze(rec, req)
@@ -72,6 +81,7 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 		payload := map[string]string{"reference": "", "translationId": "web"}
 		body, _ := json.Marshal(payload)
 		req := httptest.NewRequest(http.MethodPost, "/api/analytics/analyze", bytes.NewReader(body))
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
 		rec := httptest.NewRecorder()
 
 		handler.Analyze(rec, req)
@@ -82,8 +92,14 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 	})
 
 	t.Run("POST /api/analytics/compare executes cross-translation similarity checks", func(t *testing.T) {
-		// Seed a secondary translation parent to satisfy foreign key constraints
-		_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('kjv', 'King James Bible', 'en', 'text')`)
+		if _, err = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('kjv', 'King James Bible', 'en', 'text')`); err != nil {
+			t.Fatalf("failed to seed KJV translation: %v", err)
+		}
+
+		// Link KJV translation to the test user so it is accessible
+		if err := translationRepo.LinkUser(ctx, userID, "kjv"); err != nil {
+			t.Fatalf("failed to link KJV to test user: %v", err)
+		}
 
 		// Seed a comparative verse for the KJV translation alignment grid
 		versesB := []models.Verse{
@@ -100,6 +116,7 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 		}
 		body, _ := json.Marshal(payload)
 		req := httptest.NewRequest(http.MethodPost, "/api/analytics/compare", bytes.NewReader(body))
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
 		rec := httptest.NewRecorder()
 
 		handler.Compare(rec, req)

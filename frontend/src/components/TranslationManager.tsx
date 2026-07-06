@@ -45,6 +45,18 @@ const PRESET_TRANSLATIONS: PresetTranslation[] = [
     lang: 'en',
     url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/eng-kjv.osis.xml'
   },
+  {
+    id: 'sblgnt',
+    name: 'SBL Greek New Testament',
+    lang: 'grc',
+    url: 'https://raw.githubusercontent.com/scott-fleischman/sblgnt-osis/master/sblgnt.xml'
+  },
+  {
+    id: 'heb-leningrad',
+    name: 'Hebrew Leningrad Codex',
+    lang: 'he',
+    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/heb-leningrad.usfx.xml'
+  },
 ];
 
 export const TranslationManager: React.FC<Props> = ({ onTranslationInstalled }) => {

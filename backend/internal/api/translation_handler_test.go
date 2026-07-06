@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/mvirtai/clible-v3-go/internal/api"
 	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/parsers"
 	"github.com/mvirtai/clible-v3-go/internal/services"
@@ -40,6 +42,8 @@ func TestTranslationHandler_Endpoints(t *testing.T) {
 		handler := api.NewTranslationHandler(repo, seedService)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/translations", nil)
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "test-user")
+		req = req.WithContext(ctx)
 		rec := httptest.NewRecorder()
 
 		handler.GetTranslations(rec, req)
@@ -63,6 +67,8 @@ func TestTranslationHandler_Endpoints(t *testing.T) {
 		_ = connErr.Close()
 
 		req := httptest.NewRequest(http.MethodGet, "/api/translations", nil)
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "test-user")
+		req = req.WithContext(ctx)
 		rec := httptest.NewRecorder()
 
 		handlerErr.GetTranslations(rec, req)

@@ -5,12 +5,12 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/mvirtai/clible-v3-go/internal/ctxkeys"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
 
-type contextKey string
-
-const UserIDKey contextKey = "user_id"
+// UserIDKey is re-exported here for backward compatibility with existing API tests
+const UserIDKey = ctxkeys.UserIDKey
 
 func RequireAuth(authService *services.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -36,7 +36,7 @@ func RequireAuth(authService *services.AuthService) func(http.Handler) http.Hand
 			}
 
 			// Asetetaan user_id pyynnön kontekstiin
-			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			ctx := context.WithValue(r.Context(), ctxkeys.UserIDKey, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -44,6 +44,5 @@ func RequireAuth(authService *services.AuthService) func(http.Handler) http.Hand
 
 // GetUserID retrieves the user_id from the context if available.
 func GetUserID(ctx context.Context) (string, bool) {
-	userID, ok := ctx.Value(UserIDKey).(string)
-	return userID, ok
+	return ctxkeys.GetUserID(ctx)
 }
