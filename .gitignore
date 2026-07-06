@@ -39,3 +39,4 @@ yarn-error.log*
 *.tfstate.backup
 terraform.tfvars
 *.tfplan
+.plans/10-git-commit-all-workflow.md
