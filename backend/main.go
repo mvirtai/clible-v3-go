@@ -80,9 +80,11 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	requireAuth := middleware.RequireAuth(authService)
+
 	// Verse & Bible endpoints
-	mux.HandleFunc("GET /api/verses", bibleHandler.GetVersesByReference)
-	mux.HandleFunc("GET /api/search", bibleHandler.SearchVerses)
+	mux.Handle("GET /api/verses", requireAuth(http.HandlerFunc(bibleHandler.GetVersesByReference)))
+	mux.Handle("GET /api/search", requireAuth(http.HandlerFunc(bibleHandler.SearchVerses)))
 
 	// Book metadata endpoints
 	mux.HandleFunc("GET /api/books", bookHandler.GetBooks)
@@ -95,12 +97,11 @@ func main() {
 	mux.HandleFunc("GET /api/auth/me", authHandler.Me)
 
 	// Search History endpoints (Protected by Auth middleware)
-	requireAuth := middleware.RequireAuth(authService)
 	mux.Handle("POST /api/history", requireAuth(http.HandlerFunc(historyHandler.AddSearch)))
 	mux.Handle("GET /api/history", requireAuth(http.HandlerFunc(historyHandler.GetRecentHistory)))
 
 	// Catalog & Streaming Import endpoints
-	mux.HandleFunc("GET /api/translations", translationHandler.GetTranslations)
+	mux.Handle("GET /api/translations", requireAuth(http.HandlerFunc(translationHandler.GetTranslations)))
 	mux.Handle("POST /api/translations/import", requireAuth(http.HandlerFunc(translationHandler.ImportTranslation)))
 
 	// Workspace Scopes & Saved Analytics endpoints (Protected by Auth middleware)
@@ -134,7 +135,7 @@ func main() {
 		fs.ServeHTTP(w, r)
 	})
 
-	limiter := middleware.NewIPRateLimiter(rate.Limit(2), 10)
+	limiter := middleware.NewIPRateLimiter(rate.Limit(20), 30)
 
 	var handler http.Handler = mux
 	handler = middleware.RateLimitMiddleware(limiter)(handler)
