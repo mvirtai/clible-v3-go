@@ -138,7 +138,7 @@ func TestBibleHandler_SearchVerses_MissingQuery(t *testing.T) {
 func TestBibleHandler_SearchVerses_InvalidRegexError(t *testing.T) {
 	handler := newTestHandler(t)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/search?q=[invalid&regex=true", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/search?q=[invalid&regex=true&translation=web", nil)
 	rr := httptest.NewRecorder()
 	handler.SearchVerses(rr, req)
 
