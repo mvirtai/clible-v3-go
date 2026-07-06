@@ -245,6 +245,26 @@ tasks:
       - git commit -m "{{.MESSAGE}}"
       - if [ "{{.FORCE}}" = "true" ]; then git push -u origin HEAD --force-with-lease; else git push -u origin HEAD; fi
 
+  git:new-branch:
+    desc: "Create a new branch from main. USAGE: task git:new-branch FEAT_TYPE=feat/fix/ci/docs/refactor/chore/test/perf BRANCH_NAME=new-feature"
+    vars:
+      BRANCH_NAME: '{{.BRANCH_NAME}}'
+      FEAT_TYPE: '{{.FEAT_TYPE | default "feat"}}'
+    preconditions:
+      - sh: 'test -n "{{.BRANCH_NAME}}"'
+        msg: "Missing BRANCH_NAME argument. Usage: task git:new-branch BRANCH_NAME=new-feature"
+      - sh: 'case "{{.FEAT_TYPE}}" in feat|fix|ci|docs|refactor|chore|test|perf) true;; *) false;; esac'
+        msg: "Invalid FEAT_TYPE. Must be one of: feat, fix, ci, docs, refactor, chore, test, perf. Usage: task git:new-branch FEAT_TYPE=feat BRANCH_NAME=new-feature"
+    cmds:
+      - git switch -c "{{.FEAT_TYPE}}/{{.BRANCH_NAME}}"
+
+  git:commit-all:
+    desc: "Execute all staged commits defined in .git-commits.sh and clean up on success"
+    preconditions:
+      - sh: 'test -f .git-commits.sh'
+        msg: "No .git-commits.sh file found. Please create one with git commands first."
+    cmds:
+      - bash .git-commits.sh && rm .git-commits.sh  
 
   # --- Docker Tasks --- #
   docker:build:
@@ -273,8 +293,18 @@ tasks:
     vars:
       REGISTRY: '{{.REGISTRY | default "mvirtai"}}'
       IMAGE_NAME: '{{.IMAGE_NAME | default "clible-v3"}}'
-      TAG: '{{.TAG | default "latest"}}'
+      COMMIT: 
+       - sh: git rev-parse --short HEAD
+      TAG: '{{.COMMIT | default "latest"}}' 
+    preconditions:
+      - sh: 'test -n "{{.COMMIT}}"'
+        msg: "Missing COMMIT argument. Usage: task docker:push COMMIT=<commit-hash>"
     cmds:
       - task: docker:tag
+      - cmd: echo "Pushing {{.REGISTRY}}/{{.IMAGE_NAME}}:{{.TAG}} to DockerHub [1/2]"
         vars: { REGISTRY: "{{.REGISTRY}}", IMAGE_NAME: "{{.IMAGE_NAME}}", TAG: "{{.TAG}}" }
       - docker push {{.REGISTRY}}/{{.IMAGE_NAME}}:{{.TAG}}
+      - cmd: echo "Pushing {{.REGISTRY}}/{{.IMAGE_NAME}}:latest to DockerHub [2/2]"
+        vars: { REGISTRY: "{{.REGISTRY}}", IMAGE_NAME: "{{.IMAGE_NAME}}", TAG: "{{.TAG}}" }
+      - docker push {{.REGISTRY}}/{{.IMAGE_NAME}}:latest
+  
