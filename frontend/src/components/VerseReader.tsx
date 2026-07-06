@@ -12,11 +12,18 @@ interface Props {
 
 export const VerseReader: React.FC<Props> = ({ translation, activeReference }) => {
   const [reference, setReference] = useState('');
+  const [prevActiveReference, setPrevActiveReference] = useState(activeReference);
   const [data, setData] = useState<BibleResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchVerses = async (ref: string) => {
+  // Sync state during render instead of in useEffect to avoid cascading renders warning
+  if (activeReference !== prevActiveReference) {
+    setReference(activeReference || '');
+    setPrevActiveReference(activeReference);
+  }
+
+  const fetchVerses = React.useCallback(async (ref: string) => {
     const trimmed = ref.trim();
     if (!trimmed || !translation) return;
 
@@ -37,7 +44,7 @@ export const VerseReader: React.FC<Props> = ({ translation, activeReference }) =
     } finally {
       setLoading(false);
     }
-  };
+  }, [translation]);
 
   const handleFetch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -47,10 +54,11 @@ export const VerseReader: React.FC<Props> = ({ translation, activeReference }) =
   // React to activeReference changes (e.g. clicked from search results)
   React.useEffect(() => {
     if (activeReference) {
-      setReference(activeReference);
-      fetchVerses(activeReference);
+      Promise.resolve().then(() => {
+        fetchVerses(activeReference);
+      });
     }
-  }, [activeReference, translation]);
+  }, [activeReference, fetchVerses]);
 
   return (
     <div className="rounded-3xl p-8 space-y-6" style={{
