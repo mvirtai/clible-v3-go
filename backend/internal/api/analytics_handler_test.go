@@ -39,6 +39,12 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 	}
 	_ = verseRepo.BulkInsert(ctx, verses)
 
+	// Link 'web' translation to the test user so it is accessible
+	translationRepo := db.NewTranslationRepository(conn)
+	if err := translationRepo.LinkUser(ctx, "test-user-id", "web"); err != nil {
+		t.Fatalf("failed to link web translation to test user: %v", err)
+	}
+
 	// Build the real core analytics engine instance
 	analyticService, err := services.NewAnalyticService(verseRepo, false, "en")
 	if err != nil {
@@ -46,7 +52,6 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 	}
 
 	// Build verse lookup service required to resolve references during HTTP calls
-	translationRepo := db.NewTranslationRepository(conn)
 	verseService := services.NewVerseService(verseRepo, translationRepo)
 
 	handler := api.NewAnalyticsHandler(analyticService, verseService)
