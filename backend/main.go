@@ -17,7 +17,6 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/config"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/middleware"
-	"github.com/mvirtai/clible-v3-go/internal/parsers"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
 
@@ -49,8 +48,6 @@ func main() {
 	historyService := services.NewSearchHistoryService(historyRepo)
 	scopeService := services.NewScopeService(scopeRepo, savedRepo)
 	bookService := services.NewBookService(bookRepo)
-	xmlParser := parsers.NewXMLVerseParser()
-	seedService := services.NewSeedService(verseRepo, xmlParser)
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -73,7 +70,7 @@ func main() {
 	bibleHandler := api.NewBibleHandler(verseService)
 	historyHandler := api.NewHistoryHandler(historyService)
 	scopeHandler := api.NewScopeHandler(scopeService)
-	translationHandler := api.NewTranslationHandler(translationRepo, seedService)
+	translationHandler := api.NewTranslationHandler(translationRepo)
 	analyticsHandler := api.NewAnalyticsHandler(analyticService, verseService)
 	bookHandler := api.NewBookHandler(bookService)
 	authHandler := api.NewAuthHandler(authService, userRepo)
@@ -100,9 +97,10 @@ func main() {
 	mux.Handle("POST /api/history", requireAuth(http.HandlerFunc(historyHandler.AddSearch)))
 	mux.Handle("GET /api/history", requireAuth(http.HandlerFunc(historyHandler.GetRecentHistory)))
 
-	// Catalog & Streaming Import endpoints
+	// Catalog & Translation activation endpoints
 	mux.Handle("GET /api/translations", requireAuth(http.HandlerFunc(translationHandler.GetTranslations)))
-	mux.Handle("POST /api/translations/import", requireAuth(http.HandlerFunc(translationHandler.ImportTranslation)))
+	mux.Handle("POST /api/translations/link", requireAuth(http.HandlerFunc(translationHandler.LinkTranslation)))
+	mux.Handle("DELETE /api/translations/link", requireAuth(http.HandlerFunc(translationHandler.UnlinkTranslation)))
 
 	// Workspace Scopes & Saved Analytics endpoints (Protected by Auth middleware)
 	mux.Handle("POST /api/scopes", requireAuth(http.HandlerFunc(scopeHandler.CreateScope)))
@@ -173,7 +171,8 @@ func main() {
 		slog.Info("     POST  /api/history            [protected]")
 		slog.Info("     GET   /api/history            [protected]")
 		slog.Info("     GET   /api/translations")
-		slog.Info("     POST  /api/translations/import")
+		slog.Info("     POST  /api/translations/link  [protected]")
+		slog.Info("     DELETE /api/translations/link [protected]")
 		slog.Info("     POST  /api/scopes             [protected]")
 		slog.Info("     GET   /api/scopes             [protected]")
 		slog.Info("     DELETE /api/scopes            [protected]")
