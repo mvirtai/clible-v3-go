@@ -41,24 +41,44 @@ export function bookCitationAbbrevFi(id: string): string {
 
 /** Book id prefix in bridge references: three letters (`GEN`) or digit + two letters (`1CO`). */
 const REF_BOOK_PREFIX =
-  /^((?:\d[A-Z]{2}|[A-Z]{3}))\s+(\d+:\S.*)$/;
+  /^((?:\d[A-Z]{2}|[A-Z]{3}))\s+(\d+.*)$/;
 
 /**
- * Presentation-only reference label. Keeps canonical `BOOK chapter:verse` for EN;
- * FI: full localized book name plus citation in parentheses (e.g.
- * `Apostolien teot (Ap. 1:1)`).
+ * Decomposes a reference string into a main label (full book name + chapter/verse)
+ * and a sub label (standard abbreviation + chapter/verse).
+ */
+export function parseReferenceForDisplay(reference: string, lang: UILanguage): { mainLabel: string; subLabel: string } {
+  const trimmed = reference.trim();
+  const m = trimmed.match(REF_BOOK_PREFIX);
+  if (!m) {
+    return { mainLabel: reference, subLabel: '' };
+  }
+  const [, bookId, rest] = m;
+  const fullName = bookNameLocalized(bookId, lang);
+  
+  const mainLabel = `${fullName} ${rest}`;
+  const abbr = lang === 'fi' ? bookCitationAbbrevFi(bookId) : bookId;
+  const subLabel = `(${abbr} ${rest})`;
+  
+  return { mainLabel, subLabel };
+}
+
+/**
+ * Presentation-only reference label.
+ * For EN/other: returns full English name followed by chapter/verse (e.g. `John 3:16 (JHN 3:16)`).
+ * For FI: returns full localized book name plus citation in parentheses (e.g. `Johanneksen evankeliumi (Joh. 3:16)`).
  */
 export function formatReferenceForDisplay(reference: string, lang: UILanguage): string {
-  if (lang !== 'fi') {
-    return reference;
-  }
   const trimmed = reference.trim();
   const m = trimmed.match(REF_BOOK_PREFIX);
   if (!m) {
     return reference;
   }
   const [, bookId, rest] = m;
-  const fullName = bookNameLocalized(bookId, 'fi');
+  const fullName = bookNameLocalized(bookId, lang);
+  if (lang !== 'fi') {
+    return `${fullName} ${rest} (${bookId} ${rest})`;
+  }
   const cite = `${bookCitationAbbrevFi(bookId)} ${rest}`;
   return `${fullName} (${cite})`;
 }
