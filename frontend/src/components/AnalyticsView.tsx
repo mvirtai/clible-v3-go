@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BarChart3, Hash, Activity, MessageSquare, Loader2, Sparkles, Cloud } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BarChart3, Hash, Activity, MessageSquare, Loader2, Sparkles, Cloud, Save } from 'lucide-react';
 import {
     BarChart,
     Bar,
@@ -17,14 +17,63 @@ import { resolveBookId } from '../utils/bookNames';
 interface AnalyticsViewProps {
     /** The translation ID selected globally (e.g. "kr92") */
     defaultTranslation: string;
+    activeScopeId?: string;
+    onWorkspaceUpdated?: () => void;
+    loadedSavedStats?: {
+        stats: TextStats;
+        reference: string;
+        translationId: string;
+    } | null;
 }
 
-export const AnalyticsView = ({ defaultTranslation }: AnalyticsViewProps) => {
+export const AnalyticsView = ({
+    defaultTranslation,
+    activeScopeId,
+    onWorkspaceUpdated,
+    loadedSavedStats
+}: AnalyticsViewProps) => {
     const [reference, setReference] = useState<string>("John 3");
     const [stats, setStats] = useState<TextStats | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [chartType, setChartType] = useState<'bar' | 'cloud'>('bar');
+
+    // Tallennuksen tilat
+    const [saveName, setSaveName] = useState('');
+    const [showSaveForm, setShowSaveForm] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // Käsittele ladattu analyysi sivupalkista
+    useEffect(() => {
+        if (!loadedSavedStats) return;
+
+        const loadData = async () => {
+            setReference(loadedSavedStats.reference);
+            setError(null);
+
+            if (loadedSavedStats.stats) {
+                setStats(loadedSavedStats.stats);
+            } else {
+                // Suoritetaan analyysi backendistä, jos välimuisti puuttuu (vanha tallennus)
+                setLoading(true);
+                try {
+                    const normalized = loadedSavedStats.reference.replace(
+                        /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+                        (match) => resolveBookId(match) ?? match,
+                    );
+                    const data = await apiService.analyze(normalized, loadedSavedStats.translationId);
+                    setStats(data);
+                } catch {
+                    setError('Tallennetun analyysin lataaminen epäonnistui');
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadData();
+    }, [loadedSavedStats]);
+
 
     const runAnalysis = async () => {
         if (!reference.trim() || !defaultTranslation) return;
@@ -78,6 +127,72 @@ export const AnalyticsView = ({ defaultTranslation }: AnalyticsViewProps) => {
             {error && (
                 <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
                     {error}
+                </div>
+            )}
+
+            {activeScopeId && stats && (
+                <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-6 text-left space-y-3">
+                    <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+                            Haluatko tallentaa tämän analyysin työtilaan?
+                        </span>
+                        {!showSaveForm && (
+                            <button
+                                onClick={() => setShowSaveForm(true)}
+                                className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
+                            >
+                                <Save size={12} /> Tallenna
+                            </button>
+                        )}
+                    </div>
+
+                    {showSaveForm && (
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                placeholder="Nimi analyysille (esim. Joh 3 sanasto)..."
+                                value={saveName}
+                                onChange={(e) => setSaveName(e.target.value)}
+                                className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
+                                style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                            />
+                            <button
+                                onClick={async () => {
+                                    if (!saveName.trim()) return;
+                                    setSaving(true);
+                                    try {
+                                        await apiService.saveAnalysis({
+                                            scopeId: activeScopeId,
+                                            name: saveName.trim(),
+                                            reference: reference,
+                                            analysisType: 'single_stats',
+                                            translationId: defaultTranslation,
+                                            paramsJson: '{}',
+                                            resultJson: JSON.stringify(stats)
+                                        });
+                                        setSaveName('');
+                                        setShowSaveForm(false);
+                                        if (onWorkspaceUpdated) onWorkspaceUpdated();
+                                    } catch {
+                                        alert('Tallennus epäonnistui');
+                                    } finally {
+
+                                        setSaving(false);
+                                    }
+                                }}
+                                disabled={saving || !saveName.trim()}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile"
+                            >
+                                {saving ? 'Tallennetaan...' : 'Tallenna'}
+                            </button>
+                            <button
+                                onClick={() => setShowSaveForm(false)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium border text-[var(--muted)] border-[var(--border)] bg-transparent cursor-pointer"
+                            >
+                                Peruuta
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 

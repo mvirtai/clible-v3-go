@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { GitCompareArrows, Loader2 } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { GitCompareArrows, Loader2, Save } from 'lucide-react';
 import { apiService } from '../services/api';
 import type { InstalledTranslation, ComparisonResult } from '../types/bible';
 import { resolveBookId } from '../utils/bookNames';
@@ -7,6 +7,14 @@ import { resolveBookId } from '../utils/bookNames';
 interface CompareViewProps {
     /** All translations currently installed in the workspace. */
     installedTranslations: InstalledTranslation[];
+    activeScopeId?: string;
+    onWorkspaceUpdated?: () => void;
+    loadedSavedComparison?: {
+        result: ComparisonResult;
+        reference: string;
+        translationA: string;
+        translationB: string;
+    } | null;
 }
 
 function similarityBarHue(ratio01: number): string {
@@ -14,13 +22,61 @@ function similarityBarHue(ratio01: number): string {
     return `hsl(${Math.round(t * 120)}, 55%, 42%)`;
 }
 
-export function CompareView({ installedTranslations }: CompareViewProps) {
+export function CompareView({
+    installedTranslations,
+    activeScopeId,
+    onWorkspaceUpdated,
+    loadedSavedComparison
+}: CompareViewProps) {
     const [reference, setReference] = useState('John 3:16');
     const [leftTr, setLeftTr] = useState('');
     const [rightTr, setRightTr] = useState('');
     const [result, setResult] = useState<ComparisonResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Tallennuksen tilat
+    const [saveName, setSaveName] = useState('');
+    const [showSaveForm, setShowSaveForm] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // Käsittele ladattu vertailu sivupalkista
+    useEffect(() => {
+        if (!loadedSavedComparison) return;
+
+        const loadData = async () => {
+            setReference(loadedSavedComparison.reference);
+            setLeftTr(loadedSavedComparison.translationA);
+            setRightTr(loadedSavedComparison.translationB);
+            setError(null);
+
+            if (loadedSavedComparison.result) {
+                setResult(loadedSavedComparison.result);
+            } else {
+                // Suoritetaan vertailu backendistä, jos välimuistitulos puuttuu
+                setLoading(true);
+                try {
+                    const normalized = loadedSavedComparison.reference.replace(
+                        /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+                        (match) => resolveBookId(match) ?? match,
+                    );
+                    const data = await apiService.compareTranslations(
+                        normalized,
+                        loadedSavedComparison.translationA,
+                        loadedSavedComparison.translationB
+                    );
+                    setResult(data);
+                } catch {
+                    setError('Tallennetun käännösvertailun lataaminen epäonnistui');
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadData();
+    }, [loadedSavedComparison]);
+
 
     // Filter right translation options to avoid comparing a translation with itself
     const rightOptions = useMemo(() => {
@@ -143,6 +199,72 @@ export function CompareView({ installedTranslations }: CompareViewProps) {
 
             {result && !loading && (
                 <>
+                    {activeScopeId && (
+                        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-6 text-left space-y-3 mb-6">
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+                                    Haluatko tallentaa tämän käännösvertailun työtilaan?
+                                </span>
+                                {!showSaveForm && (
+                                    <button
+                                        onClick={() => setShowSaveForm(true)}
+                                        className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
+                                    >
+                                        <Save size={12} /> Tallenna
+                                    </button>
+                                )}
+                            </div>
+
+                            {showSaveForm && (
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Nimi vertailulle (esim. Joh 3:16 kr92/web)..."
+                                        value={saveName}
+                                        onChange={(e) => setSaveName(e.target.value)}
+                                        className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
+                                        style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                                    />
+                                    <button
+                                        onClick={async () => {
+                                            if (!saveName.trim()) return;
+                                            setSaving(true);
+                                            try {
+                                                await apiService.saveAnalysis({
+                                                    scopeId: activeScopeId,
+                                                    name: saveName.trim(),
+                                                    reference: reference,
+                                                    analysisType: 'comparison',
+                                                    translationId: leftTr,
+                                                    paramsJson: JSON.stringify({ translationB: rightTr }),
+                                                    resultJson: JSON.stringify(result) // Välimuistitetaan vertailutulos!
+                                                });
+                                                setSaveName('');
+                                                setShowSaveForm(false);
+                                                if (onWorkspaceUpdated) onWorkspaceUpdated();
+                                            } catch {
+                                                alert('Tallennus epäonnistui');
+                                            } finally {
+
+                                                setSaving(false);
+                                            }
+                                        }}
+                                        disabled={saving || !saveName.trim()}
+                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile"
+                                    >
+                                        {saving ? 'Tallennetaan...' : 'Tallenna'}
+                                    </button>
+                                    <button
+                                        onClick={() => setShowSaveForm(false)}
+                                        className="px-3 py-1.5 rounded-lg text-xs font-medium border text-[var(--muted)] border-[var(--border)] bg-transparent cursor-pointer"
+                                    >
+                                        Peruuta
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Summary stats */}
                     <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4">
                         <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
