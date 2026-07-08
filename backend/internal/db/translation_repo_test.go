@@ -67,6 +67,11 @@ func TestTranslationRepository_CreateAndGetAll(t *testing.T) {
 		t.Errorf("Data mismatch in scanned row. Expected ID %s and Name %s, got %s and %s",
 			mockTranslation.ID, mockTranslation.Name, list[0].ID, list[0].Name)
 	}
+
+	// Test 4: Verify is_global defaults to TRUE for all new translations
+	if !list[0].IsGlobal {
+		t.Error("Expected is_global = TRUE for newly created translation, got FALSE")
+	}
 }
 
 func TestTranslationRepository_UserMapping(t *testing.T) {
@@ -82,7 +87,7 @@ func TestTranslationRepository_UserMapping(t *testing.T) {
 	// Install a couple of translations globally
 	webTrans := models.Translation{ID: "web", Name: "World English Bible", Language: "en", Format: "USFX"}
 	finTrans := models.Translation{ID: "fin-1992", Name: "Finnish 1992", Language: "fi", Format: "USFX"}
-	customTrans := models.Translation{ID: "custom-1", Name: "Custom Translation", Language: "fi", Format: "USFX"}
+	kjvTrans := models.Translation{ID: "kjv", Name: "King James Version", Language: "en", Format: "OSIS"}
 
 	if err := repo.Create(webTrans); err != nil {
 		t.Fatalf("Failed to create web translation: %v", err)
@@ -90,8 +95,8 @@ func TestTranslationRepository_UserMapping(t *testing.T) {
 	if err := repo.Create(finTrans); err != nil {
 		t.Fatalf("Failed to create fin translation: %v", err)
 	}
-	if err := repo.Create(customTrans); err != nil {
-		t.Fatalf("Failed to create custom translation: %v", err)
+	if err := repo.Create(kjvTrans); err != nil {
+		t.Fatalf("Failed to create kjv translation: %v", err)
 	}
 
 	userID := "test-user-id"
@@ -100,59 +105,104 @@ func TestTranslationRepository_UserMapping(t *testing.T) {
 		t.Fatalf("Failed to insert mock user: %v", err)
 	}
 
-	// 1. GetByUser: web should be accessible, other translations should not be (yet)
-	list, err := repo.GetByUser(ctx, userID)
+	// 1. GetAllWithInstalled: all three should appear, none installed yet
+	catalog, err := repo.GetAllWithInstalled(ctx, userID)
 	if err != nil {
-		t.Fatalf("GetByUser failed: %v", err)
+		t.Fatalf("GetAllWithInstalled failed: %v", err)
 	}
-	if len(list) != 1 || list[0].ID != "web" {
-		t.Errorf("Expected only 'web' to be returned, got %d items", len(list))
+	if len(catalog) != 3 {
+		t.Errorf("Expected 3 translations in catalog, got %d", len(catalog))
+	}
+	for _, tr := range catalog {
+		if tr.Installed {
+			t.Errorf("Expected translation %q to not be installed yet, but it is", tr.ID)
+		}
 	}
 
-	// 2. IsAccessible: web is accessible by default
+	// 2. IsAccessible: nothing is accessible yet (no user links)
 	accessible, err := repo.IsAccessible(ctx, userID, "web")
-	if err != nil || !accessible {
-		t.Errorf("Expected 'web' to be accessible, got err: %v, accessible: %v", err, accessible)
-	}
-
-	// custom-1 and fin-1992 are not accessible yet (no user link, and fin-1992 is not a fixed preset anymore)
-	accessible, err = repo.IsAccessible(ctx, userID, "custom-1")
 	if err != nil || accessible {
-		t.Errorf("Expected 'custom-1' to be inaccessible, got err: %v, accessible: %v", err, accessible)
+		t.Errorf("Expected 'web' to be inaccessible before linking, got err: %v, accessible: %v", err, accessible)
 	}
 
-	accessible, err = repo.IsAccessible(ctx, userID, "fin-1992")
-	if err != nil || accessible {
-		t.Errorf("Expected 'fin-1992' to be inaccessible, got err: %v, accessible: %v", err, accessible)
+	// 3. LinkUser: link user to web and fin-1992
+	if err := repo.LinkUser(ctx, userID, "web"); err != nil {
+		t.Fatalf("LinkUser failed for 'web': %v", err)
+	}
+	if err := repo.LinkUser(ctx, userID, "fin-1992"); err != nil {
+		t.Fatalf("LinkUser failed for 'fin-1992': %v", err)
 	}
 
-	// 3. LinkUser: Link user to custom-1 and fin-1992
-	err = repo.LinkUser(ctx, userID, "custom-1")
+	// 4. GetAllWithInstalled: web and fin-1992 should now be installed, kjv not
+	catalog, err = repo.GetAllWithInstalled(ctx, userID)
 	if err != nil {
-		t.Fatalf("LinkUser failed: %v", err)
+		t.Fatalf("GetAllWithInstalled failed after linking: %v", err)
 	}
-	err = repo.LinkUser(ctx, userID, "fin-1992")
-	if err != nil {
-		t.Fatalf("LinkUser failed: %v", err)
+	installedCount := 0
+	for _, tr := range catalog {
+		if tr.Installed {
+			installedCount++
+		}
+	}
+	if installedCount != 2 {
+		t.Errorf("Expected 2 installed translations, got %d", installedCount)
 	}
 
-	// 4. GetByUser should now return web, custom-1, and fin-1992
-	list, err = repo.GetByUser(ctx, userID)
+	// 5. GetByUser: only linked translations returned
+	linked, err := repo.GetByUser(ctx, userID)
 	if err != nil {
 		t.Fatalf("GetByUser failed: %v", err)
 	}
-	if len(list) != 3 {
-		t.Errorf("Expected 3 translations, got %d", len(list))
+	if len(linked) != 2 {
+		t.Errorf("Expected 2 linked translations from GetByUser, got %d", len(linked))
 	}
 
-	// 5. IsAccessible: custom-1 and fin-1992 should now be accessible
-	accessible, err = repo.IsAccessible(ctx, userID, "custom-1")
+	// 6. IsAccessible: web and fin-1992 should now be accessible
+	accessible, err = repo.IsAccessible(ctx, userID, "web")
 	if err != nil || !accessible {
-		t.Errorf("Expected 'custom-1' to be accessible after link, got err: %v, accessible: %v", err, accessible)
+		t.Errorf("Expected 'web' to be accessible after link, got err: %v, accessible: %v", err, accessible)
 	}
 	accessible, err = repo.IsAccessible(ctx, userID, "fin-1992")
 	if err != nil || !accessible {
 		t.Errorf("Expected 'fin-1992' to be accessible after link, got err: %v, accessible: %v", err, accessible)
 	}
+	// kjv should still be inaccessible
+	accessible, err = repo.IsAccessible(ctx, userID, "kjv")
+	if err != nil || accessible {
+		t.Errorf("Expected 'kjv' to be inaccessible (not linked), got err: %v, accessible: %v", err, accessible)
+	}
+
+	// 7. UnlinkUser: unlink web
+	if err := repo.UnlinkUser(ctx, userID, "web"); err != nil {
+		t.Fatalf("UnlinkUser failed for 'web': %v", err)
+	}
+	accessible, err = repo.IsAccessible(ctx, userID, "web")
+	if err != nil || accessible {
+		t.Errorf("Expected 'web' to be inaccessible after unlink, got err: %v, accessible: %v", err, accessible)
+	}
+
+	// 8. Idempotent link: linking again should not fail
+	if err := repo.LinkUser(ctx, userID, "web"); err != nil {
+		t.Fatalf("Second LinkUser for 'web' failed (should be idempotent): %v", err)
+	}
 }
 
+func TestTranslationRepository_LinkNonExistentTranslation(t *testing.T) {
+	db, err := InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to set up database connection: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	repo := NewTranslationRepository(db)
+	ctx := context.Background()
+
+	userID := "test-user-id"
+	_, _ = db.Exec("INSERT INTO users (id, email, password_hash) VALUES ($1, $2, $3)", userID, "test@example.com", "hash")
+
+	// Attempting to link a non-existent translation should return an error
+	err = repo.LinkUser(ctx, userID, "does-not-exist")
+	if err == nil {
+		t.Error("Expected error when linking a non-existent translation, got nil")
+	}
+}
