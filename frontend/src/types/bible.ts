@@ -21,7 +21,8 @@ export interface BibleResponse {
 }
 
 /**
- * Represents a translation installed in the database, matching the backend's Translation struct.
+ * Represents a global translation in the catalog, matching the backend's Translation struct.
+ * `installed` is a per-user computed view field indicating whether the current user has activated it.
  */
 export interface InstalledTranslation {
     id: string;
@@ -30,14 +31,8 @@ export interface InstalledTranslation {
     format: string;
     sourceUrl: string;
     installedAt: string; // ISO 8601 date string
-}
-
-/**
- * Represents a translation available online that might not be installed yet.
- * Extends InstalledTranslation.
- */
-export interface AvailableTranslation extends InstalledTranslation {
-    sizeMb?: number;
+    isGlobal: boolean;
+    installed: boolean;  // true if the current user has activated this translation
 }
 
 /**
