@@ -22,9 +22,9 @@ describe('bookNames utilities', () => {
   });
 
   describe('formatReferenceForDisplay', () => {
-    it('keeps the original reference format unchanged for English', () => {
-      expect(formatReferenceForDisplay('JHN 3:16', 'en')).toBe('JHN 3:16');
-      expect(formatReferenceForDisplay('ACT 1:8', 'en')).toBe('ACT 1:8');
+    it('formats reference labels correctly for English', () => {
+      expect(formatReferenceForDisplay('JHN 3:16', 'en')).toBe('John 3:16 (JHN 3:16)');
+      expect(formatReferenceForDisplay('ACT 1:8', 'en')).toBe('Acts 1:8 (ACT 1:8)');
     });
 
     it('formats reference labels correctly for Finnish', () => {
@@ -32,6 +32,11 @@ describe('bookNames utilities', () => {
       expect(formatReferenceForDisplay('JHN 3:16', 'fi')).toBe('Evankeliumi Johanneksen mukaan (Joh. 3:16)');
       // "Apostolien teot (Ap. t. 1:8)"
       expect(formatReferenceForDisplay('ACT 1:8', 'fi')).toBe('Apostolien teot (Ap. t. 1:8)');
+    });
+
+    it('formats chapter-level references correctly', () => {
+      expect(formatReferenceForDisplay('JHN 3', 'en')).toBe('John 3 (JHN 3)');
+      expect(formatReferenceForDisplay('JHN 3', 'fi')).toBe('Evankeliumi Johanneksen mukaan (Joh. 3)');
     });
   });
 

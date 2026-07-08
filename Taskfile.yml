@@ -190,7 +190,7 @@ tasks:
       - rm temp_pr_story.md
 
   git:post-merge-branch:
-    desc: Switch to main and hard-reset to origin/main after a merged PR
+    desc: Force-switch to main, hard-reset to origin/main, and delete the topic branch after PR merge
     cmds:
       - |
         CURRENT_BRANCH=$(git branch --show-current)
@@ -198,11 +198,13 @@ tasks:
           echo "Error: You are already on $CURRENT_BRANCH. Run this command from your topic branch before switching."
           exit 1
         fi
-        echo "Post-merge cleanup for branch: $CURRENT_BRANCH"
-        git switch main
+        echo "Starting post-merge cleanup for branch: $CURRENT_BRANCH"
+        git switch -f main
         git fetch --all
         git reset --hard origin/main
-        git branch -d "$CURRENT_BRANCH"
+        git branch -D "$CURRENT_BRANCH"
+        git clean -fd
+        echo "Post-merge cleanup completed successfully!"
 
 
   git:merge:
@@ -253,8 +255,8 @@ tasks:
     preconditions:
       - sh: 'test -n "{{.BRANCH_NAME}}"'
         msg: "Missing BRANCH_NAME argument. Usage: task git:new-branch BRANCH_NAME=new-feature"
-      - sh: 'case "{{.FEAT_TYPE}}" in feat|fix|ci|docs|refactor|chore|test|perf) true;; *) false;; esac'
-        msg: "Invalid FEAT_TYPE. Must be one of: feat, fix, ci, docs, refactor, chore, test, perf. Usage: task git:new-branch FEAT_TYPE=feat BRANCH_NAME=new-feature"
+      - sh: 'case "{{.FEAT_TYPE}}" in feat|fix|ci|ui|docs|refactor|chore|test|perf) true;; *) false;; esac'
+        msg: "Invalid FEAT_TYPE. Must be one of: feat, fix, ci, ui, docs, refactor, chore, test, perf. Usage: task git:new-branch FEAT_TYPE=feat BRANCH_NAME=new-feature"
     cmds:
       - git switch -c "{{.FEAT_TYPE}}/{{.BRANCH_NAME}}"
 
