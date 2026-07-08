@@ -29,7 +29,8 @@ export const TranslationSelector: React.FC<Props> = ({
       .getTranslations()
       .then((data) => {
         if (!active) return;
-        const list = data || [];
+        // Only show translations the user has activated (installed=true)
+        const list = (data || []).filter(t => t.installed);
         setTranslations(list);
         const exists = list.some((t) => t.id === selectedTranslation);
         if (list.length > 0 && (!selectedTranslation || !exists)) {

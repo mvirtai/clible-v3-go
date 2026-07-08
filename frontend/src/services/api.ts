@@ -227,38 +227,41 @@ export class ApiService {
     }
 
     /**
-     * Imports a new translation by sending metadata and XML payload via multipart/form-data.
-     * @param translationId - Short code for the translation (e.g. "web").
-     * @param name - The human readable version of the translation.
-     * @param language - Language code (e.g. "en", "fi")
-     * @param file - The XML File object (USFX, OSIS, Zefania, Beblia format)
-     * @returns A promise resolving to the status message.
-     * POST /api/translations/import
+     * Activates a global translation for the current user.
+     * Creates a user_translations link (O(1) operation, no data duplication).
+     * @param translationId - The ID of the translation to activate (e.g. "fin-1992").
+     * POST /api/translations/link
      */
-    async importTranslation(
-        translationId: string,
-        name: string,
-        language: string,
-        file: File
-    ): Promise<{ id: string, status: string }> {
-        const formData = new FormData();
-        formData.append('translationId', translationId);
-        formData.append('name', name);
-        formData.append('language', language);
-        formData.append('file', file);
-
-        const res = await fetch(`${this.baseUrl}/translations/import`, {
+    async linkTranslation(translationId: string): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/translations/link`, {
             method: 'POST',
-            body: formData,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ translationId }),
             credentials: 'include',
         });
-
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(`POST ${this.baseUrl}/translations/import returned ${res.status} - ${errData.error || errData.message || 'Unknown error'}`);
+            throw new Error(errData.error || `POST /translations/link returned ${res.status}`);
         }
+    }
 
-        return await res.json();
+    /**
+     * Deactivates a translation for the current user.
+     * Removes the user_translations link without deleting any verse data.
+     * @param translationId - The ID of the translation to deactivate (e.g. "fin-1992").
+     * DELETE /api/translations/link
+     */
+    async unlinkTranslation(translationId: string): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/translations/link`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ translationId }),
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `DELETE /translations/link returned ${res.status}`);
+        }
     }
 
     /**

@@ -54,7 +54,10 @@ function App() {
   }, [translationTrigger]);
 
   const handleSearchFinished = () => setHistoryTrigger((p) => !p);
-  const handleTranslationInstalled = () => setTranslationTrigger((p) => !p);
+  const handleTranslationChanged = () => setTranslationTrigger((p) => !p);
+
+  // Only translations the user has activated (installed=true) are usable for verse reading/analysis
+  const activatedTranslations = installedTranslations.filter(t => t.installed);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
@@ -147,7 +150,10 @@ function App() {
 
         {showManager && (
           <div className="mb-10 max-w-2xl mx-auto">
-            <TranslationManager onTranslationInstalled={handleTranslationInstalled} />
+            <TranslationManager
+              translations={installedTranslations}
+              onTranslationChanged={handleTranslationChanged}
+            />
           </div>
         )}
 
@@ -243,13 +249,13 @@ function App() {
 
         {viewMode === 'analytics' && (
           <div className="max-w-5xl mx-auto">
-            <AnalyticsView defaultTranslation={selectedTranslation || (installedTranslations[0]?.id || '')} />
+            <AnalyticsView defaultTranslation={selectedTranslation || (activatedTranslations[0]?.id || '')} />
           </div>
         )}
 
         {viewMode === 'compare' && (
           <div className="max-w-5xl mx-auto">
-            <CompareView installedTranslations={installedTranslations} />
+            <CompareView installedTranslations={activatedTranslations} />
           </div>
         )}
       </main>

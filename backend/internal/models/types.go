@@ -25,6 +25,8 @@ type Translation struct {
 	Format      string    `json:"format" db:"format"`
 	SourceURL   string    `json:"sourceUrl" db:"source_url"`
 	InstalledAt time.Time `json:"installedAt" db:"installed_at"`
+	IsGlobal    bool      `json:"isGlobal" db:"is_global"`
+	Installed   bool      `json:"installed" db:"-"` // View field: computed per user, not stored in DB
 }
 
 type Verse struct {

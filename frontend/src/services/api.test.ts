@@ -86,23 +86,36 @@ describe('ApiService', () => {
         );
     });
 
-    it('imports a new translation successfully (importTranslation)', async () => {
+    it('activates a translation via linkTranslation (POST /api/translations/link)', async () => {
         globalThis.fetch = vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ id: 'fin-1992', status: 'imported' }),
+            json: async () => ({ id: 'fin-1992', status: 'activated' }),
         } as Response);
 
-        const file = new File(['<bible></bible>'], 'Finnish1992Bible.xml', { type: 'text/xml' });
+        await apiService.linkTranslation('fin-1992');
 
-        const result = await apiService.importTranslation('fin-1992', 'Kirkkoraamattu 1992', 'fi', file);
-
-        expect(result.id).toBe('fin-1992');
-        expect(result.status).toBe('imported');
         expect(globalThis.fetch).toHaveBeenCalledWith(
-            expect.stringContaining('/api/translations/import'),
+            expect.stringContaining('/api/translations/link'),
             expect.objectContaining({
                 method: 'POST',
-                body: expect.any(FormData),
+                body: JSON.stringify({ translationId: 'fin-1992' }),
+            })
+        );
+    });
+
+    it('deactivates a translation via unlinkTranslation (DELETE /api/translations/link)', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 204,
+        } as Response);
+
+        await apiService.unlinkTranslation('fin-1992');
+
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/translations/link'),
+            expect.objectContaining({
+                method: 'DELETE',
+                body: JSON.stringify({ translationId: 'fin-1992' }),
             })
         );
     });
