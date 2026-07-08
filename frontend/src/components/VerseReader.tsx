@@ -85,8 +85,8 @@ export const VerseReader: React.FC<Props> = ({ translation, activeReference }) =
         <button
           type="submit"
           disabled={loading || !reference.trim()}
-          className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 transition-opacity hover:opacity-80 disabled:opacity-40"
-          style={{ background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}
+          className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 btn-tactile btn-accent disabled:opacity-40"
+          style={{ cursor: 'pointer' }}
         >
           {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
           Fetch
@@ -112,7 +112,10 @@ export const VerseReader: React.FC<Props> = ({ translation, activeReference }) =
           <p className="text-xl leading-relaxed font-serif" style={{ color: 'var(--text-2)' }}>
             {data.verses.length > 0 ? (
               data.verses.map((v, idx) => (
-                <span key={`${v.chapter}-${v.verse}-${idx}`} className="inline">
+                <span 
+                  key={`${v.chapter}-${v.verse}-${idx}`} 
+                  className="inline px-1 py-0.5 rounded-md transition-colors hover:bg-[var(--accent-bg)] cursor-text"
+                >
                   <sup className="mx-0.5 align-super font-sans text-[0.55em] font-semibold"
                     style={{ color: 'var(--accent)' }}>
                     {v.verse}

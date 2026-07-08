@@ -121,7 +121,7 @@ export function CompareView({ installedTranslations }: CompareViewProps) {
                 <button
                     onClick={runCompare}
                     disabled={loading || !leftTr || !rightTr || !reference.trim()}
-                    className="inline-flex items-center gap-2 rounded-full bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-40"
+                    className="inline-flex items-center gap-2 rounded-full bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 text-sm font-medium btn-tactile disabled:opacity-40"
                 >
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <GitCompareArrows size={18} />}
                     Vertaa käännöksiä
@@ -210,7 +210,7 @@ export function CompareView({ installedTranslations }: CompareViewProps) {
                                             const pct = row.similarity * 100;
                                             const refStr = `${row.bookId} ${row.chapter}:${row.verse}`;
                                             return (
-                                                <tr key={index} className="align-top border-b border-[var(--border-soft)] hover:bg-[var(--surface-2)]/40 transition-colors">
+                                                <tr key={index} className="align-top border-b border-[var(--border-soft)] hover:bg-[var(--accent-bg)]/5 transition-colors duration-200">
                                                     <td className="px-4 py-3 font-mono text-[var(--muted)] whitespace-nowrap">
                                                         {refStr}
                                                     </td>

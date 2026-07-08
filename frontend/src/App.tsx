@@ -109,7 +109,7 @@ function App() {
                 navigate('/login');
               }}
               aria-label="Kirjaudu ulos"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)]"
               style={{
                 border: '1px solid var(--border)',
                 background: 'transparent',
@@ -122,7 +122,7 @@ function App() {
 
             <button
               onClick={() => setShowManager(!showManager)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)]"
               style={{
                 border: '1px solid var(--border)',
                 background: showManager ? 'var(--accent-bg)' : 'transparent',
@@ -156,9 +156,9 @@ function App() {
           <button
             type="button"
             onClick={() => setViewMode('reader')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'reader'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile ${viewMode === 'reader'
               ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
-              : 'text-[var(--muted)] hover:text-[var(--text)]'
+              : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
               }`}
           >
             <BookOpen size={16} />
@@ -168,9 +168,9 @@ function App() {
           <button
             type="button"
             onClick={() => setViewMode('analytics')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'analytics'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile ${viewMode === 'analytics'
               ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
-              : 'text-[var(--muted)] hover:text-[var(--text)]'
+              : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
               }`}
           >
             <Activity size={16} />
@@ -180,9 +180,9 @@ function App() {
           <button
             type="button"
             onClick={() => setViewMode('compare')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'compare'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile ${viewMode === 'compare'
               ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
-              : 'text-[var(--muted)] hover:text-[var(--text)]'
+              : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
               }`}
           >
             <GitCompare size={16} />

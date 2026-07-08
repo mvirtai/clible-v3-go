@@ -34,11 +34,11 @@ export const SearchHistory: React.FC<Props> = ({ triggerRefresh }) => {
         </div>
         <button
           onClick={fetchHistory}
-          className="p-1.5 rounded-full transition-colors hover:opacity-70"
+          className="p-1.5 rounded-full btn-tactile hover:text-[var(--text)] hover:bg-[var(--surface-2)] group"
           style={{ color: 'var(--muted)' }}
           title="Refresh"
         >
-          <RefreshCw size={13} />
+          <RefreshCw size={13} className="transition-transform duration-500 group-hover:rotate-180" />
         </button>
       </div>
 
@@ -52,8 +52,8 @@ export const SearchHistory: React.FC<Props> = ({ triggerRefresh }) => {
             </p>
           ) : (
             history.map((h) => (
-              <div key={h.id} className="flex justify-between items-center rounded-xl px-3 py-2 text-left"
-                style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)' }}>
+              <div key={h.id} className="flex justify-between items-center rounded-xl px-3 py-2 text-left border transition-all hover:border-[var(--border)] hover:bg-[var(--surface)]"
+                style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}>
                 <div className="truncate pr-2 min-w-0">
                   <span className="text-xs font-medium block truncate" style={{ color: 'var(--text)' }}>
                     "{h.queryText}"
@@ -62,7 +62,7 @@ export const SearchHistory: React.FC<Props> = ({ triggerRefresh }) => {
                     {h.translationId.toUpperCase()} · {h.mode}
                   </span>
                 </div>
-                <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors"
                   style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
                   {h.resultCount}
                 </span>

@@ -71,8 +71,8 @@ export const VerseSearch: React.FC<Props> = ({ translation, onSelectVerse }) => 
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}
+            className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 btn-tactile btn-accent disabled:opacity-40"
+            style={{ cursor: 'pointer' }}
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
             Search
@@ -116,11 +116,11 @@ export const VerseSearch: React.FC<Props> = ({ translation, onSelectVerse }) => 
               results.map((r, i) => (
                 <div
                   key={`${r.bookId}-${r.chapter}-${r.verse}-${i}`}
-                  className="rounded-2xl p-4 transition-all text-left cursor-pointer hover:bg-[var(--surface)] hover:border-[var(--accent-border)] border"
+                  className="rounded-2xl p-4 transition-all text-left cursor-pointer card-tactile border"
                   style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}
                   onClick={() => onSelectVerse?.(`${r.bookId} ${r.chapter}:${r.verse}`)}
                 >
-                  <div className="text-xs font-semibold mb-1 hover:underline" style={{ color: 'var(--accent)' }}>
+                  <div className="text-xs font-semibold mb-1" style={{ color: 'var(--accent)' }}>
                     {r.bookId} {r.chapter}:{r.verse}
                   </div>
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>
