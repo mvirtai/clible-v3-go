@@ -49,7 +49,7 @@ const PRESET_TRANSLATIONS: PresetTranslation[] = [
     id: 'sblgnt',
     name: 'SBL Greek New Testament',
     lang: 'grc',
-    url: 'https://raw.githubusercontent.com/scott-fleischman/sblgnt-osis/master/sblgnt.xml'
+    url: 'https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekSBLGNTBible.xml'
   },
   {
     id: 'heb-leningrad',
