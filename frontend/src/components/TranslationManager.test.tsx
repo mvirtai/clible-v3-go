@@ -5,12 +5,47 @@ import type { Root } from 'react-dom/client';
 import { act } from 'react';
 import { TranslationManager } from './TranslationManager';
 import { apiService } from '../services/api';
+import type { InstalledTranslation } from '../types/bible';
 
 vi.mock('../services/api', () => ({
   apiService: {
-    importTranslation: vi.fn(),
+    linkTranslation: vi.fn().mockResolvedValue(undefined),
+    unlinkTranslation: vi.fn().mockResolvedValue(undefined),
   },
 }));
+
+const mockTranslations: InstalledTranslation[] = [
+  {
+    id: 'web',
+    name: 'World English Bible',
+    language: 'en',
+    format: 'text',
+    sourceUrl: '',
+    installedAt: new Date().toISOString(),
+    isGlobal: true,
+    installed: true,
+  },
+  {
+    id: 'fin-1992',
+    name: 'Kirkkoraamattu (1992)',
+    language: 'fi',
+    format: 'text',
+    sourceUrl: '',
+    installedAt: new Date().toISOString(),
+    isGlobal: true,
+    installed: false,
+  },
+  {
+    id: 'kjv',
+    name: 'King James Version',
+    language: 'en',
+    format: 'text',
+    sourceUrl: '',
+    installedAt: new Date().toISOString(),
+    isGlobal: true,
+    installed: false,
+  },
+];
 
 describe('TranslationManager', () => {
   let container: HTMLDivElement | null = null;
@@ -33,54 +68,41 @@ describe('TranslationManager', () => {
     }
   });
 
-  it('renders preset translation cards', async () => {
+  it('renders active and available translation sections correctly', async () => {
     const r = createRoot(container!);
     root = r;
     await act(async () => {
-      r.render(<TranslationManager />);
+      r.render(<TranslationManager translations={mockTranslations} />);
     });
 
     const textContent = container!.textContent || '';
-    expect(textContent).toContain('Kirkkoraamattu (1992)');
-    expect(textContent).toContain('Kirkkoraamattu (1933/38)');
+    // Active section should show World English Bible
+    expect(textContent).toContain('Active Translations');
     expect(textContent).toContain('World English Bible');
+    // Available section should show uninstalled translations
+    expect(textContent).toContain('Available Translations');
+    expect(textContent).toContain('Kirkkoraamattu (1992)');
+    expect(textContent).toContain('King James Version');
   });
 
-  it('downloads and installs preset translation when clicked (KR92 / BEBLIA)', async () => {
-    // Mock global fetch to return dummy XML file
-    const mockBlob = new Blob(['<bible></bible>'], { type: 'text/xml' });
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      blob: async () => mockBlob,
-    } as Response);
+  it('calls linkTranslation when activating an available translation', async () => {
+    const onChanged = vi.fn();
+    vi.mocked(apiService.linkTranslation).mockResolvedValue(undefined);
 
     const r = createRoot(container!);
     root = r;
     await act(async () => {
-      r.render(<TranslationManager />);
+      r.render(<TranslationManager translations={mockTranslations} onTranslationChanged={onChanged} />);
     });
 
-    // Find the Kirkkoraamattu (1992) button
-    const buttons = Array.from(container!.querySelectorAll('button'));
-    const kr92Button = buttons.find(b => b.textContent?.includes('Kirkkoraamattu (1992)'));
-    expect(kr92Button).toBeDefined();
+    // Find the activate button for fin-1992
+    const activateBtn = container!.querySelector('#activate-fin-1992') as HTMLButtonElement;
+    expect(activateBtn).not.toBeNull();
 
-    // Click the button
     await act(async () => {
-      kr92Button!.click();
+      activateBtn.click();
     });
 
-    // Verify fetch was called with the correct Beblia XML URL
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      'https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/Finnish1992Bible.xml'
-    );
-
-    // Verify importTranslation was called with the correct parameters and dynamic file
-    expect(apiService.importTranslation).toHaveBeenCalledWith(
-      'fin-1992',
-      'Kirkkoraamattu (1992)',
-      'fi',
-      expect.any(File)
-    );
+    expect(apiService.linkTranslation).toHaveBeenCalledWith('fin-1992');
   });
 });

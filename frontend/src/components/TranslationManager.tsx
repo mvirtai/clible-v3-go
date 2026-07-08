@@ -1,138 +1,50 @@
 // src/components/TranslationManager.tsx
 import React, { useState } from 'react';
 import { apiService } from '../services/api';
-import { Upload, Download, Loader2 } from 'lucide-react';
+import { CheckCircle, PlusCircle, Loader2, MinusCircle } from 'lucide-react';
+import type { InstalledTranslation } from '../types/bible';
 
 interface Props {
-  onTranslationInstalled?: () => void;
+  translations: InstalledTranslation[];
+  onTranslationChanged?: () => void;
 }
 
-interface PresetTranslation {
-  id: string;
-  name: string;
-  lang: string;
-  url: string;
-}
-
-const PRESET_TRANSLATIONS: PresetTranslation[] = [
-  {
-    id: 'fin-1992',
-    name: 'Kirkkoraamattu (1992)',
-    lang: 'fi',
-    url: 'https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/Finnish1992Bible.xml'
-  },
-  {
-    id: 'fin-biblia-33-38',
-    name: 'Kirkkoraamattu (1933/38)',
-    lang: 'fi',
-    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/fin-biblia.osis.xml'
-  },
-  {
-    id: 'fin-1776',
-    name: 'Biblia (1776)',
-    lang: 'fi',
-    url: 'https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/Finnish1776Bible.xml'
-  },
-  {
-    id: 'web',
-    name: 'World English Bible',
-    lang: 'en',
-    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/eng-web.usfx.xml'
-  },
-  {
-    id: 'kjv',
-    name: 'King James Version',
-    lang: 'en',
-    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/eng-kjv.osis.xml'
-  },
-  {
-    id: 'sblgnt',
-    name: 'SBL Greek New Testament',
-    lang: 'grc',
-    url: 'https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/GreekSBLGNTBible.xml'
-  },
-  {
-    id: 'heb-leningrad',
-    name: 'Hebrew Leningrad Codex',
-    lang: 'he',
-    url: 'https://raw.githubusercontent.com/seven1m/open-bibles/master/heb-leningrad.usfx.xml'
-  },
-];
-
-export const TranslationManager: React.FC<Props> = ({ onTranslationInstalled }) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [transId, setTransId] = useState('');
-  const [transName, setTransName] = useState('');
-  const [lang, setLang] = useState('fi');
-  const [loading, setLoading] = useState(false);
+export const TranslationManager: React.FC<Props> = ({ translations, onTranslationChanged }) => {
+  const [loading, setLoading] = useState<string | null>(null); // stores the translationId being processed
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-
-      const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, "");
-      setTransId(nameWithoutExt.substring(0, 15).toLowerCase().replace(/[^a-z0-9-]/g, ""));
-      setTransName(nameWithoutExt);
-    }
-  };
-
-  const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file || !transId || !transName || !lang) return;
-
-    setLoading(true);
+  const handleActivate = async (translationId: string, name: string) => {
+    setLoading(translationId);
     setStatus(null);
     try {
-      await apiService.importTranslation(
-        transId.trim().toLowerCase(),
-        transName.trim(),
-        lang.trim().toLowerCase(),
-        file
-      );
-      setStatus({ type: 'success', message: `Translation "${transName}" successfully imported to the database!` });
-      setFile(null);
-      if (onTranslationInstalled) onTranslationInstalled();
+      await apiService.linkTranslation(translationId);
+      setStatus({ type: 'success', message: `"${name}" activated successfully!` });
+      if (onTranslationChanged) onTranslationChanged();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setStatus({ type: 'error', message: msg || 'Import failed. Ensure the XML file is valid.' });
+      setStatus({ type: 'error', message: msg || 'Activation failed. Please try again.' });
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
-  // Downloads the selected translation from the open-bibles repository and uploads it to the backend
-  const handleInstallPreset = async (preset: PresetTranslation) => {
-    setLoading(true);
+  const handleDeactivate = async (translationId: string, name: string) => {
+    setLoading(translationId);
     setStatus(null);
-    const url = preset.url;
-    const filename = url.substring(url.lastIndexOf('/') + 1);
-
     try {
-      setStatus({ type: 'success', message: `Downloading translation "${preset.name}" from GitHub...` });
-
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`File download failed (HTTP ${response.status})`);
-
-      const blob = await response.blob();
-      const xmlFile = new File([blob], filename, { type: "text/xml" });
-
-      setStatus({ type: 'success', message: `Translation file downloaded. Installing into database "${preset.id}" (this may take 10-30 seconds...)` });
-      await apiService.importTranslation(preset.id, preset.name, preset.lang, xmlFile);
-
-      setStatus({ type: 'success', message: `Translation "${preset.name}" successfully installed and ready to use!` });
-      if (onTranslationInstalled) onTranslationInstalled();
-    }
-    catch (err: unknown) {
+      await apiService.unlinkTranslation(translationId);
+      setStatus({ type: 'success', message: `"${name}" deactivated.` });
+      if (onTranslationChanged) onTranslationChanged();
+    } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setStatus({ type: 'error', message: msg || 'Installation failed. Please check the file format and try again.' });
-    }
-    finally {
-      setLoading(false);
+      setStatus({ type: 'error', message: msg || 'Deactivation failed. Please try again.' });
+    } finally {
+      setLoading(null);
     }
   };
 
+  const installed = translations.filter(t => t.installed);
+  const available = translations.filter(t => !t.installed);
 
   return (
     <div className="rounded-3xl p-8 space-y-6" style={{
@@ -153,111 +65,83 @@ export const TranslationManager: React.FC<Props> = ({ onTranslationInstalled }) 
         </div>
       )}
 
-      {/* Preset installations */}
-      <div className="space-y-3 pb-6" style={{ borderBottom: '1px solid var(--border-soft)' }}>
-        <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
-          Install from Web (GitHub presets)
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {PRESET_TRANSLATIONS.map((preset) => (
-            <button
-              key={preset.id}
-              onClick={() => handleInstallPreset(preset)}
-              disabled={loading}
-              className="rounded-2xl p-4 text-xs font-medium flex flex-col items-center gap-2 transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{
-                background: 'var(--surface-2)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                cursor: 'pointer',
-              }}
-            >
-              {loading
-                ? <Loader2 size={16} className="animate-spin" style={{ color: 'var(--accent)' }} />
-                : <Download size={16} style={{ color: 'var(--accent)' }} />}
-              <span className="font-semibold text-center">{preset.name}</span>
-              <span style={{ color: 'var(--muted)' }}>{preset.lang.toUpperCase()}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Custom XML upload */}
-      <form onSubmit={handleUpload} className="space-y-4">
-        <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
-          Import Custom XML (USFX / OSIS)
-        </p>
-
-        <div className="rounded-2xl p-5 text-center relative cursor-pointer transition-colors"
-          style={{ border: '2px dashed var(--border)', background: 'var(--surface-2)' }}>
-          <input
-            type="file"
-            accept=".xml"
-            onChange={handleFileChange}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-            disabled={loading}
-          />
-          <Upload size={24} className="mx-auto mb-2" style={{ color: 'var(--muted)' }} />
-          <span className="text-sm" style={{ color: 'var(--muted)' }}>
-            {file ? file.name : 'Select XML file'}
-          </span>
-          {file && (
-            <span className="block text-xs mt-1" style={{ color: 'var(--accent)' }}>
-              {(file.size / 1024 / 1024).toFixed(2)} MB
-            </span>
-          )}
-        </div>
-
-        {file && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>Name</label>
-              <input
-                type="text"
-                placeholder="World English Bible"
-                value={transName}
-                onChange={(e) => setTransName(e.target.value)}
-                className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
-                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text)' }}
-                required
-              />
-            </div>
-            <div>
-              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>ID</label>
-              <input
-                type="text"
-                placeholder="web"
-                value={transId}
-                onChange={(e) => setTransId(e.target.value)}
-                className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
-                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text)' }}
-                required
-              />
-            </div>
-            <div>
-              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>Language</label>
-              <input
-                type="text"
-                placeholder="fi / en"
-                value={lang}
-                onChange={(e) => setLang(e.target.value)}
-                className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
-                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text)' }}
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="col-span-2 rounded-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{ background: 'var(--text)', color: 'var(--bg)', cursor: 'pointer' }}
-            >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-              Install
-            </button>
+      {/* Active translations */}
+      {installed.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
+            Active Translations
+          </p>
+          <div className="space-y-2">
+            {installed.map(tr => (
+              <div
+                key={tr.id}
+                className="flex items-center justify-between rounded-2xl px-4 py-3"
+                style={{ background: 'rgba(52,168,83,0.06)', border: '1px solid rgba(52,168,83,0.2)' }}
+              >
+                <div className="flex items-center gap-3">
+                  <CheckCircle size={15} style={{ color: '#34a853', flexShrink: 0 }} />
+                  <div>
+                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{tr.name}</span>
+                    <span className="ml-2 text-xs" style={{ color: 'var(--muted)' }}>{tr.language.toUpperCase()}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeactivate(tr.id, tr.name)}
+                  disabled={loading !== null}
+                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
+                  style={{ background: 'rgba(234,67,53,0.08)', color: '#c0392b', border: '1px solid rgba(234,67,53,0.2)', cursor: 'pointer' }}
+                  id={`deactivate-${tr.id}`}
+                >
+                  {loading === tr.id
+                    ? <Loader2 size={12} className="animate-spin" />
+                    : <MinusCircle size={12} />}
+                  Remove
+                </button>
+              </div>
+            ))}
           </div>
-        )}
-      </form>
+        </div>
+      )}
+
+      {/* Available translations */}
+      {available.length > 0 && (
+        <div className="space-y-3" style={{ borderTop: installed.length > 0 ? '1px solid var(--border-soft)' : 'none', paddingTop: installed.length > 0 ? '1.5rem' : '0' }}>
+          <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
+            Available Translations
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {available.map(tr => (
+              <button
+                key={tr.id}
+                onClick={() => handleActivate(tr.id, tr.name)}
+                disabled={loading !== null}
+                className="rounded-2xl p-4 text-left flex items-center gap-3 transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                }}
+                id={`activate-${tr.id}`}
+              >
+                {loading === tr.id
+                  ? <Loader2 size={15} className="animate-spin flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                  : <PlusCircle size={15} className="flex-shrink-0" style={{ color: 'var(--accent)' }} />}
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold truncate">{tr.name}</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{tr.language.toUpperCase()}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {translations.length === 0 && (
+        <p className="text-sm text-center py-4" style={{ color: 'var(--muted)' }}>
+          No translations available. Please contact an administrator.
+        </p>
+      )}
     </div>
   );
 };
