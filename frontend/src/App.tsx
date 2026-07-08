@@ -18,7 +18,7 @@ import type { SearchVerse } from './types/search';
 interface LoadedSearchState {
   query: string;
   translation: string;
-  searchScope: string;
+  searchScope: 'all' | 'ot' | 'nt' | 'book';
   scopeValue: string;
   results: SearchVerse[];
 }

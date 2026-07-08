@@ -60,7 +60,7 @@ export function CompareView({
                         /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
                         (match) => resolveBookId(match) ?? match,
                     );
-                    const data = await apiService.compareTranslations(
+                    const data = await apiService.compare(
                         normalized,
                         loadedSavedComparison.translationA,
                         loadedSavedComparison.translationB
