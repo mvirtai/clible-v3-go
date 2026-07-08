@@ -32,6 +32,7 @@ type SaveSearchRequest struct {
 	SearchScope   string `json:"searchScope"`
 	ScopeValue    string `json:"scopeValue"`
 	TranslationID string `json:"translationId"`
+	ResultJSON    string `json:"resultJson"`
 }
 
 // SaveAnalysisRequest maps client camelCase schema representations for saved analyses.
@@ -42,6 +43,7 @@ type SaveAnalysisRequest struct {
 	AnalysisType  string `json:"analysisType"`
 	TranslationID string `json:"translationId"`
 	ParamsJSON    string `json:"paramsJson"`
+	ResultJSON    string `json:"resultJson"`
 }
 
 // CreateScope handles POST /api/scopes to spin up a fresh context window.
@@ -145,6 +147,7 @@ func (h *ScopeHandler) SaveSearch(w http.ResponseWriter, r *http.Request) {
 		SearchScope:   req.SearchScope,
 		ScopeValue:    req.ScopeValue,
 		TranslationID: req.TranslationID,
+		ResultJSON:    req.ResultJSON,
 	}
 
 	if err := h.scopeService.SaveSearch(ctx, &searchItem); err != nil {
@@ -176,6 +179,7 @@ func (h *ScopeHandler) SaveAnalysis(w http.ResponseWriter, r *http.Request) {
 		AnalysisType:  req.AnalysisType,
 		TranslationID: req.TranslationID,
 		ParamsJSON:    req.ParamsJSON,
+		ResultJSON:    req.ResultJSON,
 	}
 
 	if err := h.scopeService.SaveAnalysis(ctx, &analysisItem); err != nil {

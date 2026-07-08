@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
@@ -98,11 +99,10 @@ type SearchParams struct {
 	FTSQuery      string
 	RegexPattern  string
 	TranslationID string
+	SearchScope   string // NEW: "all", "ot", "nt", "book"
+	ScopeValue    string // NEW: book_id (e.g. "gen", "exo")
 }
 
-// Search performs high-performance text lookups.
-// When FTSQuery is set, it uses the SQLite FTS5 virtual table for fast word matching.
-// When RegexPattern is set, it performs a full table scan filtered by Go's regexp engine.
 func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]models.Verse, error) {
 	var (
 		rows *sql.Rows
@@ -121,9 +121,24 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 			FROM verses
 		`
 		args := []any{}
+		var whereClauses []string
+
 		if params.TranslationID != "" {
-			baseQuery += " WHERE translation_id = $1"
+			whereClauses = append(whereClauses, fmt.Sprintf("translation_id = $%d", len(args)+1))
 			args = append(args, params.TranslationID)
+		}
+
+		if params.SearchScope == "ot" {
+			whereClauses = append(whereClauses, "book_id IN (SELECT id FROM books WHERE testament = 'OT')")
+		} else if params.SearchScope == "nt" {
+			whereClauses = append(whereClauses, "book_id IN (SELECT id FROM books WHERE testament = 'NT')")
+		} else if params.SearchScope == "book" && params.ScopeValue != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("book_id = $%d", len(args)+1))
+			args = append(args, params.ScopeValue)
+		}
+
+		if len(whereClauses) > 0 {
+			baseQuery += " WHERE " + strings.Join(whereClauses, " AND ")
 		}
 		baseQuery += " ORDER BY book_id ASC, chapter ASC, verse ASC"
 
@@ -160,6 +175,16 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 			ftsQuery += " AND translation_id = $2"
 			args = append(args, params.TranslationID)
 		}
+
+		if params.SearchScope == "ot" {
+			ftsQuery += " AND book_id IN (SELECT id FROM books WHERE testament = 'OT')"
+		} else if params.SearchScope == "nt" {
+			ftsQuery += " AND book_id IN (SELECT id FROM books WHERE testament = 'NT')"
+		} else if params.SearchScope == "book" && params.ScopeValue != "" {
+			ftsQuery += fmt.Sprintf(" AND book_id = $%d", len(args)+1)
+			args = append(args, params.ScopeValue)
+		}
+
 		ftsQuery += " ORDER BY book_id ASC, chapter ASC, verse ASC"
 	} else {
 		ftsQuery = `
@@ -172,6 +197,16 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 			ftsQuery += " AND v.translation_id = $2"
 			args = append(args, params.TranslationID)
 		}
+
+		if params.SearchScope == "ot" {
+			ftsQuery += " AND v.book_id IN (SELECT id FROM books WHERE testament = 'OT')"
+		} else if params.SearchScope == "nt" {
+			ftsQuery += " AND v.book_id IN (SELECT id FROM books WHERE testament = 'NT')"
+		} else if params.SearchScope == "book" && params.ScopeValue != "" {
+			ftsQuery += fmt.Sprintf(" AND v.book_id = $%d", len(args)+1)
+			args = append(args, params.ScopeValue)
+		}
+
 		ftsQuery += " ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC"
 	}
 
@@ -189,6 +224,7 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		}
 		matchedVerses = append(matchedVerses, v)
 	}
+
 	return matchedVerses, rows.Err()
 }
 

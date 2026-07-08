@@ -21,8 +21,8 @@ func NewSavedRepository(db *sql.DB) *SavedRepository {
 // SaveSearch stores a parameterized FTS text search workflow.
 func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch) error {
 	query := `
-		INSERT INTO saved_searches (id, scope_id, name, query_text, search_scope, scope_value, translation_id, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO saved_searches (id, scope_id, name, query_text, search_scope, scope_value, translation_id, result_json, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
 	var scopeValue sql.NullString
@@ -36,7 +36,7 @@ func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch)
 	}
 
 	_, err := r.db.ExecContext(ctx, query,
-		s.ID, s.ScopeID, s.Name, s.QueryText, s.SearchScope, scopeValue, translationID, s.CreatedAt,
+		s.ID, s.ScopeID, s.Name, s.QueryText, s.SearchScope, scopeValue, translationID, s.ResultJSON, s.CreatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to persist saved search item: %w", err)
@@ -47,7 +47,7 @@ func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch)
 // GetSearchesByScope retrieves all search parameters associated with a specific context.
 func (r *SavedRepository) GetSearchesByScope(ctx context.Context, scopeID string) ([]models.SavedSearch, error) {
 	query := `
-		SELECT id, scope_id, name, query_text, search_scope, scope_value, translation_id, created_at
+		SELECT id, scope_id, name, query_text, search_scope, scope_value, translation_id, result_json, created_at
 		FROM saved_searches WHERE scope_id = $1 ORDER BY created_at DESC
 	`
 
@@ -62,14 +62,16 @@ func (r *SavedRepository) GetSearchesByScope(ctx context.Context, scopeID string
 		var s models.SavedSearch
 		var scopeValue sql.NullString
 		var translationID sql.NullString
+		var resultJSON sql.NullString
 
-		err := rows.Scan(&s.ID, &s.ScopeID, &s.Name, &s.QueryText, &s.SearchScope, &scopeValue, &translationID, &s.CreatedAt)
+		err := rows.Scan(&s.ID, &s.ScopeID, &s.Name, &s.QueryText, &s.SearchScope, &scopeValue, &translationID, &resultJSON, &s.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan saved search row: %w", err)
 		}
 
 		s.ScopeValue = scopeValue.String
 		s.TranslationID = translationID.String
+		s.ResultJSON = resultJSON.String
 		searches = append(searches, s)
 	}
 
@@ -82,8 +84,8 @@ func (r *SavedRepository) GetSearchesByScope(ctx context.Context, scopeID string
 // SaveAnalysis persists text statistics or metric analytical payloads.
 func (r *SavedRepository) SaveAnalysis(ctx context.Context, a *models.SavedAnalysis) error {
 	query := `
-		INSERT INTO saved_analyses (id, scope_id, name, reference, analysis_type, translation_id, params_json, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO saved_analyses (id, scope_id, name, reference, analysis_type, translation_id, params_json, result_json, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
 	var translationID sql.NullString
@@ -97,7 +99,7 @@ func (r *SavedRepository) SaveAnalysis(ctx context.Context, a *models.SavedAnaly
 	}
 
 	_, err := r.db.ExecContext(ctx, query,
-		a.ID, a.ScopeID, a.Name, a.Reference, a.AnalysisType, translationID, paramsJSON, a.CreatedAt,
+		a.ID, a.ScopeID, a.Name, a.Reference, a.AnalysisType, translationID, paramsJSON, a.ResultJSON, a.CreatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to persist saved analysis record: %w", err)
@@ -108,7 +110,7 @@ func (r *SavedRepository) SaveAnalysis(ctx context.Context, a *models.SavedAnaly
 // GetAnalysesByScope maps out preserved structural analyses for a target scope.
 func (r *SavedRepository) GetAnalysesByScope(ctx context.Context, scopeID string) ([]models.SavedAnalysis, error) {
 	query := `
-		SELECT id, scope_id, name, reference, analysis_type, translation_id, params_json, created_at
+		SELECT id, scope_id, name, reference, analysis_type, translation_id, params_json, result_json, created_at
 		FROM saved_analyses WHERE scope_id = $1 ORDER BY created_at DESC
 	`
 
@@ -123,14 +125,16 @@ func (r *SavedRepository) GetAnalysesByScope(ctx context.Context, scopeID string
 		var a models.SavedAnalysis
 		var translationID sql.NullString
 		var paramsJSON sql.NullString
+		var resultJSON sql.NullString
 
-		err := rows.Scan(&a.ID, &a.ScopeID, &a.Name, &a.Reference, &a.AnalysisType, &translationID, &paramsJSON, &a.CreatedAt)
+		err := rows.Scan(&a.ID, &a.ScopeID, &a.Name, &a.Reference, &a.AnalysisType, &translationID, &paramsJSON, &resultJSON, &a.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan saved analysis row: %w", err)
 		}
 
 		a.TranslationID = translationID.String
 		a.ParamsJSON = paramsJSON.String
+		a.ResultJSON = resultJSON.String
 		analyses = append(analyses, a)
 	}
 
