@@ -75,7 +75,7 @@ function App() {
       console.error('Failed to parse saved search results JSON', err);
     }
     const validScopes = ['all', 'ot', 'nt', 'book'] as const;
-    const scope = validScopes.includes(s.searchScope as any)
+    const scope = validScopes.includes(s.searchScope as typeof validScopes[number])
       ? (s.searchScope as 'all' | 'ot' | 'nt' | 'book')
       : 'all';
     setLoadedSearch({
