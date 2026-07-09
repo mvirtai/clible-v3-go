@@ -8,15 +8,24 @@ import { resolveBookId, parseReferenceForDisplay, type UILanguage } from '../uti
 interface Props {
   translation: string;
   activeReference?: string;
+  activeScopeId?: string;
+  onWorkspaceUpdated?: () => void;
 }
 
-export const VerseReader: React.FC<Props> = ({ translation, activeReference }) => {
+export const VerseReader: React.FC<Props> = ({
+  translation,
+  activeReference,
+  activeScopeId,
+  onWorkspaceUpdated
+}) => {
   const [reference, setReference] = useState('');
   const [prevActiveReference, setPrevActiveReference] = useState(activeReference);
   const [data, setData] = useState<BibleResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [backReference, setBackReference] = useState<string | null>(null);
+  const [saveName, setSaveName] = useState('');
+  const [showSaveForm, setShowSaveForm] = useState(false);
 
   const isFinnish = translation.toLowerCase().startsWith('fi') || translation.toLowerCase().includes('fin');
   const lang: UILanguage = isFinnish ? 'fi' : 'en';
@@ -142,6 +151,67 @@ export const VerseReader: React.FC<Props> = ({ translation, activeReference }) =
               {data.translationName}
             </span>
           </div>
+
+          {/* Save verse passage to workspace */}
+          {activeScopeId && data.verses.length > 0 && (
+            <div className="p-4 rounded-2xl border space-y-2 text-left" style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}>
+              <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Tallenna tämä lukunäkymä työtilaan</p>
+              {!showSaveForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSaveForm(true)}
+                  className="px-3 py-1 rounded-full text-xs font-medium btn-accent btn-tactile"
+                >
+                  Tallenna jaehaku
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nimi (esim. Vuorisaarna)..."
+                    value={saveName}
+                    onChange={e => setSaveName(e.target.value)}
+                    className="flex-1 rounded-lg px-3 py-1 text-xs outline-none border"
+                    style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!saveName.trim()) return;
+                      try {
+                        await apiService.saveSearch({
+                          scopeId: activeScopeId,
+                          name: saveName.trim(),
+                          queryText: data.reference,
+                          searchScope: 'reference',
+                          scopeValue: '',
+                          translationId: translation,
+                          resultJson: JSON.stringify(data.verses)
+                        });
+                        setSaveName('');
+                        setShowSaveForm(false);
+                        onWorkspaceUpdated?.();
+                      } catch (err) {
+                        console.error('Failed to save reference search', err);
+                        alert('Tallennus epäonnistui');
+                      }
+                    }}
+                    className="px-3 py-1 rounded-lg text-xs font-semibold btn-accent btn-tactile"
+                  >
+                    Tallenna
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSaveForm(false)}
+                    className="px-3 py-1 rounded-lg text-xs font-semibold btn-tactile"
+                    style={{ background: 'var(--surface)', color: 'var(--muted)', border: '1px solid var(--border)' }}
+                  >
+                    Peruuta
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           <p className="text-xl leading-relaxed font-serif" style={{ color: 'var(--text-2)' }}>
             {data.verses.length > 0 ? (
