@@ -22,38 +22,43 @@ export const WorkspaceSidebar: React.FC<Props> = ({
   const [newScopeName, setNewScopeName] = useState('');
   const [workspace, setWorkspace] = useState<ScopeWorkspace | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-
+  const [loadingScopes, setLoadingScopes] = useState<boolean>(true);
+  const [loadingWorkspace, setLoadingWorkspace] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchScopes = async () => {
+      setLoadingScopes(true);
       try {
         const list = await apiService.getScopes();
         setScopes(list || []);
       } catch {
         console.error('Failed to load scopes');
+      } finally {
+        setLoadingScopes(false);
       }
     };
     fetchScopes();
   }, [refreshTrigger]);
 
-
-
   useEffect(() => {
     const fetchWorkspace = async () => {
       if (!activeScopeId) {
         setWorkspace(null);
+        setLoadingWorkspace(false);
         return;
       }
+      setLoadingWorkspace(true);
       try {
         const data = await apiService.getScopeWorkspace(activeScopeId);
         setWorkspace(data);
       } catch {
         console.error('Failed to load workspace data');
+      } finally {
+        setLoadingWorkspace(false);
       }
     };
     fetchWorkspace();
   }, [activeScopeId, refreshTrigger]);
-
 
   const handleCreateScope = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +74,6 @@ export const WorkspaceSidebar: React.FC<Props> = ({
     }
   };
 
-
   const handleDeleteScope = async () => {
     if (!activeScopeId || !window.confirm('Haluatko varmasti poistaa tämän työtilan ja kaikki sen tallennetut tulokset?')) return;
     try {
@@ -82,6 +86,25 @@ export const WorkspaceSidebar: React.FC<Props> = ({
     }
   };
 
+  // VAIHE 4: Haamukuvion renderöinti alussa
+  if (loadingScopes && scopes.length === 0) {
+    return (
+      <div className="rounded-3xl p-6 space-y-6 border text-left animate-pulse" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+        <div className="flex items-center justify-between">
+          <div className="h-4 bg-[var(--surface-2)] rounded w-1/3"></div>
+          <div className="w-5 h-5 bg-[var(--surface-2)] rounded-full"></div>
+        </div>
+        <div className="h-9 bg-[var(--surface-2)] rounded-xl w-full"></div>
+        <div className="space-y-4 pt-4 border-t" style={{ borderColor: 'var(--border-soft)' }}>
+          <div className="h-3 bg-[var(--surface-2)] rounded w-1/4"></div>
+          <div className="space-y-2">
+            <div className="h-7 bg-[var(--surface-2)] rounded-lg w-full"></div>
+            <div className="h-7 bg-[var(--surface-2)] rounded-lg w-5/6"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-3xl p-6 space-y-6 border text-left" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
@@ -142,7 +165,15 @@ export const WorkspaceSidebar: React.FC<Props> = ({
         const searches = workspace.searches || [];
         const analyses = workspace.analyses || [];
         return (
-          <div className="space-y-5 pt-2 border-t" style={{ borderColor: 'var(--border-soft)' }}>
+          <div 
+            className="space-y-5 pt-2 border-t" 
+            style={{ 
+              borderColor: 'var(--border-soft)',
+              opacity: loadingWorkspace ? 0.6 : 1,
+              pointerEvents: loadingWorkspace ? 'none' : 'auto',
+              transition: 'opacity 0.2s ease-in-out'
+            }}
+          >
             {/* Tallennetut haut */}
             <div className="space-y-2">
               <h3 className="text-xs font-bold" style={{ color: 'var(--muted)' }}>Tallennetut haut</h3>
