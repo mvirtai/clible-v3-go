@@ -325,11 +325,11 @@ function App() {
           </button>
         </div>
 
-        {viewMode === 'reader' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left: Reader & Search */}
-            <div className="lg:col-span-2 space-y-8">
-              {selectedTranslation ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left: Active view content */}
+          <div className="lg:col-span-2 space-y-8">
+            {viewMode === 'reader' && (
+              selectedTranslation ? (
                 <>
                   <VerseReader
                     translation={selectedTranslation}
@@ -364,59 +364,57 @@ function App() {
                     Install a Translation
                   </button>
                 </div>
-              )}
-            </div>
+              )
+            )}
 
-            {/* Right: Sidebar */}
-            <div className="space-y-8">
-              <WorkspaceSidebar
+            {viewMode === 'analytics' && (
+              <AnalyticsView
+                defaultTranslation={selectedTranslation || (activatedTranslations[0]?.id || '')}
                 activeScopeId={activeScopeId}
-                onScopeChanged={handleScopeChanged}
-                onLoadSavedSearch={handleLoadSavedSearch}
-                onLoadSavedAnalysis={handleLoadSavedAnalysis}
-                refreshTrigger={workspaceTrigger}
+                onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
+                loadedSavedStats={loadedStats}
               />
+            )}
 
+            {viewMode === 'compare' && (
+              <CompareView
+                installedTranslations={activatedTranslations}
+                activeScopeId={activeScopeId}
+                onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
+                loadedSavedComparison={loadedComparison}
+              />
+            )}
+          </div>
+
+          {/* Right: Persistent workspace sidebar */}
+          <div className="space-y-8">
+            <WorkspaceSidebar
+              activeScopeId={activeScopeId}
+              onScopeChanged={handleScopeChanged}
+              onLoadSavedSearch={handleLoadSavedSearch}
+              onLoadSavedAnalysis={handleLoadSavedAnalysis}
+              refreshTrigger={workspaceTrigger}
+            />
+
+            {viewMode === 'reader' && (
               <SearchHistory triggerRefresh={historyTrigger} />
+            )}
 
-              <div className="rounded-2xl p-6 text-left" style={{
-                background: 'var(--surface-2)',
-                border: '1px solid var(--border-soft)',
-              }}>
-                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
-                  Quick Start
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
-                  Install a translation, then try reading{' '}
-                  <code>Joh. 3:16</code> or <code>John 3:16</code>, or search
-                  for <code>light</code> in the text search below.
-                </p>
-              </div>
+            <div className="rounded-2xl p-6 text-left" style={{
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border-soft)',
+            }}>
+              <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
+                Quick Start
+              </h3>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
+                Install a translation, then try reading{' '}
+                <code>Joh. 3:16</code> or <code>John 3:16</code>, or search
+                for <code>light</code> in the text search below.
+              </p>
             </div>
           </div>
-        )}
-
-        {viewMode === 'analytics' && (
-          <div className="max-w-5xl mx-auto">
-            <AnalyticsView
-              defaultTranslation={selectedTranslation || (activatedTranslations[0]?.id || '')}
-              activeScopeId={activeScopeId}
-              onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
-              loadedSavedStats={loadedStats}
-            />
-          </div>
-        )}
-
-        {viewMode === 'compare' && (
-          <div className="max-w-5xl mx-auto">
-            <CompareView
-              installedTranslations={activatedTranslations}
-              activeScopeId={activeScopeId}
-              onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
-              loadedSavedComparison={loadedComparison}
-            />
-          </div>
-        )}
+        </div>
       </main>
 
       {/* ── Footer ── */}
