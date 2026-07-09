@@ -133,4 +133,58 @@ func TestVerseRepository_Search(t *testing.T) {
 			t.Error("expected error for invalid regex pattern")
 		}
 	})
+
+	t.Run("fts with NT testament scope filter", func(t *testing.T) {
+		results, err := repo.Search(ctx, db.SearchParams{
+			FTSQuery:    "loved",
+			SearchScope: "nt",
+		})
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Errorf("expected 1 result in NT scope, got %d", len(results))
+		}
+	})
+
+	t.Run("fts with OT testament scope filter (no match)", func(t *testing.T) {
+		results, err := repo.Search(ctx, db.SearchParams{
+			FTSQuery:    "loved",
+			SearchScope: "ot",
+		})
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 0 {
+			t.Errorf("expected 0 results in OT scope, got %d", len(results))
+		}
+	})
+
+	t.Run("fts with specific book scope filter", func(t *testing.T) {
+		results, err := repo.Search(ctx, db.SearchParams{
+			FTSQuery:    "loved",
+			SearchScope: "book",
+			ScopeValue:  "Joh",
+		})
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Errorf("expected 1 result in John book scope, got %d", len(results))
+		}
+	})
+
+	t.Run("fts with non-matching book scope filter", func(t *testing.T) {
+		results, err := repo.Search(ctx, db.SearchParams{
+			FTSQuery:    "loved",
+			SearchScope: "book",
+			ScopeValue:  "Gen",
+		})
+		if err != nil {
+			t.Fatalf("Search failed: %v", err)
+		}
+		if len(results) != 0 {
+			t.Errorf("expected 0 results in Gen book scope, got %d", len(results))
+		}
+	})
 }

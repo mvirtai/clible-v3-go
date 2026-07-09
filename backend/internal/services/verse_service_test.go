@@ -187,7 +187,7 @@ func TestVerseService_SearchVerses_Success(t *testing.T) {
 		t.Fatalf("failed to seed verses: %v", err)
 	}
 
-	results, err := svc.SearchVerses(ctx, "Jumala", false, "web")
+	results, err := svc.SearchVerses(ctx, "Jumala", false, "web", "", "")
 	if err != nil {
 		t.Fatalf("unexpected search error: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestVerseService_SearchVerses_RegexFilter(t *testing.T) {
 		t.Fatalf("failed to seed verses: %v", err)
 	}
 
-	results, err := svc.SearchVerses(ctx, "^Jumala", true, "web")
+	results, err := svc.SearchVerses(ctx, "^Jumala", true, "web", "", "")
 	if err != nil {
 		t.Fatalf("unexpected search error: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestVerseService_SearchVerses_InvalidRegex(t *testing.T) {
 	translationRepo := db.NewTranslationRepository(dbConn)
 	svc := NewVerseService(verseRepo, translationRepo)
 
-	_, err = svc.SearchVerses(context.Background(), "[invalid", true, "web")
+	_, err = svc.SearchVerses(context.Background(), "[invalid", true, "web", "", "")
 	if err == nil {
 		t.Fatal("expected error for invalid regex pattern")
 	}

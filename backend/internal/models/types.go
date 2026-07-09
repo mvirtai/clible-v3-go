@@ -65,6 +65,7 @@ type SavedSearch struct {
 	SearchScope   string    `json:"searchScope" db:"search_scope"`
 	ScopeValue    string    `json:"scopeValue" db:"scope_value"`
 	TranslationID string    `json:"translationId" db:"translation_id"`
+	ResultJSON    string    `json:"resultJson" db:"result_json"`
 	CreatedAt     time.Time `json:"createdAt" db:"created_at"`
 }
 
@@ -76,5 +77,6 @@ type SavedAnalysis struct {
 	AnalysisType  string    `json:"analysisType" db:"analysis_type"`
 	TranslationID string    `json:"translationId" db:"translation_id"`
 	ParamsJSON    string    `json:"paramsJson" db:"params_json"`
+	ResultJSON    string    `json:"resultJson" db:"result_json"`
 	CreatedAt     time.Time `json:"createdAt" db:"created_at"`
 }

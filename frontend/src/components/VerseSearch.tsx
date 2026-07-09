@@ -1,15 +1,32 @@
 // src/components/VerseSearch.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import type { SearchVerse } from '../types/search';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Save } from 'lucide-react';
 
 interface Props {
   translation: string;
   onSelectVerse?: (reference: string) => void;
+  activeScopeId?: string;
+  onWorkspaceUpdated?: () => void;
+  loadedSavedResults?: {
+    query: string;
+    translation: string;
+    searchScope: 'all' | 'ot' | 'nt' | 'book';
+    scopeValue: string;
+    results: SearchVerse[];
+  } | null;
+  onClearLoadedResults?: () => void;
 }
 
-export const VerseSearch: React.FC<Props> = ({ translation, onSelectVerse }) => {
+export const VerseSearch: React.FC<Props> = ({
+  translation,
+  onSelectVerse,
+  activeScopeId,
+  onWorkspaceUpdated,
+  loadedSavedResults,
+  onClearLoadedResults
+}) => {
   const [query, setQuery] = useState('');
   const [regex, setRegex] = useState(false);
   const [results, setResults] = useState<SearchVerse[]>([]);
@@ -17,48 +34,146 @@ export const VerseSearch: React.FC<Props> = ({ translation, onSelectVerse }) => 
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Hakurajauksen tilat
+  const [searchScope, setSearchScope] = useState<'all' | 'ot' | 'nt' | 'book'>('all');
+  const [scopeValue, setScopeValue] = useState('');
+  const [books, setBooks] = useState<{ id: string; name: string }[]>([]);
+
+  // Tallennuksen tilat
+  const [saveName, setSaveName] = useState('');
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Käsittele ladattu haku sivupalkista
+  useEffect(() => {
+    if (!loadedSavedResults) return;
+
+    const loadData = async () => {
+      setQuery(loadedSavedResults.query);
+      setSearchScope(loadedSavedResults.searchScope);
+      setScopeValue(loadedSavedResults.scopeValue);
+      setError(null);
+
+      if (loadedSavedResults.results && loadedSavedResults.results.length > 0) {
+        setResults(loadedSavedResults.results);
+        setSearched(true);
+      } else {
+        // Jos välimuistitulos puuttuu, suoritetaan haku uudelleen backendistä
+        setLoading(true);
+        try {
+          const data = await apiService.search(
+            loadedSavedResults.query,
+            loadedSavedResults.translation,
+            false, // oletuksena regex false vanhoille tallennuksille
+            loadedSavedResults.searchScope,
+            loadedSavedResults.scopeValue
+          );
+          setResults(data || []);
+          setSearched(true);
+        } catch {
+          setError('Tallennetun haun tulosten haku epäonnistui');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      // Tyhjennetään App.tsx:n pikalataustila kun se on otettu vastaan
+      if (onClearLoadedResults) onClearLoadedResults();
+    };
+
+    loadData();
+  }, [loadedSavedResults, onClearLoadedResults]);
+
+  // Lataa kirjat, jos valitaan kirjarajaus
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        // backend exposee GET /api/books (PR #23)
+        const res = await fetch('/api/books', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setBooks(data);
+        }
+      } catch {
+        console.error('Failed to load books metadata');
+      }
+    };
+    fetchBooks();
+  }, []);
+
+
   const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!query.trim() || !translation) return;
+
+    if (onClearLoadedResults) {
+      onClearLoadedResults(); // Nollataan aiemmin ladatut
+    }
 
     setLoading(true);
     setError(null);
     setSearched(false);
     try {
-      const data = await apiService.search(query, translation, regex);
+      const data = await apiService.search(query, translation, regex, searchScope, scopeValue);
       setResults(data);
       setSearched(true);
 
       await apiService.addSearch({
         queryText: query,
-        searchScope: 'all',
-        scopeValue: '',
+        searchScope: searchScope,
+        scopeValue: scopeValue,
         translationId: translation,
         mode: regex ? 'regex' : 'phrase',
         resultCount: data.length,
       }).catch((err) => console.error('Failed to persist search history', err));
     } catch {
-      setError('Search failed. Check that the query is valid.');
+      setError('Haku epäonnistui. Tarkista hakusana.');
       setResults([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSaveSearch = async () => {
+    if (!saveName.trim() || !activeScopeId) return;
+    setSaving(true);
+    try {
+      await apiService.saveSearch({
+        scopeId: activeScopeId,
+        name: saveName.trim(),
+        queryText: query,
+        searchScope: searchScope,
+        scopeValue: scopeValue,
+        translationId: translation,
+        resultJson: JSON.stringify(results) // Suorituskykytallennus (välimuisti)
+      });
+      setSaveName('');
+      setShowSaveForm(false);
+      if (onWorkspaceUpdated) {
+        onWorkspaceUpdated();
+      }
+    } catch {
+      alert('Haun tallentaminen epäonnistui');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
   return (
     <div className="rounded-3xl p-8 space-y-6" style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
     }}>
-      <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-        Text Search
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--muted)' }}>
+        Tekstihaku
       </h2>
 
-      <form onSubmit={handleSearch} className="space-y-3">
+      <form onSubmit={handleSearch} className="space-y-4">
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder={regex ? 'Regex pattern (e.g. light|darkness)' : 'Search words (e.g. light)'}
+            placeholder={regex ? 'Regex kuvio (esim. valo|pimeys)' : 'Hae sanoilla (esim. valo)'}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1 rounded-full px-5 py-2.5 text-sm transition-all outline-none"
@@ -75,24 +190,103 @@ export const VerseSearch: React.FC<Props> = ({ translation, onSelectVerse }) => 
             style={{ cursor: 'pointer' }}
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-            Search
+            Hae
           </button>
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer select-none text-sm"
-          style={{ color: 'var(--muted)' }}>
-          <input
-            type="checkbox"
-            checked={regex}
-            onChange={(e) => setRegex(e.target.checked)}
-            className="rounded"
-          />
-          Use Regular Expressions
-        </label>
+        <div className="flex flex-wrap items-center gap-4 text-xs text-left">
+          <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
+            <input
+              type="checkbox"
+              checked={regex}
+              onChange={(e) => setRegex(e.target.checked)}
+              className="rounded"
+            />
+            Käytä säännöllisiä lausekkeita (Regex)
+          </label>
+
+          <div className="flex items-center gap-2">
+            <span style={{ color: 'var(--muted)' }}>Hakualue:</span>
+            <select
+              value={searchScope}
+              onChange={(e) => {
+                setSearchScope(e.target.value as 'all' | 'ot' | 'nt' | 'book');
+                setScopeValue('');
+              }}
+              className="rounded-lg border px-2 py-1 outline-none cursor-pointer"
+              style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+
+            >
+              <option value="all">Koko Raamattu</option>
+              <option value="ot">Vanha testamentti (VT)</option>
+              <option value="nt">Uusi testamentti (UT)</option>
+              <option value="book">Tietty kirja</option>
+            </select>
+
+            {searchScope === 'book' && (
+              <select
+                value={scopeValue}
+                onChange={(e) => setScopeValue(e.target.value)}
+                className="rounded-lg border px-2 py-1 outline-none cursor-pointer max-w-[150px]"
+                style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+              >
+                <option value="">-- Valitse kirja --</option>
+                {books.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
       </form>
 
       {error && (
-        <p className="text-sm" style={{ color: '#c0392b' }}>{error}</p>
+        <p className="text-sm text-left" style={{ color: '#c0392b' }}>{error}</p>
+      )}
+
+      {/* Tallenna työtilaan -osio */}
+      {activeScopeId && searched && results.length > 0 && (
+        <div className="p-4 rounded-2xl border text-left space-y-3" style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}>
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+              Haluatko tallentaa tämän haun työtilaan?
+            </span>
+            {!showSaveForm && (
+              <button
+                onClick={() => setShowSaveForm(true)}
+                className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)]"
+              >
+                <Save size={12} /> Tallenna
+              </button>
+            )}
+          </div>
+
+          {showSaveForm && (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Nimi tälle haulle (esim. Sana valo UT:ssa)..."
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
+                style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+              />
+              <button
+                onClick={handleSaveSearch}
+                disabled={saving || !saveName.trim()}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile"
+              >
+                {saving ? 'Tallennetaan...' : 'Tallenna'}
+              </button>
+              <button
+                onClick={() => setShowSaveForm(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border text-[var(--muted)] border-[var(--border)] bg-transparent"
+              >
+                Peruuta
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {loading ? (
@@ -102,15 +296,15 @@ export const VerseSearch: React.FC<Props> = ({ translation, onSelectVerse }) => 
       ) : (
         <div className="space-y-3">
           {searched && results.length > 0 && (
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              Found <strong>{results.length}</strong> matches
+            <p className="text-xs text-left animate-fade-in" style={{ color: 'var(--muted)' }}>
+              Löytyi <strong>{results.length}</strong> osumaa
             </p>
           )}
 
           <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
             {searched && results.length === 0 ? (
               <p className="text-sm italic py-6 text-center" style={{ color: 'var(--muted)' }}>
-                No matches found for "{query}".
+                Ei osumia haulle "{query}".
               </p>
             ) : (
               results.map((r, i) => (
@@ -135,4 +329,3 @@ export const VerseSearch: React.FC<Props> = ({ translation, onSelectVerse }) => 
     </div>
   );
 };
-

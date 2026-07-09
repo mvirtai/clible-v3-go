@@ -7,10 +7,34 @@ import { VerseSearch } from './components/VerseSearch';
 import { SearchHistory } from './components/SearchHistory';
 import { AnalyticsView } from './components/AnalyticsView';
 import { CompareView } from './components/CompareView';
+import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { apiService } from './services/api';
 import { useAuth } from './context/AuthContext';
 import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut } from 'lucide-react';
-import type { InstalledTranslation } from './types/bible';
+import type { InstalledTranslation, TextStats, ComparisonResult } from './types/bible';
+import type { SavedSearch, SavedAnalysis } from './types/workspace';
+import type { SearchVerse } from './types/search';
+
+interface LoadedSearchState {
+  query: string;
+  translation: string;
+  searchScope: 'all' | 'ot' | 'nt' | 'book';
+  scopeValue: string;
+  results: SearchVerse[];
+}
+
+interface LoadedStatsState {
+  stats: TextStats;
+  reference: string;
+  translationId: string;
+}
+
+interface LoadedComparisonState {
+  result: ComparisonResult;
+  reference: string;
+  translationA: string;
+  translationB: string;
+}
 
 function App() {
   const { user, logout } = useAuth();
@@ -26,6 +50,81 @@ function App() {
     // Check if class .dark exists in documentElement
     return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
   });
+
+  // Työtilanhallinnan tilat
+  const [activeScopeId, setActiveScopeId] = useState<string>(() => localStorage.getItem('activeScopeId') || '');
+  const [workspaceTrigger, setWorkspaceTrigger] = useState(false);
+
+  // Tallennettujen tulosten pikalatauksen tilat (välimuisti)
+  const [loadedSearch, setLoadedSearch] = useState<LoadedSearchState | null>(null);
+  const [loadedStats, setLoadedStats] = useState<LoadedStatsState | null>(null);
+  const [loadedComparison, setLoadedComparison] = useState<LoadedComparisonState | null>(null);
+
+  const handleScopeChanged = (id: string) => {
+    setActiveScopeId(id);
+    localStorage.setItem('activeScopeId', id);
+  };
+
+  const handleLoadSavedSearch = (s: SavedSearch) => {
+    let results = [];
+    try {
+      if (s.resultJson) {
+        results = JSON.parse(s.resultJson);
+      }
+    } catch (err) {
+      console.error('Failed to parse saved search results JSON', err);
+    }
+    const validScopes = ['all', 'ot', 'nt', 'book'] as const;
+    const scope = validScopes.includes(s.searchScope as typeof validScopes[number])
+      ? (s.searchScope as 'all' | 'ot' | 'nt' | 'book')
+      : 'all';
+    setLoadedSearch({
+      query: s.queryText,
+      translation: s.translationId,
+      searchScope: s.searchScope as 'all' | 'ot' | 'nt' | 'book',
+      scopeValue: scope,
+      results: Array.isArray(results) ? results : []
+    });
+    setSelectedTranslation(s.translationId);
+    setViewMode('reader');
+  };
+
+  const handleLoadSavedAnalysis = (a: SavedAnalysis) => {
+    let result = null;
+    try {
+      if (a.resultJson) {
+        result = JSON.parse(a.resultJson);
+      }
+    } catch (err) {
+      console.error('Failed to parse saved analysis results JSON', err);
+    }
+
+    if (a.analysisType === 'single_stats') {
+      setLoadedStats({
+        stats: result,
+        reference: a.reference,
+        translationId: a.translationId
+      });
+      setSelectedTranslation(a.translationId);
+      setViewMode('analytics');
+    } else if (a.analysisType === 'comparison') {
+      let params = { translationB: '' };
+      try {
+        if (a.paramsJson) {
+          params = JSON.parse(a.paramsJson);
+        }
+      } catch (err) {
+        console.error('Failed to parse paramsJson', err);
+      }
+      setLoadedComparison({
+        result,
+        reference: a.reference,
+        translationA: a.translationId,
+        translationB: params.translationB
+      });
+      setViewMode('compare');
+    }
+  };
 
   // Sync system prefers-color-scheme changes with theme state
   const toggleTheme = () => {
@@ -204,7 +303,14 @@ function App() {
                 <>
                   <VerseReader translation={selectedTranslation} activeReference={activeReference} />
                   <div onClick={handleSearchFinished}>
-                    <VerseSearch translation={selectedTranslation} onSelectVerse={setActiveReference} />
+                    <VerseSearch
+                      translation={selectedTranslation}
+                      onSelectVerse={setActiveReference}
+                      activeScopeId={activeScopeId}
+                      onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
+                      loadedSavedResults={loadedSearch}
+                      onClearLoadedResults={() => setLoadedSearch(null)}
+                    />
                   </div>
                 </>
               ) : (
@@ -228,6 +334,14 @@ function App() {
 
             {/* Right: Sidebar */}
             <div className="space-y-8">
+              <WorkspaceSidebar
+                activeScopeId={activeScopeId}
+                onScopeChanged={handleScopeChanged}
+                onLoadSavedSearch={handleLoadSavedSearch}
+                onLoadSavedAnalysis={handleLoadSavedAnalysis}
+                refreshTrigger={workspaceTrigger}
+              />
+
               <SearchHistory triggerRefresh={historyTrigger} />
 
               <div className="rounded-2xl p-6 text-left" style={{
@@ -249,13 +363,23 @@ function App() {
 
         {viewMode === 'analytics' && (
           <div className="max-w-5xl mx-auto">
-            <AnalyticsView defaultTranslation={selectedTranslation || (activatedTranslations[0]?.id || '')} />
+            <AnalyticsView
+              defaultTranslation={selectedTranslation || (activatedTranslations[0]?.id || '')}
+              activeScopeId={activeScopeId}
+              onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
+              loadedSavedStats={loadedStats}
+            />
           </div>
         )}
 
         {viewMode === 'compare' && (
           <div className="max-w-5xl mx-auto">
-            <CompareView installedTranslations={activatedTranslations} />
+            <CompareView
+              installedTranslations={activatedTranslations}
+              activeScopeId={activeScopeId}
+              onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
+              loadedSavedComparison={loadedComparison}
+            />
           </div>
         )}
       </main>

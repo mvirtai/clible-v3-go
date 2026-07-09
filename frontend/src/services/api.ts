@@ -2,6 +2,7 @@
 import type { BibleResponse, InstalledTranslation, TextStats, ComparisonResult } from "../types/bible";
 import type { SearchHistoryEntry } from "../types/searchQuery";
 import type { SearchVerse } from "../types/search";
+import type { Scope, SavedSearch, SavedAnalysis, ScopeWorkspace } from "../types/workspace";
 
 
 // raw api types matching the Go backend JSON responses
@@ -124,9 +125,9 @@ export class ApiService {
      * @throws Error if the request fails.
      * GET /api/search?q=...&translation=...&regex=...
      */
-    async search(query: string, translation: string, regex: boolean): Promise<SearchVerse[]> {
+    async search(query: string, translation: string, regex: boolean, scope = 'all', scopeValue = ''): Promise<SearchVerse[]> {
         const res = await fetch(
-            `   ${this.baseUrl}/search?q=${encodeURIComponent(query)}&translation=${encodeURIComponent(translation)}&regex=${regex}`
+            `${this.baseUrl}/search?q=${encodeURIComponent(query)}&translation=${encodeURIComponent(translation)}&regex=${regex}&scope=${scope}&scopeValue=${encodeURIComponent(scopeValue)}`
             , { credentials: 'include' }
         );
         if (!res.ok) throw new Error(`GET ${this.baseUrl}/search returned ${res.status}`);
@@ -320,6 +321,79 @@ export class ApiService {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.error || `GET /auth/me returned ${res.status}`);
         }
+        return await res.json();
+    }
+
+    /**
+     * Gets all scopes (study projects) for the current user.
+     */
+    async getScopes(): Promise<Scope[]> {
+        const res = await fetch(`${this.baseUrl}/scopes`, { credentials: 'include' });
+        if (!res.ok) throw new Error(`GET /scopes returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Creates a new study scope.
+     */
+    async createScope(name: string): Promise<Scope> {
+        const res = await fetch(`${this.baseUrl}/scopes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /scopes returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Deletes an existing scope and cascades all saved child records.
+     */
+    async deleteScope(id: string): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/scopes?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`DELETE /scopes returned ${res.status}`);
+    }
+
+    /**
+     * Aggregates a scope metadata with all its nested saved items.
+     */
+    async getScopeWorkspace(id: string): Promise<ScopeWorkspace> {
+        const res = await fetch(`${this.baseUrl}/scopes/workspace?id=${encodeURIComponent(id)}`, {
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`GET /scopes/workspace returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Saves a text search configuration and its current results JSON.
+     */
+    async saveSearch(search: Omit<SavedSearch, 'id' | 'createdAt'>): Promise<SavedSearch> {
+        const res = await fetch(`${this.baseUrl}/scopes/saved-searches`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(search),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /scopes/saved-searches returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Saves a text analysis or comparison configuration and its current results JSON.
+     */
+    async saveAnalysis(analysis: Omit<SavedAnalysis, 'id' | 'createdAt'>): Promise<SavedAnalysis> {
+        const res = await fetch(`${this.baseUrl}/scopes/saved-analyses`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(analysis),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /scopes/saved-analyses returned ${res.status}`);
         return await res.json();
     }
 }
