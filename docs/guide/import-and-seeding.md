@@ -1,6 +1,6 @@
 # XML Ingestion & Seeding Engine
 
-clible-v3-go implements a highly optimized, memory-efficient pipeline to import large Bible translations from XML files (typically ranging from 3MB to over 10MB in size) directly into SQLite.
+clible-v3-go implements a highly optimized, memory-efficient pipeline to import large Bible translations from XML files (typically ranging from 3MB to over 10MB in size) directly into the database.
 
 This engine is designed to operate on constrained environments (like low-memory container instances) without causing high RAM spikes.
 
@@ -29,11 +29,11 @@ graph TD
 
     subgraph Seed Service [internal/services/seed_service.go]
         Process -- Callback(models.Verse) --> Buffer{Buffer >= 500?}
-        Buffer -- Yes --> Bulk[Bulk Insert to SQLite]
+        Buffer -- Yes --> Bulk[Bulk Insert]
         Buffer -- No --> Accumulate[Keep in memory chunk]
     end
 
-    Bulk --> SQLite[(SQLite DB)]
+    Bulk --> DB[(Database: Postgres/SQLite)]
 ```
 
 ---
@@ -68,7 +68,7 @@ To support various source XML providers, the service maps common book name abbre
 
 ### 3. Buffered Bulk Insertion
 
-Writing to SQLite can be slow if done row-by-row because every individual `INSERT` statement initiates a separate file transaction.
+Writing to a database can be extremely slow if done row-by-row. In SQLite, every individual insert initiates a separate disk file transaction. In PostgreSQL, it incurs massive network round-trip overhead.
 To maximize performance:
 
 - The service groups parsed verses into **chunks of 500**.

@@ -66,6 +66,14 @@ function App() {
   };
 
   const handleLoadSavedSearch = (s: SavedSearch) => {
+    if (s.searchScope === 'reference') {
+      setSelectedTranslation(s.translationId);
+      setActiveReference(s.queryText);
+      setViewMode('reader');
+      setLoadedSearch(null);
+      return;
+    }
+
     let results = [];
     try {
       if (s.resultJson) {
@@ -301,7 +309,12 @@ function App() {
             <div className="lg:col-span-2 space-y-8">
               {selectedTranslation ? (
                 <>
-                  <VerseReader translation={selectedTranslation} activeReference={activeReference} />
+                  <VerseReader 
+                    translation={selectedTranslation} 
+                    activeReference={activeReference}
+                    activeScopeId={activeScopeId}
+                    onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
+                  />
                   <div onClick={handleSearchFinished}>
                     <VerseSearch
                       translation={selectedTranslation}

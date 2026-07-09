@@ -1,6 +1,8 @@
-# Database Architecture & FTS5 Search
+# Database Architecture & Full-Text Search (FTS)
 
-clible-v3-go utilizes a local, single-file **SQLite 3** database to store all Bible texts, index systems, research workspaces, and search history. By utilizing SQLite on the backend instance, the application ensures zero-latency lookups and complete independence from external translation APIs at query time.
+clible-v3-go utilizes a dual-database architecture. It is designed to run on **PostgreSQL** (specifically **Neon PostgreSQL** in cloud and development environments) as its primary relational engine, providing robust cloud persistence, scalability, and managed point-in-time recovery.
+
+For unit and integration testing, the application dynamically falls back to an in-memory **SQLite 3** database to keep the test suite isolated, fast, and self-contained.
 
 ---
 
@@ -36,10 +38,6 @@ erDiagram
         text text
     }
 
-    verses_fts {
-        text text
-    }
-
     scopes {
         text id PK
         text name
@@ -54,6 +52,7 @@ erDiagram
         text search_scope
         text scope_value
         text translation_id FK
+        text result_json
         timestamp created_at
     }
 
@@ -65,6 +64,7 @@ erDiagram
         text analysis_type
         text translation_id FK
         text params_json
+        text result_json
         timestamp created_at
     }
 
@@ -81,7 +81,6 @@ erDiagram
 
     translations ||--o{ verses : "has"
     books ||--o{ verses : "contains"
-    verses ||--|| verses_fts : "indexed in"
     scopes ||--o{ saved_searches : "contains"
     scopes ||--o{ saved_analyses : "contains"
     translations ||--o{ saved_searches : "references"
@@ -146,9 +145,10 @@ Searches that users explicitly save under a specific workspace scope.
 - `scope_id` (TEXT, FK): References `scopes.id` with `ON DELETE CASCADE`.
 - `name` (TEXT): Display name for the saved search.
 - `query_text` (TEXT): The search string.
-- `search_scope` (TEXT): Scope of the query (`bible`, `testament`, `book`, `chapter`).
+- `search_scope` (TEXT): Scope of the query (`all`, `ot`, `nt`, `book`, `reference`).
 - `scope_value` (TEXT, Nullable): Corresponding target value (e.g., `JHN` or `NT`).
 - `translation_id` (TEXT, FK): References `translations.id` with `ON DELETE SET NULL`.
+- `result_json` (TEXT, Nullable): Caches the search results payload to skip re-execution upon loading.
 
 ### 3. `saved_analyses`
 
@@ -158,9 +158,10 @@ Lexical and statistical analysis results saved under a workspace scope.
 - `scope_id` (TEXT, FK): References `scopes.id` with `ON DELETE CASCADE`.
 - `name` (TEXT): Display name.
 - `reference` (TEXT): Target reference (e.g., `Romans 8`, `Genesis`).
-- `analysis_type` (TEXT): E.g., `lexical`, `ngrams`, `word_count`.
+- `analysis_type` (TEXT): E.g., `single_stats`, `comparison`.
 - `translation_id` (TEXT, FK): References `translations.id` with `ON DELETE SET NULL`.
-- `params_json` (TEXT): JSON dump of the computed metrics (such as frequencies or densities) for UI rendering.
+- `params_json` (TEXT): Parameter configuration for UI rendering.
+- `result_json` (TEXT, Nullable): Caches computed results (like LCS similarity mappings or token frequencies) to skip heavy server-side processing upon loading.
 
 ### 4. `search_history`
 
@@ -177,11 +178,31 @@ Automatically logs all search executions for fast recall and navigation.
 
 ---
 
-## SQLite FTS5 Full-Text Search
+## Dual Full-Text Search (FTS) Implementation
 
-To power high-speed word and phrase searches, clible-v3-go leverages SQLite’s native **FTS5 (Full-Text Search)** extension.
+To maintain optimal search performance across both databases, the repository dynamically builds queries based on whether the active connection is PostgreSQL or SQLite:
 
-Instead of duplicating the verse text table into a massive FTS virtual table, we use an **external content table** structure:
+### 1. PostgreSQL (GIN-indexed Full-Text Search)
+
+PostgreSQL leverages native tsvector indexing for high-speed token queries.
+
+- **Indexing**: During migration, we establish a Generalized Inverted Index (GIN) on the verse text cast to a `simple` text vector:
+
+  ```sql
+  CREATE INDEX IF NOT EXISTS idx_verses_text_fts ON verses USING GIN(to_tsvector('simple', text));
+  ```
+
+- **Query execution**: Full-text queries are executed using the native `@@` matching operator:
+
+  ```sql
+  SELECT id, translation_id, book_id, chapter, verse, text
+  FROM verses
+  WHERE to_tsvector('simple', text) @@ to_tsquery('simple', $1)
+  ```
+
+### 2. SQLite (FTS5 Virtual Table with External Content)
+
+Since SQLite does not have GIN indexes, we leverage its native **FTS5** extension with an **external content table** structure to minimize disk space:
 
 ```sql
 CREATE VIRTUAL TABLE verses_fts USING fts5(
@@ -191,57 +212,40 @@ CREATE VIRTUAL TABLE verses_fts USING fts5(
 );
 ```
 
-### Why External Content?
+- **Trigger Synchronization**: Triggers are established to automatically keep the virtual search index in sync with the primary `verses` table during inserts, updates, and deletes:
 
-- **Disk Space Savings**: By using `content = 'verses'`, FTS5 does not duplicate the actual string text of every verse. It only stores the token index maps. This reduces the total SQLite database file size by roughly 40-50%.
-- **Zero Query Overhead**: FTS5 queries (`MATCH`) return the internal `rowid` values, which are then used in standard `JOIN` operations to read the actual rows from the primary `verses` table.
+  ```sql
+  CREATE TRIGGER verses_ai AFTER INSERT ON verses BEGIN
+      INSERT INTO verses_fts(rowid, text) VALUES (new.rowid, new.text);
+  END;
+  ```
 
-### Trigger Synchronization
+- **Query execution**:
 
-Since FTS5 with external content does not automatically track edits in the primary table, we register three SQLite triggers to keep the search index in sync during inserts, updates, and deletes:
-
-1. **Insert Trigger (`verses_ai`)**:
-
-   ```sql
-   CREATE TRIGGER verses_ai AFTER INSERT ON verses BEGIN
-       INSERT INTO verses_fts(rowid, text) VALUES (new.rowid, new.text);
-   END;
-   ```
-
-2. **Delete Trigger (`verses_ad`)**:
-
-   ```sql
-   CREATE TRIGGER verses_ad AFTER DELETE ON verses BEGIN
-       INSERT INTO verses_fts(verses_fts, rowid, text) VALUES('delete', old.rowid, old.text);
-   END;
-   ```
-
-3. **Update Trigger (`verses_au`)**:
-
-   ```sql
-   CREATE TRIGGER verses_au AFTER UPDATE ON verses BEGIN
-       INSERT INTO verses_fts(verses_fts, rowid, text) VALUES('delete', old.rowid, old.text);
-       INSERT INTO verses_fts(rowid, text) VALUES (new.rowid, new.text);
-   END;
-   ```
+  ```sql
+  SELECT v.id, v.translation_id, v.book_id, v.chapter, v.verse, v.text
+  FROM verses v
+  JOIN verses_fts ON v.rowid = verses_fts.rowid
+  WHERE verses_fts MATCH $1
+  ```
 
 ---
 
 ## Embedded Database Migrations
 
-clible-v3-go implements schema migrations directly in Go without relying on external packages.
+clible-v3-go implements dynamic schema migrations directly in Go.
 
 ### How it works
 
 1. All migrations are stored as sequential SQL files (`001_initial_schema.sql`, `002_seed_architecture.sql`, etc.) in the `backend/migrations/` directory.
-2. The Go 1.16+ compiler embeds these files statically into the compiled binary using the `//go:embed` directive inside `backend/migrations/migrations.go`:
-
-   ```go
-   //go:embed *.sql
-   var MigrationFiles embed.FS
-   ```
-
+2. The Go compiler embeds these files statically into the compiled binary using the `//go:embed` directive inside `backend/migrations/migrations.go`.
 3. On startup, the application runs `InitializeDB`:
    - It reads/creates a tracking table named `_migrations`.
-   - It reads the embedded `.sql` files, sorts them by number, and executes any script that has not yet been logged in `_migrations`.
-   - All migrations run in SQL transactions. If one fail, the database rolls back to the previous state.
+   - It checks whether the active database is PostgreSQL or SQLite:
+
+     ```go
+     isPostgres := db.QueryRow("SELECT version()").Scan(&temp) == nil
+     ```
+
+   - If PostgreSQL is active, SQLite-specific migration scripts (like virtual tables setup) are intercepted and rewritten inline into standard PostgreSQL commands (e.g., GIN index setups).
+   - All migrations run in SQL transactions. If one fails, the database rolls back to the previous state.

@@ -8,6 +8,7 @@ clible-v3-go exposes a stateless REST HTTP API interface to handle all interacti
 
 - **Base URL**: The API endpoints are prefixed with `/api` (e.g., `http://localhost:8080/api/verses`).
 - **Content-Type**: All requests and responses exchange via `application/json` (except `/api/translations/import` which uses `multipart/form-data`).
+- **Authentication**: Most API endpoints are protected and require a valid session JWT cookie. The cookie is automatically set upon successful login.
 - **Error Responses**: When an error occurs, the server responds with an appropriate HTTP status code (4xx or 5xx) and a structured JSON body:
 
   ```json
@@ -18,7 +19,87 @@ clible-v3-go exposes a stateless REST HTTP API interface to handle all interacti
 
 ---
 
-## Verses & Search API
+## Authentication API (Public)
+
+### 1. Register User
+
+Registers a new user account.
+
+- **Endpoint**: `POST /api/auth/register`
+- **Request Body**:
+
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "securepassword123"
+  }
+  ```
+
+- **Response (201 Created)**:
+
+  ```json
+  {
+    "id": "8bc751d3-3b1a-4712-8df7-e62a98e82110",
+    "email": "user@example.com",
+    "createdAt": "2026-07-09T07:00:00Z"
+  }
+  ```
+
+### 2. Login User
+
+Authenticates a user and sets a secure, HTTP-only `token` cookie containing the JWT session.
+
+- **Endpoint**: `POST /api/auth/login`
+- **Request Body**:
+
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "securepassword123"
+  }
+  ```
+
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "id": "8bc751d3-3b1a-4712-8df7-e62a98e82110",
+    "email": "user@example.com",
+    "createdAt": "2026-07-09T07:00:00Z"
+  }
+  ```
+
+### 3. Logout User
+
+Clears the authentication token cookie.
+
+- **Endpoint**: `POST /api/auth/logout`
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "status": "logged out"
+  }
+  ```
+
+### 4. Fetch Active Session User
+
+Returns the metadata of the currently authenticated user.
+
+- **Endpoint**: `GET /api/auth/me`
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "id": "8bc751d3-3b1a-4712-8df7-e62a98e82110",
+    "email": "user@example.com",
+    "createdAt": "2026-07-09T07:00:00Z"
+  }
+  ```
+
+---
+
+## Verses & Search API (Protected)
 
 ### 1. Resolve Verses by Reference
 
@@ -27,17 +108,20 @@ Looks up scriptures for a specific reference (such as a single verse, chapter, o
 - **Endpoint**: `GET /api/verses`
 - **Query Parameters**:
   - `ref` (string, required): Reference coordinates (e.g., `John 3:16`, `Genesis 1:1-3`).
-  - `translation` (string, required): Target translation ID (e.g., `web`, `kjv`).
+  - `translation` (string, optional): Target translation ID. Fallback resolves to user's first installed translation or `"web"`.
 - **Response (200 OK)**:
 
   ```json
   {
     "reference": "John 3:16",
-    "text": "For God so loved the world, that he gave his only Son...",
-    "translationName": "web",
+    "translationId": "web",
+    "translationName": "World English Bible",
     "verses": [
       {
-        "bookName": "JHN",
+        "id": "web:JHN:3:16",
+        "translationId": "web",
+        "bookId": "JHN",
+        "bookName": "John",
         "chapter": 3,
         "verse": 16,
         "text": "For God so loved the world, that he gave his only Son..."
@@ -48,13 +132,15 @@ Looks up scriptures for a specific reference (such as a single verse, chapter, o
 
 ### 2. Search Verses
 
-Executes a full-text search (FTS5) or a regular expression search across the target translation.
+Executes a full-text search (FTS) or a regular expression search across the target translation. Optionally scoped by testament or specific book.
 
 - **Endpoint**: `GET /api/search`
 - **Query Parameters**:
   - `q` (string, required): Search query term or regex pattern.
   - `translation` (string, required): Target translation ID.
   - `regex` (boolean, optional): Set to `true` to interpret the query as a regular expression. Defaults to `false`.
+  - `scope` (string, optional): Restrict search scope (`all`, `ot`, `nt`, `book`). Defaults to `all`.
+  - `scopeValue` (string, optional): Corresponding book code (e.g., `ROM`) if `scope` is `book`.
 - **Response (200 OK)**:
 
   ```json
@@ -63,6 +149,7 @@ Executes a full-text search (FTS5) or a regular expression search across the tar
       "id": "web:ROM:3:24",
       "translationId": "web",
       "bookId": "ROM",
+      "bookName": "Romans",
       "chapter": 3,
       "verse": 24,
       "text": "being justified freely by his grace through the redemption..."
@@ -72,11 +159,58 @@ Executes a full-text search (FTS5) or a regular expression search across the tar
 
 ---
 
-## Translations API
+## Book Metadata API (Public)
 
-### 1. List Installed Translations
+### 1. List Canonical Books
 
-Retrieves a list of all Bible translations currently installed and seeded in the database.
+Retrieves all 66 canonical Bible books ordered by their biblical order.
+
+- **Endpoint**: `GET /api/books`
+- **Response (200 OK)**:
+
+  ```json
+  [
+    {
+      "id": "GEN",
+      "name": "Genesis",
+      "testament": "OT",
+      "position": 1,
+      "chapters": 50
+    },
+    {
+      "id": "EXO",
+      "name": "Exodus",
+      "testament": "OT",
+      "position": 2,
+      "chapters": 40
+    }
+  ]
+  ```
+
+### 2. Get Single Book Details
+
+Retrieves details for a single book.
+
+- **Endpoint**: `GET /api/books/{id}` (e.g., `GET /api/books/JHN`)
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "id": "JHN",
+    "name": "John",
+    "testament": "NT",
+    "position": 43,
+    "chapters": 21
+  }
+  ```
+
+---
+
+## Translations API (Protected)
+
+### 1. List Translations Catalog
+
+Retrieves all Bible translations registered in the global catalog, annotated with the current user's installation status.
 
 - **Endpoint**: `GET /api/translations`
 - **Response (200 OK)**:
@@ -88,15 +222,60 @@ Retrieves a list of all Bible translations currently installed and seeded in the
       "name": "World English Bible",
       "language": "ENG",
       "format": "text",
-      "source_url": "",
-      "installed_at": "2026-06-27T12:00:00Z"
+      "sourceUrl": "",
+      "installedAt": "2026-07-09T07:00:00Z",
+      "installed": true
     }
   ]
   ```
 
-### 2. Import Translation
+### 2. Link/Activate Translation
 
-Uploads and seeds a new translation XML file (supporting USFX or OSIS format) directly into the database. If a translation with the same ID already exists, it is completely replaced (cascading to remove its verses first).
+Activates a catalog translation for the logged-in user, making it accessible in their workspace.
+
+- **Endpoint**: `POST /api/translations/link`
+- **Request Body**:
+
+  ```json
+  {
+    "translationId": "web"
+  }
+  ```
+
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "id": "web",
+    "status": "activated"
+  }
+  ```
+
+### 3. Unlink/Deactivate Translation
+
+Deactivates a catalog translation for the user, removing it from their active workspace.
+
+- **Endpoint**: `DELETE /api/translations/link`
+- **Request Body**:
+
+  ```json
+  {
+    "translationId": "web"
+  }
+  ```
+
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "id": "web",
+    "status": "deactivated"
+  }
+  ```
+
+### 4. Upload/Import Translation (Admin)
+
+Uploads and seeds a new translation XML file (supporting USFX or OSIS format) directly into the database.
 
 - **Endpoint**: `POST /api/translations/import`
 - **Content-Type**: `multipart/form-data`
@@ -116,7 +295,7 @@ Uploads and seeds a new translation XML file (supporting USFX or OSIS format) di
 
 ---
 
-## Workspaces (Scopes) API
+## Workspaces (Scopes) API (Protected)
 
 ### 1. Create Workspace Scope
 
@@ -137,7 +316,7 @@ Creates a new context scope for saving research.
   {
     "id": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
     "name": "Romans Study",
-    "createdAt": "2026-06-27T14:00:00Z"
+    "createdAt": "2026-07-09T07:00:00Z"
   }
   ```
 
@@ -153,7 +332,7 @@ Retrieves all user-created workspace scopes.
     {
       "id": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
       "name": "Romans Study",
-      "createdAt": "2026-06-27T14:00:00Z"
+      "createdAt": "2026-07-09T07:00:00Z"
     }
   ]
   ```
@@ -186,17 +365,18 @@ Retrieves the complete workspace package, including its own metadata, saved sear
   {
     "id": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
     "name": "Romans Study",
-    "createdAt": "2026-06-27T14:00:00Z",
+    "createdAt": "2026-07-09T07:00:00Z",
     "savedSearches": [
       {
         "id": "e229c1fe-5ef4-4f91-ba2c-23efd6718d78",
         "scopeId": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
         "name": "Search for 'grace'",
         "queryText": "grace",
-        "searchScope": "bible",
-        "scopeValue": "",
+        "searchScope": "book",
+        "scopeValue": "ROM",
         "translationId": "web",
-        "createdAt": "2026-06-27T14:05:00Z"
+        "resultJson": "[{\"...\"}]",
+        "createdAt": "2026-07-09T07:05:00Z"
       }
     ],
     "savedAnalyses": [
@@ -205,10 +385,11 @@ Retrieves the complete workspace package, including its own metadata, saved sear
         "scopeId": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
         "name": "Romans 8 Frequency Analysis",
         "reference": "Romans 8",
-        "analysisType": "frequency",
+        "analysisType": "single_stats",
         "translationId": "web",
-        "paramsJson": "{\"words\":[{\"word\":\"god\",\"count\":18}]}",
-        "createdAt": "2026-06-27T14:10:00Z"
+        "paramsJson": "{}",
+        "resultJson": "{\"totalWords\":540,\"uniqueWords\":210,\"lexicalDiversity\":0.388,\"frequencies\":[]}",
+        "createdAt": "2026-07-09T07:10:00Z"
       }
     ]
   }
@@ -228,7 +409,8 @@ Pins a specific search query to a workspace scope.
     "queryText": "grace",
     "searchScope": "book",
     "scopeValue": "ROM",
-    "translationId": "web"
+    "translationId": "web",
+    "resultJson": "[{\"id\":\"web:ROM:3:24\",...}]"
   }
   ```
 
@@ -246,9 +428,10 @@ Pins textual analysis result parameters to a workspace scope.
     "scopeId": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
     "name": "Romans 8 word counts",
     "reference": "Romans 8",
-    "analysisType": "word_count",
+    "analysisType": "single_stats",
     "translationId": "web",
-    "paramsJson": "{\"lexicalDiversity\":0.45,\"totalWords\":540}"
+    "paramsJson": "{}",
+    "resultJson": "{\"totalWords\":540,\"uniqueWords\":210,\"lexicalDiversity\":0.388,\"frequencies\":[]}"
   }
   ```
 
@@ -256,7 +439,7 @@ Pins textual analysis result parameters to a workspace scope.
 
 ---
 
-## Analytics API
+## Analytics API (Protected)
 
 ### 1. Analyze Scripture Reference
 
@@ -318,7 +501,7 @@ Computes comparative word differences and text similarities between two translat
 
 ---
 
-## Search History API
+## Search History API (Protected)
 
 ### 1. Fetch Search History
 
@@ -337,7 +520,7 @@ Retrieves the most recent search history records.
       "translationId": "web",
       "mode": "phrase",
       "resultCount": 120,
-      "searchedAt": "2026-06-27T14:15:00Z"
+      "searchedAt": "2026-07-09T07:15:00Z"
     }
   ]
   ```
