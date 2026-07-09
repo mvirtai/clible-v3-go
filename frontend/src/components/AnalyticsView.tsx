@@ -42,6 +42,7 @@ export const AnalyticsView = ({
     const [saveName, setSaveName] = useState('');
     const [showSaveForm, setShowSaveForm] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
     // Käsittele ladattu analyysi sivupalkista
     useEffect(() => {
@@ -137,12 +138,20 @@ export const AnalyticsView = ({
                             Haluatko tallentaa tämän analyysin työtilaan?
                         </span>
                         {!showSaveForm && (
-                            <button
-                                onClick={() => setShowSaveForm(true)}
-                                className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
-                            >
-                                <Save size={12} /> Tallenna
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setShowSaveForm(true)}
+                                    className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
+                                >
+                                    <Save size={12} /> Tallenna
+                                </button>
+                                {saveStatus === 'success' && (
+                                    <span className="text-xs font-semibold text-emerald-500">✓ Tallennettu työtilaan!</span>
+                                )}
+                                {saveStatus === 'error' && (
+                                    <span className="text-xs font-semibold text-red-500">✗ Tallennus epäonnistui.</span>
+                                )}
+                            </div>
                         )}
                     </div>
 
@@ -172,11 +181,13 @@ export const AnalyticsView = ({
                                         });
                                         setSaveName('');
                                         setShowSaveForm(false);
+                                        setSaveStatus('success');
+                                        setTimeout(() => setSaveStatus('idle'), 3000);
                                         if (onWorkspaceUpdated) onWorkspaceUpdated();
                                     } catch {
-                                        alert('Tallennus epäonnistui');
+                                        setSaveStatus('error');
+                                        setTimeout(() => setSaveStatus('idle'), 3000);
                                     } finally {
-
                                         setSaving(false);
                                     }
                                 }}

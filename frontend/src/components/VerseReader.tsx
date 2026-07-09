@@ -26,6 +26,7 @@ export const VerseReader: React.FC<Props> = ({
   const [backReference, setBackReference] = useState<string | null>(null);
   const [saveName, setSaveName] = useState('');
   const [showSaveForm, setShowSaveForm] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   const isFinnish = translation.toLowerCase().startsWith('fi') || translation.toLowerCase().includes('fin');
   const lang: UILanguage = isFinnish ? 'fi' : 'en';
@@ -157,13 +158,21 @@ export const VerseReader: React.FC<Props> = ({
             <div className="p-4 rounded-2xl border space-y-2 text-left" style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}>
               <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Tallenna tämä lukunäkymä työtilaan</p>
               {!showSaveForm ? (
-                <button
-                  type="button"
-                  onClick={() => setShowSaveForm(true)}
-                  className="px-3 py-1 rounded-full text-xs font-medium btn-accent btn-tactile"
-                >
-                  Tallenna jaehaku
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowSaveForm(true)}
+                    className="px-3 py-1 rounded-full text-xs font-medium btn-accent btn-tactile"
+                  >
+                    Tallenna jaehaku
+                  </button>
+                  {saveStatus === 'success' && (
+                    <span className="text-xs font-semibold text-emerald-500 animate-pulse">✓ Tallennettu työtilaan!</span>
+                  )}
+                  {saveStatus === 'error' && (
+                    <span className="text-xs font-semibold text-red-500">✗ Tallennus epäonnistui.</span>
+                  )}
+                </div>
               ) : (
                 <div className="flex gap-2">
                   <input
@@ -173,11 +182,13 @@ export const VerseReader: React.FC<Props> = ({
                     onChange={e => setSaveName(e.target.value)}
                     className="flex-1 rounded-lg px-3 py-1 text-xs outline-none border"
                     style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    disabled={saveStatus === 'saving'}
                   />
                   <button
                     type="button"
                     onClick={async () => {
                       if (!saveName.trim()) return;
+                      setSaveStatus('saving');
                       try {
                         await apiService.saveSearch({
                           scopeId: activeScopeId,
@@ -190,21 +201,26 @@ export const VerseReader: React.FC<Props> = ({
                         });
                         setSaveName('');
                         setShowSaveForm(false);
+                        setSaveStatus('success');
+                        setTimeout(() => setSaveStatus('idle'), 3000);
                         onWorkspaceUpdated?.();
                       } catch (err) {
                         console.error('Failed to save reference search', err);
-                        alert('Tallennus epäonnistui');
+                        setSaveStatus('error');
+                        setTimeout(() => setSaveStatus('idle'), 4000);
                       }
                     }}
                     className="px-3 py-1 rounded-lg text-xs font-semibold btn-accent btn-tactile"
+                    disabled={saveStatus === 'saving'}
                   >
-                    Tallenna
+                    {saveStatus === 'saving' ? 'Tallennetaan...' : 'Tallenna'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowSaveForm(false)}
                     className="px-3 py-1 rounded-lg text-xs font-semibold btn-tactile"
                     style={{ background: 'var(--surface)', color: 'var(--muted)', border: '1px solid var(--border)' }}
+                    disabled={saveStatus === 'saving'}
                   >
                     Peruuta
                   </button>

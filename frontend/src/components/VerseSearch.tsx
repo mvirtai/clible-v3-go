@@ -43,6 +43,7 @@ export const VerseSearch: React.FC<Props> = ({
   const [saveName, setSaveName] = useState('');
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // Käsittele ladattu haku sivupalkista
   useEffect(() => {
@@ -139,193 +140,204 @@ export const VerseSearch: React.FC<Props> = ({
     setSaving(true);
     try {
       await apiService.saveSearch({
-        scopeId: activeScopeId,
-        name: saveName.trim(),
-        queryText: query,
-        searchScope: searchScope,
-        scopeValue: scopeValue,
-        translationId: translation,
-        resultJson: JSON.stringify(results) // Suorituskykytallennus (välimuisti)
-      });
-      setSaveName('');
-      setShowSaveForm(false);
-      if (onWorkspaceUpdated) {
-        onWorkspaceUpdated();
-      }
-    } catch {
-      alert('Haun tallentaminen epäonnistui');
-    } finally {
-      setSaving(false);
-    }
+    scopeId: activeScopeId,
+    name: saveName.trim(),
+    queryText: query,
+    searchScope: searchScope,
+    scopeValue: scopeValue,
+    translationId: translation,
+    resultJson: JSON.stringify(results)
+  });
+  setSaveName('');
+  setShowSaveForm(false);
+  setSaveStatus('success');
+  setTimeout(() => setSaveStatus('idle'), 3000);
+  if (onWorkspaceUpdated) {
+    onWorkspaceUpdated();
+  }
+} catch {
+  setSaveStatus('error');
+  setTimeout(() => setSaveStatus('idle'), 3000);
+} finally {
+  setSaving(false);
+}
   };
 
 
-  return (
-    <div className="rounded-3xl p-8 space-y-6" style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-    }}>
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--muted)' }}>
-        Tekstihaku
-      </h2>
+return (
+  <div className="rounded-3xl p-8 space-y-6" style={{
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+  }}>
+    <h2 className="text-sm font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--muted)' }}>
+      Tekstihaku
+    </h2>
 
-      <form onSubmit={handleSearch} className="space-y-4">
-        <div className="flex gap-2">
+    <form onSubmit={handleSearch} className="space-y-4">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder={regex ? 'Regex kuvio (esim. valo|pimeys)' : 'Hae sanoilla (esim. valo)'}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="flex-1 rounded-full px-5 py-2.5 text-sm transition-all outline-none"
+          style={{
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
+          }}
+        />
+        <button
+          type="submit"
+          disabled={loading || !query.trim()}
+          className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 btn-tactile btn-accent disabled:opacity-40"
+          style={{ cursor: 'pointer' }}
+        >
+          {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+          Hae
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 text-xs text-left">
+        <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
           <input
-            type="text"
-            placeholder={regex ? 'Regex kuvio (esim. valo|pimeys)' : 'Hae sanoilla (esim. valo)'}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 rounded-full px-5 py-2.5 text-sm transition-all outline-none"
-            style={{
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text)',
-            }}
+            type="checkbox"
+            checked={regex}
+            onChange={(e) => setRegex(e.target.checked)}
+            className="rounded"
           />
-          <button
-            type="submit"
-            disabled={loading || !query.trim()}
-            className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 btn-tactile btn-accent disabled:opacity-40"
-            style={{ cursor: 'pointer' }}
+          Käytä säännöllisiä lausekkeita (Regex)
+        </label>
+
+        <div className="flex items-center gap-2">
+          <span style={{ color: 'var(--muted)' }}>Hakualue:</span>
+          <select
+            value={searchScope}
+            onChange={(e) => {
+              setSearchScope(e.target.value as 'all' | 'ot' | 'nt' | 'book');
+              setScopeValue('');
+            }}
+            className="rounded-lg border px-2 py-1 outline-none cursor-pointer"
+            style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+
           >
-            {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-            Hae
-          </button>
-        </div>
+            <option value="all">Koko Raamattu</option>
+            <option value="ot">Vanha testamentti (VT)</option>
+            <option value="nt">Uusi testamentti (UT)</option>
+            <option value="book">Tietty kirja</option>
+          </select>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs text-left">
-          <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
-            <input
-              type="checkbox"
-              checked={regex}
-              onChange={(e) => setRegex(e.target.checked)}
-              className="rounded"
-            />
-            Käytä säännöllisiä lausekkeita (Regex)
-          </label>
-
-          <div className="flex items-center gap-2">
-            <span style={{ color: 'var(--muted)' }}>Hakualue:</span>
+          {searchScope === 'book' && (
             <select
-              value={searchScope}
-              onChange={(e) => {
-                setSearchScope(e.target.value as 'all' | 'ot' | 'nt' | 'book');
-                setScopeValue('');
-              }}
-              className="rounded-lg border px-2 py-1 outline-none cursor-pointer"
+              value={scopeValue}
+              onChange={(e) => setScopeValue(e.target.value)}
+              className="rounded-lg border px-2 py-1 outline-none cursor-pointer max-w-[150px]"
               style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
-
             >
-              <option value="all">Koko Raamattu</option>
-              <option value="ot">Vanha testamentti (VT)</option>
-              <option value="nt">Uusi testamentti (UT)</option>
-              <option value="book">Tietty kirja</option>
+              <option value="">-- Valitse kirja --</option>
+              {books.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
             </select>
-
-            {searchScope === 'book' && (
-              <select
-                value={scopeValue}
-                onChange={(e) => setScopeValue(e.target.value)}
-                className="rounded-lg border px-2 py-1 outline-none cursor-pointer max-w-[150px]"
-                style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
-              >
-                <option value="">-- Valitse kirja --</option>
-                {books.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-            )}
-          </div>
+          )}
         </div>
-      </form>
+      </div>
+    </form>
 
-      {error && (
-        <p className="text-sm text-left" style={{ color: '#c0392b' }}>{error}</p>
-      )}
+    {error && (
+      <p className="text-sm text-left" style={{ color: '#c0392b' }}>{error}</p>
+    )}
 
-      {/* Tallenna työtilaan -osio */}
-      {activeScopeId && searched && results.length > 0 && (
-        <div className="p-4 rounded-2xl border text-left space-y-3" style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}>
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
-              Haluatko tallentaa tämän haun työtilaan?
-            </span>
-            {!showSaveForm && (
+    {/* Tallenna työtilaan -osio */}
+    {activeScopeId && searched && results.length > 0 && (
+      <div className="p-4 rounded-2xl border text-left space-y-3" style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}>
+        <div className="flex justify-between items-center">
+          <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+            Haluatko tallentaa tämän haun työtilaan?
+          </span>
+          {!showSaveForm && (
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowSaveForm(true)}
                 className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)]"
               >
                 <Save size={12} /> Tallenna
               </button>
-            )}
-          </div>
-
-          {showSaveForm && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Nimi tälle haulle (esim. Sana valo UT:ssa)..."
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
-                className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
-                style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
-              />
-              <button
-                onClick={handleSaveSearch}
-                disabled={saving || !saveName.trim()}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile"
-              >
-                {saving ? 'Tallennetaan...' : 'Tallenna'}
-              </button>
-              <button
-                onClick={() => setShowSaveForm(false)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium border text-[var(--muted)] border-[var(--border)] bg-transparent"
-              >
-                Peruuta
-              </button>
+              {saveStatus === 'success' && (
+                <span className="text-xs font-semibold text-emerald-500 animate-pulse">✓ Tallennettu!</span>
+              )}
+              {saveStatus === 'error' && (
+                <span className="text-xs font-semibold text-red-500">✗ Epäonnistui.</span>
+              )}
             </div>
           )}
         </div>
-      )}
 
-      {loading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 size={24} className="animate-spin" style={{ color: 'var(--accent)' }} />
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {searched && results.length > 0 && (
-            <p className="text-xs text-left animate-fade-in" style={{ color: 'var(--muted)' }}>
-              Löytyi <strong>{results.length}</strong> osumaa
-            </p>
-          )}
-
-          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
-            {searched && results.length === 0 ? (
-              <p className="text-sm italic py-6 text-center" style={{ color: 'var(--muted)' }}>
-                Ei osumia haulle "{query}".
-              </p>
-            ) : (
-              results.map((r, i) => (
-                <div
-                  key={`${r.bookId}-${r.chapter}-${r.verse}-${i}`}
-                  className="rounded-2xl p-4 transition-all text-left cursor-pointer card-tactile border"
-                  style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}
-                  onClick={() => onSelectVerse?.(`${r.bookId} ${r.chapter}:${r.verse}`)}
-                >
-                  <div className="text-xs font-semibold mb-1" style={{ color: 'var(--accent)' }}>
-                    {r.bookId} {r.chapter}:{r.verse}
-                  </div>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>
-                    {r.text}
-                  </p>
-                </div>
-              ))
-            )}
+        {showSaveForm && (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Nimi tälle haulle (esim. Sana valo UT:ssa)..."
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
+              style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+            />
+            <button
+              onClick={handleSaveSearch}
+              disabled={saving || !saveName.trim()}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile"
+            >
+              {saving ? 'Tallennetaan...' : 'Tallenna'}
+            </button>
+            <button
+              onClick={() => setShowSaveForm(false)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border text-[var(--muted)] border-[var(--border)] bg-transparent"
+            >
+              Peruuta
+            </button>
           </div>
+        )}
+      </div>
+    )}
+
+    {loading ? (
+      <div className="flex justify-center py-10">
+        <Loader2 size={24} className="animate-spin" style={{ color: 'var(--accent)' }} />
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {searched && results.length > 0 && (
+          <p className="text-xs text-left animate-fade-in" style={{ color: 'var(--muted)' }}>
+            Löytyi <strong>{results.length}</strong> osumaa
+          </p>
+        )}
+
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
+          {searched && results.length === 0 ? (
+            <p className="text-sm italic py-6 text-center" style={{ color: 'var(--muted)' }}>
+              Ei osumia haulle "{query}".
+            </p>
+          ) : (
+            results.map((r, i) => (
+              <div
+                key={`${r.bookId}-${r.chapter}-${r.verse}-${i}`}
+                className="rounded-2xl p-4 transition-all text-left cursor-pointer card-tactile border"
+                style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)' }}
+                onClick={() => onSelectVerse?.(`${r.bookId} ${r.chapter}:${r.verse}`)}
+              >
+                <div className="text-xs font-semibold mb-1" style={{ color: 'var(--accent)' }}>
+                  {r.bookId} {r.chapter}:{r.verse}
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>
+                  {r.text}
+                </p>
+              </div>
+            ))
+          )}
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 };
