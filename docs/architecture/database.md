@@ -1,6 +1,6 @@
 # Database Architecture & Full-Text Search (FTS)
 
-clible-v3-go utilizes a dual-database architecture. It is designed to run on **PostgreSQL** (specifically **Neon PostgreSQL** in cloud and development environments) as its primary relational engine, providing robust cloud persistence, scalability, and managed point-in-time recovery. 
+clible-v3-go utilizes a dual-database architecture. It is designed to run on **PostgreSQL** (specifically **Neon PostgreSQL** in cloud and development environments) as its primary relational engine, providing robust cloud persistence, scalability, and managed point-in-time recovery.
 
 For unit and integration testing, the application dynamically falls back to an in-memory **SQLite 3** database to keep the test suite isolated, fast, and self-contained.
 
@@ -184,13 +184,16 @@ To maintain optimal search performance across both databases, the repository dyn
 
 ### 1. PostgreSQL (GIN-indexed Full-Text Search)
 
-PostgreSQL leverages native tsvector indexing for high-speed token queries. 
+PostgreSQL leverages native tsvector indexing for high-speed token queries.
 
 - **Indexing**: During migration, we establish a Generalized Inverted Index (GIN) on the verse text cast to a `simple` text vector:
+
   ```sql
   CREATE INDEX IF NOT EXISTS idx_verses_text_fts ON verses USING GIN(to_tsvector('simple', text));
   ```
+
 - **Query execution**: Full-text queries are executed using the native `@@` matching operator:
+
   ```sql
   SELECT id, translation_id, book_id, chapter, verse, text
   FROM verses
@@ -210,12 +213,15 @@ CREATE VIRTUAL TABLE verses_fts USING fts5(
 ```
 
 - **Trigger Synchronization**: Triggers are established to automatically keep the virtual search index in sync with the primary `verses` table during inserts, updates, and deletes:
+
   ```sql
   CREATE TRIGGER verses_ai AFTER INSERT ON verses BEGIN
       INSERT INTO verses_fts(rowid, text) VALUES (new.rowid, new.text);
   END;
   ```
+
 - **Query execution**:
+
   ```sql
   SELECT v.id, v.translation_id, v.book_id, v.chapter, v.verse, v.text
   FROM verses v
@@ -227,7 +233,7 @@ CREATE VIRTUAL TABLE verses_fts USING fts5(
 
 ## Embedded Database Migrations
 
-clible-v3-go implements dynamic schema migrations directly in Go. 
+clible-v3-go implements dynamic schema migrations directly in Go.
 
 ### How it works
 
@@ -236,8 +242,10 @@ clible-v3-go implements dynamic schema migrations directly in Go.
 3. On startup, the application runs `InitializeDB`:
    - It reads/creates a tracking table named `_migrations`.
    - It checks whether the active database is PostgreSQL or SQLite:
+
      ```go
      isPostgres := db.QueryRow("SELECT version()").Scan(&temp) == nil
      ```
+
    - If PostgreSQL is active, SQLite-specific migration scripts (like virtual tables setup) are intercepted and rewritten inline into standard PostgreSQL commands (e.g., GIN index setups).
    - All migrations run in SQL transactions. If one fails, the database rolls back to the previous state.
