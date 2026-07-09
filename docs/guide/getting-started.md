@@ -23,7 +23,7 @@ The repository is structured as a monorepo containing the backend and frontend c
 ```
 clible-v3-go/
 ├── backend/            # Go REST API project
-│   ├── cmd/api/        # Application entrypoint (main.go)
+│   ├── main.go         # Application entrypoint
 │   ├── internal/       # Core packages (api, services, db, parsers, models)
 │   └── migrations/     # Embedded SQL schema migrations
 ├── frontend/           # React 19 + TypeScript + Tailwind v4 project
@@ -80,7 +80,7 @@ If you prefer separate terminal windows to monitor logs individually:
    task backend:dev
    ```
 
-   *The Go server starts on `http://localhost:8080`. SQLite migrations run automatically, creating/updating `backend/clible.db`.*
+    *The Go server starts on `http://localhost:8080`. Database migrations run automatically on startup, establishing schemas and seeding canonical books.*
 
 2. **Start the Frontend client:**
 
@@ -94,18 +94,24 @@ If you prefer separate terminal windows to monitor logs individually:
 
 ## Configuration & Environment Variables
 
-The backend is configured using standard environment variables, which can optionally be placed inside a `.env` file in the root directory.
+The backend is configured using standard environment variables, which can optionally be placed inside a `.env` file in the root directory. A template is provided at [`.env.example`](file:///home/vivaldev/code/clible-v3-go/.env.example).
 
 | Variable | Description | Default |
 |---|---|---|
 | `PORT` | The port on which the Go HTTP server listens. | `8080` |
-| `DATABASE_PATH` | Path to the SQLite database file on disk. | `./clible.db` |
+| `ENV` | The environment mode (`development` or `production`). | `development` |
+| `DATABASE_URL` | Connection string for Neon PostgreSQL, or SQLite database path. | `clible.db` |
+| `FRONTEND_DIR` | Directory containing compiled frontend static assets. | `../frontend/dist` |
+| `JWT_SECRET` | Secret key used to sign JWT session tokens (min 32 chars). | *Required* |
 
 *Example `.env` configuration:*
 
 ```env
 PORT=8080
-DATABASE_PATH=./clible.db
+ENV=development
+DATABASE_URL=clible.db
+FRONTEND_DIR=../frontend/dist
+JWT_SECRET=generate_a_secure_long_secret_key_at_least_32_characters
 ```
 
 ---
