@@ -39,13 +39,17 @@ interface LoadedComparisonState {
 function App() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [selectedTranslation, setSelectedTranslation] = useState<string>('');
+  const [selectedTranslation, setSelectedTranslation] = useState<string>(
+    () => localStorage.getItem('selectedTranslation') || ''
+  )
   const [historyTrigger, setHistoryTrigger] = useState(false);
   const [translationTrigger, setTranslationTrigger] = useState(false);
   const [showManager, setShowManager] = useState(false);
   const [viewMode, setViewMode] = useState<'reader' | 'analytics' | 'compare'>('reader');
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
-  const [activeReference, setActiveReference] = useState<string>('');
+  const [activeReference, setActiveReference] = useState<string>(
+    () => localStorage.getItem('activeReference') || ''
+  );
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     // Check if class .dark exists in documentElement
     return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
@@ -60,6 +64,24 @@ function App() {
   const [loadedStats, setLoadedStats] = useState<LoadedStatsState | null>(null);
   const [loadedComparison, setLoadedComparison] = useState<LoadedComparisonState | null>(null);
 
+  const handleSelectReference = (ref: string) => {
+    setActiveReference(ref);
+    if (ref) {
+      localStorage.setItem('activeReference', ref);
+    } else {
+      localStorage.removeItem('activeReference')
+    }
+  }
+
+  const handleSelectTranslation = (translation_id: string) => {
+    setSelectedTranslation(translation_id);
+    if (translation_id) {
+      localStorage.setItem('selectedTranslation', translation_id);
+    } else {
+      localStorage.removeItem('selectedTranslation')
+    }
+  }
+
   const handleScopeChanged = (id: string) => {
     setActiveScopeId(id);
     localStorage.setItem('activeScopeId', id);
@@ -67,7 +89,7 @@ function App() {
 
   const handleLoadSavedSearch = (s: SavedSearch) => {
     if (s.searchScope === 'reference') {
-      setSelectedTranslation(s.translationId);
+      handleSelectTranslation(s.translationId);
       setActiveReference(s.queryText);
       setViewMode('reader');
       setLoadedSearch(null);
@@ -93,7 +115,7 @@ function App() {
       scopeValue: scope,
       results: Array.isArray(results) ? results : []
     });
-    setSelectedTranslation(s.translationId);
+    handleSelectTranslation(s.translationId);
     setViewMode('reader');
   };
 
@@ -245,7 +267,7 @@ function App() {
 
             <TranslationSelector
               selectedTranslation={selectedTranslation}
-              onSelectTranslation={setSelectedTranslation}
+              onSelectTranslation={handleSelectTranslation}
               refreshTrigger={translationTrigger}
             />
           </div>
@@ -309,8 +331,8 @@ function App() {
             <div className="lg:col-span-2 space-y-8">
               {selectedTranslation ? (
                 <>
-                  <VerseReader 
-                    translation={selectedTranslation} 
+                  <VerseReader
+                    translation={selectedTranslation}
                     activeReference={activeReference}
                     activeScopeId={activeScopeId}
                     onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
@@ -318,7 +340,7 @@ function App() {
                   <div onClick={handleSearchFinished}>
                     <VerseSearch
                       translation={selectedTranslation}
-                      onSelectVerse={setActiveReference}
+                      onSelectVerse={handleSelectReference}
                       activeScopeId={activeScopeId}
                       onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
                       loadedSavedResults={loadedSearch}
