@@ -74,11 +74,15 @@ function App() {
     } catch (err) {
       console.error('Failed to parse saved search results JSON', err);
     }
+    const validScopes = ['all', 'ot', 'nt', 'book'] as const;
+    const scope = validScopes.includes(s.searchScope as any)
+      ? (s.searchScope as 'all' | 'ot' | 'nt' | 'book')
+      : 'all';
     setLoadedSearch({
       query: s.queryText,
       translation: s.translationId,
-      searchScope: s.searchScope,
-      scopeValue: s.scopeValue,
+      searchScope: s.searchScope as 'all' | 'ot' | 'nt' | 'book',
+      scopeValue: scope,
       results: Array.isArray(results) ? results : []
     });
     setSelectedTranslation(s.translationId);
