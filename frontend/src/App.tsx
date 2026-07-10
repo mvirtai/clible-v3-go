@@ -10,10 +10,12 @@ import { CompareView } from './components/CompareView';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { apiService } from './services/api';
 import { useAuth } from './context/AuthContext';
-import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut } from 'lucide-react';
+import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut, Languages } from 'lucide-react';
 import type { InstalledTranslation, TextStats, ComparisonResult } from './types/bible';
 import type { SavedSearch, SavedAnalysis } from './types/workspace';
 import type { SearchVerse } from './types/search';
+import { OriginalStudyView } from './components/OriginalStudyView';
+import type { OriginalStudyResult } from './types/originalStudy';
 
 interface LoadedSearchState {
   query: string;
@@ -45,7 +47,7 @@ function App() {
   const [historyTrigger, setHistoryTrigger] = useState(false);
   const [translationTrigger, setTranslationTrigger] = useState(false);
   const [showManager, setShowManager] = useState(false);
-  const [viewMode, setViewMode] = useState<'reader' | 'analytics' | 'compare'>('reader');
+  const [viewMode, setViewMode] = useState<'reader' | 'analytics' | 'compare' | 'original'>('reader');
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
   const [activeReference, setActiveReference] = useState<string>(
     () => localStorage.getItem('activeReference') || ''
@@ -63,9 +65,17 @@ function App() {
   const [loadedSearch, setLoadedSearch] = useState<LoadedSearchState | null>(null);
   const [loadedStats, setLoadedStats] = useState<LoadedStatsState | null>(null);
   const [loadedComparison, setLoadedComparison] = useState<LoadedComparisonState | null>(null);
+  const [loadedInsight, setLoadedInsight] = useState<AiTextResponse | null>(null);
+  const [loadedTone, setLoadedTone] = useState<AiTextResponse | null>(null);
+  const [loadedDeepDive, setLoadedDeepDive] = useState<string | null>(null);
+  const [loadedInsightDeepDive, setLoadedInsightDeepDive] = useState<string | null>(null);
+  const [loadedComparisonAi, setLoadedComparisonAi] = useState<AiTextResponse | null>(null);
+  const [loadedComparisonDeepDive, setLoadedComparisonDeepDive] = useState<string | null>(null);
 
   const handleSelectReference = (ref: string) => {
     setActiveReference(ref);
+    setLoadedInsight(null);
+    setLoadedInsightDeepDive(null);
     if (ref) {
       localStorage.setItem('activeReference', ref);
     } else {
@@ -131,12 +141,13 @@ function App() {
 
     if (a.analysisType === 'single_stats') {
       setLoadedStats({
-        stats: result,
+        stats: result.stats || result,
         reference: a.reference,
         translationId: a.translationId
       });
       setSelectedTranslation(a.translationId);
       setViewMode('analytics');
+      setLoadedTone(null);
     } else if (a.analysisType === 'comparison') {
       let params = { translationB: '' };
       try {
@@ -147,14 +158,111 @@ function App() {
         console.error('Failed to parse paramsJson', err);
       }
       setLoadedComparison({
-        result,
+        result: result.result || result,
         reference: a.reference,
         translationA: a.translationId,
         translationB: params.translationB
       });
+      setLoadedComparisonAi(result.ai || null);
+      setLoadedComparisonDeepDive(result.deepDive || null);
       setViewMode('compare');
+    } else if (a.analysisType === 'insight') {
+      setLoadedInsight(result.insight || result);
+      setLoadedInsightDeepDive(result.deepDive || null);
+      setActiveReference(a.reference);
+      setSelectedTranslation(a.translationId);
+      setViewMode('reader');
+    } else if (a.analysisType === 'tone') {
+      setLoadedTone(result.tone || result);
+      setLoadedDeepDive(result.deepDive || null);
+      setLoadedStats({
+        stats: result.stats || null,
+        reference: a.reference,
+        translationId: a.translationId
+      });
+      setSelectedTranslation(a.translationId);
+      setViewMode('analytics');
+    } else if (a.analysisType === 'original') {
+      setOriginalResult(result.result || result);
+      setOriginalDeepDive(result.deepDive || null);
+      setActiveReference(a.reference);
+      setSelectedTranslation(a.translationId);
+      setViewMode('original');
     }
   };
+
+  // Tekoäly-alkukieliopiskelun tilat ja handlerit
+  const [originalResult, setOriginalResult] = useState<OriginalStudyResult | null>(null);
+  const [originalLoading, setOriginalLoading] = useState(false);
+  const [originalError, setOriginalError] = useState<string | null>(null);
+  const [originalDeepDive, setOriginalDeepDive] = useState<string | null>(null);
+  const [installingTranslationId, setInstallingTranslationId] = useState<string | null>(null);
+  const [installError, setInstallError] = useState<string | null>(null);
+  const [installSuccess, setInstallSuccess] = useState<string | null>(null);
+
+  const handleInstallOriginalTranslation = async (id: string) => {
+    setInstallingTranslationId(id);
+    setInstallError(null);
+    setInstallSuccess(null);
+    try {
+      await apiService.linkTranslation(id);
+      setInstallSuccess(uiLanguage === 'fi' ? `Paketti ${id} asennettiin onnistuneesti.` : `Package ${id} installed successfully.`);
+      setTranslationTrigger((prev) => !prev);
+    } catch (err) {
+      const errorObj = err as Error;
+      setInstallError(errorObj.message || 'Failed to install translation.');
+    } finally {
+      setInstallingTranslationId(null);
+    }
+  };
+
+  const handleStudyOriginalLanguage = async (
+    ref: string,
+    originalId: string,
+    translationIds: string[],
+    scope: 'verse' | 'chapter' | 'book'
+  ) => {
+    setOriginalLoading(true);
+    setOriginalError(null);
+    setOriginalResult(null);
+    setOriginalDeepDive(null);
+    try {
+      const verses = await apiService.getVerses(ref, originalId);
+      if (verses.length === 0) {
+        throw new Error(uiLanguage === 'fi' ? 'Alkutekstiä ei löytynyt tälle viitteelle.' : 'Original text not found for this reference.');
+      }
+      const sourceText = verses.map((v) => v.text).join('\n');
+      const sourceLanguage = originalId === 'greeksblgnt' ? 'grc' : 'he';
+
+      const translations: Array<{ id: string; name: string; text: string }> = [];
+      for (const tid of translationIds) {
+        const trVerses = await apiService.getVerses(ref, tid);
+        const trMeta = installedTranslations.find((t) => t.id === tid);
+        translations.push({
+          id: tid,
+          name: trMeta?.name || tid,
+          text: trVerses.map((v) => v.text).join('\n')
+        });
+      }
+
+      const res = await apiService.getAiOriginalStudy({
+        reference: ref,
+        sourceText,
+        sourceLanguage,
+        translations,
+        scope,
+      });
+      setOriginalResult(res);
+    } catch (err) {
+      const errorObj = err as Error;
+      setOriginalError(errorObj.message || 'Original study failed.');
+    } finally {
+      setOriginalLoading(false);
+    }
+  };
+
+  const uiLanguage = 'fi'; // Kehitysfilosofian kieli
+
 
   // Sync system prefers-color-scheme changes with theme state
   const toggleTheme = () => {
@@ -323,6 +431,18 @@ function App() {
             <GitCompare size={16} />
             <span>Käännösvertailu</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode('original')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile ${viewMode === 'original'
+              ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
+              : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
+              }`}
+          >
+            <Languages size={16} />
+            <span>Alkukieli</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -336,6 +456,8 @@ function App() {
                     activeReference={activeReference}
                     activeScopeId={activeScopeId}
                     onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
+                    loadedSavedInsight={loadedInsight}
+                    loadedSavedDeepDive={loadedInsightDeepDive}
                   />
                   <div onClick={handleSearchFinished}>
                     <VerseSearch
@@ -373,6 +495,8 @@ function App() {
                 activeScopeId={activeScopeId}
                 onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
                 loadedSavedStats={loadedStats}
+                loadedSavedTone={loadedTone}
+                loadedSavedDeepDive={loadedDeepDive}
               />
             )}
 
@@ -382,6 +506,32 @@ function App() {
                 activeScopeId={activeScopeId}
                 onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
                 loadedSavedComparison={loadedComparison}
+                loadedSavedAi={loadedComparisonAi}
+                loadedSavedDeepDive={loadedComparisonDeepDive}
+              />
+            )}
+
+            {viewMode === 'original' && (
+              <OriginalStudyView
+                installedTranslations={installedTranslations}
+                activeTranslationId={selectedTranslation}
+                uiLanguage={uiLanguage}
+                installingTranslationId={installingTranslationId}
+                installError={installError}
+                installSuccess={installSuccess}
+                onInstallTranslation={handleInstallOriginalTranslation}
+                result={originalResult}
+                loading={originalLoading}
+                error={originalError}
+                defaultReference={activeReference}
+                onStudy={handleStudyOriginalLanguage}
+                onNextFocusPick={(it) => {
+                  setActiveReference(it.label);
+                }}
+                deepDiveText={originalDeepDive}
+                onDeepDiveClose={() => setOriginalDeepDive(null)}
+                activeScopeId={activeScopeId}
+                onWorkspaceUpdated={() => setWorkspaceTrigger(prev => !prev)}
               />
             )}
           </div>

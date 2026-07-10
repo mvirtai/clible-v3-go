@@ -13,6 +13,12 @@ import { apiService } from '../services/api';
 import { WordCloud } from './WordCloud';
 import type { TextStats } from '../types/bible';
 import { resolveBookId } from '../utils/bookNames';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { markdownComponents } from '../utils/markdownComponents';
+import { NextFocusChips } from './NextFocusChips';
+import { DeepDiveCard } from './DeepDiveCard';
+import type { AiTextResponse, NextFocusItem } from '../types/ai';
 
 interface AnalyticsViewProps {
     /** The translation ID selected globally (e.g. "kr92") */
@@ -24,19 +30,42 @@ interface AnalyticsViewProps {
         reference: string;
         translationId: string;
     } | null;
+    loadedSavedTone?: AiTextResponse | null;
+    loadedSavedDeepDive?: string | null;
 }
 
 export const AnalyticsView = ({
     defaultTranslation,
     activeScopeId,
     onWorkspaceUpdated,
-    loadedSavedStats
+    loadedSavedStats,
+    loadedSavedTone,
+    loadedSavedDeepDive
 }: AnalyticsViewProps) => {
     const [reference, setReference] = useState<string>("John 3");
     const [stats, setStats] = useState<TextStats | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [chartType, setChartType] = useState<'bar' | 'cloud'>('bar');
+
+    // AI states
+    const [toneResult, setToneResult] = useState<AiTextResponse | null>(null);
+    const [toneLoading, setToneLoading] = useState(false);
+    const [toneError, setToneError] = useState<string | null>(null);
+    const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
+
+    const [prevLoadedSavedTone, setPrevLoadedSavedTone] = useState<AiTextResponse | null>(null);
+    if (loadedSavedTone !== prevLoadedSavedTone) {
+        setToneResult(loadedSavedTone || null);
+        setPrevLoadedSavedTone(loadedSavedTone || null);
+    }
+
+    const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
+    if (loadedSavedDeepDive !== prevLoadedSavedDeepDive) {
+        setDeepDiveText(loadedSavedDeepDive || null);
+        setPrevLoadedSavedDeepDive(loadedSavedDeepDive || null);
+    }
+    const [toneSaveStatus, setToneSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
     // Tallennuksen tilat
     const [saveName, setSaveName] = useState('');
@@ -51,6 +80,13 @@ export const AnalyticsView = ({
         const loadData = async () => {
             setReference(loadedSavedStats.reference);
             setError(null);
+            if (!loadedSavedTone) {
+                setToneResult(null);
+            }
+            if (!loadedSavedDeepDive) {
+                setDeepDiveText(null);
+            }
+            setToneError(null);
 
             if (loadedSavedStats.stats) {
                 setStats(loadedSavedStats.stats);
@@ -73,11 +109,14 @@ export const AnalyticsView = ({
         };
 
         loadData();
-    }, [loadedSavedStats]);
+    }, [loadedSavedStats, loadedSavedTone, loadedSavedDeepDive]);
 
 
     const runAnalysis = async () => {
         if (!reference.trim() || !defaultTranslation) return;
+        setToneResult(null);
+        setDeepDiveText(null);
+        setToneError(null);
         const normalized = reference.trim().replace(
             /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
             (match) => resolveBookId(match) ?? match,
@@ -91,6 +130,91 @@ export const AnalyticsView = ({
             setError(err instanceof Error ? err.message : 'Error fetching analysis');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRunToneAnalysis = async () => {
+        if (!reference || !stats) return;
+        setToneLoading(true);
+        setToneError(null);
+        setToneResult(null);
+        try {
+            const normalized = reference.trim().replace(
+                /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+                (match) => resolveBookId(match) ?? match,
+            );
+            const resData = await apiService.getVerses(normalized, defaultTranslation);
+            const text = resData.verses.map(v => v.text).join('\n');
+            const res = await apiService.getAiTone(text);
+            setToneResult(res);
+        } catch (err) {
+            const errorObj = err as Error;
+            if (errorObj.message && errorObj.message.includes('503')) {
+                setToneError('Tekoäly ei ole käytettävissä (GEMINI_API_KEY puuttuu tai rate limit täynnä).');
+            } else {
+                setToneError(errorObj.message || 'Sävyanalyysi epäonnistui.');
+            }
+        } finally {
+            setToneLoading(false);
+        }
+    };
+
+    const handleSaveToneAnalysis = async () => {
+        if (!activeScopeId || !toneResult || !reference) return;
+        setToneSaveStatus('saving');
+        try {
+            await apiService.saveAnalysis({
+                scopeId: activeScopeId,
+                name: `Sävyanalyysi: ${reference}`,
+                reference: reference,
+                analysisType: 'tone',
+                translationId: defaultTranslation,
+                paramsJson: JSON.stringify({}),
+                resultJson: JSON.stringify({ stats, tone: toneResult, deepDive: deepDiveText })
+            });
+            setToneSaveStatus('success');
+            if (onWorkspaceUpdated) {
+                onWorkspaceUpdated();
+            }
+            setTimeout(() => setToneSaveStatus('idle'), 3000);
+        } catch (err) {
+            console.error('Failed to save tone analysis', err);
+            setToneSaveStatus('error');
+            setTimeout(() => setToneSaveStatus('idle'), 4000);
+        }
+    };
+
+    const handleNextFocusPick = async (it: NextFocusItem) => {
+        if (it.kind === 'word' || it.kind === 'theme') {
+            setToneLoading(true);
+            setToneError(null);
+            try {
+                const res = await apiService.getAiDeepDive(it.label, 'fi', { reference });
+                setDeepDiveText(res.text);
+            } catch (err) {
+                const errorObj = err as Error;
+                setToneError(errorObj.message || 'Deep dive failed.');
+            } finally {
+                setToneLoading(false);
+            }
+        } else {
+            setReference(it.label);
+            const normalized = it.label.trim().replace(
+                /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+                (match) => resolveBookId(match) ?? match,
+            );
+            setLoading(true);
+            setError(null);
+            setToneResult(null);
+            setDeepDiveText(null);
+            try {
+                const data = await apiService.analyze(normalized, defaultTranslation);
+                setStats(data);
+            } catch {
+                setError('Analyysin suorittaminen epäonnistui');
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -170,14 +294,17 @@ export const AnalyticsView = ({
                                     if (!saveName.trim()) return;
                                     setSaving(true);
                                     try {
+                                        const resultPayload = toneResult 
+                                            ? { stats, tone: toneResult, deepDive: deepDiveText }
+                                            : { stats };
                                         await apiService.saveAnalysis({
                                             scopeId: activeScopeId,
                                             name: saveName.trim(),
                                             reference: reference,
-                                            analysisType: 'single_stats',
+                                            analysisType: toneResult ? 'tone' : 'single_stats',
                                             translationId: defaultTranslation,
                                             paramsJson: '{}',
-                                            resultJson: JSON.stringify(stats)
+                                            resultJson: JSON.stringify(resultPayload)
                                         });
                                         setSaveName('');
                                         setShowSaveForm(false);
@@ -292,30 +419,87 @@ export const AnalyticsView = ({
                             </div>
                         </div>
 
-                        {/* AI Tone Analysis Mock Placeholder (for Visual Layout Outlining) */}
-                        <div className="bg-[var(--surface-2)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between">
-                            <div className="absolute -top-6 -right-6 p-6 opacity-5">
-                                <Sparkles size={120} className="text-[var(--text)]" />
-                            </div>
+                        {/* AI Tone Analysis Live Panel */}
+                        <div className="bg-[var(--surface-2)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left">
                             <div className="space-y-3">
                                 <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
-                                    <Sparkles size={16} className="text-[var(--accent)]" /> AI Tone Analysis (Gemini Study Slot)
+                                    <Sparkles size={16} className="text-[var(--accent)]" /> AI Sävy- ja tyylianalyysi (Gemini)
                                 </h3>
-                                <p className="text-sm text-[var(--muted)] leading-relaxed">
-                                    Tämä tekoälypohjainen moduuli tulee analysoimaan tekstijakson sävyjä, kieliasua ja historiallista kontekstia Gemini-mallien avulla.
-                                </p>
-                                <div className="pt-4 space-y-2">
-                                    <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                                    <div className="h-4 w-5/6 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                                    <div className="h-4 w-2/3 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                                </div>
-                            </div>
-                            <div className="rounded-xl border border-dashed border-[var(--border)] p-3 text-center text-xs font-mono text-[var(--muted)] bg-[var(--surface)]">
-                                TULOSSA (Kehityspolku D: AI-ominaisuuksien porttaus)
+
+                                {!toneResult && !toneLoading && (
+                                    <div className="space-y-3">
+                                        <p className="text-sm text-[var(--muted)] leading-relaxed">
+                                            Analysoi tekstijakson kielellistä sävyä, teemoja ja teologista tyyliä tekoälyn avulla.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={handleRunToneAnalysis}
+                                            className="rounded-full px-4 py-2 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                                        >
+                                            Suorita sävyanalyysi
+                                        </button>
+                                    </div>
+                                )}
+
+                                {toneLoading && (
+                                    <div className="flex items-center gap-2 text-sm text-[var(--muted)] py-4">
+                                        <Loader2 size={16} className="animate-spin" />
+                                        <span>Tekoäly analysoi tekstin sävyjä...</span>
+                                    </div>
+                                )}
+
+                                {toneError && (
+                                    <p className="text-xs text-red-500 font-semibold">{toneError}</p>
+                                )}
+
+                                {toneResult && (
+                                    <div className="space-y-4 mt-2">
+                                        <div className="font-sans text-[var(--text-2)]">
+                                            <ReactMarkdown
+                                                components={markdownComponents({ invert: false, insightLayout: false, toneLayout: true })}
+                                                remarkPlugins={[remarkGfm]}
+                                            >
+                                                {toneResult.text}
+                                            </ReactMarkdown>
+                                        </div>
+
+                                        {activeScopeId && (
+                                            <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveToneAnalysis}
+                                                    disabled={toneSaveStatus === 'saving'}
+                                                    className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                                                >
+                                                    {toneSaveStatus === 'saving' && 'Tallennetaan...'}
+                                                    {toneSaveStatus === 'success' && 'Tallennettu! ✓'}
+                                                    {toneSaveStatus === 'error' && 'Virhe tallennuksessa'}
+                                                    {toneSaveStatus === 'idle' && 'Tallenna sävyanalyysi työtilaan'}
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <NextFocusChips
+                                            title="Suositellut teemat ja sanat"
+                                            items={toneResult.nextFocus ?? []}
+                                            onPick={handleNextFocusPick}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                     </div>
+
+                    {deepDiveText && (
+                        <div className="mt-8 w-full">
+                            <DeepDiveCard
+                                title="Sävyn syvennys"
+                                text={deepDiveText}
+                                onClose={() => setDeepDiveText(null)}
+                            />
+                        </div>
+                    )}
                 </>
             )}
         </div>

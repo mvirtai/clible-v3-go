@@ -2,21 +2,31 @@
 import React, { useState } from 'react';
 import { apiService } from '../services/api';
 import type { BibleResponse, Verse } from '../types/bible';
-import { Search, Loader2, ArrowLeft } from 'lucide-react';
+import { Search, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { resolveBookId, parseReferenceForDisplay, type UILanguage } from '../utils/bookNames';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { markdownComponents } from '../utils/markdownComponents';
+import { NextFocusChips } from './NextFocusChips';
+import { DeepDiveCard } from './DeepDiveCard';
+import type { AiTextResponse, NextFocusItem } from '../types/ai';
 
 interface Props {
   translation: string;
   activeReference?: string;
   activeScopeId?: string;
   onWorkspaceUpdated?: () => void;
+  loadedSavedInsight?: AiTextResponse | null;
+  loadedSavedDeepDive?: string | null;
 }
 
 export const VerseReader: React.FC<Props> = ({
   translation,
   activeReference,
   activeScopeId,
-  onWorkspaceUpdated
+  onWorkspaceUpdated,
+  loadedSavedInsight,
+  loadedSavedDeepDive
 }) => {
   const [reference, setReference] = useState('');
   const [prevActiveReference, setPrevActiveReference] = useState(activeReference);
@@ -28,16 +38,39 @@ export const VerseReader: React.FC<Props> = ({
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
+  // AI states
+  const [aiInsight, setAiInsight] = useState<AiTextResponse | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
+  const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
   const isFinnish = translation.toLowerCase().startsWith('fi') || translation.toLowerCase().includes('fin');
   const lang: UILanguage = isFinnish ? 'fi' : 'en';
 
   const displayRef = data ? parseReferenceForDisplay(data.reference, lang) : null;
 
   // Sync state during render instead of in useEffect to avoid cascading renders warning
+  const [prevLoadedSavedInsight, setPrevLoadedSavedInsight] = useState<AiTextResponse | null>(null);
+  if (loadedSavedInsight !== prevLoadedSavedInsight) {
+    setAiInsight(loadedSavedInsight || null);
+    setPrevLoadedSavedInsight(loadedSavedInsight || null);
+  }
+
+  const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
+  if (loadedSavedDeepDive !== prevLoadedSavedDeepDive) {
+    setDeepDiveText(loadedSavedDeepDive || null);
+    setPrevLoadedSavedDeepDive(loadedSavedDeepDive || null);
+  }
+
   if (activeReference !== prevActiveReference) {
     setReference(activeReference || '');
     setBackReference(null);
     setPrevActiveReference(activeReference);
+    if (!loadedSavedInsight) {
+      setAiInsight(null);
+      setDeepDiveText(null);
+    }
   }
 
   const fetchVerses = React.useCallback(async (ref: string) => {
@@ -52,6 +85,11 @@ export const VerseReader: React.FC<Props> = ({
 
     setLoading(true);
     setError(null);
+    if (!loadedSavedInsight) {
+      setAiInsight(null);
+      setDeepDiveText(null);
+    }
+    setAiError(null);
     try {
       const result = await apiService.getVerses(normalized, translation);
       setData(result);
@@ -62,6 +100,74 @@ export const VerseReader: React.FC<Props> = ({
       setLoading(false);
     }
   }, [translation]);
+
+  const handleFetchInsight = async () => {
+    if (!data || data.verses.length === 0) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiInsight(null);
+    try {
+      const text = data.verses.map(v => `${v.verse}. ${v.text}`).join('\n');
+      const res = await apiService.getAiInsight(text);
+      setAiInsight(res);
+    } catch (err) {
+      const errorObj = err as Error;
+      if (errorObj.message && errorObj.message.includes('503')) {
+        setAiError(lang === 'fi' ? 'Tekoäly ei ole käytettävissä. Aseta GEMINI_API_KEY.' : 'AI not available. Set GEMINI_API_KEY.');
+      } else {
+        setAiError(errorObj.message || 'Failed to fetch AI insights.');
+      }
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleSaveAiInsight = async () => {
+    if (!activeScopeId || !aiInsight || !data) return;
+    setAiSaveStatus('saving');
+    try {
+      await apiService.saveAnalysis({
+        scopeId: activeScopeId,
+        name: `AI-analyysi: ${parseReferenceForDisplay(data.reference, lang)}`,
+        reference: data.reference,
+        analysisType: 'insight',
+        translationId: translation,
+        paramsJson: JSON.stringify({}),
+        resultJson: JSON.stringify({
+          insight: aiInsight,
+          deepDive: deepDiveText
+        })
+      });
+      setAiSaveStatus('success');
+      if (onWorkspaceUpdated) {
+        onWorkspaceUpdated();
+      }
+      setTimeout(() => setAiSaveStatus('idle'), 3000);
+    } catch (err) {
+      console.error('Failed to save AI Insight', err);
+      setAiSaveStatus('error');
+      setTimeout(() => setAiSaveStatus('idle'), 4000);
+    }
+  };
+
+  const handleNextFocusPick = async (it: NextFocusItem) => {
+    if (it.kind === 'word' || it.kind === 'theme') {
+      setAiLoading(true);
+      setAiError(null);
+      try {
+        const res = await apiService.getAiDeepDive(it.label, lang, { reference: data?.reference || reference });
+        setDeepDiveText(res.text);
+      } catch (err) {
+        const errorObj = err as Error;
+        setAiError(errorObj.message || 'Deep dive failed.');
+      } finally {
+        setAiLoading(false);
+      }
+    } else {
+      setReference(it.label);
+      fetchVerses(it.label);
+    }
+  };
 
   const handleFetch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -263,6 +369,79 @@ export const VerseReader: React.FC<Props> = ({
               </button>
             </div>
           )}
+
+          {/* Tekoäly-analyysi (AI Insights) */}
+          <div className="pt-6 border-t border-[var(--border-soft)] space-y-4 text-left">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
+                <Sparkles size={14} className="text-[var(--accent)]" />
+                {lang === 'fi' ? 'Tekoäly-analyysi (Gemini)' : 'AI Analysis (Gemini)'}
+              </h3>
+              {!aiInsight && !aiLoading && (
+                <button
+                  type="button"
+                  onClick={handleFetchInsight}
+                  className="rounded-full px-3 py-1 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                >
+                  {lang === 'fi' ? 'Analysoi tekstiä' : 'Analyze Passage'}
+                </button>
+              )}
+            </div>
+
+            {aiLoading && (
+              <div className="flex items-center gap-2 text-sm text-[var(--muted)] py-4">
+                <Loader2 size={16} className="animate-spin" />
+                <span>{lang === 'fi' ? 'Tekoäly opiskelee tekstikohtaa...' : 'AI is reading the passage...'}</span>
+              </div>
+            )}
+
+            {aiError && (
+              <p className="text-xs text-red-500 font-semibold">{aiError}</p>
+            )}
+
+            {aiInsight && (
+              <div className="space-y-4">
+                <div className="font-sans text-[var(--text-2)]">
+                  <ReactMarkdown
+                    components={markdownComponents({ invert: false, insightLayout: true })}
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {aiInsight.text}
+                  </ReactMarkdown>
+                </div>
+
+                {activeScopeId && (
+                  <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
+                    <button
+                      type="button"
+                      onClick={handleSaveAiInsight}
+                      disabled={aiSaveStatus === 'saving'}
+                      className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                    >
+                      {aiSaveStatus === 'saving' && 'Tallennetaan...'}
+                      {aiSaveStatus === 'success' && 'Tallennettu! ✓'}
+                      {aiSaveStatus === 'error' && 'Virhe tallennuksessa'}
+                      {aiSaveStatus === 'idle' && (lang === 'fi' ? 'Tallenna analyysi työtilaan' : 'Save analysis to workspace')}
+                    </button>
+                  </div>
+                )}
+
+                <NextFocusChips
+                  title={lang === 'fi' ? 'Seuraavat suositellut painopisteet' : 'Next focus suggestions'}
+                  items={aiInsight.nextFocus ?? []}
+                  onPick={handleNextFocusPick}
+                />
+
+                {deepDiveText && (
+                  <DeepDiveCard
+                    title={lang === 'fi' ? 'Syvennys' : 'Deep dive'}
+                    text={deepDiveText}
+                    onClose={() => setDeepDiveText(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
