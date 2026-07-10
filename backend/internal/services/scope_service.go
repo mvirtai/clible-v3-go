@@ -119,3 +119,43 @@ func (s *ScopeService) GetScopeWorkspace(ctx context.Context, scopeID string, us
 		Analyses: analyses,
 	}, nil
 }
+
+// RenameScope renames an existing scope after validating the name.
+func (s *ScopeService) RenameScope(ctx context.Context, id string, name string, userID string) error {
+	if id == "" || name == "" {
+		return fmt.Errorf("scope id and name parameters are required for renaming")
+	}
+	return s.scopeRepo.Rename(ctx, id, name, userID)
+}
+
+// DeleteSearch deletes a saved search.
+func (s *ScopeService) DeleteSearch(ctx context.Context, id string, userID string) error {
+	if id == "" {
+		return fmt.Errorf("saved search id is required for deletion")
+	}
+	return s.savedRepo.DeleteSearch(ctx, id, userID)
+}
+
+// RenameSearch renames a saved search.
+func (s *ScopeService) RenameSearch(ctx context.Context, id string, name string, userID string) error {
+	if id == "" || name == "" {
+		return fmt.Errorf("saved search id and name are required for renaming")
+	}
+	return s.savedRepo.RenameSearch(ctx, id, name, userID)
+}
+
+// DeleteAnalysis deletes a saved analysis.
+func (s *ScopeService) DeleteAnalysis(ctx context.Context, id string, userID string) error {
+	if id == "" {
+		return fmt.Errorf("saved analysis id is required for deletion")
+	}
+	return s.savedRepo.DeleteAnalysis(ctx, id, userID)
+}
+
+// RenameAnalysis renames a saved analysis.
+func (s *ScopeService) RenameAnalysis(ctx context.Context, id string, name string, userID string) error {
+	if id == "" || name == "" {
+		return fmt.Errorf("saved analysis id and name are required for renaming")
+	}
+	return s.savedRepo.RenameAnalysis(ctx, id, name, userID)
+}

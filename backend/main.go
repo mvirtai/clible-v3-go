@@ -109,8 +109,13 @@ func main() {
 	mux.Handle("POST /api/scopes", requireAuth(http.HandlerFunc(scopeHandler.CreateScope)))
 	mux.Handle("GET /api/scopes", requireAuth(http.HandlerFunc(scopeHandler.GetScopes)))
 	mux.Handle("DELETE /api/scopes", requireAuth(http.HandlerFunc(scopeHandler.DeleteScope)))
+	mux.Handle("PUT /api/scopes", requireAuth(http.HandlerFunc(scopeHandler.RenameScope)))
 	mux.Handle("POST /api/scopes/saved-searches", requireAuth(http.HandlerFunc(scopeHandler.SaveSearch)))
+	mux.Handle("DELETE /api/scopes/saved-searches", requireAuth(http.HandlerFunc(scopeHandler.DeleteSearch)))
+	mux.Handle("PUT /api/scopes/saved-searches", requireAuth(http.HandlerFunc(scopeHandler.RenameSearch)))
 	mux.Handle("POST /api/scopes/saved-analyses", requireAuth(http.HandlerFunc(scopeHandler.SaveAnalysis)))
+	mux.Handle("DELETE /api/scopes/saved-analyses", requireAuth(http.HandlerFunc(scopeHandler.DeleteAnalysis)))
+	mux.Handle("PUT /api/scopes/saved-analyses", requireAuth(http.HandlerFunc(scopeHandler.RenameAnalysis)))
 	mux.Handle("GET /api/scopes/workspace", requireAuth(http.HandlerFunc(scopeHandler.GetScopeWorkspace)))
 
 	// Text Analysis Engine endpoints

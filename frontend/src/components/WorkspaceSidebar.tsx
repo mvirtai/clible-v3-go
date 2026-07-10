@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import type { Scope, ScopeWorkspace, SavedSearch, SavedAnalysis } from '../types/workspace';
-import { Folder, Plus, Trash2, Search, BarChart3, ChevronRight } from 'lucide-react';
+import { Folder, Plus, Trash2, Edit2, Search, BarChart3 } from 'lucide-react';
 
 interface Props {
   activeScopeId: string;
@@ -86,6 +86,82 @@ export const WorkspaceSidebar: React.FC<Props> = ({
     }
   };
 
+  const handleRenameScope = async () => {
+    if (!activeScopeId) return;
+    const current = scopes.find(s => s.id === activeScopeId);
+    if (!current) return;
+    const newName = window.prompt('Anna työtilalle uusi nimi:', current.name);
+    if (!newName || !newName.trim() || newName.trim() === current.name) return;
+    try {
+      await apiService.renameScope(activeScopeId, newName.trim());
+      setScopes(prev => prev.map(s => s.id === activeScopeId ? { ...s, name: newName.trim() } : s));
+    } catch {
+      alert('Työtilan uudelleennimeäminen epäonnistui');
+    }
+  };
+
+  const handleDeleteSearch = async (searchId: string) => {
+    if (!window.confirm('Haluatko varmasti poistaa tämän haun?')) return;
+    try {
+      await apiService.deleteSearch(searchId);
+      if (workspace) {
+        setWorkspace({
+          ...workspace,
+          searches: workspace.searches.filter(s => s.id !== searchId)
+        });
+      }
+    } catch {
+      alert('Haun poistaminen epäonnistui');
+    }
+  };
+
+  const handleRenameSearch = async (searchId: string, oldName: string) => {
+    const newName = window.prompt('Anna haulle uusi nimi:', oldName);
+    if (!newName || !newName.trim() || newName.trim() === oldName) return;
+    try {
+      await apiService.renameSearch(searchId, newName.trim());
+      if (workspace) {
+        setWorkspace({
+          ...workspace,
+          searches: workspace.searches.map(s => s.id === searchId ? { ...s, name: newName.trim() } : s)
+        });
+      }
+    } catch {
+      alert('Haun nimeäminen uudelleen epäonnistui');
+    }
+  };
+
+  const handleDeleteAnalysis = async (analysisId: string) => {
+    if (!window.confirm('Haluatko varmasti poistaa tämän analyysin?')) return;
+    try {
+      await apiService.deleteAnalysis(analysisId);
+      if (workspace) {
+        setWorkspace({
+          ...workspace,
+          analyses: workspace.analyses.filter(a => a.id !== analysisId)
+        });
+      }
+    } catch {
+      alert('Analyysin poistaminen epäonnistui');
+    }
+  };
+
+  const handleRenameAnalysis = async (analysisId: string, oldName: string) => {
+    const newName = window.prompt('Anna analyysille uusi nimi:', oldName);
+    if (!newName || !newName.trim() || newName.trim() === oldName) return;
+    try {
+      await apiService.renameAnalysis(analysisId, newName.trim());
+      if (workspace) {
+        setWorkspace({
+          ...workspace,
+          analyses: workspace.analyses.map(a => a.id === analysisId ? { ...a, name: newName.trim() } : a)
+        });
+      }
+    } catch {
+      alert('Analyysin nimeäminen uudelleen epäonnistui');
+    }
+  };
+
   // VAIHE 4: Haamukuvion renderöinti alussa
   if (loadingScopes && scopes.length === 0) {
     return (
@@ -151,13 +227,22 @@ export const WorkspaceSidebar: React.FC<Props> = ({
           ))}
         </select>
         {activeScopeId && (
-          <button
-            onClick={handleDeleteScope}
-            className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/20"
-            title="Poista työtila"
-          >
-            <Trash2 size={15} />
-          </button>
+          <>
+            <button
+              onClick={handleRenameScope}
+              className="p-2 rounded-xl text-[var(--muted)] hover:bg-[var(--surface-2)] transition-colors border border-transparent hover:border-[var(--border-soft)] cursor-pointer"
+              title="Nimeä työtila uudelleen"
+            >
+              <Edit2 size={15} />
+            </button>
+            <button
+              onClick={handleDeleteScope}
+              className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/20 cursor-pointer"
+              title="Poista työtila"
+            >
+              <Trash2 size={15} />
+            </button>
+          </>
         )}
       </div>
 
@@ -182,18 +267,38 @@ export const WorkspaceSidebar: React.FC<Props> = ({
               ) : (
                 <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
                   {searches.map(s => (
-                    <button
+                    <div
                       key={s.id}
                       onClick={() => onLoadSavedSearch(s)}
                       className="w-full text-left p-2 rounded-xl text-xs hover:bg-[var(--surface-2)] transition-all flex items-center justify-between group border border-transparent hover:border-[var(--border-soft)] cursor-pointer"
-                      style={{ color: 'var(--text-2)' }}
                     >
-                      <span className="flex items-center gap-2 truncate font-medium">
+                      <span className="flex items-center gap-2 truncate font-medium" style={{ color: 'var(--text-2)' }}>
                         <Search size={12} className="text-[var(--accent)]" />
                         {s.name}
                       </span>
-                      <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRenameSearch(s.id, s.name);
+                          }}
+                          className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer"
+                          title="Nimeä uudelleen"
+                        >
+                          <Edit2 size={11} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSearch(s.id);
+                          }}
+                          className="p-1 rounded-md text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                          title="Poista"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -207,18 +312,38 @@ export const WorkspaceSidebar: React.FC<Props> = ({
               ) : (
                 <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
                   {analyses.map(a => (
-                    <button
+                    <div
                       key={a.id}
                       onClick={() => onLoadSavedAnalysis(a)}
                       className="w-full text-left p-2 rounded-xl text-xs hover:bg-[var(--surface-2)] transition-all flex items-center justify-between group border border-transparent hover:border-[var(--border-soft)] cursor-pointer"
-                      style={{ color: 'var(--text-2)' }}
                     >
-                      <span className="flex items-center gap-2 truncate font-medium">
+                      <span className="flex items-center gap-2 truncate font-medium" style={{ color: 'var(--text-2)' }}>
                         <BarChart3 size={12} className="text-[var(--accent)]" />
                         {a.name}
                       </span>
-                      <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRenameAnalysis(a.id, a.name);
+                          }}
+                          className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer"
+                          title="Nimeä uudelleen"
+                        >
+                          <Edit2 size={11} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAnalysis(a.id);
+                          }}
+                          className="p-1 rounded-md text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                          title="Poista"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

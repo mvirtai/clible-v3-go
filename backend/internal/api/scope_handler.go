@@ -221,3 +221,160 @@ func (h *ScopeHandler) GetScopeWorkspace(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(workspace)
 }
+
+// RenameScopeRequest defines the payload for scope renaming.
+type RenameScopeRequest struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// RenameScope handles PUT /api/scopes.
+func (h *ScopeHandler) RenameScope(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req RenameScopeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json payload"})
+		return
+	}
+
+	if err := h.scopeService.RenameScope(ctx, req.ID, req.Name, userID); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "renamed"})
+}
+
+// DeleteSearch handles DELETE /api/scopes/saved-searches?id=...
+func (h *ScopeHandler) DeleteSearch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "id parameter required"})
+		return
+	}
+
+	if err := h.scopeService.DeleteSearch(ctx, id, userID); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// RenameSavedItemRequest defines payload for renaming searches or analyses.
+type RenameSavedItemRequest struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// RenameSearch handles PUT /api/scopes/saved-searches.
+func (h *ScopeHandler) RenameSearch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req RenameSavedItemRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json payload"})
+		return
+	}
+
+	if err := h.scopeService.RenameSearch(ctx, req.ID, req.Name, userID); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "renamed"})
+}
+
+// DeleteAnalysis handles DELETE /api/scopes/saved-analyses?id=...
+func (h *ScopeHandler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "id parameter required"})
+		return
+	}
+
+	if err := h.scopeService.DeleteAnalysis(ctx, id, userID); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// RenameAnalysis handles PUT /api/scopes/saved-analyses.
+func (h *ScopeHandler) RenameAnalysis(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req RenameSavedItemRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json payload"})
+		return
+	}
+
+	if err := h.scopeService.RenameAnalysis(ctx, req.ID, req.Name, userID); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "renamed"})
+}

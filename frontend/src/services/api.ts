@@ -401,6 +401,67 @@ export class ApiService {
     }
 
     /**
+     * Renames an existing scope.
+     */
+    async renameScope(id: string, name: string): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/scopes`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name }),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`PUT /scopes returned ${res.status}`);
+    }
+
+    /**
+     * Deletes a single saved search.
+     */
+    async deleteSearch(id: string): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/scopes/saved-searches?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`DELETE /scopes/saved-searches returned ${res.status}`);
+    }
+
+    /**
+     * Renames a single saved search.
+     */
+    async renameSearch(id: string, name: string): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/scopes/saved-searches`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name }),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`PUT /scopes/saved-searches returned ${res.status}`);
+    }
+
+    /**
+     * Deletes a single saved analysis.
+     */
+    async deleteAnalysis(id: string): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/scopes/saved-analyses?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`DELETE /scopes/saved-analyses returned ${res.status}`);
+    }
+
+    /**
+     * Renames a single saved analysis.
+     */
+    async renameAnalysis(id: string, name: string): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/scopes/saved-analyses`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name }),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`PUT /scopes/saved-analyses returned ${res.status}`);
+    }
+
+    /**
      * Fetches detailed AI insights on a Bible passage.
      */
     async getAiInsight(text: string, focus?: string): Promise<AiTextResponse> {
@@ -429,42 +490,7 @@ export class ApiService {
     }
 
     /**
-     * Compares two translations of a biblical passage using AI.
-     */
-    async getAiComparison(params: {
-        reference: string;
-        translationA: string;
-        textA: string;
-        translationB: string;
-        textB: string;
-        focus?: string;
-    }): Promise<AiTextResponse> {
-        const res = await fetch(`${this.baseUrl}/ai/compare`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(params),
-            credentials: 'include',
-        });
-        if (!res.ok) throw new Error(`POST /ai/compare returned ${res.status}`);
-        return await res.json();
-    }
-
-    /**
-     * Generates a deeper dive analysis into a chosen study topic.
-     */
-    async getAiDeepDive(topic: string, outputLanguage: "fi" | "en", context?: Record<string, unknown>): Promise<AiTextResponse> {
-        const res = await fetch(`${this.baseUrl}/ai/deep-dive`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic, outputLanguage, context }),
-            credentials: 'include',
-        });
-        if (!res.ok) throw new Error(`POST /ai/deep-dive returned ${res.status}`);
-        return await res.json();
-    }
-
-    /**
-     * Executes original language vertical/horizontal study comparison.
+     * Fetches detailed tekoäly outline of original words.
      */
     async getAiOriginalStudy(params: {
         reference: string;
@@ -485,6 +511,26 @@ export class ApiService {
     }
 
     /**
+     * Fetches original word definition and context.
+     */
+    async getAiDeepDive(keyword: string, language: string, context?: {
+        reference: string;
+        translationA?: string;
+        textA?: string;
+        translationB?: string;
+        textB?: string;
+    }): Promise<AiTextResponse> {
+        const res = await fetch(`${this.baseUrl}/ai/deep-dive`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keyword, language, context }),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /ai/deep-dive returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
      * Runs FTS5 RAG Search utilizing Gemini planner and database search.
      */
     async executeAiSearch(query: string, translationId: string, uiLanguage: "fi" | "en"): Promise<AiSearchResponse> {
@@ -495,6 +541,26 @@ export class ApiService {
             credentials: 'include',
         });
         if (!res.ok) throw new Error(`POST /ai/search returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Compares differences, style, and theological nuances between two translations.
+     */
+    async getAiComparison(params: {
+        reference: string;
+        translationA: string;
+        textA: string;
+        translationB: string;
+        textB: string;
+    }): Promise<AiTextResponse> {
+        const res = await fetch(`${this.baseUrl}/ai/compare`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /ai/compare returned ${res.status}`);
         return await res.json();
     }
 }
