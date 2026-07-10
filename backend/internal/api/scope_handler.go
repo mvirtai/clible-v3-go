@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/mvirtai/clible-v3-go/internal/middleware"
@@ -91,7 +90,6 @@ func (h *ScopeHandler) GetScopes(w http.ResponseWriter, r *http.Request) {
 
 	scopes, err := h.scopeService.GetScopes(ctx, userID)
 	if err != nil {
-		slog.Error("GetScopes failed", "error", err, "userId", userID)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
@@ -215,7 +213,6 @@ func (h *ScopeHandler) GetScopeWorkspace(w http.ResponseWriter, r *http.Request)
 
 	workspace, err := h.scopeService.GetScopeWorkspace(ctx, id, userID)
 	if err != nil {
-		slog.Error("GetScopeWorkspace failed", "error", err, "scopeId", id, "userId", userID)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
