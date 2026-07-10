@@ -3,15 +3,18 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { markdownComponents } from "../utils/markdownComponents";
+import type { GeminiUsageMetadata } from "../types/ai";
+import { GeminiUsage } from "./GeminiUsage";
 
 interface DeepDiveCardProps {
   title: string;
   text: string;
   invert?: boolean;
   onClose: () => void;
+  geminiUsageMetadata?: GeminiUsageMetadata;
 }
 
-export function DeepDiveCard({ title, text, invert = false, onClose }: DeepDiveCardProps) {
+export function DeepDiveCard({ title, text, invert = false, onClose, geminiUsageMetadata }: DeepDiveCardProps) {
   if (!text.trim()) return null;
   return (
     <div
@@ -30,7 +33,7 @@ export function DeepDiveCard({ title, text, invert = false, onClose }: DeepDiveC
           onClick={onClose}
           className={invert ? "text-gray-400 hover:text-white cursor-pointer" : "text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"}
           aria-label="Close"
-        >
+         >
           <X size={16} />
         </button>
       </div>
@@ -42,6 +45,11 @@ export function DeepDiveCard({ title, text, invert = false, onClose }: DeepDiveC
           {text}
         </ReactMarkdown>
       </div>
+      {geminiUsageMetadata && (
+        <div className="mt-4 pt-3 border-t border-[var(--border)]">
+          <GeminiUsage usage={geminiUsageMetadata} />
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,8 @@ import remarkGfm from 'remark-gfm';
 import type { InstalledTranslation } from '../types/bible';
 import type { OriginalStudyResult, StudyScope } from '../types/originalStudy';
 import { markdownComponents } from '../utils/markdownComponents';
-import type { NextFocusItem } from '../types/ai';
+import { GeminiUsage } from './GeminiUsage';
+import type { NextFocusItem, GeminiUsageMetadata } from '../types/ai';
 import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
 
@@ -93,6 +94,7 @@ export interface OriginalStudyViewProps {
   ) => void;
   onNextFocusPick?: (item: NextFocusItem) => void;
   deepDiveText?: string | null;
+  deepDiveUsage?: GeminiUsageMetadata | null;
   onDeepDiveClose?: () => void;
   onExport?: () => void;
   standalone?: boolean;
@@ -115,6 +117,7 @@ export function OriginalStudyView({
   onStudy,
   onNextFocusPick,
   deepDiveText,
+  deepDiveUsage,
   onDeepDiveClose,
   onExport,
   standalone = false,
@@ -439,6 +442,7 @@ export function OriginalStudyView({
               >
                 {result.text}
               </ReactMarkdown>
+              <GeminiUsage usage={result.geminiUsageMetadata} />
             </div>
             {activeScopeId && (
               <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
@@ -467,6 +471,7 @@ export function OriginalStudyView({
                 title={uiLanguage === 'fi' ? 'Syvennys' : 'Deep dive'}
                 text={deepDiveText}
                 onClose={onDeepDiveClose}
+                geminiUsageMetadata={deepDiveUsage || undefined}
               />
             ) : null}
           </div>

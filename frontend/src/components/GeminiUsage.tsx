@@ -1,0 +1,35 @@
+import React from 'react';
+import { Cpu } from 'lucide-react';
+import type { GeminiUsageMetadata } from '../types/ai';
+
+interface GeminiUsageProps {
+  usage?: GeminiUsageMetadata;
+}
+
+export const GeminiUsage: React.FC<GeminiUsageProps> = ({ usage }) => {
+  if (!usage || (usage.promptTokenCount === 0 && usage.candidatesTokenCount === 0)) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 pt-3 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-2 text-[11px] font-sans text-muted-foreground/60 select-none">
+      <div className="flex items-center gap-1.5 text-[var(--muted)]">
+        <Cpu size={12} className="text-[var(--accent)] animate-pulse" />
+        <span>Gemini Engine</span>
+      </div>
+      <div className="flex items-center gap-3 font-mono text-[10px]">
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400/60" />
+          Prompt: <strong className="font-semibold text-[var(--text-2)]">{usage.promptTokenCount}</strong>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" />
+          Output: <strong className="font-semibold text-[var(--text-2)]">{usage.candidatesTokenCount}</strong>
+        </span>
+        <span className="flex items-center gap-1 border-l border-[var(--border)] pl-3">
+          Total: <strong className="font-bold text-[var(--accent)]">{usage.totalTokenCount}</strong>
+        </span>
+      </div>
+    </div>
+  );
+};

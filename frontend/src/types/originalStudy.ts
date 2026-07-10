@@ -1,4 +1,4 @@
-import type { NextFocusItem } from "./ai";
+import type { NextFocusItem, GeminiUsageMetadata } from "./ai";
 
 export type StudyScope = "verse" | "chapter" | "book";
 
@@ -14,4 +14,5 @@ export interface OriginalStudyVerse {
 export interface OriginalStudyResult {
     text: string;
     nextFocus: NextFocusItem[];
+    geminiUsageMetadata?: GeminiUsageMetadata;
 }

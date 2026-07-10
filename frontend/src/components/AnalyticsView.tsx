@@ -18,7 +18,8 @@ import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../utils/markdownComponents';
 import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
-import type { AiTextResponse, NextFocusItem } from '../types/ai';
+import { GeminiUsage } from './GeminiUsage';
+import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../types/ai';
 
 interface AnalyticsViewProps {
     /** The translation ID selected globally (e.g. "kr92") */
@@ -55,6 +56,7 @@ export const AnalyticsView = ({
     const [toneLoading, setToneLoading] = useState(false);
     const [toneError, setToneError] = useState<string | null>(null);
     const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
+    const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
 
     const [prevLoadedSavedTone, setPrevLoadedSavedTone] = useState<AiTextResponse | null>(null);
     const normalizedSavedTone = loadedSavedTone || null;
@@ -67,6 +69,7 @@ export const AnalyticsView = ({
     const normalizedSavedDeepDive = loadedSavedDeepDive || null;
     if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
         setDeepDiveText(normalizedSavedDeepDive);
+        setDeepDiveUsage(null);
         setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
     }
     const [toneSaveStatus, setToneSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -89,6 +92,7 @@ export const AnalyticsView = ({
             }
             if (!loadedSavedDeepDive) {
                 setDeepDiveText(null);
+                setDeepDiveUsage(null);
             }
             setToneError(null);
 
@@ -195,6 +199,7 @@ export const AnalyticsView = ({
             try {
                 const res = await apiService.getAiDeepDive(it.label, 'fi', { reference });
                 setDeepDiveText(res.text);
+                setDeepDiveUsage(res.geminiUsageMetadata || null);
             } catch (err) {
                 const errorObj = err as Error;
                 setToneError(errorObj.message || 'Deep dive failed.');
@@ -211,6 +216,7 @@ export const AnalyticsView = ({
             setError(null);
             setToneResult(null);
             setDeepDiveText(null);
+            setDeepDiveUsage(null);
             try {
                 const data = await apiService.analyze(normalized, defaultTranslation);
                 setStats(data);
@@ -476,6 +482,7 @@ export const AnalyticsView = ({
                                             >
                                                 {toneResult.text}
                                             </ReactMarkdown>
+                                            <GeminiUsage usage={toneResult.geminiUsageMetadata} />
                                         </div>
 
                                         {activeScopeId && (
@@ -511,7 +518,11 @@ export const AnalyticsView = ({
                             <DeepDiveCard
                                 title="Sävyn syvennys"
                                 text={deepDiveText}
-                                onClose={() => setDeepDiveText(null)}
+                                onClose={() => {
+                                    setDeepDiveText(null);
+                                    setDeepDiveUsage(null);
+                                }}
+                                geminiUsageMetadata={deepDiveUsage || undefined}
                             />
                         </div>
                     )}

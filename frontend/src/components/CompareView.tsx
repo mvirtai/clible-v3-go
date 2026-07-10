@@ -8,7 +8,8 @@ import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../utils/markdownComponents';
 import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
-import type { AiTextResponse, NextFocusItem } from '../types/ai';
+import { GeminiUsage } from './GeminiUsage';
+import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../types/ai';
 
 interface CompareViewProps {
     /** All translations currently installed in the workspace. */
@@ -50,6 +51,7 @@ export function CompareView({
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
     const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
+    const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
     const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
     const [prevLoadedSavedAi, setPrevLoadedSavedAi] = useState<AiTextResponse | null>(null);
@@ -63,6 +65,7 @@ export function CompareView({
     const normalizedSavedDeepDive = loadedSavedDeepDive || null;
     if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
         setDeepDiveText(normalizedSavedDeepDive);
+        setDeepDiveUsage(null);
         setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
     }
 
@@ -86,6 +89,7 @@ export function CompareView({
             }
             if (!loadedSavedDeepDive) {
                 setDeepDiveText(null);
+                setDeepDiveUsage(null);
             }
 
             if (loadedSavedComparison.result) {
@@ -218,6 +222,7 @@ export function CompareView({
                     { reference: normalized, translationA: leftTr, textA: leftText, translationB: rightTr, textB: rightText }
                 );
                 setDeepDiveText(res.text);
+                setDeepDiveUsage(res.geminiUsageMetadata || null);
             } catch (err) {
                 setAiError(err instanceof Error ? err.message : 'Deep dive failed');
             } finally {
@@ -490,6 +495,7 @@ export function CompareView({
                                     >
                                         {aiResult.text}
                                     </ReactMarkdown>
+                                    <GeminiUsage usage={aiResult.geminiUsageMetadata} />
                                 </div>
 
                                 {activeScopeId && (
@@ -522,7 +528,11 @@ export function CompareView({
                             <DeepDiveCard
                                 title="Vertailun syvennys"
                                 text={deepDiveText}
-                                onClose={() => setDeepDiveText(null)}
+                                onClose={() => {
+                                    setDeepDiveText(null);
+                                    setDeepDiveUsage(null);
+                                }}
+                                geminiUsageMetadata={deepDiveUsage || undefined}
                             />
                         </div>
                     )}
