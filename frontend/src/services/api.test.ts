@@ -202,5 +202,77 @@ describe('ApiService', () => {
             })
         );
     });
+
+    it('fetches AI insights successfully and maps geminiUsageMetadata (getAiInsight)', async () => {
+        const mockResponse = {
+            text: 'Mocked Insight response text',
+            nextFocus: [{ label: 'love', kind: 'theme', reason: 'lexical context' }],
+            geminiUsageMetadata: {
+                promptTokenCount: 12,
+                candidatesTokenCount: 34,
+                totalTokenCount: 46
+            }
+        };
+
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockResponse,
+        } as Response);
+
+        const result = await apiService.getAiInsight('John 3:16', 'love');
+
+        expect(result.text).toBe('Mocked Insight response text');
+        expect(result.geminiUsageMetadata).toBeDefined();
+        expect(result.geminiUsageMetadata?.promptTokenCount).toBe(12);
+        expect(result.geminiUsageMetadata?.totalTokenCount).toBe(46);
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/ai/insight'),
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({ text: 'John 3:16', focus: 'love' })
+            })
+        );
+    });
+
+    it('fetches AI original study successfully (getAiOriginalStudy)', async () => {
+        const mockResponse = {
+            text: 'Mocked Original Study response text',
+            geminiUsageMetadata: {
+                promptTokenCount: 15,
+                candidatesTokenCount: 25,
+                totalTokenCount: 40
+            }
+        };
+
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockResponse,
+        } as Response);
+
+        const result = await apiService.getAiOriginalStudy({
+            reference: 'John 3:16',
+            sourceText: 'houtos gar',
+            sourceLanguage: 'grc',
+            translations: [{ id: 'kr92', name: '1992', text: 'Jumala' }],
+            scope: 'verse',
+        });
+
+        expect(result.text).toBe('Mocked Original Study response text');
+        expect(result.geminiUsageMetadata).toBeDefined();
+        expect(result.geminiUsageMetadata?.promptTokenCount).toBe(15);
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/ai/original-study'),
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({
+                    reference: 'John 3:16',
+                    sourceText: 'houtos gar',
+                    sourceLanguage: 'grc',
+                    translations: [{ id: 'kr92', name: '1992', text: 'Jumala' }],
+                    scope: 'verse'
+                })
+            })
+        );
+    });
 });
 

@@ -165,4 +165,38 @@ describe('VerseReader', () => {
       .find(b => b.textContent?.includes('Takaisin laajempaan tekstiin'));
     expect(backBtnAfter).toBeUndefined();
   });
+
+  it('renders GeminiUsage token counts when loadedSavedInsight contains usage metadata', async () => {
+    const mockInsight = {
+      text: 'Mocked insight text content',
+      nextFocus: [],
+      geminiUsageMetadata: {
+        promptTokenCount: 150,
+        candidatesTokenCount: 80,
+        totalTokenCount: 230
+      }
+    };
+
+    const r = createRoot(container!);
+    root = r;
+    await act(async () => {
+      r.render(
+        <VerseReader 
+          translation="web" 
+          activeReference="JHN 3" 
+          loadedSavedInsight={mockInsight} 
+        />
+      );
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Verify token counts are rendered on screen
+    expect(container!.textContent).toContain('Prompt: 150');
+    expect(container!.textContent).toContain('Output: 80');
+    expect(container!.textContent).toContain('Total: 230');
+    expect(container!.textContent).toContain('Gemini Engine');
+  });
 });
