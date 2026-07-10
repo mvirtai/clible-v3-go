@@ -118,7 +118,7 @@ func main() {
 	mux.Handle("POST /api/analytics/compare", requireAuth(http.HandlerFunc(analyticsHandler.Compare)))
 
 	// Gemini AI endpoints (Protected by Auth and specialized Rate Limiting)
-	aiLimiter := middleware.NewIPRateLimiter(rate.Limit(5.0/60.0), 2)
+	aiLimiter := middleware.NewIPRateLimiter(rate.Limit(15.0/3600.0), 5)
 	aiRateLimit := middleware.RateLimitMiddleware(aiLimiter)
 
 	mux.Handle("POST /api/ai/insight", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetInsight))))

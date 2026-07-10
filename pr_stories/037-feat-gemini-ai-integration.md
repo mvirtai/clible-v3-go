@@ -10,7 +10,7 @@ This Pull Request implements the core features of **Pathway D (Gemini AI Integra
 4. **AI-Assisted Search (RAG)**: Natural-language queries planned by Gemini, executed against the SQLite FTS5 database, and summarized with references.
 5. **Interactive Topic Deep Dives**: Multi-turn analysis triggered by tekoäly-recommended keywords and chips.
 
-The integration is secured with JWT authentication and protected by a specialized, strict IP rate limiter (max 5 calls per minute) to control Gemini API costs.
+The integration is secured with JWT authentication and protected by a specialized, strict IP rate limiter (max 15 calls per hour) to control Gemini API costs.
 
 ---
 
@@ -30,7 +30,7 @@ The integration is secured with JWT authentication and protected by a specialize
   - Exposes REST handlers for `/api/ai/insight`, `/api/ai/tone`, `/api/ai/deep-dive`, `/api/ai/original-study`, `/api/ai/search`, and `/api/ai/compare`.
   - Implements graceful error handling: returns a `503 Service Unavailable` JSON response if `GEMINI_API_KEY` is not configured.
 - **Routing & Rate Limiting (`backend/main.go` & `backend/internal/middleware/ratelimit.go`)**:
-  - Configures a dedicated visitor rate limiter (`middleware.NewIPRateLimiter(rate.Limit(5.0/60.0), 2)`) specifically wrapping the AI routes.
+  - Configures a dedicated visitor rate limiter (`middleware.NewIPRateLimiter(rate.Limit(15.0/3600.0), 5)`) specifically wrapping the AI routes.
   - Protects all `/api/ai/*` routes with the standard authentication middleware.
   - Bypasses rate limiting for localhost loopback IPs (`127.0.0.1` and `::1`) during development.
 

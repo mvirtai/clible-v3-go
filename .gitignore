@@ -27,10 +27,6 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# plans, notes and other internal documents
-.plans
-.notes/
-
 # agents files
 .agents/
 # Terraform ignores
