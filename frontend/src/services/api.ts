@@ -3,6 +3,9 @@ import type { BibleResponse, InstalledTranslation, TextStats, ComparisonResult }
 import type { SearchHistoryEntry } from "../types/searchQuery";
 import type { SearchVerse } from "../types/search";
 import type { Scope, SavedSearch, SavedAnalysis, ScopeWorkspace } from "../types/workspace";
+import type { AiTextResponse } from "../types/ai";
+import type { AiSearchResponse } from "../types/aiSearch";
+import type { OriginalStudyResult } from "../types/originalStudy";
 
 
 // raw api types matching the Go backend JSON responses
@@ -394,6 +397,104 @@ export class ApiService {
             credentials: 'include',
         });
         if (!res.ok) throw new Error(`POST /scopes/saved-analyses returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Fetches detailed AI insights on a Bible passage.
+     */
+    async getAiInsight(text: string, focus?: string): Promise<AiTextResponse> {
+        const res = await fetch(`${this.baseUrl}/ai/insight`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, focus }),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /ai/insight returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Fetches linguistic and tone analysis on a Bible passage.
+     */
+    async getAiTone(text: string, focus?: string): Promise<AiTextResponse> {
+        const res = await fetch(`${this.baseUrl}/ai/tone`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, focus }),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /ai/tone returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Compares two translations of a biblical passage using AI.
+     */
+    async getAiComparison(params: {
+        reference: string;
+        translationA: string;
+        textA: string;
+        translationB: string;
+        textB: string;
+        focus?: string;
+    }): Promise<AiTextResponse> {
+        const res = await fetch(`${this.baseUrl}/ai/compare`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /ai/compare returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Generates a deeper dive analysis into a chosen study topic.
+     */
+    async getAiDeepDive(topic: string, outputLanguage: "fi" | "en", context?: Record<string, unknown>): Promise<AiTextResponse> {
+        const res = await fetch(`${this.baseUrl}/ai/deep-dive`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic, outputLanguage, context }),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /ai/deep-dive returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Executes original language vertical/horizontal study comparison.
+     */
+    async getAiOriginalStudy(params: {
+        reference: string;
+        sourceText: string;
+        sourceLanguage: "grc" | "he";
+        translations: Array<{ id: string; name: string; text: string }>;
+        scope: "verse" | "chapter" | "book";
+        focus?: string;
+    }): Promise<OriginalStudyResult> {
+        const res = await fetch(`${this.baseUrl}/ai/original-study`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /ai/original-study returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Runs FTS5 RAG Search utilizing Gemini planner and database search.
+     */
+    async executeAiSearch(query: string, translationId: string, uiLanguage: "fi" | "en"): Promise<AiSearchResponse> {
+        const res = await fetch(`${this.baseUrl}/ai/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, translationId, uiLanguage }),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`POST /ai/search returned ${res.status}`);
         return await res.json();
     }
 }

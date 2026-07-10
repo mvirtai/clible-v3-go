@@ -66,6 +66,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	aiService := services.NewAIService(cfg, verseRepo)
+
 	// --- API Handlers ---
 	bibleHandler := api.NewBibleHandler(verseService)
 	historyHandler := api.NewHistoryHandler(historyService)
@@ -74,6 +76,7 @@ func main() {
 	analyticsHandler := api.NewAnalyticsHandler(analyticService, verseService)
 	bookHandler := api.NewBookHandler(bookService)
 	authHandler := api.NewAuthHandler(authService, userRepo)
+	aiHandler := api.NewAIHandler(aiService)
 
 	mux := http.NewServeMux()
 
@@ -113,6 +116,17 @@ func main() {
 	// Text Analysis Engine endpoints
 	mux.Handle("POST /api/analytics/analyze", requireAuth(http.HandlerFunc(analyticsHandler.Analyze)))
 	mux.Handle("POST /api/analytics/compare", requireAuth(http.HandlerFunc(analyticsHandler.Compare)))
+
+	// Gemini AI endpoints (Protected by Auth and specialized Rate Limiting)
+	aiLimiter := middleware.NewIPRateLimiter(rate.Limit(15.0/3600.0), 5)
+	aiRateLimit := middleware.RateLimitMiddleware(aiLimiter)
+
+	mux.Handle("POST /api/ai/insight", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetInsight))))
+	mux.Handle("POST /api/ai/tone", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetTone))))
+	mux.Handle("POST /api/ai/deep-dive", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetDeepDive))))
+	mux.Handle("POST /api/ai/original-study", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetOriginalStudy))))
+	mux.Handle("POST /api/ai/search", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.AISearch))))
+	mux.Handle("POST /api/ai/compare", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetComparison))))
 
 	// Static SPA fallback
 	fs := http.FileServer(http.Dir(cfg.FrontendDir))
@@ -181,6 +195,12 @@ func main() {
 		slog.Info("     GET   /api/scopes/workspace   [protected]")
 		slog.Info("     POST  /api/analytics/analyze")
 		slog.Info("     POST  /api/analytics/compare")
+		slog.Info("     POST  /api/ai/insight         [protected, rate-limited]")
+		slog.Info("     POST  /api/ai/tone            [protected, rate-limited]")
+		slog.Info("     POST  /api/ai/deep-dive       [protected, rate-limited]")
+		slog.Info("     POST  /api/ai/original-study  [protected, rate-limited]")
+		slog.Info("     POST  /api/ai/search          [protected, rate-limited]")
+		slog.Info("     POST  /api/ai/compare         [protected, rate-limited]")
 		slog.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		slog.Info("✅ Server ready",
 			"addr", "http://localhost:"+cfg.Port,

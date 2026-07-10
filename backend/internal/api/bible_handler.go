@@ -51,6 +51,11 @@ func (h *BibleHandler) GetVersesByReference(w http.ResponseWriter, r *http.Reque
 	// Correctly invokes the synchronized service layer method
 	dbVerses, err := h.verseService.GetVerses(ctx, ref, translation)
 	if err != nil {
+		if strings.Contains(err.Error(), "failed to parse reference") {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to evaluate target coordinates: " + err.Error()})
 		return

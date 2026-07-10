@@ -1,8 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
-import { GitCompareArrows, Loader2, Save } from 'lucide-react';
+import { GitCompareArrows, Loader2, Save, Brain } from 'lucide-react';
 import { apiService } from '../services/api';
 import type { InstalledTranslation, ComparisonResult } from '../types/bible';
 import { resolveBookId } from '../utils/bookNames';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { markdownComponents } from '../utils/markdownComponents';
+import { NextFocusChips } from './NextFocusChips';
+import { DeepDiveCard } from './DeepDiveCard';
+import type { AiTextResponse, NextFocusItem } from '../types/ai';
 
 interface CompareViewProps {
     /** All translations currently installed in the workspace. */
@@ -15,6 +21,8 @@ interface CompareViewProps {
         translationA: string;
         translationB: string;
     } | null;
+    loadedSavedAi?: AiTextResponse | null;
+    loadedSavedDeepDive?: string | null;
 }
 
 function similarityBarHue(ratio01: number): string {
@@ -26,7 +34,9 @@ export function CompareView({
     installedTranslations,
     activeScopeId,
     onWorkspaceUpdated,
-    loadedSavedComparison
+    loadedSavedComparison,
+    loadedSavedAi,
+    loadedSavedDeepDive
 }: CompareViewProps) {
     const [reference, setReference] = useState('John 3:16');
     const [leftTr, setLeftTr] = useState('');
@@ -34,6 +44,27 @@ export function CompareView({
     const [result, setResult] = useState<ComparisonResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // AI states
+    const [aiResult, setAiResult] = useState<AiTextResponse | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiError, setAiError] = useState<string | null>(null);
+    const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
+    const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
+    const [prevLoadedSavedAi, setPrevLoadedSavedAi] = useState<AiTextResponse | null>(null);
+    const normalizedSavedAi = loadedSavedAi || null;
+    if (normalizedSavedAi !== prevLoadedSavedAi) {
+        setAiResult(normalizedSavedAi);
+        setPrevLoadedSavedAi(normalizedSavedAi);
+    }
+
+    const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
+    const normalizedSavedDeepDive = loadedSavedDeepDive || null;
+    if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
+        setDeepDiveText(normalizedSavedDeepDive);
+        setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
+    }
 
     // Tallennuksen tilat
     const [saveName, setSaveName] = useState('');
@@ -50,6 +81,12 @@ export function CompareView({
             setLeftTr(loadedSavedComparison.translationA);
             setRightTr(loadedSavedComparison.translationB);
             setError(null);
+            if (!loadedSavedAi) {
+                setAiResult(null);
+            }
+            if (!loadedSavedDeepDive) {
+                setDeepDiveText(null);
+            }
 
             if (loadedSavedComparison.result) {
                 setResult(loadedSavedComparison.result);
@@ -76,7 +113,7 @@ export function CompareView({
         };
 
         loadData();
-    }, [loadedSavedComparison]);
+    }, [loadedSavedComparison, loadedSavedAi, loadedSavedDeepDive]);
 
 
     // Filter right translation options to avoid comparing a translation with itself
@@ -92,6 +129,9 @@ export function CompareView({
         );
         setLoading(true);
         setError(null);
+        setAiResult(null);
+        setDeepDiveText(null);
+        setAiError(null);
         try {
             const data = await apiService.compare(normalized, leftTr, rightTr);
             setResult(data);
@@ -99,6 +139,90 @@ export function CompareView({
             setError(err instanceof Error ? err.message : 'Comparison failed');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRunAiComparison = async () => {
+        if (!reference || !leftTr || !rightTr || !result) return;
+        setAiLoading(true);
+        setAiError(null);
+        setAiResult(null);
+        try {
+            const normalized = reference.trim().replace(
+                /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+                (match) => resolveBookId(match) ?? match,
+            );
+            // Combine all left and right texts
+            const leftText = result.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n');
+            const rightText = result.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n');
+            const res = await apiService.getAiComparison({
+                reference: normalized,
+                translationA: leftTr,
+                textA: leftText,
+                translationB: rightTr,
+                textB: rightText
+            });
+            setAiResult(res);
+        } catch (err) {
+            const errorObj = err as Error;
+            if (errorObj.message && errorObj.message.includes('503')) {
+                setAiError('Tekoäly ei ole käytettävissä (GEMINI_API_KEY puuttuu tai rate limit täynnä).');
+            } else {
+                setAiError(errorObj.message || 'Sävyanalyysi epäonnistui.');
+            }
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const handleSaveAiComparison = async () => {
+        if (!activeScopeId || !aiResult || !reference) return;
+        setAiSaveStatus('saving');
+        try {
+            await apiService.saveAnalysis({
+                scopeId: activeScopeId,
+                name: `AI-vertailu: ${reference} (${leftTr}/${rightTr})`,
+                reference: reference,
+                analysisType: 'comparison',
+                translationId: leftTr,
+                paramsJson: JSON.stringify({ translationB: rightTr }),
+                resultJson: JSON.stringify({ result, ai: aiResult, deepDive: deepDiveText })
+            });
+            setAiSaveStatus('success');
+            if (onWorkspaceUpdated) {
+                onWorkspaceUpdated();
+            }
+            setTimeout(() => setAiSaveStatus('idle'), 3000);
+        } catch (err) {
+            console.error('Failed to save AI comparison', err);
+            setAiSaveStatus('error');
+            setTimeout(() => setAiSaveStatus('idle'), 4000);
+        }
+    };
+
+    const handleNextFocusPick = async (it: NextFocusItem) => {
+        if (it.kind === 'word' || it.kind === 'theme') {
+            setAiLoading(true);
+            setAiError(null);
+            try {
+                const normalized = reference.trim().replace(
+                    /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+                    (match) => resolveBookId(match) ?? match,
+                );
+                // Combine all left and right texts for context
+                const leftText = result?.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n') || '';
+                const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
+                const res = await apiService.getAiDeepDive(
+                    it.label,
+                    'fi',
+                    { reference: normalized, translationA: leftTr, textA: leftText, translationB: rightTr, textB: rightText }
+                );
+                setDeepDiveText(res.text);
+            } catch (err) {
+                setAiError(err instanceof Error ? err.message : 'Deep dive failed');
+            } finally {
+                setAiLoading(false);
+            }
         }
     };
 
@@ -246,7 +370,7 @@ export function CompareView({
                                                     analysisType: 'comparison',
                                                     translationId: leftTr,
                                                     paramsJson: JSON.stringify({ translationB: rightTr }),
-                                                    resultJson: JSON.stringify(result) // Välimuistitetaan vertailutulos!
+                                                    resultJson: JSON.stringify(aiResult ? { result, ai: aiResult, deepDive: deepDiveText } : { result }) // Välimuistitetaan vertailutulos!
                                                 });
                                                 setSaveName('');
                                                 setShowSaveForm(false);
@@ -324,6 +448,84 @@ export function CompareView({
                             </div>
                         )}
                     </div>
+
+                    {/* AI Translation Comparison Card */}
+                    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
+                            <Brain size={15} className="text-[var(--accent)]" /> AI-Käännösvertailu (Gemini)
+                        </h3>
+
+                        {!aiResult && !aiLoading && (
+                            <div className="space-y-3">
+                                <p className="text-sm text-[var(--muted)] leading-relaxed">
+                                    Vertaa valittujen käännösten kielellisiä, opillisia ja teologisia painotuseroja tekoälyn avulla.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleRunAiComparison}
+                                    className="rounded-full px-4 py-2 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                                >
+                                    Suorita tekoälyvertailu
+                                </button>
+                            </div>
+                        )}
+
+                        {aiLoading && (
+                            <div className="flex items-center gap-2 text-sm text-[var(--muted)] py-4">
+                                <Loader2 size={16} className="animate-spin" />
+                                <span>Tekoäly analysoi ja vertailee käännöksiä...</span>
+                            </div>
+                        )}
+
+                        {aiError && (
+                            <p className="text-xs text-red-500 font-semibold">{aiError}</p>
+                        )}
+
+                        {aiResult && (
+                            <div className="space-y-4 mt-2">
+                                <div className="font-sans text-[var(--text-2)] text-[0.95rem] leading-relaxed">
+                                    <ReactMarkdown
+                                        components={markdownComponents({ invert: false, insightLayout: true })}
+                                        remarkPlugins={[remarkGfm]}
+                                    >
+                                        {aiResult.text}
+                                    </ReactMarkdown>
+                                </div>
+
+                                {activeScopeId && (
+                                    <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveAiComparison}
+                                            disabled={aiSaveStatus === 'saving'}
+                                            className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                                        >
+                                            {aiSaveStatus === 'saving' && 'Tallennetaan...'}
+                                            {aiSaveStatus === 'success' && 'Tallennettu! ✓'}
+                                            {aiSaveStatus === 'error' && 'Virhe tallennuksessa'}
+                                            {aiSaveStatus === 'idle' && 'Tallenna AI-vertailu työtilaan'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                <NextFocusChips
+                                    title="Suositellut teemat ja sanat"
+                                    items={aiResult.nextFocus ?? []}
+                                    onPick={handleNextFocusPick}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {deepDiveText && (
+                        <div className="mt-4 w-full">
+                            <DeepDiveCard
+                                title="Vertailun syvennys"
+                                text={deepDiveText}
+                                onClose={() => setDeepDiveText(null)}
+                            />
+                        </div>
+                    )}
 
                     {/* Detailed aligned table */}
                     {result.alignedVerses.length > 0 && (
