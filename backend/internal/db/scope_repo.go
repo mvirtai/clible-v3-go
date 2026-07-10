@@ -79,3 +79,13 @@ func (r *ScopeRepository) GetByID(ctx context.Context, id string, userID string)
 	}
 	return &s, nil
 }
+
+// Rename updates the name of a scope for a specific user.
+func (r *ScopeRepository) Rename(ctx context.Context, id string, name string, userID string) error {
+	query := `UPDATE scopes SET name = $1 WHERE id = $2 AND user_id = $3`
+	_, err := r.db.ExecContext(ctx, query, name, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to rename scope: %w", err)
+	}
+	return nil
+}

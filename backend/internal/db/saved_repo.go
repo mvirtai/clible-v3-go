@@ -143,3 +143,55 @@ func (r *SavedRepository) GetAnalysesByScope(ctx context.Context, scopeID string
 	}
 	return analyses, nil
 }
+
+// DeleteSearch deletes a saved search after verifying it belongs to a scope owned by the user.
+func (r *SavedRepository) DeleteSearch(ctx context.Context, id string, userID string) error {
+	query := `
+		DELETE FROM saved_searches 
+		WHERE id = $1 AND scope_id IN (SELECT id FROM scopes WHERE user_id = $2)
+	`
+	_, err := r.db.ExecContext(ctx, query, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete saved search: %w", err)
+	}
+	return nil
+}
+
+// RenameSearch renames a saved search after verifying ownership.
+func (r *SavedRepository) RenameSearch(ctx context.Context, id string, name string, userID string) error {
+	query := `
+		UPDATE saved_searches SET name = $1 
+		WHERE id = $2 AND scope_id IN (SELECT id FROM scopes WHERE user_id = $3)
+	`
+	_, err := r.db.ExecContext(ctx, query, name, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to rename saved search: %w", err)
+	}
+	return nil
+}
+
+// DeleteAnalysis deletes a saved analysis.
+func (r *SavedRepository) DeleteAnalysis(ctx context.Context, id string, userID string) error {
+	query := `
+		DELETE FROM saved_analyses 
+		WHERE id = $1 AND scope_id IN (SELECT id FROM scopes WHERE user_id = $2)
+	`
+	_, err := r.db.ExecContext(ctx, query, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete saved analysis: %w", err)
+	}
+	return nil
+}
+
+// RenameAnalysis renames a saved analysis.
+func (r *SavedRepository) RenameAnalysis(ctx context.Context, id string, name string, userID string) error {
+	query := `
+		UPDATE saved_analyses SET name = $1 
+		WHERE id = $2 AND scope_id IN (SELECT id FROM scopes WHERE user_id = $3)
+	`
+	_, err := r.db.ExecContext(ctx, query, name, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to rename saved analysis: %w", err)
+	}
+	return nil
+}
