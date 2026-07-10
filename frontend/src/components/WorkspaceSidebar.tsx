@@ -31,6 +31,18 @@ export const WorkspaceSidebar: React.FC<Props> = ({
       try {
         const list = await apiService.getScopes();
         setScopes(list || []);
+        
+        // Auto-select/heal activeScopeId if it belongs to another user or doesn't exist
+        const exists = (list || []).some(s => s.id === activeScopeId);
+        if (activeScopeId && !exists) {
+          if (list && list.length > 0) {
+            onScopeChanged(list[0].id);
+          } else {
+            onScopeChanged('');
+          }
+        } else if (!activeScopeId && list && list.length > 0) {
+          onScopeChanged(list[0].id);
+        }
       } catch {
         console.error('Failed to load scopes');
       } finally {
@@ -38,7 +50,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
       }
     };
     fetchScopes();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, activeScopeId, onScopeChanged]);
 
   useEffect(() => {
     const fetchWorkspace = async () => {

@@ -112,13 +112,21 @@ function App() {
       Promise.resolve().then(() => {
         handleSelectTranslation(firstId);
       });
+    } else if (activeList.length === 0 && selectedTranslation) {
+      Promise.resolve().then(() => {
+        handleSelectTranslation('');
+      });
     }
   }, [installedTranslations, selectedTranslation, handleSelectTranslation]);
 
-  const handleScopeChanged = (id: string) => {
+  const handleScopeChanged = useCallback((id: string) => {
     setActiveScopeId(id);
-    localStorage.setItem('activeScopeId', id);
-  };
+    if (id) {
+      localStorage.setItem('activeScopeId', id);
+    } else {
+      localStorage.removeItem('activeScopeId');
+    }
+  }, []);
 
   const handleLoadSavedSearch = (s: SavedSearch) => {
     if (s.searchScope === 'reference') {
@@ -522,6 +530,7 @@ function App() {
                 loadedSavedStats={loadedStats}
                 loadedSavedTone={loadedTone}
                 loadedSavedDeepDive={loadedDeepDive}
+                activeReference={activeReference}
               />
             )}
 
