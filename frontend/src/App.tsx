@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TranslationSelector } from './components/TranslationSelector';
 import { TranslationManager } from './components/TranslationManager';
@@ -84,19 +84,49 @@ function App() {
     }
   }
 
-  const handleSelectTranslation = (translation_id: string) => {
+  const handleSelectTranslation = useCallback(async (translation_id: string) => {
     setSelectedTranslation(translation_id);
     if (translation_id) {
       localStorage.setItem('selectedTranslation', translation_id);
+      const tr = installedTranslations.find(t => t.id === translation_id);
+      if (tr && !tr.installed) {
+        try {
+          await apiService.linkTranslation(translation_id);
+          setTranslationTrigger((p) => !p);
+        } catch (err) {
+          console.error('Failed to auto-link translation:', err);
+        }
+      }
     } else {
-      localStorage.removeItem('selectedTranslation')
+      localStorage.removeItem('selectedTranslation');
     }
-  }
+  }, [installedTranslations]);
 
-  const handleScopeChanged = (id: string) => {
+  // Auto-select first active translation if selectedTranslation is empty or invalid
+  useEffect(() => {
+    if (installedTranslations.length === 0) return;
+    const activeList = installedTranslations.filter((t) => t.installed);
+    const exists = activeList.some((t) => t.id === selectedTranslation);
+    if (activeList.length > 0 && (!selectedTranslation || !exists)) {
+      const firstId = activeList[0].id;
+      Promise.resolve().then(() => {
+        handleSelectTranslation(firstId);
+      });
+    } else if (activeList.length === 0 && selectedTranslation) {
+      Promise.resolve().then(() => {
+        handleSelectTranslation('');
+      });
+    }
+  }, [installedTranslations, selectedTranslation, handleSelectTranslation]);
+
+  const handleScopeChanged = useCallback((id: string) => {
     setActiveScopeId(id);
-    localStorage.setItem('activeScopeId', id);
-  };
+    if (id) {
+      localStorage.setItem('activeScopeId', id);
+    } else {
+      localStorage.removeItem('activeScopeId');
+    }
+  }, []);
 
   const handleLoadSavedSearch = (s: SavedSearch) => {
     if (s.searchScope === 'reference') {
@@ -379,7 +409,7 @@ function App() {
             <TranslationSelector
               selectedTranslation={selectedTranslation}
               onSelectTranslation={handleSelectTranslation}
-              refreshTrigger={translationTrigger}
+              translations={installedTranslations}
             />
           </div>
         </div>
@@ -500,6 +530,7 @@ function App() {
                 loadedSavedStats={loadedStats}
                 loadedSavedTone={loadedTone}
                 loadedSavedDeepDive={loadedDeepDive}
+                activeReference={activeReference}
               />
             )}
 

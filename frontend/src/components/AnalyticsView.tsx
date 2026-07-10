@@ -32,6 +32,7 @@ interface AnalyticsViewProps {
     } | null;
     loadedSavedTone?: AiTextResponse | null;
     loadedSavedDeepDive?: string | null;
+    activeReference?: string;
 }
 
 export const AnalyticsView = ({
@@ -40,9 +41,10 @@ export const AnalyticsView = ({
     onWorkspaceUpdated,
     loadedSavedStats,
     loadedSavedTone,
-    loadedSavedDeepDive
+    loadedSavedDeepDive,
+    activeReference
 }: AnalyticsViewProps) => {
-    const [reference, setReference] = useState<string>("John 3");
+    const [reference, setReference] = useState<string>(() => activeReference || "John 3");
     const [stats, setStats] = useState<TextStats | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -246,6 +248,17 @@ export const AnalyticsView = ({
                         Analysoi teksti
                     </button>
                 </div>
+                {activeReference && reference.trim().toLowerCase() !== activeReference.trim().toLowerCase() && (
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-[var(--muted)]">Viimeksi luettu jae:</span>
+                        <button
+                            onClick={() => setReference(activeReference)}
+                            className="px-2 py-0.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)] text-[var(--text)] transition-colors cursor-pointer"
+                        >
+                            {activeReference}
+                        </button>
+                    </div>
+                )}
                 {!defaultTranslation && (
                     <p className="text-xs text-red-500">Valitse käännös oikealta ylhäältä ennen analysointia.</p>
                 )}
