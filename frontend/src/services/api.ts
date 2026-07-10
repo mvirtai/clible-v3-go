@@ -523,7 +523,7 @@ export class ApiService {
         const res = await fetch(`${this.baseUrl}/ai/deep-dive`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ keyword, language, context }),
+            body: JSON.stringify({ topic: keyword, outputLanguage: language, context }),
             credentials: 'include',
         });
         if (!res.ok) throw new Error(`POST /ai/deep-dive returned ${res.status}`);
