@@ -178,8 +178,11 @@ export function OriginalStudyView({
   const [scope, setScope] = useState<StudyScope>('verse');
   const [originalId, setOriginalId] = useState<string>(() => originalOptions[0]?.id ?? '');
   const [targetIds, setTargetIds] = useState<string[]>(() => {
-    if (activeTranslationId && !isOriginalLanguage({ id: activeTranslationId, name: '', language: '', format: '' })) {
-      return [activeTranslationId];
+    if (activeTranslationId) {
+      const activeMeta = installedTranslations.find((tr) => tr.id === activeTranslationId);
+      if (activeMeta && !isOriginalLanguage(activeMeta)) {
+        return [activeTranslationId];
+      }
     }
     return targetOptions[0] ? [targetOptions[0].id] : [];
   });

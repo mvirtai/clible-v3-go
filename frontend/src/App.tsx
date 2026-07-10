@@ -16,6 +16,7 @@ import type { SavedSearch, SavedAnalysis } from './types/workspace';
 import type { SearchVerse } from './types/search';
 import { OriginalStudyView } from './components/OriginalStudyView';
 import type { OriginalStudyResult } from './types/originalStudy';
+import type { AiTextResponse } from './types/ai';
 
 interface LoadedSearchState {
   query: string;
@@ -227,21 +228,23 @@ function App() {
     setOriginalResult(null);
     setOriginalDeepDive(null);
     try {
-      const verses = await apiService.getVerses(ref, originalId);
+      const versesRes = await apiService.getVerses(ref, originalId);
+      const verses = versesRes.verses;
       if (verses.length === 0) {
         throw new Error(uiLanguage === 'fi' ? 'Alkutekstiä ei löytynyt tälle viitteelle.' : 'Original text not found for this reference.');
       }
-      const sourceText = verses.map((v) => v.text).join('\n');
+      const sourceText = verses.map((v: any) => v.text).join('\n');
       const sourceLanguage = originalId === 'greeksblgnt' ? 'grc' : 'he';
 
       const translations: Array<{ id: string; name: string; text: string }> = [];
       for (const tid of translationIds) {
-        const trVerses = await apiService.getVerses(ref, tid);
+        const trVersesRes = await apiService.getVerses(ref, tid);
+        const trVerses = trVersesRes.verses;
         const trMeta = installedTranslations.find((t) => t.id === tid);
         translations.push({
           id: tid,
           name: trMeta?.name || tid,
-          text: trVerses.map((v) => v.text).join('\n')
+          text: trVerses.map((v: any) => v.text).join('\n')
         });
       }
 

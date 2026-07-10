@@ -153,8 +153,8 @@ export function CompareView({
                 (match) => resolveBookId(match) ?? match,
             );
             // Combine all left and right texts
-            const leftText = result.alignedVerses.map(r => `${r.verseNumber}: ${r.textA}`).join('\n');
-            const rightText = result.alignedVerses.map(r => `${r.verseNumber}: ${r.textB}`).join('\n');
+            const leftText = result.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n');
+            const rightText = result.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n');
             const res = await apiService.getAiComparison({
                 reference: normalized,
                 translationA: leftTr,
@@ -210,8 +210,8 @@ export function CompareView({
                     (match) => resolveBookId(match) ?? match,
                 );
                 // Combine all left and right texts for context
-                const leftText = result?.alignedVerses.map(r => `${r.verseNumber}: ${r.textA}`).join('\n') || '';
-                const rightText = result?.alignedVerses.map(r => `${r.verseNumber}: ${r.textB}`).join('\n') || '';
+                const leftText = result?.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n') || '';
+                const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
                 const res = await apiService.getAiDeepDive(
                     it.label,
                     'fi',
