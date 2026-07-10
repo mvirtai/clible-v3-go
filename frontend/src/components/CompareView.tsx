@@ -8,6 +8,7 @@ import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../utils/markdownComponents';
 import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
+import { GeminiUsage } from './GeminiUsage';
 import type { AiTextResponse, NextFocusItem } from '../types/ai';
 
 interface CompareViewProps {
@@ -490,6 +491,7 @@ export function CompareView({
                                     >
                                         {aiResult.text}
                                     </ReactMarkdown>
+                                    <GeminiUsage usage={aiResult.geminiUsageMetadata} />
                                 </div>
 
                                 {activeScopeId && (

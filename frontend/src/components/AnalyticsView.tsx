@@ -18,6 +18,7 @@ import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../utils/markdownComponents';
 import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
+import { GeminiUsage } from './GeminiUsage';
 import type { AiTextResponse, NextFocusItem } from '../types/ai';
 
 interface AnalyticsViewProps {
@@ -476,6 +477,7 @@ export const AnalyticsView = ({
                                             >
                                                 {toneResult.text}
                                             </ReactMarkdown>
+                                            <GeminiUsage usage={toneResult.geminiUsageMetadata} />
                                         </div>
 
                                         {activeScopeId && (

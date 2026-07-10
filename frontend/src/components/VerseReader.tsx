@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../utils/markdownComponents';
 import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
+import { GeminiUsage } from './GeminiUsage';
 import type { AiTextResponse, NextFocusItem } from '../types/ai';
 
 interface Props {
@@ -410,6 +411,7 @@ export const VerseReader: React.FC<Props> = ({
                   >
                     {aiInsight.text}
                   </ReactMarkdown>
+                  <GeminiUsage usage={aiInsight.geminiUsageMetadata} />
                 </div>
 
                 {activeScopeId && (

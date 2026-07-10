@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import type { InstalledTranslation } from '../types/bible';
 import type { OriginalStudyResult, StudyScope } from '../types/originalStudy';
 import { markdownComponents } from '../utils/markdownComponents';
+import { GeminiUsage } from './GeminiUsage';
 import type { NextFocusItem } from '../types/ai';
 import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
@@ -439,6 +440,7 @@ export function OriginalStudyView({
               >
                 {result.text}
               </ReactMarkdown>
+              <GeminiUsage usage={result.geminiUsageMetadata} />
             </div>
             {activeScopeId && (
               <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
