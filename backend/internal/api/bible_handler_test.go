@@ -79,8 +79,8 @@ func TestBibleHandler_GetVersesByReference_ParseError(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.GetVersesByReference(rr, req)
 
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500 for invalid reference parsing error, got %d", rr.Code)
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 for invalid reference parsing error, got %d", rr.Code)
 	}
 }
 

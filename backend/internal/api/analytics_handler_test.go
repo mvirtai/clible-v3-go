@@ -172,7 +172,7 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 			}
 		})
 
-		t.Run("POST /api/analytics/compare returns 500 Internal Server Error when verse parsing fails", func(t *testing.T) {
+		t.Run("POST /api/analytics/compare returns 400 Bad Request when verse parsing fails", func(t *testing.T) {
 			// Pass an un-parsable reference sequence to force VerseService.GetVerses to throw an error
 			payload := map[string]string{
 				"reference":      "InvalidReferenceFormat!!!",
@@ -185,8 +185,8 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 
 			handler.Compare(rec, req)
 
-			if rec.Code != http.StatusInternalServerError {
-				t.Errorf("expected HTTP 500 Internal Server Error, got %d", rec.Code)
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("expected HTTP 400 Bad Request, got %d", rec.Code)
 			}
 		})
 	})
