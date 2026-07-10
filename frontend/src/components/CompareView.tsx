@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { GitCompareArrows, Loader2, Save, Sparkles, Brain } from 'lucide-react';
+import { GitCompareArrows, Loader2, Save, Brain } from 'lucide-react';
 import { apiService } from '../services/api';
 import type { InstalledTranslation, ComparisonResult } from '../types/bible';
 import { resolveBookId } from '../utils/bookNames';

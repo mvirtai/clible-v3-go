@@ -99,7 +99,7 @@ export const VerseReader: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  }, [translation]);
+  }, [translation, loadedSavedInsight]);
 
   const handleFetchInsight = async () => {
     if (!data || data.verses.length === 0) return;
