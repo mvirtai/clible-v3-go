@@ -10,7 +10,7 @@ import { markdownComponents } from '../utils/markdownComponents';
 import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
 import { GeminiUsage } from './GeminiUsage';
-import type { AiTextResponse, NextFocusItem } from '../types/ai';
+import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../types/ai';
 
 interface Props {
   translation: string;
@@ -44,6 +44,7 @@ export const VerseReader: React.FC<Props> = ({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
+  const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
   const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   const isFinnish = translation.toLowerCase().startsWith('fi') || translation.toLowerCase().includes('fin');
@@ -63,6 +64,7 @@ export const VerseReader: React.FC<Props> = ({
   const normalizedSavedDeepDive = loadedSavedDeepDive || null;
   if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
     setDeepDiveText(normalizedSavedDeepDive);
+    setDeepDiveUsage(null);
     setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
   }
 
@@ -73,6 +75,7 @@ export const VerseReader: React.FC<Props> = ({
     if (!loadedSavedInsight) {
       setAiInsight(null);
       setDeepDiveText(null);
+      setDeepDiveUsage(null);
     }
   }
 
@@ -91,6 +94,7 @@ export const VerseReader: React.FC<Props> = ({
     if (!loadedSavedInsight) {
       setAiInsight(null);
       setDeepDiveText(null);
+      setDeepDiveUsage(null);
     }
     setAiError(null);
     try {
@@ -160,6 +164,7 @@ export const VerseReader: React.FC<Props> = ({
       try {
         const res = await apiService.getAiDeepDive(it.label, lang, { reference: data?.reference || reference });
         setDeepDiveText(res.text);
+        setDeepDiveUsage(res.geminiUsageMetadata || null);
       } catch (err) {
         const errorObj = err as Error;
         setAiError(errorObj.message || 'Deep dive failed.');
@@ -440,7 +445,11 @@ export const VerseReader: React.FC<Props> = ({
                   <DeepDiveCard
                     title={lang === 'fi' ? 'Syvennys' : 'Deep dive'}
                     text={deepDiveText}
-                    onClose={() => setDeepDiveText(null)}
+                    onClose={() => {
+                      setDeepDiveText(null);
+                      setDeepDiveUsage(null);
+                    }}
+                    geminiUsageMetadata={deepDiveUsage || undefined}
                   />
                 )}
               </div>
