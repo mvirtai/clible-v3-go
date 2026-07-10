@@ -53,15 +53,17 @@ export function CompareView({
     const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
     const [prevLoadedSavedAi, setPrevLoadedSavedAi] = useState<AiTextResponse | null>(null);
-    if (loadedSavedAi !== prevLoadedSavedAi) {
-        setAiResult(loadedSavedAi || null);
-        setPrevLoadedSavedAi(loadedSavedAi || null);
+    const normalizedSavedAi = loadedSavedAi || null;
+    if (normalizedSavedAi !== prevLoadedSavedAi) {
+        setAiResult(normalizedSavedAi);
+        setPrevLoadedSavedAi(normalizedSavedAi);
     }
 
     const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
-    if (loadedSavedDeepDive !== prevLoadedSavedDeepDive) {
-        setDeepDiveText(loadedSavedDeepDive || null);
-        setPrevLoadedSavedDeepDive(loadedSavedDeepDive || null);
+    const normalizedSavedDeepDive = loadedSavedDeepDive || null;
+    if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
+        setDeepDiveText(normalizedSavedDeepDive);
+        setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
     }
 
     // Tallennuksen tilat

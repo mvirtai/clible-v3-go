@@ -55,15 +55,17 @@ export const AnalyticsView = ({
     const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
 
     const [prevLoadedSavedTone, setPrevLoadedSavedTone] = useState<AiTextResponse | null>(null);
-    if (loadedSavedTone !== prevLoadedSavedTone) {
-        setToneResult(loadedSavedTone || null);
-        setPrevLoadedSavedTone(loadedSavedTone || null);
+    const normalizedSavedTone = loadedSavedTone || null;
+    if (normalizedSavedTone !== prevLoadedSavedTone) {
+        setToneResult(normalizedSavedTone);
+        setPrevLoadedSavedTone(normalizedSavedTone);
     }
 
     const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
-    if (loadedSavedDeepDive !== prevLoadedSavedDeepDive) {
-        setDeepDiveText(loadedSavedDeepDive || null);
-        setPrevLoadedSavedDeepDive(loadedSavedDeepDive || null);
+    const normalizedSavedDeepDive = loadedSavedDeepDive || null;
+    if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
+        setDeepDiveText(normalizedSavedDeepDive);
+        setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
     }
     const [toneSaveStatus, setToneSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 

@@ -52,15 +52,17 @@ export const VerseReader: React.FC<Props> = ({
 
   // Sync state during render instead of in useEffect to avoid cascading renders warning
   const [prevLoadedSavedInsight, setPrevLoadedSavedInsight] = useState<AiTextResponse | null>(null);
-  if (loadedSavedInsight !== prevLoadedSavedInsight) {
-    setAiInsight(loadedSavedInsight || null);
-    setPrevLoadedSavedInsight(loadedSavedInsight || null);
+  const normalizedSavedInsight = loadedSavedInsight || null;
+  if (normalizedSavedInsight !== prevLoadedSavedInsight) {
+    setAiInsight(normalizedSavedInsight);
+    setPrevLoadedSavedInsight(normalizedSavedInsight);
   }
 
   const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
-  if (loadedSavedDeepDive !== prevLoadedSavedDeepDive) {
-    setDeepDiveText(loadedSavedDeepDive || null);
-    setPrevLoadedSavedDeepDive(loadedSavedDeepDive || null);
+  const normalizedSavedDeepDive = loadedSavedDeepDive || null;
+  if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
+    setDeepDiveText(normalizedSavedDeepDive);
+    setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
   }
 
   if (activeReference !== prevActiveReference) {
