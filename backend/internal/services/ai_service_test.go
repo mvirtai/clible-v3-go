@@ -31,8 +31,14 @@ type mockContent struct {
 type mockCandidate struct {
 	Content mockContent `json:"content"`
 }
+type mockUsageMetadata struct {
+	PromptTokenCount     int `json:"promptTokenCount"`
+	CandidatesTokenCount int `json:"candidatesTokenCount"`
+	TotalTokenCount      int `json:"totalTokenCount"`
+}
 type mockResponse struct {
-	Candidates []mockCandidate `json:"candidates"`
+	Candidates    []mockCandidate   `json:"candidates"`
+	UsageMetadata mockUsageMetadata `json:"usageMetadata"`
 }
 
 func makeMockResponseJSON(text string) string {
@@ -45,6 +51,11 @@ func makeMockResponseJSON(text string) string {
 					},
 				},
 			},
+		},
+		UsageMetadata: mockUsageMetadata{
+			PromptTokenCount:     10,
+			CandidatesTokenCount: 20,
+			TotalTokenCount:      30,
 		},
 	}
 	bytes, _ := json.Marshal(resp)
@@ -93,6 +104,16 @@ func TestAIService_GetInsight(t *testing.T) {
 
 	if resp.NextFocus[0].Label != "love" {
 		t.Errorf("expected label 'love', got %q", resp.NextFocus[0].Label)
+	}
+
+	if resp.GeminiUsageMetadata.PromptTokenCount != 10 {
+		t.Errorf("expected PromptTokenCount 10, got %d", resp.GeminiUsageMetadata.PromptTokenCount)
+	}
+	if resp.GeminiUsageMetadata.CandidatesTokenCount != 20 {
+		t.Errorf("expected CandidatesTokenCount 20, got %d", resp.GeminiUsageMetadata.CandidatesTokenCount)
+	}
+	if resp.GeminiUsageMetadata.TotalTokenCount != 30 {
+		t.Errorf("expected TotalTokenCount 30, got %d", resp.GeminiUsageMetadata.TotalTokenCount)
 	}
 }
 

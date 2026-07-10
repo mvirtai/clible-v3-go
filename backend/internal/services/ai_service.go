@@ -82,6 +82,17 @@ const aiSearchSummarySystemInstruction = "You summarize Bible search results for
 	"Use real Markdown (## heading + short paragraphs). Keep the answer concise (under 250 words)."
 
 // Structs matching the JSON footers and models
+type GeminiUsageMetadata struct {
+	PromptTokenCount     int `json:"promptTokenCount"`
+	CandidatesTokenCount int `json:"candidatesTokenCount"`
+	TotalTokenCount      int `json:"totalTokenCount"`
+}
+
+type geminiResponse struct {
+	Candidates    []geminiCandidate   `json:"candidates"`
+	UsageMetadata GeminiUsageMetadata `json:"usageMetadata"`
+}
+
 type NextFocusItem struct {
 	Label  string `json:"label"`
 	Kind   string `json:"kind"`
@@ -89,8 +100,9 @@ type NextFocusItem struct {
 }
 
 type AIResponse struct {
-	Text      string          `json:"text"`
-	NextFocus []NextFocusItem `json:"nextFocus"`
+	Text                string              `json:"text"`
+	NextFocus           []NextFocusItem     `json:"nextFocus"`
+	GeminiUsageMetadata GeminiUsageMetadata `json:"geminiUsageMetadata,omitempty"`
 }
 
 // SearchPlan is the planner's structured output
@@ -158,14 +170,10 @@ type geminiCandidate struct {
 	Content geminiContent `json:"content"`
 }
 
-type geminiResponse struct {
-	Candidates []geminiCandidate `json:"candidates"`
-}
-
 // callGemini makes a raw JSON HTTP POST request to the Google Gemini generateContent endpoint
-func (s *aiServiceImpl) callGemini(ctx context.Context, model, systemPrompt, userPrompt string, forceJSON bool) (string, error) {
+func (s *aiServiceImpl) callGemini(ctx context.Context, model, systemPrompt, userPrompt string, forceJSON bool) (string, *GeminiUsageMetadata, error) {
 	if s.cfg.GeminiAPIKey == "" {
-		return "", fmt.Errorf("gemini API key is not configured")
+		return "", nil, fmt.Errorf("gemini API key is not configured")
 	}
 
 	reqPayload := geminiRequest{
@@ -190,39 +198,39 @@ func (s *aiServiceImpl) callGemini(ctx context.Context, model, systemPrompt, use
 
 	jsonData, err := json.Marshal(reqPayload)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal Gemini request payload: %w", err)
+		return "", nil, fmt.Errorf("failed to marshal Gemini request payload: %w", err)
 	}
 
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, s.cfg.GeminiAPIKey)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return "", fmt.Errorf("failed to create http request: %w", err)
+		return "", nil, fmt.Errorf("failed to create http request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to perform Gemini http request: %w", err)
+		return "", nil, fmt.Errorf("failed to perform Gemini http request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		var errData map[string]interface{}
 		_ = json.NewDecoder(resp.Body).Decode(&errData)
-		return "", fmt.Errorf("gemini API returned HTTP status %d: %v", resp.StatusCode, errData)
+		return "", nil, fmt.Errorf("gemini API returned HTTP status %d: %v", resp.StatusCode, errData)
 	}
 
 	var geminiResp geminiResponse
 	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
-		return "", fmt.Errorf("failed to decode Gemini API response: %w", err)
+		return "", nil, fmt.Errorf("failed to decode Gemini API response: %w", err)
 	}
 
 	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("received empty candidates from Gemini API")
+		return "", nil, fmt.Errorf("received emp	ty response from Gemini API")
 	}
 
-	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
+	return geminiResp.Candidates[0].Content.Parts[0].Text, &geminiResp.UsageMetadata, nil
 }
 
 // parseAIResponse extracts the json footer block from the markdown output
@@ -298,12 +306,16 @@ func (s *aiServiceImpl) GetInsight(ctx context.Context, text, focus string) (*AI
 		"- After your Markdown answer, append the required JSON footer (see below).\n\n"+
 		"```json\n{ \"next_focus\": [ { \"label\": \"…\", \"kind\": \"theme\", \"reason\": \"…\" } ] }\n```", text, focusDirective(focus))
 
-	raw, err := s.callGemini(ctx, s.cfg.GeminiModelInsight, insightSystemInstruction, prompt, false)
+	raw, usage, err := s.callGemini(ctx, s.cfg.GeminiModelInsight, insightSystemInstruction, prompt, false)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseAIResponse(raw), nil
+	resp := parseAIResponse(raw)
+	if usage != nil {
+		resp.GeminiUsageMetadata = *usage
+	}
+	return resp, nil
 }
 
 func (s *aiServiceImpl) GetTone(ctx context.Context, text, focus string) (*AIResponse, error) {
@@ -331,12 +343,16 @@ func (s *aiServiceImpl) GetTone(ctx context.Context, text, focus string) (*AIRes
 		"- Append the required JSON footer as the final block.\n\n"+
 		"```json\n{ \"next_focus\": [ { \"label\": \"…\", \"kind\": \"theme\", \"reason\": \"…\" } ] }\n```", text, focusDirective(focus))
 
-	raw, err := s.callGemini(ctx, s.cfg.GeminiModelTone, toneSystemInstruction, prompt, false)
+	raw, usage, err := s.callGemini(ctx, s.cfg.GeminiModelTone, toneSystemInstruction, prompt, false)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseAIResponse(raw), nil
+	resp := parseAIResponse(raw)
+	if usage != nil {
+		resp.GeminiUsageMetadata = *usage
+	}
+	return resp, nil
 }
 
 func (s *aiServiceImpl) DeepDive(ctx context.Context, topic, outputLanguage string, contextData map[string]interface{}) (*AIResponse, error) {
@@ -373,12 +389,16 @@ func (s *aiServiceImpl) DeepDive(ctx context.Context, topic, outputLanguage stri
 		"- End with the required JSON footer.%s\n"+
 		"## Topic\n\n%s", langLabel, contextBlock, strings.TrimSpace(topic))
 
-	raw, err := s.callGemini(ctx, s.cfg.GeminiModelInsight, deepDiveSystemInstruction, prompt, false)
+	raw, usage, err := s.callGemini(ctx, s.cfg.GeminiModelInsight, deepDiveSystemInstruction, prompt, false)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseAIResponse(raw), nil
+	resp := parseAIResponse(raw)
+	if usage != nil {
+		resp.GeminiUsageMetadata = *usage
+	}
+	return resp, nil
 }
 
 func (s *aiServiceImpl) OriginalStudy(ctx context.Context, reference, sourceText, sourceLanguage string, translations []map[string]string, scope, focus string) (*AIResponse, error) {
@@ -480,12 +500,16 @@ func (s *aiServiceImpl) OriginalStudy(ctx context.Context, reference, sourceText
 			"---\n\n%s", reference, langLabel, len(translations), focusDirective(focus), reference, langLabel, sourceText, translationBlock)
 	}
 
-	raw, err := s.callGemini(ctx, s.cfg.GeminiModelOriginal, originalStudySystemInstruction, prompt, false)
+	raw, usage, err := s.callGemini(ctx, s.cfg.GeminiModelOriginal, originalStudySystemInstruction, prompt, false)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseAIResponse(raw), nil
+	resp := parseAIResponse(raw)
+	if usage != nil {
+		resp.GeminiUsageMetadata = *usage
+	}
+	return resp, nil
 }
 
 func (s *aiServiceImpl) AISearch(ctx context.Context, query, translationID, uiLanguage string) (map[string]interface{}, error) {
@@ -499,7 +523,7 @@ func (s *aiServiceImpl) AISearch(ctx context.Context, query, translationID, uiLa
 		"Note on 'book': If scope is 'book', specify the book name in Finnish or English, or prefer a 3-letter uppercase canonical identifier (e.g. PSA, GEN, JHN, ROM) if you are certain of it.\n\n"+
 		"User question:\n%s", translationID, langLabel, strings.TrimSpace(query))
 
-	planRaw, err := s.callGemini(ctx, s.cfg.GeminiModelSearch, aiSearchPlannerSystemInstruction, plannerPrompt, true)
+	planRaw, usagePlanner, err := s.callGemini(ctx, s.cfg.GeminiModelSearch, aiSearchPlannerSystemInstruction, plannerPrompt, true)
 	if err != nil {
 		return nil, fmt.Errorf("AI search planner phase failed: %w", err)
 	}
@@ -586,7 +610,7 @@ func (s *aiServiceImpl) AISearch(ctx context.Context, query, translationID, uiLa
 		"- 2-4 short paragraphs on themes and patterns across the hits\n"+
 		"- Mention specific references inline only when they appear in the list above", query, langLabel, snippetBlock.String(), langLabel)
 
-	summaryRaw, err := s.callGemini(ctx, s.cfg.GeminiModelSearch, aiSearchSummarySystemInstruction, summaryPrompt, false)
+	summaryRaw, usageSummarizer, err := s.callGemini(ctx, s.cfg.GeminiModelSearch, aiSearchSummarySystemInstruction, summaryPrompt, false)
 	if err != nil {
 		return nil, fmt.Errorf("AI search summarizer phase failed: %w", err)
 	}
@@ -606,6 +630,24 @@ func (s *aiServiceImpl) AISearch(ctx context.Context, query, translationID, uiLa
 		"citedReferences": citedRefs,
 	}
 
+	var totalPrompt, totalCandidates, totalTotal int
+	if usagePlanner != nil {
+		totalPrompt += usagePlanner.PromptTokenCount
+		totalCandidates += usagePlanner.CandidatesTokenCount
+		totalTotal += usagePlanner.TotalTokenCount
+	}
+	if usageSummarizer != nil {
+		totalPrompt += usageSummarizer.PromptTokenCount
+		totalCandidates += usageSummarizer.CandidatesTokenCount
+		totalTotal += usageSummarizer.TotalTokenCount
+	}
+
+	result["usageMetadata"] = GeminiUsageMetadata{
+		PromptTokenCount:     totalPrompt,
+		CandidatesTokenCount: totalCandidates,
+		TotalTokenCount:      totalTotal,
+	}
+
 	return result, nil
 }
 
@@ -623,10 +665,14 @@ func (s *aiServiceImpl) GetComparison(ctx context.Context, reference, transA, te
 		userPrompt = fmt.Sprintf("Passage: %s\n\nTranslation A (%s):\n%s\n\nTranslation B (%s):\n%s\n\nCompare these two translations and analyze their differences.", reference, transA, textA, transB, textB)
 	}
 
-	raw, err := s.callGemini(ctx, s.cfg.GeminiModelTone, compareSystemInstruction, userPrompt, false)
+	raw, usage, err := s.callGemini(ctx, s.cfg.GeminiModelTone, compareSystemInstruction, userPrompt, false)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseAIResponse(raw), nil
+	resp := parseAIResponse(raw)
+	if usage != nil {
+		resp.GeminiUsageMetadata = *usage
+	}
+	return resp, nil
 }
