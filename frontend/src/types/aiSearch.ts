@@ -1,3 +1,5 @@
+import type { GeminiUsageMetadata } from "./ai";
+
 export type AiSearchMode = "phrase" | "words" | "wildcard";
 export type AiSearchOperator = "and" | "or" | "not";
 export type AiSearchScope = "bible" | "ot" | "nt" | "book";
@@ -35,4 +37,5 @@ export interface AiSearchResponse {
         }>;
     };
     summary: AiSearchSummary | null;
+    usageMetadata?: GeminiUsageMetadata;
 }
