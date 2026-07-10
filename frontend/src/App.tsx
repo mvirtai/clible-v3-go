@@ -233,7 +233,7 @@ function App() {
       if (verses.length === 0) {
         throw new Error(uiLanguage === 'fi' ? 'Alkutekstiä ei löytynyt tälle viitteelle.' : 'Original text not found for this reference.');
       }
-      const sourceText = verses.map((v: any) => v.text).join('\n');
+      const sourceText = verses.map((v: { text: string }) => v.text).join('\n');
       const sourceLanguage = originalId === 'greeksblgnt' ? 'grc' : 'he';
 
       const translations: Array<{ id: string; name: string; text: string }> = [];
@@ -244,7 +244,7 @@ function App() {
         translations.push({
           id: tid,
           name: trMeta?.name || tid,
-          text: trVerses.map((v: any) => v.text).join('\n')
+          text: trVerses.map((v: { text: string }) => v.text).join('\n')
         });
       }
 
