@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
@@ -56,6 +57,11 @@ func (h *AnalyticsHandler) Analyze(w http.ResponseWriter, r *http.Request) {
 	// 1. Fetch targeted text structures
 	verses, err := h.verseService.GetVerses(ctx, req.Reference, req.TranslationID)
 	if err != nil {
+		if strings.Contains(err.Error(), "failed to parse reference") {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
@@ -89,6 +95,11 @@ func (h *AnalyticsHandler) Compare(w http.ResponseWriter, r *http.Request) {
 	// Gather baseline translation group
 	verses1, err := h.verseService.GetVerses(ctx, req.Reference, req.TranslationID1)
 	if err != nil {
+		if strings.Contains(err.Error(), "failed to parse reference") {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
@@ -97,6 +108,11 @@ func (h *AnalyticsHandler) Compare(w http.ResponseWriter, r *http.Request) {
 	// Gather target comparative translation group
 	verses2, err := h.verseService.GetVerses(ctx, req.Reference, req.TranslationID2)
 	if err != nil {
+		if strings.Contains(err.Error(), "failed to parse reference") {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return

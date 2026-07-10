@@ -3,6 +3,9 @@ import type { BibleResponse, InstalledTranslation, TextStats, ComparisonResult }
 import type { SearchHistoryEntry } from "../types/searchQuery";
 import type { SearchVerse } from "../types/search";
 import type { Scope, SavedSearch, SavedAnalysis, ScopeWorkspace } from "../types/workspace";
+import type { AiTextResponse } from "../types/ai";
+import type { AiSearchResponse } from "../types/aiSearch";
+import type { OriginalStudyResult } from "../types/originalStudy";
 
 
 // raw api types matching the Go backend JSON responses

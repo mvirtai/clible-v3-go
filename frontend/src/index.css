@@ -62,38 +62,40 @@ code {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
-/* ─── Layout ────────────────────────────────────────────────────────── */
-body {
-  margin: 0;
-}
+@layer base {
+  /* ─── Layout ────────────────────────────────────────────────────────── */
+  body {
+    margin: 0;
+  }
 
-#root {
-  min-height: 100svh;
-  background: var(--bg);
-  color: var(--text);
-}
+  #root {
+    min-height: 100svh;
+    background: var(--bg);
+    color: var(--text);
+  }
 
-/* ─── Typography ────────────────────────────────────────────────────── */
-h1,
-h2,
-h3 {
-  font-family: var(--sans);
-  font-weight: 500;
-  color: var(--text);
-  margin: 0;
-}
+  /* ─── Typography ────────────────────────────────────────────────────── */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--sans);
+    font-weight: 500;
+    color: var(--text);
+    margin: 0;
+  }
 
-p {
-  margin: 0;
-}
+  p {
+    margin: 0;
+  }
 
-code {
-  font-family: var(--mono);
-  font-size: 14px;
-  padding: 2px 6px;
-  background: var(--surface-2);
-  border-radius: 4px;
-  color: var(--text);
+  code {
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 2px 6px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    color: var(--text);
+  }
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────────── */

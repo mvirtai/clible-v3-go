@@ -82,6 +82,12 @@ func RateLimitMiddleware(limiter *IPRateLimiter) func(http.Handler) http.Handler
 				ip = r.RemoteAddr
 			}
 
+			// Bypass rate limiting for localhost/loopback IPs (developer machine)
+			if ip == "127.0.0.1" || ip == "::1" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			lim := limiter.GetLimiter(ip)
 			if !lim.Allow() {
 				http.Error(w, "Too Many Requests - quota exceeded", http.StatusTooManyRequests)
