@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -115,6 +116,7 @@ func (h *HistoryHandler) GetRecentHistory(w http.ResponseWriter, r *http.Request
 
 	dbHistory, err := h.historyService.GetRecentHistory(ctx, userID, limit)
 	if err != nil {
+		slog.Error("GetRecentHistory failed", "error", err, "userId", userID)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to query history log state: " + err.Error()})
 		return
