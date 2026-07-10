@@ -16,6 +16,14 @@ func InitializeDB(databaseURL string) (*sql.DB, error) {
 	var err error
 
 	if strings.HasPrefix(databaseURL, "postgres://") || strings.HasPrefix(databaseURL, "postgresql://") {
+		// Neon PostgreSQL / PgBouncer transaction pooling requires binary_parameters=yes to bypass prepared statements cache issues
+		if !strings.Contains(databaseURL, "binary_parameters=") {
+			if strings.Contains(databaseURL, "?") {
+				databaseURL += "&binary_parameters=yes"
+			} else {
+				databaseURL += "?binary_parameters=yes"
+			}
+		}
 		db, err = sql.Open("postgres", databaseURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open postgres database: %w", err)
