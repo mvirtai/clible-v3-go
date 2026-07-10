@@ -193,14 +193,22 @@ Frontendin perusta ja keskeiset ydinominaisuudet on toteutettu (PR #16 ja PR #17
 ## 10. Pitkän aikavälin ominaisuudet (Backlog)
 
 - [ ] **Monimuotohaku** — Yhdistelmähaku (viittaus + teksti + regex yhtenä kyselynä)
-- [ ] **Käyttäjätilit ja autentikaatio** — JWT tai session-pohjainen kirjautuminen, scopes per käyttäjä
-- [ ] **Käännösten vertailusivut** — Sama jae usealla käännöksellä rinnakkain
+- [x] **Käyttäjätilit ja autentikaatio** — JWT-pohjainen kirjautuminen toteutettu
 - [ ] **Morfologinen analyysi** — Heprean/kreikan alkukielen sanojen jäsennys
 - [ ] **Konkordanssi** — Sanan esiintymiskertojen luettelointi koko raamatusta
-- [ ] **Export-toiminnot** — Jakeiden vienti PDF:ksi, CSV:ksi tai tekstiksi
-- [ ] **Offline-tuki (PWA)** — Service worker, tietokannan välimuisti selaimessa
-- [ ] **Lokalisointi** — Käyttöliittymä suomeksi ja englanniksi
 
 ---
 
-*Päivitetty: 2026-06-27. Päivitä tiloja sitä mukaa kuin PR:t mergetään.*
+## 11. Clible Notebooks & Study Paths (Suunnitteluvaihe)
+
+Tämä uusi kehityspolku yhdistää muistiinpanot (Markdown), interaktiivisen komentorivin (CLI) sekä teologisen tietograafin (Study Paths) Jupyter Notebook -tyyliseksi työkirjaksi. Suunnitelmat löytyvät kansiosta `.plans/05-notebooks-and-study-paths/`.
+
+- [ ] **Vaihe 1: Notebook-perusta ja tietomalli** (Tietokantataulut, CRUD-backend ja perussolujen React-käyttöliittymä)
+- [ ] **Vaihe 2: Älykäs editori ja edistyneet CLI-komennot** (Komentotulkki `/read`, `/search`, `/compare`, `/analyze` -komennoille sekä autokompletointi)
+- [ ] **Vaihe 3: Opintomoduulit ja tietograafin visualisointi** (Graafitietokanta, `/graph`-visualisointi ja valmiit monistettavat Notebook-opintopolut)
+- [ ] **Vaihe 4: Yhteisöllisyys ja export-toiminnot** (Reaaliaikainen yhteismuokkaus ryhmissä ja vienti Markdown/PDF-muotoihin)
+
+---
+
+*Päivitetty: 2026-07-10. Tiedostot järjestetty loogisiin alikansioihin aihealueittain.*
+
