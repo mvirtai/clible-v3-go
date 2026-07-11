@@ -75,6 +75,14 @@ func RunMigrations(db *sql.DB) error {
 			case "004_drop_verses_text_index.sql":
 				content = "-- No-op in PostgreSQL"
 			}
+		} else {
+			// Adapt PostgreSQL-specific schema constructs for SQLite tests
+			if filename == "012_notebooks.sql" {
+				content = strings.ReplaceAll(content, "default gen_random_uuid()", "")
+				content = strings.ReplaceAll(content, "create type cell_type as enum('markdown', 'code');", "")
+				content = strings.ReplaceAll(content, "type        cell_type", "type        text")
+				content = strings.ReplaceAll(content, "drop type if exists cell_type;", "")
+			}
 		}
 
 		// Execute migration logic wrapped in a database transaction block

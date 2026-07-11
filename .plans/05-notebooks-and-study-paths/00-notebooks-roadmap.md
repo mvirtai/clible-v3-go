@@ -22,7 +22,7 @@ Keskittyy tietokantarakenteeseen, backendin perusrajapintoihin sekä React-pohja
 * **Backend:**
   * Tietokantamigraatio: `notebooks`- ja `notebook_cells`-taulut.
   * CRUD-palvelut ja -repositoriot.
-  * API-endpointit: `GET /api/notebooks`, `POST /api/notebooks`, `PUT /api/notebooks/:id`, `DELETE /api/notebooks/:id` sekä solukohtaiset päivitykset.
+  * API-endpointit: `GET /api/notebooks`, `POST /api/notebooks`, `PUT /api/notebooks/:id`, `DELETEhttps://developers.google.com/identity/sign-in/web/devconsole-project /api/notebooks/:id` sekä solukohtaiset päivitykset.
 * **Frontend:**
   * Jupyter-tyylinen käyttöliittymä (Markdown- ja komentorivisolut).
   * Markdown-solujen renderöinti (Rich Text) ja editointi (Raw text -kenttä).
@@ -35,7 +35,7 @@ Parantaa Notebookien käytettävyyttä ja tuo mukaan monipuolisempia analyysity�
 * **Komentotulkki:**
   * Laajennetut komennot: `/compare` (rinnakkaisvertailu) ja `/analyze` (tekstianalyysi).
   * Kyselytulosten dynaaminen renderöinti solujen alle (taulukot ja graafit Recharts-kirjastolla).
-* **Editorin parannukset:**
+* **Editorin parannukset:*i*
   * Auto-complete / IntelliSense `/`-komentotulkin käynnistämiseksi.
   * Pikahaku ja -viitteet `[`-merkillä (jaehaku ja linkitys).
 

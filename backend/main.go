@@ -42,12 +42,14 @@ func main() {
 	savedRepo := db.NewSavedRepository(dbConn)
 	bookRepo := db.NewBookRepository(dbConn)
 	userRepo := db.NewUserRepository(dbConn)
+	notebookRepo := db.NewNotebookRepository(dbConn)
 
 	// --- Services & Parsers ---
 	verseService := services.NewVerseService(verseRepo, translationRepo)
 	historyService := services.NewSearchHistoryService(historyRepo)
 	scopeService := services.NewScopeService(scopeRepo, savedRepo)
 	bookService := services.NewBookService(bookRepo)
+	notebookService := services.NewNotebookService(notebookRepo)
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -77,6 +79,7 @@ func main() {
 	bookHandler := api.NewBookHandler(bookService)
 	authHandler := api.NewAuthHandler(authService, userRepo)
 	aiHandler := api.NewAIHandler(aiService)
+	notebookHandler := api.NewNotebookHandler(notebookService)
 
 	mux := http.NewServeMux()
 
@@ -117,6 +120,14 @@ func main() {
 	mux.Handle("DELETE /api/scopes/saved-analyses", requireAuth(http.HandlerFunc(scopeHandler.DeleteAnalysis)))
 	mux.Handle("PUT /api/scopes/saved-analyses", requireAuth(http.HandlerFunc(scopeHandler.RenameAnalysis)))
 	mux.Handle("GET /api/scopes/workspace", requireAuth(http.HandlerFunc(scopeHandler.GetScopeWorkspace)))
+
+	// Notebooks endpoints (Protected by Auth middleware)
+	mux.Handle("GET /api/notebooks", requireAuth(http.HandlerFunc(notebookHandler.GetNotebooks)))
+	mux.Handle("GET /api/notebooks/{id}", requireAuth(http.HandlerFunc(notebookHandler.GetNotebook)))
+	mux.Handle("POST /api/notebooks", requireAuth(http.HandlerFunc(notebookHandler.CreateNotebook)))
+	mux.Handle("PUT /api/notebooks/{id}", requireAuth(http.HandlerFunc(notebookHandler.UpdateNotebook)))
+	mux.Handle("DELETE /api/notebooks/{id}", requireAuth(http.HandlerFunc(notebookHandler.DeleteNotebook)))
+	mux.Handle("PUT /api/notebooks/{id}/cells", requireAuth(http.HandlerFunc(notebookHandler.SaveCells)))
 
 	// Text Analysis Engine endpoints
 	mux.Handle("POST /api/analytics/analyze", requireAuth(http.HandlerFunc(analyticsHandler.Analyze)))
@@ -198,6 +209,12 @@ func main() {
 		slog.Info("     POST  /api/scopes/saved-searches [protected]")
 		slog.Info("     POST  /api/scopes/saved-analyses [protected]")
 		slog.Info("     GET   /api/scopes/workspace   [protected]")
+		slog.Info("     GET   /api/notebooks          [protected]")
+		slog.Info("     GET   /api/notebooks/{id}     [protected]")
+		slog.Info("     POST  /api/notebooks          [protected]")
+		slog.Info("     PUT   /api/notebooks/{id}     [protected]")
+		slog.Info("     DELETE /api/notebooks/{id}    [protected]")
+		slog.Info("     PUT   /api/notebooks/{id}/cells [protected]")
 		slog.Info("     POST  /api/analytics/analyze")
 		slog.Info("     POST  /api/analytics/compare")
 		slog.Info("     POST  /api/ai/insight         [protected, rate-limited]")
