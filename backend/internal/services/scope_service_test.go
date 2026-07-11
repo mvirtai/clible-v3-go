@@ -24,7 +24,8 @@ func TestScopeService_WorkspaceFlow(t *testing.T) {
 
 	scopeRepo := db.NewScopeRepository(conn)
 	savedRepo := db.NewSavedRepository(conn)
-	service := services.NewScopeService(scopeRepo, savedRepo)
+	notebookRepo := db.NewNotebookRepository(conn)
+	service := services.NewScopeService(scopeRepo, savedRepo, notebookRepo)
 
 	var activeScopeID string
 

@@ -47,7 +47,7 @@ func main() {
 	// --- Services & Parsers ---
 	verseService := services.NewVerseService(verseRepo, translationRepo)
 	historyService := services.NewSearchHistoryService(historyRepo)
-	scopeService := services.NewScopeService(scopeRepo, savedRepo)
+	scopeService := services.NewScopeService(scopeRepo, savedRepo, notebookRepo)
 	bookService := services.NewBookService(bookRepo)
 	notebookService := services.NewNotebookService(notebookRepo, scopeRepo)
 
