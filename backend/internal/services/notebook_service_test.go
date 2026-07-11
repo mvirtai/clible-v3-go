@@ -263,7 +263,7 @@ func TestNotebookService_UpdateNotebook(t *testing.T) {
 	nb, _ := service.CreateNotebook(ctx, "Original Title", userID, scopeID1)
 
 	t.Run("successfully updates title", func(t *testing.T) {
-		updated, err := service.UpdateNotebook(ctx, nb.ID, userID, "New Title", scopeID1)
+		updated, err := service.UpdateNotebook(ctx, nb.ID, "New Title", scopeID1, userID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -273,7 +273,7 @@ func TestNotebookService_UpdateNotebook(t *testing.T) {
 	})
 
 	t.Run("successfully updates scope", func(t *testing.T) {
-		updated, err := service.UpdateNotebook(ctx, nb.ID, userID, "Title", scopeID2)
+		updated, err := service.UpdateNotebook(ctx, nb.ID, "Title", scopeID2, userID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -287,7 +287,7 @@ func TestNotebookService_UpdateNotebook(t *testing.T) {
 		otherScopeID := uuid.New().String()
 		seedUserAndScope(t, conn, otherUserID, otherScopeID)
 
-		_, err := service.UpdateNotebook(ctx, nb.ID, userID, "Title", otherScopeID)
+		_, err := service.UpdateNotebook(ctx, nb.ID, "Title", otherScopeID, userID)
 		if err == nil {
 			t.Fatal("expected error when scope not owned by user")
 		}
@@ -300,7 +300,7 @@ func TestNotebookService_UpdateNotebook(t *testing.T) {
 		otherUserID := uuid.New().String()
 		seedUserAndScope(t, conn, otherUserID, "")
 
-		_, err := service.UpdateNotebook(ctx, nb.ID, otherUserID, "Title", "")
+		_, err := service.UpdateNotebook(ctx, nb.ID, "Title", "", otherUserID)
 		if err == nil {
 			t.Fatal("expected error when user doesn't own notebook")
 		}
