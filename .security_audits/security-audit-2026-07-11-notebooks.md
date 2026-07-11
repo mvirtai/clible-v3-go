@@ -16,11 +16,56 @@ Tämä raportti analysoi Notebooks-kehitystyön tietoturvallisuuden ja koodin la
 
 | Vakavuus | Lukumäärä | CVSS-luokka | Tila |
 |----------|-----------|-------------|------|
-| 🔴 Kriittinen | 0 | 9.0–10.0 | - |
+| 🔴 Kriittinen | 2 | 9.0–10.0 | ✅ Korjattu |
 | 🟠 Korkea | 0 | 7.0–8.9 | - |
-| 🟡 Keskitaso | 0 | 4.0–6.9 | - |
+| 🟡 Keskitaso | 3 | 4.0–6.9 | ✅ Korjattu |
 | 🔵 Matala | 0 | 0.1–3.9 | - |
-| **Yhteensä** | **0** | | |
+| **Yhteensä** | **5** | | |
+
+---
+
+## 🔴 KRIITTISET HAAVOITTUVUUDET
+
+### VULN-001: Scope ID Validation puuttui (IDOR-riski)
+
+| Kenttä | Arvo |
+|--------|------|
+| **CVSS v3.1** | **9.1 (Critical)** |
+| **Sijainti** | `backend/internal/services/notebook_service.go` |
+| **Tila** | ✅ **KORJATTU** |
+
+**Kuvaus:** Alkuperäisessä versiossa `ScopeID`-arvon omistajuutta ei validoitu luotaessa muistikirjaa. Käyttäjä pystyi luomaan muistikirjan toisen käyttäjän työtilaan.
+**Korjaus:** Lisättiin `ScopeRepository`:n injektointi ja scope-omistajuuden validointi ennen luontia.
+
+### VULN-002: Autorisointimallin epäyhtenäisyys
+
+| Kenttä | Arvo |
+|--------|------|
+| **CVSS v3.1** | **9.1 (Critical)** |
+| **Sijainti** | `backend/internal/services/notebook_service.go` |
+| **Tila** | ✅ **KORJATTU** |
+
+**Kuvaus:** Muistikirjojen haku ja muokkaus tarkisti vain suoran `UserID`-omistajuuden, mutta ei `ScopeID`-omistajuutta, mikä on ristiriidassa muiden työtila-resurssien kanssa.
+**Korjaus:** Päivitettiin tarkistukset huomioimaan myös työtilan (Scope) omistajuus.
+
+---
+
+## 🟡 KESKITASON HAAVOITTUVUUDET / RAKENNEONGELMAT
+
+### VULN-003: Orphaned Notebooks (Cascade Delete)
+
+**Kuvaus:** Työtilan poistaminen jätti muistikirjat orvoiksi (`SET NULL`).
+**Korjaus:** Päivitettiin tietokantamigraatio (`fk_notebook_scope_id`) käyttämään `ON DELETE CASCADE` -sääntöä.
+
+### VULN-004: Notebooks puuttui ScopeWorkspace-mallista
+
+**Kuvaus:** Frontend joutui hakemaan muistikirjat erillisellä kutsulla, mikä rikkoi yhden endpointin latausmallin ja aiheutti mahdollisia race condition -tilanteita.
+**Korjaus:** Lisättiin `Notebooks` taulukko `ScopeWorkspace`-malliin ja implementoitiin `GetByScopeID`.
+
+### VULN-005: Orphaned Records -käsittely
+
+**Kuvaus:** `DELETE /api/scopes/:id` ei ilmoittanut muistikirjoille orpoudesta, aiheuttaen frontendissä tilaepäjohdonmukaisuuksia.
+**Korjaus:** Ratkaistu yllä mainitulla CASCADE-säännöllä.
 
 ---
 

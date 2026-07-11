@@ -2,9 +2,9 @@
 
 ## Business Context
 
-As part of the Clible-v3-go roadmap to support interactive study paths, this PR implements the complete backend architecture for the Notebooks feature. Users can now create notebooks, manage them inside specific workspaces (scopes), and write rich content using individual "cells" of varying types (currently `markdown` and `code`).
+As part of the Clible-v3-go roadmap to support interactive study paths, this PR implements the backend and database foundation for the Notebooks feature (Phase 1, Part 1). 
 
-By introducing the backend and database foundation for notebooks, we enable a client-server architecture where frontend workspaces can persist user insights, dynamic script executions, and custom study notes.
+This PR establishes the database schemas, Go models, repository layer, service business logic, and authenticated REST API endpoints. This foundation enables the upcoming Phase 1 Part 2 PR to implement the React-based Jupyter-like cell editor, allowing users to create notebooks, manage them inside specific workspaces (scopes), and write rich content using individual markdown and code cells.
 
 ## Architectural Changes
 
