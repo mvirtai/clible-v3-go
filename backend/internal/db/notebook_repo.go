@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/mvirtai/clible-v3-go/internal/models"
@@ -9,11 +10,11 @@ import (
 
 // NotebookRepository handles database operations for notebooks and cells.
 type NotebookRepository struct {
-	db *Database
+	db *sql.DB
 }
 
 // NewNotebookRepository constructs a notebook repository with database context.
-func NewNotebookRepository(db *Database) *NotebookRepository {
+func NewNotebookRepository(db *sql.DB) *NotebookRepository {
 	return &NotebookRepository{db: db}
 }
 
