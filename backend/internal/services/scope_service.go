@@ -12,15 +12,17 @@ import (
 
 // ScopeService orchestrates business boundaries for study projects and saved operations.
 type ScopeService struct {
-	scopeRepo *db.ScopeRepository
-	savedRepo *db.SavedRepository
+	scopeRepo    *db.ScopeRepository
+	savedRepo    *db.SavedRepository
+	notebookRepo *db.NotebookRepository
 }
 
 // NewScopeService constructs an explicitly injected context orchestration engine.
-func NewScopeService(scopeRepo *db.ScopeRepository, savedRepo *db.SavedRepository) *ScopeService {
+func NewScopeService(scopeRepo *db.ScopeRepository, savedRepo *db.SavedRepository, notebookRepo *db.NotebookRepository) *ScopeService {
 	return &ScopeService{
-		scopeRepo: scopeRepo,
-		savedRepo: savedRepo,
+		scopeRepo:    scopeRepo,
+		savedRepo:    savedRepo,
+		notebookRepo: notebookRepo,
 	}
 }
 
@@ -90,6 +92,7 @@ func (s *ScopeService) SaveAnalysis(ctx context.Context, analysis *models.SavedA
 }
 
 // GetScopeWorkspace aggregates a single scope entity alongside all its structural nested results.
+// Returns searches, analyses, and notebooks that are scoped to the workspace.
 func (s *ScopeService) GetScopeWorkspace(ctx context.Context, scopeID string, userID string) (*models.ScopeWorkspace, error) {
 	if scopeID == "" {
 		return nil, fmt.Errorf("target workspace scope id cannot be blank")
@@ -113,10 +116,17 @@ func (s *ScopeService) GetScopeWorkspace(ctx context.Context, scopeID string, us
 		return nil, fmt.Errorf("failed to gather workspace analyses: %w", err)
 	}
 
+	// FIX #3: Fetch notebooks scoped to this workspace
+	notebooks, err := s.notebookRepo.GetByScopeID(ctx, scopeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to gather workspace notebooks: %w", err)
+	}
+
 	return &models.ScopeWorkspace{
-		Scope:    *scope,
-		Searches: searches,
-		Analyses: analyses,
+		Scope:     *scope,
+		Searches:  searches,
+		Analyses:  analyses,
+		Notebooks: notebooks,
 	}, nil
 }
 
