@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/models"
@@ -67,13 +68,12 @@ func (h *NotebookHandler) GetNotebook(w http.ResponseWriter, r *http.Request) {
 
 	notebook, err := h.notebookService.GetNotebookByID(r.Context(), id, userID)
 	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
+		if strings.Contains(err.Error(), "not found") {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+		}
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-		return
-	}
-	if notebook == nil {
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "notebook not found"})
 		return
 	}
 
@@ -150,7 +150,11 @@ func (h *NotebookHandler) UpdateNotebook(w http.ResponseWriter, r *http.Request)
 
 	notebook, err := h.notebookService.UpdateNotebook(r.Context(), id, req.Title, req.ScopeID, userID)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		if strings.Contains(err.Error(), "not found") {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+		}
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
@@ -183,7 +187,11 @@ func (h *NotebookHandler) DeleteNotebook(w http.ResponseWriter, r *http.Request)
 
 	err := h.notebookService.DeleteNotebook(r.Context(), id, userID)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		if strings.Contains(err.Error(), "not found") {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+		}
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
@@ -223,7 +231,11 @@ func (h *NotebookHandler) SaveCells(w http.ResponseWriter, r *http.Request) {
 
 	err := h.notebookService.SaveNotebookCells(r.Context(), id, userID, cells)
 	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
+		if strings.Contains(err.Error(), "not found") {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+		}
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
