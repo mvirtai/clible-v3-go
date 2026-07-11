@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -69,6 +70,12 @@ func makeRequest(t *testing.T, method, path string, body interface{}, userID str
 		req = req.WithContext(contextWithUserID(userID))
 	}
 	req.Header.Set("Content-Type", "application/json")
+
+	// Parse 'id' path value from path, e.g. /api/notebooks/{id} or /api/notebooks/{id}/cells
+	parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
+	if len(parts) >= 3 && parts[2] != "" {
+		req.SetPathValue("id", parts[2])
+	}
 
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
@@ -371,8 +378,8 @@ func TestNotebookHandler_UpdateNotebook(t *testing.T) {
 
 		w := makeRequest(t, http.MethodPut, "/api/notebooks/"+nb.ID, payload, otherUserID, handler.UpdateNotebook)
 
-		if w.Code != http.StatusNotFound {
-			t.Errorf("expected status 404, got %d", w.Code)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("expected status 403, got %d", w.Code)
 		}
 	})
 
@@ -443,8 +450,8 @@ func TestNotebookHandler_DeleteNotebook(t *testing.T) {
 
 		w := makeRequest(t, http.MethodDelete, "/api/notebooks/"+nb2.ID, nil, otherUserID, handler.DeleteNotebook)
 
-		if w.Code != http.StatusNotFound {
-			t.Errorf("expected status 404, got %d", w.Code)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("expected status 403, got %d", w.Code)
 		}
 	})
 
