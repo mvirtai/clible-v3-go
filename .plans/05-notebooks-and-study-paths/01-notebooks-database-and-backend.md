@@ -52,38 +52,38 @@ Määritellään Go-rakenteet tiedostossa `backend/internal/models/notebook.go`:
 package models
 
 import (
-	"encoding/json"
-	"time"
+ "encoding/json"
+ "time"
 
-	"github.com/google/uuid"
+ "github.com/google/uuid"
 )
 
 type CellType string
 
 const (
-	CellTypeMarkdown CellType = "markdown"
-	CellTypeCode     CellType = "code"
+ CellTypeMarkdown CellType = "markdown"
+ CellTypeCode     CellType = "code"
 )
 
 type Notebook struct {
-	ID        uuid.UUID  `json:"id"`
-	Title     string     `json:"title"`
-	UserID    uuid.UUID  `json:"userId"`
-	ScopeID   *uuid.UUID `json:"scopeId,omitempty"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
-	Cells     []Cell     `json:"cells,omitempty"`
+ ID        uuid.UUID  `json:"id"`
+ Title     string     `json:"title"`
+ UserID    uuid.UUID  `json:"userId"`
+ ScopeID   *uuid.UUID `json:"scopeId,omitempty"`
+ CreatedAt time.Time  `json:"createdAt"`
+ UpdatedAt time.Time  `json:"updatedAt"`
+ Cells     []Cell     `json:"cells,omitempty"`
 }
 
 type Cell struct {
-	ID         uuid.UUID       `json:"id"`
-	NotebookID uuid.UUID       `json:"notebookId"`
-	Type       CellType        `json:"type"`
-	Content    string          `json:"content"`
-	ResultJSON json.RawMessage `json:"resultJson,omitempty"`
-	Position   int             `json:"position"`
-	CreatedAt  time.Time       `json:"createdAt"`
-	UpdatedAt  time.Time       `json:"updatedAt"`
+ ID         uuid.UUID       `json:"id"`
+ NotebookID uuid.UUID       `json:"notebookId"`
+ Type       CellType        `json:"type"`
+ Content    string          `json:"content"`
+ ResultJSON json.RawMessage `json:"resultJson,omitempty"`
+ Position   int             `json:"position"`
+ CreatedAt  time.Time       `json:"createdAt"`
+ UpdatedAt  time.Time       `json:"updatedAt"`
 }
 ```
 
@@ -97,22 +97,22 @@ Luodaan `NotebookRepository` hoitamaan tietokantakyselyt (`backend/internal/db/n
 package db
 
 import (
-	"context"
-	"database/sql"
-	"github.com/google/uuid"
-	"github.com/mvirtai/clible-v3-go/internal/models"
+ "context"
+ "database/sql"
+ "github.com/google/uuid"
+ "github.com/mvirtai/clible-v3-go/internal/models"
 )
 
 type NotebookRepository interface {
-	Create(ctx context.Context, nb *models.Notebook) error
-	GetByID(ctx context.Context, id uuid.UUID) (*models.Notebook, error)
-	GetByUserID(ctx context.Context, userID uuid.UUID) ([]models.Notebook, error)
-	Update(ctx context.Context, nb *models.Notebook) error
-	Delete(ctx context.Context, id uuid.UUID) error
-	
-	// Cell-kohtaiset metodit
-	SaveCells(ctx context.Context, notebookID uuid.UUID, cells []models.Cell) error
-	GetCells(ctx context.Context, notebookID uuid.UUID) ([]models.Cell, error)
+ Create(ctx context.Context, nb *models.Notebook) error
+ GetByID(ctx context.Context, id uuid.UUID) (*models.Notebook, error)
+ GetByUserID(ctx context.Context, userID uuid.UUID) ([]models.Notebook, error)
+ Update(ctx context.Context, nb *models.Notebook) error
+ Delete(ctx context.Context, id uuid.UUID) error
+ 
+ // Cell-kohtaiset metodit
+ SaveCells(ctx context.Context, notebookID uuid.UUID, cells []models.Cell) error
+ GetCells(ctx context.Context, notebookID uuid.UUID) ([]models.Cell, error)
 }
 ```
 
@@ -128,31 +128,31 @@ Luodaan `NotebookService` (`backend/internal/services/notebook_service.go`), jok
 package services
 
 import (
-	"context"
-	"github.com/google/uuid"
-	"github.com/mvirtai/clible-v3-go/internal/db"
-	"github.com/mvirtai/clible-v3-go/internal/models"
+ "context"
+ "github.com/google/uuid"
+ "github.com/mvirtai/clible-v3-go/internal/db"
+ "github.com/mvirtai/clible-v3-go/internal/models"
 )
 
 type NotebookService struct {
-	repo db.NotebookRepository
+ repo db.NotebookRepository
 }
 
 func NewNotebookService(repo db.NotebookRepository) *NotebookService {
-	return &NotebookService{repo: repo}
+ return &NotebookService{repo: repo}
 }
 
 func (s *NotebookService) CreateNotebook(ctx context.Context, title string, userID uuid.UUID, scopeID *uuid.UUID) (*models.Notebook, error) {
-	nb := &models.Notebook{
-		ID:      uuid.New(),
-		Title:   title,
-		UserID:  userID,
-		ScopeID: scopeID,
-	}
-	if err := s.repo.Create(ctx, nb); err != nil {
-		return nil, err
-	}
-	return nb, nil
+ nb := &models.Notebook{
+  ID:      uuid.New(),
+  Title:   title,
+  UserID:  userID,
+  ScopeID: scopeID,
+ }
+ if err := s.repo.Create(ctx, nb); err != nil {
+  return nil, err
+ }
+ return nb, nil
 }
 
 // Lisää CRUD-palvelut...
