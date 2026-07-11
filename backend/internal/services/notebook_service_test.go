@@ -20,25 +20,39 @@ func setupTestDB(t *testing.T) *sql.DB {
 	return conn
 }
 
-func seedUserAndScope(t *testing.T, conn *sql.DB, userID, scopeID string) {
+func seedUser(t *testing.T, conn *sql.DB, userID string) {
 	ctx := context.Background()
-	_, err := conn.ExecContext(ctx,
+	var exists bool
+	err := conn.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userID).Scan(&exists)
+	if err == nil && exists {
+		return
+	}
+	_, err = conn.ExecContext(ctx,
 		`INSERT INTO users (id, email, password_hash, created_at, updated_at) 
 		 VALUES (?, ?, ?, ?, ?)`,
 		userID, userID+"@example.com", "hash", time.Now().UTC(), time.Now().UTC())
 	if err != nil {
 		t.Fatalf("failed to seed user: %v", err)
 	}
+}
 
-	if scopeID != "" {
-		_, err = conn.ExecContext(ctx,
-			`INSERT INTO scopes (id, name, user_id, created_at) 
-			 VALUES (?, ?, ?, ?)`,
-			scopeID, "Test Scope", userID, time.Now().UTC())
-		if err != nil {
-			t.Fatalf("failed to seed scope: %v", err)
-		}
+func seedScope(t *testing.T, conn *sql.DB, userID, scopeID string) {
+	if scopeID == "" {
+		return
 	}
+	ctx := context.Background()
+	_, err := conn.ExecContext(ctx,
+		`INSERT INTO scopes (id, name, user_id, created_at) 
+		 VALUES (?, ?, ?, ?)`,
+		scopeID, "Scope "+scopeID, userID, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("failed to seed scope: %v", err)
+	}
+}
+
+func seedUserAndScope(t *testing.T, conn *sql.DB, userID, scopeID string) {
+	seedUser(t, conn, userID)
+	seedScope(t, conn, userID, scopeID)
 }
 
 func TestNotebookService_CreateNotebook(t *testing.T) {
