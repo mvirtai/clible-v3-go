@@ -29,6 +29,12 @@ features:
   - icon: ⚡
     title: O(1) XML Streaming Import
     details: Memory-efficient streaming XML ingestion directly into the database. No temporary files or DOM buffering.
+  - icon: 📓
+    title: Notebooks & cells
+    details: Create interactive study sheets with Markdown notes, CLI query executions, and visual theological outputs.
+  - icon: 🤖
+    title: Gemini AI integrations
+    details: Intelligent insights, comparative translation studies, word investigations, and semantic search powered by Gemini.
   - icon: 🎨
     title: React 19 + Tailwind v4
     details: Sleek, responsive gold/warm-neutral theme featuring Georgia serif typography and auto dark/light modes.
@@ -59,3 +65,4 @@ task frontend:dev
 | Learn about the layered architecture        | [Architecture overview](/architecture/overview) |
 | Read about the database architecture and schemas   | [Database & FTS](/architecture/database)       |
 | Deep dive into O(1) XML ingestion           | [Import & seeding](/guide/import-and-seeding)   |
+| Create interactive study sheets             | [Notebooks & cells](/guide/notebooks)           |

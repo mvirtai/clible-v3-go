@@ -12,6 +12,14 @@ The database schema is structured into two main areas: the static, read-only Bib
 
 ```mermaid
 erDiagram
+    users {
+        text id PK
+        text email
+        text password_hash
+        timestamp created_at
+        timestamp updated_at
+    }
+
     books {
         text id PK
         text name
@@ -26,7 +34,13 @@ erDiagram
         text language
         text format
         text source_url
+        boolean is_global
         timestamp installed_at
+    }
+
+    user_translations {
+        text user_id PK_FK
+        text translation_id PK_FK
     }
 
     verses {
@@ -40,6 +54,7 @@ erDiagram
 
     scopes {
         text id PK
+        text user_id FK
         text name
         timestamp created_at
     }
@@ -70,6 +85,7 @@ erDiagram
 
     search_history {
         text id PK
+        text user_id FK
         text query_text
         text search_scope
         text scope_value
@@ -79,10 +95,37 @@ erDiagram
         timestamp searched_at
     }
 
+    notebooks {
+        text id PK
+        text title
+        text user_id FK
+        text scope_id FK
+        timestamp create_at
+        timestamp update_at
+    }
+
+    notebook_cells {
+        text id PK
+        text notebook_id FK
+        text content
+        text cell_type
+        text result_json
+        integer position
+        timestamp create_at
+        timestamp update_at
+    }
+
+    users ||--o{ scopes : "owns"
+    users ||--o{ notebooks : "owns"
+    users ||--o{ search_history : "owns"
+    users ||--o{ user_translations : "links"
+    translations ||--o{ user_translations : "linked_by"
     translations ||--o{ verses : "has"
     books ||--o{ verses : "contains"
     scopes ||--o{ saved_searches : "contains"
     scopes ||--o{ saved_analyses : "contains"
+    scopes ||--o{ notebooks : "links"
+    notebooks ||--o{ notebook_cells : "contains"
     translations ||--o{ saved_searches : "references"
     translations ||--o{ saved_analyses : "references"
     translations ||--o{ search_history : "references"
@@ -104,14 +147,15 @@ Contains metadata for the 66 canonical books of the Bible. Seeded automatically 
 
 ### 2. `translations`
 
-Stores metadata about imported Bible translations.
+Stores metadata about Bible translations available in the catalog.
 
 - `id` (TEXT, PK): Unique translation slug (e.g., `web`, `kjv`, `fin-1992`).
 - `name` (TEXT): The human-readable name of the translation.
 - `language` (TEXT): Language ISO code (e.g., `ENG`, `FIN`).
 - `format` (TEXT): Input format used (`USFX` or `OSIS`).
 - `source_url` (TEXT, Nullable): URL from where the translation XML was streamed.
-- `installed_at` (TIMESTAMP): Installation timestamp.
+- `is_global` (BOOLEAN): `TRUE` for system-controlled global presets.
+- `installed_at` (TIMESTAMP): Catalog installation timestamp.
 
 ### 3. `verses`
 
@@ -127,21 +171,39 @@ The primary table storing the actual text of each verse.
 
 ---
 
-## Workspace & User Data Tables
+## User & Workspace Data Tables
 
-### 1. `scopes`
+### 1. `users`
 
-Workspaces created by the user to group related research.
+Stores credentials and account metadata for system users.
 
-- `id` (TEXT, PK): Unique ID.
-- `name` (TEXT): Name of the scope/workspace (must be unique).
+- `id` (TEXT, PK): Generated unique UUID.
+- `email` (TEXT): Unique email address.
+- `password_hash` (TEXT): Bcrypt-hashed password.
+- `created_at` (TIMESTAMP): Account registration timestamp.
+- `updated_at` (TIMESTAMP): Profile last updated timestamp.
+
+### 2. `user_translations`
+
+Mapping table linking users to their activated/enabled translations.
+
+- `user_id` (TEXT, PK, FK): References `users.id` with `ON DELETE CASCADE`.
+- `translation_id` (TEXT, PK, FK): References `translations.id` with `ON DELETE CASCADE`.
+
+### 3. `scopes`
+
+Workspaces created by users to group related research.
+
+- `id` (TEXT, PK): Unique UUID.
+- `user_id` (TEXT, FK): References `users.id` with `ON DELETE CASCADE`.
+- `name` (TEXT): Name of the scope/workspace.
 - `created_at` (TIMESTAMP).
 
-### 2. `saved_searches`
+### 4. `saved_searches`
 
 Searches that users explicitly save under a specific workspace scope.
 
-- `id` (TEXT, PK).
+- `id` (TEXT, PK): Unique UUID.
 - `scope_id` (TEXT, FK): References `scopes.id` with `ON DELETE CASCADE`.
 - `name` (TEXT): Display name for the saved search.
 - `query_text` (TEXT): The search string.
@@ -150,11 +212,11 @@ Searches that users explicitly save under a specific workspace scope.
 - `translation_id` (TEXT, FK): References `translations.id` with `ON DELETE SET NULL`.
 - `result_json` (TEXT, Nullable): Caches the search results payload to skip re-execution upon loading.
 
-### 3. `saved_analyses`
+### 5. `saved_analyses`
 
 Lexical and statistical analysis results saved under a workspace scope.
 
-- `id` (TEXT, PK).
+- `id` (TEXT, PK): Unique UUID.
 - `scope_id` (TEXT, FK): References `scopes.id` with `ON DELETE CASCADE`.
 - `name` (TEXT): Display name.
 - `reference` (TEXT): Target reference (e.g., `Romans 8`, `Genesis`).
@@ -163,11 +225,12 @@ Lexical and statistical analysis results saved under a workspace scope.
 - `params_json` (TEXT): Parameter configuration for UI rendering.
 - `result_json` (TEXT, Nullable): Caches computed results (like LCS similarity mappings or token frequencies) to skip heavy server-side processing upon loading.
 
-### 4. `search_history`
+### 6. `search_history`
 
 Automatically logs all search executions for fast recall and navigation.
 
-- `id` (TEXT, PK).
+- `id` (TEXT, PK): Unique UUID.
+- `user_id` (TEXT, FK): References `users.id` with `ON DELETE CASCADE`.
 - `query_text` (TEXT): Search query string.
 - `search_scope` (TEXT).
 - `scope_value` (TEXT, Nullable).
@@ -175,6 +238,30 @@ Automatically logs all search executions for fast recall and navigation.
 - `mode` (TEXT): Search mode (`phrase`, `regex`, `fts`).
 - `result_count` (INTEGER): Number of matching verses found.
 - `searched_at` (TIMESTAMP).
+
+### 7. `notebooks`
+
+Interactive notebook documents owned by users.
+
+- `id` (TEXT, PK): Unique UUID.
+- `title` (TEXT): Title of the notebook.
+- `user_id` (TEXT, FK): References `users.id` with `ON DELETE CASCADE`.
+- `scope_id` (TEXT, Nullable, FK): References `scopes.id` with `ON DELETE SET NULL`.
+- `create_at` (TIMESTAMP).
+- `update_at` (TIMESTAMP).
+
+### 8. `notebook_cells`
+
+Individual cells contained within notebooks.
+
+- `id` (TEXT, PK): Unique UUID.
+- `notebook_id` (TEXT, FK): References `notebooks.id` with `ON DELETE CASCADE`.
+- `content` (TEXT): Raw input content of the cell (Markdown or code command).
+- `cell_type` (TEXT): Must be `'markdown'` or `'code'`.
+- `result_json` (TEXT, Nullable): Cached query output.
+- `position` (INTEGER): Zero-indexed order index. Enforces `UNIQUE (notebook_id, position)`.
+- `create_at` (TIMESTAMP).
+- `update_at` (TIMESTAMP).
 
 ---
 

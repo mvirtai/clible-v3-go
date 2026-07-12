@@ -6,16 +6,19 @@ clible-v3-go is designed as a web-native, stateless client-server application. B
 
 ## High-Level System Architecture
 
-At a high level, the system consists of a web frontend communicating over HTTP with a Go REST API. The Go REST API connects to a PostgreSQL database (Neon PostgreSQL in development/production) that stores all Bible translations, index tables, and user workspace configurations. A local SQLite database is utilized exclusively as a fast in-memory fallback for isolated unit tests.
+At a high level, the system consists of a web frontend communicating over HTTP with a Go REST API monolith. 
+
+The Go REST API monolith manages user authentication via HTTP-only JWT sessions, coordinates text analyses and notebook edits, and integrates with the external Gemini AI API. It connects to a PostgreSQL database (Neon PostgreSQL in development/production) that stores translations, verses, users, workspace configurations, and notebooks. A local SQLite database is utilized exclusively as a fast in-memory fallback for isolated unit tests.
 
 ```mermaid
 graph TD
     subgraph Frontend [Vite + React 19 Frontend]
-        UI[UI Components]
+        UI[UI Components: NotebookEditor, Reader, etc.]
         API_CLIENT[API Client: ApiService.ts]
     end
 
     subgraph Backend [Go REST API Monolith]
+        MW_LAYER[Middleware: Auth, Logger, RateLimiter]
         API_LAYER[API Layer: internal/api]
         SVC_LAYER[Service Layer: internal/services]
         REP_LAYER[Repository Layer: internal/db]
@@ -23,12 +26,15 @@ graph TD
     end
 
     DB[(PostgreSQL: Neon)]
+    AI[Gemini AI API]
 
     UI --> API_CLIENT
-    API_CLIENT -- "HTTP / REST (JSON)" --> API_LAYER
+    API_CLIENT -- "HTTP / REST (JSON)" --> MW_LAYER
+    MW_LAYER --> API_LAYER
     API_LAYER --> SVC_LAYER
     SVC_LAYER --> REP_LAYER
     SVC_LAYER -- "Parses Streams" --> PRS_LAYER
+    SVC_LAYER -- "Integrates AI" --> AI
     REP_LAYER -- "SQL / Context-aware" --> DB
 ```
 
