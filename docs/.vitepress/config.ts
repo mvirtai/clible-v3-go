@@ -42,6 +42,7 @@ export default defineConfig({
           items: [
             { text: "Getting started", link: "/guide/getting-started" },
             { text: "Import & seeding", link: "/guide/import-and-seeding" },
+            { text: "Notebooks & cells", link: "/guide/notebooks" },
           ],
         },
       ],

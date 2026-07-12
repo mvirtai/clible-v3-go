@@ -337,9 +337,31 @@ Retrieves all user-created workspace scopes.
   ]
   ```
 
-### 3. Delete Workspace Scope
+### 3. Rename Workspace Scope
 
-Deletes a scope and all its nested saved searches and analyses (`ON DELETE CASCADE`).
+Renames an existing workspace scope.
+
+- **Endpoint**: `PUT /api/scopes`
+- **Request Body**:
+
+  ```json
+  {
+    "id": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
+    "name": "Romans Study - Extended"
+  }
+  ```
+
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "status": "renamed"
+  }
+  ```
+
+### 4. Delete Workspace Scope
+
+Deletes a scope and all its nested saved searches, analyses, and links (`ON DELETE CASCADE`).
 
 - **Endpoint**: `DELETE /api/scopes`
 - **Query Parameters**:
@@ -352,9 +374,9 @@ Deletes a scope and all its nested saved searches and analyses (`ON DELETE CASCA
   }
   ```
 
-### 4. Fetch Aggregate Workspace Data
+### 5. Fetch Aggregate Workspace Data
 
-Retrieves the complete workspace package, including its own metadata, saved searches, and saved analyses in a single round-trip.
+Retrieves the complete workspace package, including its own metadata, saved searches, saved analyses, and notebooks in a single round-trip.
 
 - **Endpoint**: `GET /api/scopes/workspace`
 - **Query Parameters**:
@@ -391,11 +413,20 @@ Retrieves the complete workspace package, including its own metadata, saved sear
         "resultJson": "{\"totalWords\":540,\"uniqueWords\":210,\"lexicalDiversity\":0.388,\"frequencies\":[]}",
         "createdAt": "2026-07-09T07:10:00Z"
       }
+    ],
+    "notebooks": [
+      {
+        "id": "nb-uuid-12345",
+        "title": "Romans 5 Exegesis Notes",
+        "scopeId": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
+        "createdAt": "2026-07-09T07:12:00Z",
+        "updatedAt": "2026-07-09T07:12:00Z"
+      }
     ]
   }
   ```
 
-### 5. Save Search
+### 6. Save Search
 
 Pins a specific search query to a workspace scope.
 
@@ -414,9 +445,46 @@ Pins a specific search query to a workspace scope.
   }
   ```
 
-- **Response (201 Created)**: (returns the populated object with generated UUID and timestamp)
+- **Response (201 Created)**: Returns the populated search item object including UUID and timestamps.
 
-### 6. Save Analysis
+### 7. Rename Saved Search
+
+Renames an existing saved search.
+
+- **Endpoint**: `PUT /api/scopes/saved-searches`
+- **Request Body**:
+
+  ```json
+  {
+    "id": "e229c1fe-5ef4-4f91-ba2c-23efd6718d78",
+    "name": "Grace occurrences in Romans (Updated)"
+  }
+  ```
+
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "status": "renamed"
+  }
+  ```
+
+### 8. Delete Saved Search
+
+Deletes a saved search from a workspace scope.
+
+- **Endpoint**: `DELETE /api/scopes/saved-searches`
+- **Query Parameters**:
+  - `id` (string, required): UUID of the saved search to delete.
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "status": "deleted"
+  }
+  ```
+
+### 9. Save Analysis
 
 Pins textual analysis result parameters to a workspace scope.
 
@@ -435,7 +503,186 @@ Pins textual analysis result parameters to a workspace scope.
   }
   ```
 
-- **Response (201 Created)**: (returns the populated object with generated UUID and timestamp)
+- **Response (201 Created)**: Returns the populated saved analysis object.
+
+### 10. Rename Saved Analysis
+
+Renames an existing saved analysis.
+
+- **Endpoint**: `PUT /api/scopes/saved-analyses`
+- **Request Body**:
+
+  ```json
+  {
+    "id": "f516a19f-cfbd-45b0-96f3-1ad9ea92df1c",
+    "name": "Romans 8 frequency (Updated)"
+  }
+  ```
+
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "status": "renamed"
+  }
+  ```
+
+### 11. Delete Saved Analysis
+
+Deletes a saved analysis from a workspace scope.
+
+- **Endpoint**: `DELETE /api/scopes/saved-analyses`
+- **Query Parameters**:
+  - `id` (string, required): UUID of the saved analysis to delete.
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "status": "deleted"
+  }
+  ```
+
+---
+
+## Notebooks API (Protected)
+
+### 1. List Notebooks
+
+Retrieves all notebooks belonging to the active user.
+
+- **Endpoint**: `GET /api/notebooks`
+- **Response (200 OK)**:
+
+  ```json
+  [
+    {
+      "id": "nb-uuid-12345",
+      "title": "Romans 5 Exegesis Notes",
+      "scopeId": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
+      "createdAt": "2026-07-09T07:12:00Z",
+      "updatedAt": "2026-07-09T07:12:00Z"
+    }
+  ]
+  ```
+
+### 2. Get Single Notebook
+
+Retrieves details of a specific notebook along with its ordered cells.
+
+- **Endpoint**: `GET /api/notebooks/{id}`
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "id": "nb-uuid-12345",
+    "title": "Romans 5 Exegesis Notes",
+    "scopeId": "7bc751d3-3b1a-4712-8df7-e62a98e82110",
+    "createdAt": "2026-07-09T07:12:00Z",
+    "updatedAt": "2026-07-09T07:12:00Z",
+    "cells": [
+      {
+        "id": "cell-uuid-1",
+        "notebookId": "nb-uuid-12345",
+        "type": "markdown",
+        "content": "### Introduction to Romans 5\nFaith brings peace.",
+        "position": 0,
+        "resultJson": null,
+        "createdAt": "2026-07-09T07:12:30Z",
+        "updatedAt": "2026-07-09T07:12:30Z"
+      },
+      {
+        "id": "cell-uuid-2",
+        "notebookId": "nb-uuid-12345",
+        "type": "code",
+        "content": "/compare ROM 5:1 web kjv",
+        "position": 1,
+        "resultJson": {
+          "type": "verse_comparison",
+          "data": {
+            "reference": "ROM 5:1",
+            "translation1Text": "Being therefore justified by faith...",
+            "translation2Text": "Therefore being justified by faith..."
+          }
+        },
+        "createdAt": "2026-07-09T07:13:00Z",
+        "updatedAt": "2026-07-09T07:13:00Z"
+      }
+    ]
+  }
+  ```
+
+### 3. Create Notebook
+
+Initializes a new notebook.
+
+- **Endpoint**: `POST /api/notebooks`
+- **Request Body**:
+
+  ```json
+  {
+    "title": "Romans 5 Exegesis Notes",
+    "scopeId": "7bc751d3-3b1a-4712-8df7-e62a98e82110"
+  }
+  ```
+
+- **Response (201 Created)**: Returns the newly created notebook object with empty cells.
+
+### 4. Update Notebook Metadata
+
+Updates a notebook's title and workspace scope association.
+
+- **Endpoint**: `PUT /api/notebooks/{id}`
+- **Request Body**:
+
+  ```json
+  {
+    "title": "Romans 5 Study Sheet (Final)",
+    "scopeId": ""
+  }
+  ```
+
+- **Response (200 OK)**: Returns the updated notebook object.
+
+### 5. Save Notebook Cells
+
+Replaces the entire cells array for a notebook, updating content and layout positioning in a single transaction.
+
+- **Endpoint**: `PUT /api/notebooks/{id}/cells`
+- **Request Body**:
+
+  ```json
+  [
+    {
+      "id": "cell-uuid-1",
+      "notebookId": "nb-uuid-12345",
+      "type": "markdown",
+      "content": "### Introduction to Romans 5 (Revised)",
+      "position": 0,
+      "resultJson": null
+    }
+  ]
+  ```
+
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "status": "saved"
+  }
+  ```
+
+### 6. Delete Notebook
+
+Deletes a notebook along with all its nested cells.
+
+- **Endpoint**: `DELETE /api/notebooks/{id}`
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "status": "deleted"
+  }
+  ```
 
 ---
 
@@ -543,4 +790,138 @@ Appends a new search execution footprint to the history table.
   }
   ```
 
-- **Response (201 Created)**: (returns the created history item)
+- **Response (201 Created)**: Returns the created history item.
+
+---
+
+## Gemini AI API (Protected & Rate Limited)
+
+> [!IMPORTANT]
+> All Gemini AI endpoints are bound by strict IP-based rate limiting (maximum 15 requests per hour, with a burst buffer capacity of 5). 
+> If rate limits are exceeded, the API responds with `429 Too Many Requests`.
+>
+> If the `GEMINI_API_KEY` is not set on the server environment, AI routes respond with `503 Service Unavailable`:
+> ```json
+> {
+>   "error": "AI disabled",
+>   "hint": "Set GEMINI_API_KEY to enable AI features."
+> }
+> ```
+
+### 1. Generate Verse Insight
+
+Generates theological insights or commentaries focusing on particular hermeneutic rules.
+
+- **Endpoint**: `POST /api/ai/insight`
+- **Request Body**:
+
+  ```json
+  {
+    "text": "For God so loved the world...",
+    "focus": "covenant"
+  }
+  ```
+
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "insight": "The covenantal aspect of God's love in John 3:16..."
+  }
+  ```
+
+### 2. Analyze Literary Tone
+
+Analyzes literary characteristics, structural outlines, and tonalities of a scripture segment.
+
+- **Endpoint**: `POST /api/ai/tone`
+- **Request Body**:
+
+  ```json
+  {
+    "text": "For God so loved the world...",
+    "focus": "urgency"
+  }
+  ```
+
+- **Response (200 OK)**: Returns structural outline and literary tone analysis.
+
+### 3. Topic Deep-Dive Study
+
+Generates a comprehensive exegesis study on a theological topic with optional custom constraints.
+
+- **Endpoint**: `POST /api/ai/deep-dive`
+- **Request Body**:
+
+  ```json
+  {
+    "topic": "Justification by faith in Pauline epistles",
+    "outputLanguage": "en",
+    "context": {}
+  }
+  ```
+
+- **Response (200 OK)**: Detailed theological deep-dive text.
+
+### 4. Original Language Study
+
+Conducts detailed Greek or Hebrew root word studies from a source text reference.
+
+- **Endpoint**: `POST /api/ai/original-study`
+- **Request Body**:
+
+  ```json
+  {
+    "reference": "John 3:16",
+    "sourceText": "Οὕτως γὰρ ἠγάπησεν ὁ θεὸς τὸν κόσμον...",
+    "sourceLanguage": "grc",
+    "translations": [
+      {
+        "name": "web",
+        "text": "For God so loved the world..."
+      }
+    ],
+    "scope": "agape study",
+    "focus": "verb roots"
+  }
+  ```
+
+- **Response (200 OK)**: Lexicon morphology breakdown and usage insight.
+
+### 5. Semantic AI Search
+
+Searches scriptures using natural language queries (concepts, themes) instead of keyword matching.
+
+- **Endpoint**: `POST /api/ai/search`
+- **Request Body**:
+
+  ```json
+  {
+    "query": "Where does it talk about the armor of God?",
+    "translationId": "web",
+    "uiLanguage": "en"
+  }
+  ```
+
+- **Response (200 OK)**: Returns semantically matching verse references and explanations.
+
+### 6. AI Translation Comparison
+
+Compares linguistic and theological differences between two translations for a reference.
+
+- **Endpoint**: `POST /api/ai/compare`
+- **Request Body**:
+
+  ```json
+  {
+    "reference": "John 3:16",
+    "translationA": "web",
+    "textA": "For God so loved the world...",
+    "translationB": "kjv",
+    "textB": "For God so loved the world...",
+    "focus": "emphasis on agape vs love"
+  }
+  ```
+
+- **Response (200 OK)**: Returns detailed translation differences and structural emphasis comparisons.
+

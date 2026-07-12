@@ -2,7 +2,7 @@ export type CellType = 'markdown' | 'code';
 
 export interface CellResult {
     type: string; // e.g. 'verse', 'verse_list', 'graph', 'error'
-    data: any; // json data from backend
+    data: unknown; // json data from backend
     output?: string; // raw output from CLI
 }
 
