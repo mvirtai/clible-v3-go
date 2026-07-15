@@ -19,9 +19,9 @@ func newTestHandler(t *testing.T) *api.BibleHandler {
 	}
 	t.Cleanup(func() { _ = conn.Close() })
 
-	_, _ = conn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
-	_, _ = conn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'John', 'NT', 4, 21)`)
-	_, _ = conn.Exec(`INSERT INTO verses (id, translation_id, book_id, chapter, verse, text) VALUES ('web:Joh:3:16', 'web', 'Joh', 3, 16, 'For God so loved the world...')`)
+	_, _ = conn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text') ON CONFLICT(id) DO NOTHING`)
+	_, _ = conn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21) ON CONFLICT(id) DO NOTHING`)
+	_, _ = conn.Exec(`INSERT INTO verses (id, translation_id, book_id, chapter, verse, text) VALUES ('web:JHN:3:16', 'web', 'JHN', 3, 16, 'For God so loved the world...') ON CONFLICT(id) DO NOTHING`)
 
 	verseRepo := db.NewVerseRepository(conn)
 	translationRepo := db.NewTranslationRepository(conn)

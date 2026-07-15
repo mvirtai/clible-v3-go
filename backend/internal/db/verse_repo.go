@@ -75,7 +75,7 @@ func (r *VerseRepository) GetByReference(ctx context.Context, translationID, boo
 	rows, err := r.db.QueryContext(ctx, `
 			SELECT id, translation_id, book_id, chapter, verse, text
 			FROM verses
-			WHERE translation_id = $1 AND (book_id = $2 OR book_id = (SELECT id FROM books WHERE LOWER(name) = LOWER($2) LIMIT 1)) AND chapter = $3 AND verse >= $4 AND verse <= $5
+			WHERE translation_id = $1 AND book_id = $2 AND chapter = $3 AND verse >= $4 AND verse <= $5
 			ORDER BY verse ASC
 		`, translationID, bookID, chapter, verseStart, verseEnd)
 	if err != nil {
@@ -233,7 +233,7 @@ func (r *VerseRepository) GetByChapter(ctx context.Context, translationID string
 	rows, err := r.db.QueryContext(ctx, `
 			SELECT id, translation_id, book_id, chapter, verse, text
 			FROM verses
-			WHERE translation_id = $1 AND (book_id = $2 OR book_id = (SELECT id FROM books WHERE LOWER(name) = LOWER($2) LIMIT 1)) AND chapter = $3
+			WHERE translation_id = $1 AND book_id = $2 AND chapter = $3
 			ORDER BY verse ASC
 		`, translationID, bookId, chapter)
 	if err != nil {
@@ -257,7 +257,7 @@ func (r *VerseRepository) GetByBook(ctx context.Context, translationID string, b
 	rows, err := r.db.QueryContext(ctx, `
 			SELECT id, translation_id, book_id, chapter, verse, text
 			FROM verses
-			WHERE translation_id = $1 AND (book_id = $2 OR book_id = (SELECT id FROM books WHERE LOWER(name) = LOWER($2) LIMIT 1))
+			WHERE translation_id = $1 AND book_id = $2
 			ORDER BY chapter ASC, verse ASC
 		`, translationID, bookID)
 	if err != nil {

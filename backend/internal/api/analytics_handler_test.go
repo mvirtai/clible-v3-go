@@ -23,19 +23,19 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 
 	ctx := context.Background()
-	if _, err = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`); err != nil {
+	if _, err = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text') ON CONFLICT(id) DO NOTHING`); err != nil {
 		t.Fatalf("failed to seed web translation: %v", err)
 	}
-	if _, err = conn.ExecContext(ctx, `INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'John', 'NT', 4, 21)`); err != nil {
-		t.Fatalf("failed to seed Joh book: %v", err)
+	if _, err = conn.ExecContext(ctx, `INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21) ON CONFLICT(id) DO NOTHING`); err != nil {
+		t.Fatalf("failed to seed JHN book: %v", err)
 	}
-	if _, err = conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash) VALUES ('test-user-id', 'test@example.com', 'hash')`); err != nil {
+	if _, err = conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash) VALUES ('test-user-id', 'test@example.com', 'hash') ON CONFLICT(id) DO NOTHING`); err != nil {
 		t.Fatalf("failed to seed test user: %v", err)
 	}
 
 	verseRepo := db.NewVerseRepository(conn)
 	verses := []models.Verse{
-		{ID: "web:Joh:3:16", TranslationID: "web", BookID: "Joh", Chapter: 3, Verse: 16, Text: "For God so loved the world"},
+		{ID: "web:JHN:3:16", TranslationID: "web", BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world"},
 	}
 	_ = verseRepo.BulkInsert(ctx, verses)
 
@@ -108,7 +108,7 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 
 		// Seed a comparative verse for the KJV translation alignment grid
 		versesB := []models.Verse{
-			{ID: "kjv:Joh:3:16", TranslationID: "kjv", BookID: "Joh", Chapter: 3, Verse: 16, Text: "For God so loved the world, that he gave his only begotten Son"},
+			{ID: "kjv:JHN:3:16", TranslationID: "kjv", BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world, that he gave his only begotten Son"},
 		}
 		if err := verseRepo.BulkInsert(ctx, versesB); err != nil {
 			t.Fatalf("failed to seed KJV mock item: %v", err)
