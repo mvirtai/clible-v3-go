@@ -103,7 +103,6 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: 'Uusi muistikirja',
-          description: 'Teologinen tutkimuspäiväkirja',
           scopeId: activeScopeId || undefined
         }),
       });
@@ -668,9 +667,6 @@ function App() {
                           <h3 className="font-bold text-[var(--text)] group-hover:text-amber-500 transition-colors">
                             {nb.title}
                           </h3>
-                          <p className="text-xs text-[var(--muted)] mt-1 line-clamp-2">
-                            {nb.description || 'Ei kuvausta.'}
-                          </p>
                           <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--border-soft)] text-[10px] text-[var(--muted)]">
                             <span>Päivitetty: {new Date(nb.updatedAt || nb.createdAt).toLocaleDateString()}</span>
                           </div>
