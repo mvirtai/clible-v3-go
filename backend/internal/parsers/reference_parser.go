@@ -40,6 +40,10 @@ func ParseReference(input string) (*ParsedReference, error) {
 		return nil, errors.New("cannot parse an empty reference string")
 	}
 
+	// Normalize formats like "JHN:1:3" -> "JHN 1:3"
+	reNormalize := regexp.MustCompile(`^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ\s]+):(\d+)`)
+	cleaned = reNormalize.ReplaceAllString(cleaned, "$1 $2")
+
 	// FindStringSubmatch returns a slice of strings containing the full match and all capture groups
 	matches := refRegex.FindStringSubmatch(cleaned)
 	if len(matches) == 0 {
@@ -60,7 +64,6 @@ func ParseReference(input string) (*ParsedReference, error) {
 	// Convert chapter string to integer using strconv.Atoi (letters to integer)
 	chapter, err := strconv.Atoi(matches[2])
 	if err != nil {
-
 		return nil, errors.New("invalid chapter number format")
 	}
 

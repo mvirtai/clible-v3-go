@@ -68,6 +68,18 @@ func TestParseReference_TableDriven(t *testing.T) {
 			expectedRef: nil,
 			expectError: true,
 		},
+		{
+			name:  "Colon separated Book and Chapter",
+			input: "JHN:1:3",
+			expectedRef: &ParsedReference{
+				BookName:   "JHN",
+				Chapter:    1,
+				VerseStart: 3,
+				VerseEnd:   3,
+				Scope:      ScopeVerse,
+			},
+			expectError: false,
+		},
 	}
 
 	for _, tt := range tests {

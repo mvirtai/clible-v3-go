@@ -152,4 +152,4 @@ Tehdään PR-tarina tai commit-viesti ja lähetetään muutokset haaraan:
 task git:stage-commit-push MESSAGE="ci: add github actions workflow for vitepress deployment"
 ```
 
-Luo ja mergetä PR `main`-haaraan. Heti kun merge tapahtuu, `Deploy VitePress site to Pages` -työnkulku käynnistyy ja julkaisee sivusi osoitteeseen `https://mvirtai.github.io/clible-v3-go/`.
+Luo ja mergetä PR `main`-haaraan. Heti kun merge tapahtuu, `Deploy VitePress site to Pages` -työnkulku käynnistyy ja julkaisee sivusi osoitteeseen `https://mvirtai.githubclible-v3-go/`.

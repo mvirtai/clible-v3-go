@@ -73,11 +73,11 @@ func (r *VerseRepository) BulkInsert(ctx context.Context, verses []models.Verse)
 // GetByReference fetches verses matching exact book/chapter/verse range and translation.
 func (r *VerseRepository) GetByReference(ctx context.Context, translationID, bookID string, chapter, verseStart, verseEnd int) ([]models.Verse, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, translation_id, book_id, chapter, verse, text
-		FROM verses
-		WHERE translation_id = $1 AND book_id = $2 AND chapter = $3 AND verse >= $4 AND verse <= $5
-		ORDER BY verse ASC
-	`, translationID, bookID, chapter, verseStart, verseEnd)
+			SELECT id, translation_id, book_id, chapter, verse, text
+			FROM verses
+			WHERE translation_id = $1 AND (book_id = $2 OR book_id = (SELECT id FROM books WHERE LOWER(name) = LOWER($2) LIMIT 1)) AND chapter = $3 AND verse >= $4 AND verse <= $5
+			ORDER BY verse ASC
+		`, translationID, bookID, chapter, verseStart, verseEnd)
 	if err != nil {
 		return nil, fmt.Errorf("reference lookup failed: %w", err)
 	}
@@ -231,11 +231,11 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 // GetByChapter fetches all verses for a given chapter, translation, and book.
 func (r *VerseRepository) GetByChapter(ctx context.Context, translationID string, bookId string, chapter int) ([]models.Verse, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, translation_id, book_id, chapter, verse, text
-		FROM verses
-		WHERE translation_id = $1 AND book_id = $2 AND chapter = $3
-		ORDER BY verse ASC
-	`, translationID, bookId, chapter)
+			SELECT id, translation_id, book_id, chapter, verse, text
+			FROM verses
+			WHERE translation_id = $1 AND (book_id = $2 OR book_id = (SELECT id FROM books WHERE LOWER(name) = LOWER($2) LIMIT 1)) AND chapter = $3
+			ORDER BY verse ASC
+		`, translationID, bookId, chapter)
 	if err != nil {
 		return nil, fmt.Errorf("chapter lookup failed: %w", err)
 	}
@@ -255,11 +255,11 @@ func (r *VerseRepository) GetByChapter(ctx context.Context, translationID string
 // GetByBook fetches all verses for an entire book and translation, ordered by chapter and verse.
 func (r *VerseRepository) GetByBook(ctx context.Context, translationID string, bookID string) ([]models.Verse, error) {
 	rows, err := r.db.QueryContext(ctx, `
-	SELECT id, translation_id, book_id, chapter, verse, text
-	FROM verses
-	WHERE translation_id = $1 AND book_id = $2
-	ORDER BY chapter ASC, verse ASC
-	`, translationID, bookID)
+			SELECT id, translation_id, book_id, chapter, verse, text
+			FROM verses
+			WHERE translation_id = $1 AND (book_id = $2 OR book_id = (SELECT id FROM books WHERE LOWER(name) = LOWER($2) LIMIT 1))
+			ORDER BY chapter ASC, verse ASC
+		`, translationID, bookID)
 	if err != nil {
 		return nil, fmt.Errorf("book lookup failed: %w", err)
 	}

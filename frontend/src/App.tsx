@@ -10,13 +10,16 @@ import { CompareView } from './components/CompareView';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { apiService } from './services/api';
 import { useAuth } from './context/AuthContext';
-import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut, Languages } from 'lucide-react';
 import type { InstalledTranslation, TextStats, ComparisonResult } from './types/bible';
 import type { SavedSearch, SavedAnalysis } from './types/workspace';
 import type { SearchVerse } from './types/search';
 import { OriginalStudyView } from './components/OriginalStudyView';
 import type { OriginalStudyResult } from './types/originalStudy';
 import type { AiTextResponse } from './types/ai';
+import { NotebookEditor } from './components/notebook/NotebookEditor';
+import type { Notebook } from './components/notebook/types';
+import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut, Languages, FileText } from 'lucide-react';
+
 
 interface LoadedSearchState {
   query: string;
@@ -48,7 +51,9 @@ function App() {
   const [historyTrigger, setHistoryTrigger] = useState(false);
   const [translationTrigger, setTranslationTrigger] = useState(false);
   const [showManager, setShowManager] = useState(false);
-  const [viewMode, setViewMode] = useState<'reader' | 'analytics' | 'compare' | 'original'>('reader');
+  const [viewMode, setViewMode] = useState<'reader' | 'analytics' | 'compare' | 'original' | 'notebooks'>('reader');
+  const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
+  const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
   const [activeReference, setActiveReference] = useState<string>(
     () => localStorage.getItem('activeReference') || ''
@@ -72,6 +77,45 @@ function App() {
   const [loadedInsightDeepDive, setLoadedInsightDeepDive] = useState<string | null>(null);
   const [loadedComparisonAi, setLoadedComparisonAi] = useState<AiTextResponse | null>(null);
   const [loadedComparisonDeepDive, setLoadedComparisonDeepDive] = useState<string | null>(null);
+
+  // Haetaan muistikirjat kun siirrytään näkymään
+  useEffect(() => {
+    if (viewMode === 'notebooks') {
+      const fetchNotebooks = async () => {
+        try {
+          const res = await fetch('/api/notebooks');
+          if (res.ok) {
+            const data = await res.json();
+            setNotebooks(data || []);
+          }
+        } catch (err) {
+          console.error('fetching notebooks failed:', err);
+        }
+      };
+      fetchNotebooks();
+    }
+  }, [viewMode]);
+
+  const handleCreateNotebook = async () => {
+    try {
+      const res = await fetch('/api/notebooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Uusi muistikirja',
+          description: 'Teologinen tutkimuspäiväkirja',
+          scopeId: activeScopeId || undefined
+        }),
+      });
+      if (res.ok) {
+        const newNotebook = await res.json();
+        setNotebooks((prev) => [newNotebook, ...prev]);
+        setSelectedNotebookId(newNotebook.id);
+      }
+    } catch (err) {
+      console.error('Creating notebook failed:', err);
+    }
+  };
 
   const handleSelectReference = (ref: string) => {
     setActiveReference(ref);
@@ -476,6 +520,20 @@ function App() {
             <Languages size={16} />
             <span>Alkukieli</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => { setViewMode('notebooks');
+              setSelectedNotebookId(null); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile
+                ${viewMode === 'notebooks' 
+                  ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
+                  : 'text-[var(--muten)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
+                }`}
+                >
+                  <FileText size={16} />
+                  <span>Muistikirjat</span>
+                </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -568,6 +626,67 @@ function App() {
                 onWorkspaceUpdated={() => setWorkspaceTrigger(prev => !prev)}
               />
             )}
+
+            {viewMode === 'notebooks' && (
+              <div className="space-y-6">
+                {selectedNotebookId ? (
+                  <div>
+                    <button
+                      onClick={() => setSelectedNotebookId(null)}
+                      className="mb-4 px-3 py-1.5 bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 border border-[var(--border-soft)] text-[var(--muted)] hover:text-[var(--text)] text-xs rounded transition-all flex items-center gap-1"
+                    >
+                      ← Takaisin listaukseen
+                    </button>
+                    <NotebookEditor
+                      notebookId={selectedNotebookId}
+                      translation={selectedTranslation}
+                      onSelectVerse={(ref) => {
+                        handleSelectReference(ref);
+                        setViewMode('reader');
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
+                      <h2 className="text-lg font-bold text-[var(--text)]">Teologiset muistikirjat</h2>
+                      <button
+                        onClick={handleCreateNotebook}
+                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-xs rounded transition-all shadow-sm"
+                      >
+                        + Luo muistikirja
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {notebooks.map((nb) => (
+                        <div
+                          key={nb.id}
+                          onClick={() => setSelectedNotebookId(nb.id)}
+                          className="p-5 bg-[var(--surface-2)]/10 border border-[var(--border-soft)] hover:border-amber-500/20 rounded-xl cursor-pointer hover:bg-[var(--surface-2)]/20 transition-all group"
+                        >
+                          <h3 className="font-bold text-[var(--text)] group-hover:text-amber-500 transition-colors">
+                            {nb.title}
+                          </h3>
+                          <p className="text-xs text-[var(--muted)] mt-1 line-clamp-2">
+                            {nb.description || 'Ei kuvausta.'}
+                          </p>
+                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--border-soft)] text-[10px] text-[var(--muted)]">
+                            <span>Päivitetty: {new Date(nb.updatedAt || nb.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {notebooks.length === 0 && (
+                        <div className="col-span-2 text-center py-12 text-[var(--muted)] text-sm">
+                          Ei vielä muistikirjoja. Luo uusi aloittaaksesi!
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
 
           {/* Right: Persistent workspace sidebar */}
