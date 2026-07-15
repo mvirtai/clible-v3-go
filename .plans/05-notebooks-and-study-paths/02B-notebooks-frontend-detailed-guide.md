@@ -16,6 +16,8 @@ Luomme viisi keskeistä tiedostoa React-solueditorille:
 
 Varmista, että hakemisto `frontend/src/components/notebook/` on luotu.
 
+Done? Check! 07/12/26 at 00:57 A.M.
+
 ---
 
 ## 2. Vaihe 1: TypeScript-tyypit (`types.ts`)
@@ -55,11 +57,14 @@ export interface Notebook {
 }
 ```
 
+Done? Check! 07/12/26 at 00:57 A.M.
+
 ---
 
 ## 3. Vaihe 2: MarkdownCell-komponentti
 
 Markdown-solulla on kaksi tilaa: **Edit-tila** ja **Preview-tila**.
+
 * Preview-tilassa kaksoisklikkaus vaihtaa solun editointitilaan.
 * Edit-tilassa fokusointi menetetään (`onBlur`), tai kun painetaan `Ctrl+Enter` / `Esc`, siirrytään takaisin Preview-tilaan.
 
@@ -373,6 +378,7 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
 ## 6. Vaihe 5: NotebookEditor (Pääeditorikomponentti)
 
 `NotebookEditor` hallitsee kokonaistilaa.
+
 * Hakee notebookin backendistä `useEffect`:illä.
 * Tarjoaa `useDebounce` -tyyppisen tallennuksen: Aina kun `cells` muuttuu (esim. sisältöä muokataan), asetetaan 1500ms ajastin, jonka lauettua lähetetään uusi solutilanne `/api/notebooks/{id}/cells` -PUT-kutsuun.
 * Tarjoaa toiminnot solujen lisäämiseen haluttuun kohtaan, poistamiseen, siirtämiseen ja koodisolujen suorittamiseen backend-rajapinnalla.
@@ -722,11 +728,14 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId }) =>
 
 ## Verification & Testing Plan
 
-### Automaattiset Testit
-- Varmistetaan linterin toimivuus frontendissä: `npm run lint` tai vastaava linter-ajo.
-- Tarkistetaan React- ja TypeScript-käännös: `npm run build` tai `tsc --noEmit`.
+### Automaattiset Testi
+
+* Varmistetaan linterin toimivuus frontendissä: `npm run lint` tai vastaava linter-ajo.
+
+* Tarkistetaan React- ja TypeScript-käännös: `npm run build` tai `tsc --noEmit`.
 
 ### Manuaalinen Testaus
+
 1. Avaa muistikirjanäkymä, jolla on ID.
 2. Lisää uusi Markdown-solu, kirjoita Markdown-syntaksia, paina `Ctrl+Enter` ja varmista että renderöinti on kaunis. Kaksoisklikkaa ja varmista paluu edit-tilaan.
 3. Lisää CLI-koodisolu, kirjoita `/read John 3:16` ja paina "Run". Varmista että tulosalue näyttää palautetun jakeen oikein.

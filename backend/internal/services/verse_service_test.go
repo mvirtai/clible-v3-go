@@ -19,17 +19,16 @@ func TestVerseService_GetVerses_Success(t *testing.T) {
 
 	// 2. Seed required structural schema lookup relations
 	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
-	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21)`)
 
 	verseRepo := db.NewVerseRepository(dbConn)
 	translationRepo := db.NewTranslationRepository(dbConn)
 
-	// Seed target verse to prove our search matching works down the line
 	ctx := context.Background()
 	mockVerse := models.Verse{
-		ID:            "web:Joh:3:16",
+		ID:            "web:JHN:3:16",
 		TranslationID: "web",
-		BookID:        "Joh",
+		BookID:        "JHN",
 		Chapter:       3,
 		Verse:         16,
 		Text:          "Joh - Jumala on rakastanut maailmaa...",
@@ -38,22 +37,19 @@ func TestVerseService_GetVerses_Success(t *testing.T) {
 		t.Fatalf("failed to seed test verses: %v", err)
 	}
 
-	// 3. Initialize VerseService
 	svc := NewVerseService(verseRepo, translationRepo)
 
-	// 4. Execute standard query reference
 	results, err := svc.GetVerses(ctx, "Joh 3:16", "web")
 	if err != nil {
 		t.Fatalf("unexpected service execution failure: %v", err)
 	}
 
-	// 5. Assertions
 	if len(results) != 1 {
 		t.Fatalf("expected 1 verse match, got %d", len(results))
 	}
 
-	if results[0].BookID != "Joh" || results[0].Verse != 16 {
-		t.Errorf("expected Joh 3:16, got %s %d:%d", results[0].BookID, results[0].Chapter, results[0].Verse)
+	if results[0].BookID != "JHN" || results[0].Verse != 16 {
+		t.Errorf("expected JHN 3:16, got %s %d:%d", results[0].BookID, results[0].Chapter, results[0].Verse)
 	}
 }
 
@@ -80,7 +76,7 @@ func TestVerseService_GetVerses_FallbackTranslation(t *testing.T) {
 	defer func() { _ = dbConn.Close() }()
 
 	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
-	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21)`)
 
 	verseRepo := db.NewVerseRepository(dbConn)
 	translationRepo := db.NewTranslationRepository(dbConn)
@@ -101,7 +97,7 @@ func TestVerseService_GetVerses_ChapterScope(t *testing.T) {
 	defer func() { _ = dbConn.Close() }()
 
 	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
-	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21)`)
 
 	verseRepo := db.NewVerseRepository(dbConn)
 	translationRepo := db.NewTranslationRepository(dbConn)
@@ -109,9 +105,9 @@ func TestVerseService_GetVerses_ChapterScope(t *testing.T) {
 
 	ctx := context.Background()
 	verses := []models.Verse{
-		{ID: "web:Joh:3:1", TranslationID: "web", BookID: "Joh", Chapter: 3, Verse: 1, Text: "Verse 1"},
-		{ID: "web:Joh:3:2", TranslationID: "web", BookID: "Joh", Chapter: 3, Verse: 2, Text: "Verse 2"},
-		{ID: "web:Joh:4:1", TranslationID: "web", BookID: "Joh", Chapter: 4, Verse: 1, Text: "Verse 4:1"},
+		{ID: "web:JHN:3:1", TranslationID: "web", BookID: "JHN", Chapter: 3, Verse: 1, Text: "Verse 1"},
+		{ID: "web:JHN:3:2", TranslationID: "web", BookID: "JHN", Chapter: 3, Verse: 2, Text: "Verse 2"},
+		{ID: "web:JHN:4:1", TranslationID: "web", BookID: "JHN", Chapter: 4, Verse: 1, Text: "Verse 4:1"},
 	}
 	if err := verseRepo.BulkInsert(ctx, verses); err != nil {
 		t.Fatalf("failed to seed test verses: %v", err)
@@ -135,7 +131,7 @@ func TestVerseService_GetVerses_BookScope(t *testing.T) {
 	defer func() { _ = dbConn.Close() }()
 
 	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
-	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'Johannes', 'NT', 4, 21)`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21)`)
 
 	verseRepo := db.NewVerseRepository(dbConn)
 	translationRepo := db.NewTranslationRepository(dbConn)
@@ -143,8 +139,8 @@ func TestVerseService_GetVerses_BookScope(t *testing.T) {
 
 	ctx := context.Background()
 	verses := []models.Verse{
-		{ID: "web:Joh:1:1", TranslationID: "web", BookID: "Joh", Chapter: 1, Verse: 1, Text: "Verse 1:1"},
-		{ID: "web:Joh:3:16", TranslationID: "web", BookID: "Joh", Chapter: 3, Verse: 16, Text: "Verse 3:16"},
+		{ID: "web:JHN:1:1", TranslationID: "web", BookID: "JHN", Chapter: 1, Verse: 1, Text: "Verse 1:1"},
+		{ID: "web:JHN:3:16", TranslationID: "web", BookID: "JHN", Chapter: 3, Verse: 16, Text: "Verse 3:16"},
 	}
 	if err := verseRepo.BulkInsert(ctx, verses); err != nil {
 		t.Fatalf("failed to seed test verses: %v", err)

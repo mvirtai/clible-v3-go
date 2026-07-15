@@ -20,7 +20,6 @@ export interface Cell {
 export interface Notebook {
     id: string;
     title: string;
-    description?: string;
     scopeId: string;
     cells: Cell[];
     createdAt: string;
