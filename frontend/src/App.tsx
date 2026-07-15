@@ -78,7 +78,7 @@ function App() {
   const [loadedComparisonAi, setLoadedComparisonAi] = useState<AiTextResponse | null>(null);
   const [loadedComparisonDeepDive, setLoadedComparisonDeepDive] = useState<string | null>(null);
 
-  // Haetaan muistikirjat kun siirrytään näkymään
+  // Haetaan muistikirjat kun siirrytään näkymään tai palataan editorista listaukseen
   useEffect(() => {
     if (viewMode === 'notebooks') {
       const fetchNotebooks = async () => {
@@ -94,7 +94,7 @@ function App() {
       };
       fetchNotebooks();
     }
-  }, [viewMode]);
+  }, [viewMode, selectedNotebookId]);
 
   const handleCreateNotebook = async () => {
     try {

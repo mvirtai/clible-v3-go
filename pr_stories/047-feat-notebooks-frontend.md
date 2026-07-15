@@ -47,6 +47,7 @@ The notebook interface is broken down into five main files to ensure modularity,
 ## Styling & Theme Integration
 
 Hardcoded absolute dark classes have been replaced with standard CSS variables (`var(--text)`, `var(--surface-2)`, `var(--border-soft)`). This ensures:
+
 - Full accessibility and readability of notebook titles, descriptions, and empty placeholders in the **Light Theme** (which previously rendered invisible due to `text-neutral-100` classes).
 - Seamless theme transitions.
 - A clean, cohesive user interface matching the existing Clible aesthetic.

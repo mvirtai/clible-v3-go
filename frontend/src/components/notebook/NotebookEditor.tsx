@@ -17,6 +17,10 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, onSe
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Otsikon muokkaustila
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+
   // Käytetään viitettä estämään tallennuksen ajaminen alkulatauksen aikana
   const initialLoadDone = useRef(false);
 
@@ -33,6 +37,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, onSe
         const sortedCells = (data.cells || []).sort((a, b) => a.position - b.position);
         setNotebook(data);
         setCells(sortedCells);
+        setTitleInput(data.title || '');
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Haku epäonnistui');
@@ -48,7 +53,43 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, onSe
     fetchNotebook();
   }, [notebookId]);
 
-  // 2. Tallenna solujen nykyinen tila backendille
+  // 2. Tallenna otsikon muutos
+  const handleTitleSave = async () => {
+    const trimmed = titleInput.trim();
+    if (!trimmed || !notebook || trimmed === notebook.title) {
+      setIsEditingTitle(false);
+      if (notebook) {
+        setTitleInput(notebook.title);
+      }
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: trimmed,
+          scopeId: notebook.scopeId,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Otsikon tallennus epäonnistui');
+      const updated: Notebook = await res.json();
+      setNotebook(updated);
+      setTitleInput(updated.title);
+      setIsEditingTitle(false);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError('Otsikon tallennus epäonnistui.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 3. Tallenna solujen nykyinen tila backendille
   const saveCells = useCallback(async (currentCells: Cell[]) => {
     setIsSaving(true);
     try {
@@ -218,10 +259,43 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, onSe
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
       {/* Otsikkoalue */}
       <div className="border-b border-[var(--border-soft)] pb-5 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text)] tracking-tight">
-            {notebook?.title || 'Nimetön muistikirja'}
-          </h1>
+        <div className="flex-1 mr-4">
+          {isEditingTitle ? (
+            <input
+              type="text"
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              onBlur={handleTitleSave}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleTitleSave();
+                if (e.key === 'Escape') {
+                  setIsEditingTitle(false);
+                  if (notebook) setTitleInput(notebook.title);
+                }
+              }}
+              className="text-2xl font-bold bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              autoFocus
+            />
+          ) : (
+            <div className="flex items-center gap-2 group">
+              <h1 
+                onClick={() => setIsEditingTitle(true)}
+                className="text-2xl font-bold text-[var(--text)] tracking-tight cursor-pointer hover:text-[var(--text)]/85 transition-colors"
+                title="Klikkaa muokataksesi"
+              >
+                {notebook?.title || 'Nimetön muistikirja'}
+              </h1>
+              <button
+                onClick={() => setIsEditingTitle(true)}
+                className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted)] hover:text-amber-500 transition-all"
+                title="Muokkaa otsikkoa"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isSaving ? (
