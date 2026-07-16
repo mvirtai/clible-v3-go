@@ -1,9 +1,15 @@
 package services
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/models"
 )
 
 // List of common words to ignore during analysis in Finnish and English.
@@ -102,4 +108,175 @@ func ParseCLICommand(input string) *CLICommand {
 		Args:  args,
 		Flags: flags,
 	}
+}
+
+// CLIService orchestrates notebook cell CLI slash command executions.
+type CLIService struct {
+	verseRepo    *db.VerseRepository
+	verseService *VerseService
+}
+
+// NewCLIService constructs a CLI command execution engine.
+func NewCLIService(vr *db.VerseRepository, vs *VerseService) *CLIService {
+	return &CLIService{
+		verseRepo:    vr,
+		verseService: vs,
+	}
+}
+
+// ExecuteCommand runs a parsed command and returns a structured CLIResult.
+func (s *CLIService) ExecuteCommand(ctx context.Context, cmd *CLICommand, translationID string, contextText string) (*models.CLIResult, error) {
+	switch cmd.Name {
+	case "/read":
+		return s.executeReadCommand(ctx, cmd, translationID)
+	case "/search":
+		return s.executeSearchCommand(ctx, cmd, translationID)
+	case "/refs":
+		return s.executeRefsCommand(ctx, cmd, translationID)
+	case "/suggest":
+		return s.executeSuggestCommand(ctx, cmd, translationID, contextText)
+	default:
+		return nil, fmt.Errorf("unknown command: %s", cmd.Name)
+	}
+}
+
+func (s *CLIService) executeReadCommand(ctx context.Context, cmd *CLICommand, translationID string) (*models.CLIResult, error) {
+	if len(cmd.Args) == 0 {
+		return nil, errors.New("missing reference (e.g. /read John 3:16)")
+	}
+
+	refStr := strings.Join(cmd.Args, " ")
+	tid := translationID
+	if t, ok := cmd.Flags["translation"]; ok {
+		tid = t
+	}
+
+	verses, err := s.verseService.GetVerses(ctx, refStr, tid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch verses: %w", err)
+	}
+
+	return &models.CLIResult{
+		Type: "read",
+		Data: map[string]interface{}{
+			"reference": refStr,
+			"verses":    verses,
+		},
+	}, nil
+}
+
+func (s *CLIService) executeSearchCommand(ctx context.Context, cmd *CLICommand, translationID string) (*models.CLIResult, error) {
+	if len(cmd.Args) == 0 {
+		return nil, errors.New("missing search query (e.g. /search love)")
+	}
+
+	query := strings.Join(cmd.Args, " ")
+	useRegex := cmd.Flags["regex"] == "true"
+
+	verses, err := s.verseService.SearchVerses(ctx, query, useRegex, translationID, "", "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to search verses: %w", err)
+	}
+
+	return &models.CLIResult{
+		Type: "search",
+		Data: map[string]interface{}{
+			"query":  query,
+			"verses": verses,
+		},
+	}, nil
+}
+
+func (s *CLIService) executeRefsCommand(ctx context.Context, cmd *CLICommand, translationID string) (*models.CLIResult, error) {
+	if len(cmd.Args) == 0 {
+		return nil, errors.New("missing reference (e.g. /refs John 3:16)")
+	}
+
+	refStr := strings.Join(cmd.Args, " ")
+	verses, err := s.verseService.GetVerses(ctx, refStr, translationID)
+	if err != nil || len(verses) == 0 {
+		return nil, fmt.Errorf("verse not found: %w", err)
+	}
+
+	// Dynamic FTS check on the source verse text
+	keywords := ExtractKeywords(verses[0].Text)
+	if len(keywords) == 0 {
+		return &models.CLIResult{
+			Type: "refs",
+			Data: map[string]interface{}{
+				"source":     refStr,
+				"references": []models.Verse{},
+			},
+		}, nil
+	}
+
+	refs, err := s.verseRepo.SearchByKeywords(ctx, keywords, translationID, 6)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search cross-references: %w", err)
+	}
+
+	// Filter out the source verse itself
+	var filteredRefs []models.Verse
+	for _, r := range refs {
+		isSource := false
+		for _, sv := range verses {
+			if r.BookID == sv.BookID && r.Chapter == sv.Chapter && r.Verse == sv.Verse {
+				isSource = true
+				break
+			}
+		}
+		if !isSource {
+			filteredRefs = append(filteredRefs, r)
+		}
+	}
+
+	// Return top 5
+	if len(filteredRefs) > 5 {
+		filteredRefs = filteredRefs[:5]
+	}
+
+	return &models.CLIResult{
+		Type: "refs",
+		Data: map[string]interface{}{
+			"source":     refStr,
+			"references": filteredRefs,
+		},
+	}, nil
+}
+
+func (s *CLIService) executeSuggestCommand(ctx context.Context, _ *CLICommand, translationID string, contextText string) (*models.CLIResult, error) {
+	trimmedCtx := strings.TrimSpace(contextText)
+	if trimmedCtx == "" {
+		return &models.CLIResult{
+			Type: "suggest",
+			Data: map[string]interface{}{
+				"keywords":    []string{},
+				"suggestions": []models.Verse{},
+			},
+		}, nil
+	}
+
+	keywords := ExtractKeywords(trimmedCtx)
+	if len(keywords) == 0 {
+		return &models.CLIResult{
+			Type: "suggest",
+			Data: map[string]interface{}{
+				"keywords":    []string{},
+				"suggestions": []models.Verse{},
+			},
+		}, nil
+	}
+
+	suggestions, err := s.verseRepo.SearchByKeywords(ctx, keywords, translationID, 5)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search suggestions: %w", err)
+	}
+
+	return &models.CLIResult{
+		Type: "suggest",
+		Data: map[string]interface{}{
+			"keywords":    keywords,
+			"suggestions": suggestions,
+		},
+	}, nil
 }
