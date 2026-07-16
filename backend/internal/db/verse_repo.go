@@ -17,6 +17,45 @@ func (r *VerseRepository) SearchByKeywords(ctx context.Context, keywords []strin
 		return nil, nil
 	}
 
+	if !r.isPostgres {
+		// SQLite fallback: simple LIKE query for unit testing
+		var whereClauses []string
+		var args []any
+		args = append(args, translationID)
+
+		for _, kw := range keywords {
+			whereClauses = append(whereClauses, fmt.Sprintf("text LIKE $%d", len(args)+1))
+			args = append(args, "%"+kw+"%")
+		}
+
+		query := `
+			SELECT id, translation_id, book_id, chapter, verse, text
+			FROM verses
+			WHERE translation_id = $1
+		`
+		if len(whereClauses) > 0 {
+			query += " AND (" + strings.Join(whereClauses, " OR ") + ")"
+		}
+		query += " LIMIT " + fmt.Sprintf("$%d", len(args)+1)
+		args = append(args, limit)
+
+		rows, err := r.db.QueryContext(ctx, query, args...)
+		if err != nil {
+			return nil, err
+		}
+		defer func() { _ = rows.Close() }()
+
+		var results []models.Verse
+		for rows.Next() {
+			var v models.Verse
+			if err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); err != nil {
+				return nil, err
+			}
+			results = append(results, v)
+		}
+		return results, rows.Err()
+	}
+
 	// Build a tsquery string, e.g. "love | world | son"
 	// Using OR operator (|) to find verses matching any of the main keywords.
 	queryTerms := make([]string, len(keywords))
