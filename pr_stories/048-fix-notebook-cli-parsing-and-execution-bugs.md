@@ -29,8 +29,9 @@ No major architectural changes were introduced. However, the CLI slash command p
 
 * **Loaded Cell Context in `ExecuteCellCommand`** ([notebook_service.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/notebook_service.go)):
   * Added a database call (`s.repo.GetCells`) to load all cells of a notebook before looking up the target execution cell. This resolves the `"cell not found in this notebook"` error.
-* **Passed Selected Translation ID** ([NotebookEditor.tsx](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/NotebookEditor.tsx)):
+* **Robust Cell Execution flow in Frontend** ([NotebookEditor.tsx](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/NotebookEditor.tsx)):
   * Appended the active translation to the `/execute` URL query parameters (`?translation=${translation}`) to ensure the cell runs with the user's active translation.
+  * Added `await saveCells(cells)` inside `handleExecuteCell` before triggering `/execute`. This guarantees the server executes the latest written code, solving the race condition caused by the 1.5s debounced cell auto-save where the server would execute a stale, partially typed command (like `/read Jo` instead of `/read Joh 3:16`).
 * **Removed Hardcoded 'KJV' Fallback** ([notebook_handler.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/api/notebook_handler.go)):
   * Removed the uppercase `"KJV"` fallback. The backend now passes an empty string if the query parameter is missing, allowing the service layer to resolve the user's default active/installed translation correctly. This solves the `500 (Internal Server Error)` that was caused by checking accessibility of the case-sensitive non-existent or inactive `"KJV"` translation.
 
