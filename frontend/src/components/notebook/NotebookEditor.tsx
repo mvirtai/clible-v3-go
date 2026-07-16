@@ -10,7 +10,7 @@ interface NotebookEditorProps {
   onSelectVerse?: (ref: string) => void;
 }
 
-export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, onSelectVerse }) => {
+export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, translation = 'WEB', onSelectVerse }) => {
   const [notebook, setNotebook] = useState<Notebook | null>(null);
   const [cells, setCells] = useState<Cell[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -199,7 +199,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, onSe
     if (!targetCell) return;
 
     try {
-      const res = await fetch(`/api/notebooks/${notebookId}/cells/${id}/execute`, {
+      const res = await fetch(`/api/notebooks/${notebookId}/cells/${id}/execute?translation=${translation}`, {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Suoritus epäonnistui');
@@ -226,6 +226,23 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, onSe
         )
       );
     }
+  };
+
+  const handleFreezeCell = (index: number, markdown: string) => {
+    const newCell: Cell = {
+      id: crypto.randomUUID(),
+      notebookId,
+      type: 'markdown',
+      content: markdown,
+      position: index + 1,
+      resultJson: null,
+    };
+
+    setCells((prev) => {
+      const next = [...prev];
+      next.splice(index + 1, 0, newCell);
+      return reorderCells(next);
+    });
   };
 
   if (isLoading) {
@@ -376,6 +393,8 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, onSe
                   cell={cell}
                   onChange={(content) => handleCellContentChange(cell.id, content)}
                   onExecute={() => handleExecuteCell(cell.id)}
+                  translation={translation}
+                  onFreeze={(markdown) => handleFreezeCell(index, markdown)}
                 />
               )}
             </CellWrapper>
