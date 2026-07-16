@@ -163,7 +163,7 @@ func (s *CLIService) ExecuteCommand(ctx context.Context, cmd *CLICommand, transl
 		return s.executeReadCommand(ctx, cmd, translationID)
 	case "/search":
 		return s.executeSearchCommand(ctx, cmd, translationID)
-	case "/refs":
+	case "/refs", "/ref":
 		return s.executeRefsCommand(ctx, cmd, translationID)
 	case "/suggest":
 		return s.executeSuggestCommand(ctx, cmd, translationID, contextText)
@@ -227,8 +227,11 @@ func (s *CLIService) executeRefsCommand(ctx context.Context, cmd *CLICommand, tr
 
 	refStr := strings.Join(cmd.Args, " ")
 	verses, err := s.verseService.GetVerses(ctx, refStr, translationID)
-	if err != nil || len(verses) == 0 {
-		return nil, fmt.Errorf("verse not found: %w", err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch source verse: %w", err)
+	}
+	if len(verses) == 0 {
+		return nil, fmt.Errorf("source verse not found for reference: %s", refStr)
 	}
 
 	// Dynamic FTS check on the source verse text

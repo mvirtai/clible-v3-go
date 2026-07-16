@@ -285,7 +285,12 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 	// 5. Execute parsed command using CLIService
 	cliResult, err := s.cliService.ExecuteCommand(ctx, cmd, translationID, contextText)
 	if err != nil {
-		return nil, fmt.Errorf("execution error: %w", err)
+		cliResult = &models.CLIResult{
+			Type: "error",
+			Data: map[string]interface{}{
+				"message": err.Error(),
+			},
+		}
 	}
 
 	// 6. Serialize result to JSON and save back to the repository
