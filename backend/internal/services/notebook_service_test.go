@@ -61,7 +61,7 @@ func TestNotebookService_CreateNotebook(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 
 	userID := uuid.New().String()
 	scopeID := uuid.New().String()
@@ -136,7 +136,7 @@ func TestNotebookService_GetNotebook(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 
 	userID := uuid.New().String()
 	otherUserID := uuid.New().String()
@@ -204,7 +204,7 @@ func TestNotebookService_GetNotebooksByUser(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 
 	userID := uuid.New().String()
 	otherUserID := uuid.New().String()
@@ -264,7 +264,7 @@ func TestNotebookService_UpdateNotebook(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 
 	userID := uuid.New().String()
 	scopeID1 := uuid.New().String()
@@ -327,7 +327,7 @@ func TestNotebookService_DeleteNotebook(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 
 	userID := uuid.New().String()
 	otherUserID := uuid.New().String()
@@ -373,7 +373,7 @@ func TestNotebookService_SaveCells(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 
 	userID := uuid.New().String()
 	otherUserID := uuid.New().String()
@@ -502,7 +502,7 @@ func TestNotebookService_GetNotebookCells(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 
 	userID := uuid.New().String()
 	otherUserID := uuid.New().String()
