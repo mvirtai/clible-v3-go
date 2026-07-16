@@ -199,11 +199,15 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
     if (!targetCell) return;
 
     try {
+      // Tallenna heti solujen nykyinen tila ennen suoritusta, jotta palvelimella on uusin sisältö
+      await saveCells(cells);
+
       const res = await fetch(`/api/notebooks/${notebookId}/cells/${id}/execute?translation=${translation}`, {
         method: 'POST',
       });
       if (!res.ok) throw new Error('Suoritus epäonnistui');
       const resultData = await res.json();
+      console.log("DEBUG: Execute result data:", resultData);
 
       setCells((prev) =>
         prev.map((c) =>
