@@ -174,6 +174,11 @@ func (s *SeedService) getValidBooks(ctx context.Context) (map[string]bool, error
 		}
 		books[strings.ToUpper(id)] = true
 	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate book rows: %w", err)
+	}
+
 	return books, nil
 }
 

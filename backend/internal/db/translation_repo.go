@@ -171,6 +171,10 @@ func (r *TranslationRepository) GetAll() ([]models.Translation, error) {
 		translations = append(translations, t)
 	}
 
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate translation rows: %w", err)
+	}
+
 	return translations, nil
 }
 

@@ -10,6 +10,52 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
 
+// SearchByKeyword queries the database using PostgreSQL full-text search.
+// It ranks the verses based on keyword frequency.
+func (r *VerseRepository) SearchByKeyword(ctx context.Context, keywords []string, translationID string, limit int) ([]models.Verse, error) {
+	if len(keywords) == 0 {
+		return nil, nil
+	}
+
+	// Build a tsquery string, e.g. "love | world | son"
+	// Using OR operator (|) to find verses matching any of the main keywords.
+	queryTerms := make([]string, len(keywords))
+	for i, kw := range keywords {
+		queryTerms[i] = kw + ":*" // Prefix matching
+	}
+	tsQuery := strings.Join(queryTerms, " | ")
+
+	query := `
+		SELECT id, translation_id, book_id, chapter, verse, text
+		FROM verses
+		WHERE translation_id = $1
+		  AND to_tsvector('english', text) @@ to_tsquery('english', $2)
+		ORDER BY ts_rank(to_tsvector('english', text), to_tsquery('english', $2)) DESC
+		LIMIT $3;
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, translationID, tsQuery, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var results []models.Verse
+	for rows.Next() {
+		var v models.Verse
+		if err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); err != nil {
+			return nil, err
+		}
+		results = append(results, v)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 // VerseRepository handles data access operations for the verses table
 // using the explicit domain models and FTS5 triggers.
 type VerseRepository struct {
