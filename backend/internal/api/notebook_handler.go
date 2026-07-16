@@ -269,9 +269,6 @@ func (h *NotebookHandler) ExecuteCommand(w http.ResponseWriter, r *http.Request)
 
 	// Read optional translation flag from query parameters (e.g. ?translation=biblia)
 	translationID := r.URL.Query().Get("translation")
-	if translationID == "" {
-		translationID = "KJV" // Default fallback translation
-	}
 
 	// Delegate orchestration to the service layer (O(1) network pass-through rule)
 	result, err := h.notebookService.ExecuteCellCommand(r.Context(), notebookID, cellID, userID, translationID)

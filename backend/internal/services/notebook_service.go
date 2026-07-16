@@ -246,6 +246,12 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 		return nil, errors.New("access denied")
 	}
 
+	cells, err := s.repo.GetCells(ctx, notebookID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load cells: %w", err)
+	}
+	notebook.Cells = cells
+
 	// 2. Find the target cell
 	var targetCell *models.Cell
 	for i := range notebook.Cells {
