@@ -49,7 +49,8 @@ func main() {
 	historyService := services.NewSearchHistoryService(historyRepo)
 	scopeService := services.NewScopeService(scopeRepo, savedRepo, notebookRepo)
 	bookService := services.NewBookService(bookRepo)
-	notebookService := services.NewNotebookService(notebookRepo, scopeRepo)
+	cliService := services.NewCLIService(verseRepo, verseService)
+	notebookService := services.NewNotebookService(notebookRepo, scopeRepo, cliService)
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -128,6 +129,7 @@ func main() {
 	mux.Handle("PUT /api/notebooks/{id}", requireAuth(http.HandlerFunc(notebookHandler.UpdateNotebook)))
 	mux.Handle("DELETE /api/notebooks/{id}", requireAuth(http.HandlerFunc(notebookHandler.DeleteNotebook)))
 	mux.Handle("PUT /api/notebooks/{id}/cells", requireAuth(http.HandlerFunc(notebookHandler.SaveCells)))
+	mux.Handle("POST /api/notebooks/{id}/cells/{cell_id}/execute", requireAuth(http.HandlerFunc(notebookHandler.ExecuteCommand)))
 
 	// Text Analysis Engine endpoints
 	mux.Handle("POST /api/analytics/analyze", requireAuth(http.HandlerFunc(analyticsHandler.Analyze)))

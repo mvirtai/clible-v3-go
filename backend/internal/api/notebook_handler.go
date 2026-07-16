@@ -245,6 +245,47 @@ func (h *NotebookHandler) SaveCells(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "saved"})
 }
 
+// ExecuteCommand handles POST /api/notebooks/{id}/cells/{cell_id}/execute - executes a command in CLI interpreter
+func (h *NotebookHandler) ExecuteCommand(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	notebookID := r.PathValue("id")
+	cellID := r.PathValue("cell_id")
+	if notebookID == "" || cellID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing notebook_id or cell_id"})
+		return
+	}
+
+	// Read optional translation flag from query parameters (e.g. ?translation=biblia)
+	translationID := r.URL.Query().Get("translation")
+	if translationID == "" {
+		translationID = "KJV" // Default fallback translation
+	}
+
+	// Delegate orchestration to the service layer (O(1) network pass-through rule)
+	result, err := h.notebookService.ExecuteCellCommand(r.Context(), notebookID, cellID, userID, translationID)
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(result)
+
+}
+
 // handleError is a private helper to write standard JSON error responses
 func (h *NotebookHandler) handleError(w http.ResponseWriter, err error) {
 	slog.Error("Notebook handler request failed", "error", err)
