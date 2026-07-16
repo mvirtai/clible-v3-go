@@ -47,8 +47,11 @@ func ExtractKeywords(text string) []string {
 		freqs = append(freqs, wordFreq{w, c})
 	}
 
-	// Sort in descending order
+	// Sort in descending order of frequency, and alphabetically for tie-breaking
 	sort.Slice(freqs, func(i, j int) bool {
+		if freqs[i].count == freqs[j].count {
+			return freqs[i].word < freqs[j].word
+		}
 		return freqs[i].count > freqs[j].count
 	})
 
@@ -76,7 +79,39 @@ func ParseCLICommand(input string) *CLICommand {
 		return nil
 	}
 
-	parts := strings.Fields(input)
+	var parts []string
+	var current strings.Builder
+	inQuotes := false
+	var quoteChar rune
+
+	runes := []rune(input)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		if inQuotes {
+			if r == quoteChar {
+				inQuotes = false
+			} else {
+				current.WriteRune(r)
+			}
+		} else {
+			switch r {
+			case '"', '\'':
+				inQuotes = true
+				quoteChar = r
+			case ' ', '\t', '\n', '\r':
+				if current.Len() > 0 {
+					parts = append(parts, current.String())
+					current.Reset()
+				}
+			default:
+				current.WriteRune(r)
+			}
+		}
+	}
+	if current.Len() > 0 {
+		parts = append(parts, current.String())
+	}
+
 	if len(parts) == 0 {
 		return nil
 	}
@@ -87,17 +122,14 @@ func ParseCLICommand(input string) *CLICommand {
 
 	for _, part := range parts[1:] {
 		if strings.HasPrefix(part, "--") {
-			// Parse flags like --translation=KJV or boolean flags like --regex
 			flagPart := strings.TrimPrefix(part, "--")
 			subParts := strings.SplitN(flagPart, "=", 2)
-
 			name := subParts[0]
-			value := "true" // Default for boolean flahs (e.g. --regex)
+			value := "true"
 			if len(subParts) > 1 {
 				value = subParts[1]
 			}
 			flags[name] = value
-
 		} else {
 			args = append(args, part)
 		}
@@ -145,6 +177,7 @@ func (s *CLIService) executeReadCommand(ctx context.Context, cmd *CLICommand, tr
 		return nil, errors.New("missing reference (e.g. /read John 3:16)")
 	}
 
+	fmt.Printf("DEBUG: executeReadCommand Name=%q Args=%#v Flags=%#v\n", cmd.Name, cmd.Args, cmd.Flags)
 	refStr := strings.Join(cmd.Args, " ")
 	tid := translationID
 	if t, ok := cmd.Flags["translation"]; ok {
