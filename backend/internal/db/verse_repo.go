@@ -10,9 +10,9 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
 
-// SearchByKeyword queries the database using PostgreSQL full-text search.
+// SearchByKeywords queries the database using PostgreSQL full-text search.
 // It ranks the verses based on keyword frequency.
-func (r *VerseRepository) SearchByKeyword(ctx context.Context, keywords []string, translationID string, limit int) ([]models.Verse, error) {
+func (r *VerseRepository) SearchByKeywords(ctx context.Context, keywords []string, translationID string, limit int) ([]models.Verse, error) {
 	if len(keywords) == 0 {
 		return nil, nil
 	}
