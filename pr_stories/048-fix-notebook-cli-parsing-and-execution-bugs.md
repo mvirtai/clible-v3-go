@@ -29,6 +29,10 @@ No major architectural changes were introduced. However, the CLI slash command p
 
 * **Loaded Cell Context in `ExecuteCellCommand`** ([notebook_service.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/notebook_service.go)):
   * Added a database call (`s.repo.GetCells`) to load all cells of a notebook before looking up the target execution cell. This resolves the `"cell not found in this notebook"` error.
+* **Graceful Command Execution Error Handling** ([notebook_service.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/notebook_service.go)):
+  * Modified `ExecuteCellCommand` to intercept command execution errors and return them as a structured `CLIResult` of type `"error"` (saving the error string in `result_json` in the DB) instead of propagating the error to the HTTP layer. This prevents user syntax errors/typos (like typing `/ref`) from causing `500 Internal Server Errors`.
+* **Added `/ref` Alias for Cross-References** ([cli_service.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/cli_service.go)):
+  * Configured `/ref` as a valid alias for the `/refs` command in the CLI service to support natural user abbreviations and typos.
 * **Robust Cell Execution flow in Frontend** ([NotebookEditor.tsx](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/NotebookEditor.tsx)):
   * Appended the active translation to the `/execute` URL query parameters (`?translation=${translation}`) to ensure the cell runs with the user's active translation.
   * Added `await saveCells(cells)` inside `handleExecuteCell` before triggering `/execute`. This guarantees the server executes the latest written code, solving the race condition caused by the 1.5s debounced cell auto-save where the server would execute a stale, partially typed command (like `/read Jo` instead of `/read Joh 3:16`).
