@@ -38,3 +38,4 @@ terraform.tfvars
 .plans/10-git-commit-all-workflow.md
 .plans/10-git-commit-all-workflow.md
 output.txt
+.plans/pop-os-disk-cleanup.md
