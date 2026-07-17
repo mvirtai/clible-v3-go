@@ -77,21 +77,22 @@ func (r *VerseRepository) SearchByKeywords(ctx context.Context, keywords []strin
 		}
 	}
 
-	ftsConfig := "simple"
-	if lang == "fi" {
-		ftsConfig = "finnish"
-	} else if lang == "en" {
-		ftsConfig = "english"
+	ftsConfigName := "simple"
+	switch lang {
+	case "fi":
+		ftsConfigName = "finnish"
+	case "en":
+		ftsConfigName = "english"
 	}
 
 	query := fmt.Sprintf(`
 		SELECT id, translation_id, book_id, chapter, verse, text
 		FROM verses
 		WHERE translation_id = $1
-		  AND to_tsvector('%s', text) @@ to_tsquery('%s', $2)
-		ORDER BY ts_rank(to_tsvector('%s', text), to_tsquery('%s', $2)) DESC
+		  AND to_tsvector('%[1]s', text) @@ to_tsquery('%[1]s', $2)
+		ORDER BY ts_rank(to_tsvector('%[1]s', text), to_tsquery('%[1]s', $2)) DESC
 		LIMIT $3;
-	`, ftsConfig, ftsConfig, ftsConfig, ftsConfig)
+	`, ftsConfigName)
 
 	rows, err := r.db.QueryContext(ctx, query, translationID, tsQuery, limit)
 	if err != nil {
