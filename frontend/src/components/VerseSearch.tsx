@@ -210,8 +210,9 @@ return (
         </label>
 
         <div className="flex items-center gap-2">
-          <span style={{ color: 'var(--muted)' }}>Hakualue:</span>
+          <label htmlFor="search-scope-select" style={{ color: 'var(--muted)' }}>Hakualue:</label>
           <select
+            id="search-scope-select"
             value={searchScope}
             onChange={(e) => {
               setSearchScope(e.target.value as 'all' | 'ot' | 'nt' | 'book');
@@ -229,6 +230,7 @@ return (
 
           {searchScope === 'book' && (
             <select
+              aria-label="Valitse kirja"
               value={scopeValue}
               onChange={(e) => setScopeValue(e.target.value)}
               className="rounded-lg border px-2 py-1 outline-none cursor-pointer max-w-[150px]"
@@ -245,7 +247,7 @@ return (
     </form>
 
     {error && (
-      <p className="text-sm text-left" style={{ color: '#c0392b' }}>{error}</p>
+      <p className="text-sm text-left" style={{ color: 'var(--error)' }}>{error}</p>
     )}
 
     {/* Tallenna työtilaan -osio */}

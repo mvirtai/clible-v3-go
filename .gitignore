@@ -41,3 +41,5 @@ output.txt
 .plans/pop-os-disk-cleanup.md
 /debug_*.go
 backend/debug_files/*
+lighthouse/
+temp_pr_story.md

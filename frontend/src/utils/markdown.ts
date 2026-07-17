@@ -46,7 +46,7 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
   
   else if (type === "suggest" && data.suggestions && data.suggestions.length > 0) {
     const kws = data.keywords ? data.keywords.join(", ") : "";
-    markdown = `### Ehdotetut jakeet teemalle [${kws}] (${tr})\n\n`;
+    markdown = `## Ehdotetut jakeet teemalle [${kws}] (${tr})\n\n`;
     data.suggestions.forEach(v => {
       const book = bookCitationAbbrevFi(v.bookId);
       markdown += `*   **${book} ${v.chapter}:${v.verse}** — *"${v.text}"*\n`;

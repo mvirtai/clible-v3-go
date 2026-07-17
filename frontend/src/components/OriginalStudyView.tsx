@@ -350,10 +350,11 @@ export function OriginalStudyView({
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+        <label htmlFor="original-lang-select" className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
           {m.originalSelectOriginal}
         </label>
         <select
+          id="original-lang-select"
           value={originalId}
           onChange={(e) => setOriginalId(e.target.value)}
           className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm uppercase cursor-pointer"

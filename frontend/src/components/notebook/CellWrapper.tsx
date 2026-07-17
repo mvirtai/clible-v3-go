@@ -29,6 +29,7 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
         
         {/* Solutyypin valinta */}
         <select
+          aria-label="Valitse solun tyyppi"
           value={cell.type}
           onChange={(e) => onChangeType(e.target.value as CellType)}
           className="bg-transparent text-[var(--muted)] text-[10px] font-medium focus:outline-none border-none cursor-pointer hover:text-amber-500"

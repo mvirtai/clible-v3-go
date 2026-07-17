@@ -197,9 +197,9 @@ export const WorkspaceSidebar: React.FC<Props> = ({
   return (
     <div className="rounded-3xl p-6 space-y-6 border text-left" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--muted)' }}>
+        <label htmlFor="workspace-scope-select" className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--muted)' }}>
           <Folder size={16} /> Työtila (Scope)
-        </h2>
+        </label>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           className="p-1 rounded-full hover:bg-[var(--surface-2)] transition-colors text-[var(--accent)]"
@@ -228,6 +228,8 @@ export const WorkspaceSidebar: React.FC<Props> = ({
 
       <div className="flex gap-2">
         <select
+          id="workspace-scope-select"
+          aria-label="Valitse työtila"
           value={activeScopeId}
           onChange={e => onScopeChanged(e.target.value)}
           className="flex-1 rounded-xl px-3 py-2 text-xs transition-all outline-none border cursor-pointer font-medium"

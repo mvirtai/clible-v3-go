@@ -57,9 +57,9 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
 
       {status && (
         <div className="p-4 rounded-2xl text-sm flex items-start gap-3" style={{
-          background: status.type === 'success' ? 'rgba(52,168,83,0.08)' : 'rgba(234,67,53,0.08)',
-          border: `1px solid ${status.type === 'success' ? 'rgba(52,168,83,0.3)' : 'rgba(234,67,53,0.3)'}`,
-          color: status.type === 'success' ? '#2d8a4e' : '#c0392b',
+          background: status.type === 'success' ? 'var(--success-bg)' : 'var(--error-bg)',
+          border: `1px solid ${status.type === 'success' ? 'var(--success-border)' : 'var(--error-border)'}`,
+          color: status.type === 'success' ? 'var(--success)' : 'var(--error)',
         }}>
           <span className="leading-relaxed">{status.message}</span>
         </div>
@@ -89,7 +89,7 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
                   onClick={() => handleDeactivate(tr.id, tr.name)}
                   disabled={loading !== null}
                   className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
-                  style={{ background: 'rgba(234,67,53,0.08)', color: '#c0392b', border: '1px solid rgba(234,67,53,0.2)', cursor: 'pointer' }}
+                  style={{ background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid var(--error-border)', cursor: 'pointer' }}
                   id={`deactivate-${tr.id}`}
                 >
                   {loading === tr.id
