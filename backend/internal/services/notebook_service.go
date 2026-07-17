@@ -275,9 +275,27 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 
 	// 4. Collect context text from previous markdown cells for suggestions
 	var markdownTexts []string
-	for _, c := range notebook.Cells {
-		if c.Position < targetCell.Position && c.Type == models.CellTypeMarkdown {
-			markdownTexts = append(markdownTexts, c.Content)
+	usePrevOnly := cmd.Name == "/suggest" && cmd.Flags["scope"] == "prev"
+
+	if usePrevOnly {
+		var closestPrevMarkdown *models.Cell
+		for i := range notebook.Cells {
+			c := &notebook.Cells[i]
+			if c.Position < targetCell.Position && c.Type == models.CellTypeMarkdown {
+				if closestPrevMarkdown == nil || c.Position > closestPrevMarkdown.Position {
+					closestPrevMarkdown = c
+				}
+			}
+		}
+		if closestPrevMarkdown != nil {
+			markdownTexts = append(markdownTexts, closestPrevMarkdown.Content)
+		}
+	} else {
+		for i := range notebook.Cells {
+			c := &notebook.Cells[i]
+			if c.Position < targetCell.Position && c.Type == models.CellTypeMarkdown {
+				markdownTexts = append(markdownTexts, c.Content)
+			}
 		}
 	}
 	contextText := strings.Join(markdownTexts, " ")

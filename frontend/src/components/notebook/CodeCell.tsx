@@ -19,10 +19,19 @@ export const CodeCell: React.FC<CodeCellProps> = ({
   onFreeze,
 }) => {
   const [isRunning, setIsRunning] = useState(false);
+  const [deselectedVerseIds, setDeselectedVerseIds] = useState<Record<string, boolean>>({});
+
+  const [prevResultJson, setPrevResultJson] = useState<unknown>(null);
+
+  if (cell.resultJson !== prevResultJson) {
+    setPrevResultJson(cell.resultJson);
+    setDeselectedVerseIds({});
+  }
 
   const handleRun = async () => {
     if (isRunning) return;
     setIsRunning(true);
+    setDeselectedVerseIds({});
     try {
       await onExecute();
     } finally {
@@ -39,11 +48,39 @@ export const CodeCell: React.FC<CodeCellProps> = ({
   const hasFreezeOption = cell.resultJson && 
     ['read', 'search', 'refs', 'suggest'].includes(cell.resultJson.type);
 
+  const selectedCount = (() => {
+    if (!cell.resultJson) return 0;
+    const data = cell.resultJson.data as CLIResultData;
+    const verses = data.verses || data.references || data.suggestions || [];
+    return verses.filter(v => !deselectedVerseIds[v.id]).length;
+  })();
+
+  const toggleVerse = (id: string) => {
+    setDeselectedVerseIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
   const handleFreezeClick = () => {
     if (!cell.resultJson || !onFreeze) return;
+    
+    const data = cell.resultJson.data as CLIResultData;
+    const filteredData = { ...data };
+
+    if (data.verses) {
+      filteredData.verses = data.verses.filter(v => !deselectedVerseIds[v.id]);
+    }
+    if (data.references) {
+      filteredData.references = data.references.filter(v => !deselectedVerseIds[v.id]);
+    }
+    if (data.suggestions) {
+      filteredData.suggestions = data.suggestions.filter(v => !deselectedVerseIds[v.id]);
+    }
+
     const markdown = formatResultToMarkdown(
       cell.resultJson.type,
-      cell.resultJson.data as CLIResultData,
+      filteredData,
       translation
     );
     if (markdown) {
@@ -99,17 +136,26 @@ export const CodeCell: React.FC<CodeCellProps> = ({
             {hasFreezeOption && onFreeze && (
               <button
                 onClick={handleFreezeClick}
-                className="text-[10px] font-bold text-neutral-400 hover:text-amber-500 flex items-center gap-1 bg-neutral-900 hover:bg-neutral-800 px-2 py-1 rounded border border-neutral-800 transition-all"
-                title="Muunna Markdown-soluksi nykyisen solun alapuolelle"
+                disabled={selectedCount === 0}
+                className={`text-[10px] font-bold flex items-center gap-1 px-2 py-1 rounded border transition-all ${
+                  selectedCount === 0
+                    ? 'text-neutral-600 bg-neutral-950 border-neutral-900 cursor-not-allowed'
+                    : 'text-neutral-400 hover:text-amber-500 bg-neutral-900 hover:bg-neutral-800 border-neutral-800'
+                }`}
+                title={selectedCount === 0 ? "Valitse vähintään yksi jae jäädyttääksesi" : "Muunna Markdown-soluksi nykyisen solun alapuolelle"}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
-                Freeze to Markdown
+                Freeze {selectedCount > 0 ? `(${selectedCount})` : ''} to Markdown
               </button>
             )}
           </div>
-          <ResultRenderer result={cell.resultJson} />
+          <ResultRenderer
+            result={cell.resultJson}
+            deselectedVerseIds={deselectedVerseIds}
+            onToggleVerse={toggleVerse}
+          />
         </div>
       )}
     </div>
@@ -145,8 +191,18 @@ interface SuggestResult {
   suggestions: Verse[];
 }
 
+interface ResultRendererProps {
+  result: CellResult;
+  deselectedVerseIds?: Record<string, boolean>;
+  onToggleVerse?: (id: string) => void;
+}
+
 /* Tulosten dynaaminen renderöijä eri komennon tyypeille */
-const ResultRenderer: React.FC<{ result: CellResult }> = ({ result }) => {
+const ResultRenderer: React.FC<ResultRendererProps> = ({
+  result,
+  deselectedVerseIds = {},
+  onToggleVerse,
+}) => {
   if (result.type === 'error') {
     let errorMessage = 'Virhe komennon suorituksessa.';
     if (result.data && typeof result.data === 'object' && 'message' in result.data) {
@@ -162,26 +218,50 @@ const ResultRenderer: React.FC<{ result: CellResult }> = ({ result }) => {
     );
   }
 
+  // Helper component to render a clickable verse item
+  const RenderVerseItem = ({ v }: { v: Verse }) => {
+    const book = bookCitationAbbrevFi(v.bookId);
+    const isDeselected = !!deselectedVerseIds[v.id];
+    return (
+      <div
+        onClick={() => onToggleVerse?.(v.id)}
+        className={`group cursor-pointer select-none transition-all duration-200 p-2 rounded hover:bg-neutral-900 border border-transparent ${
+          isDeselected ? 'opacity-40 text-neutral-500' : 'text-neutral-300'
+        }`}
+      >
+        <div className="flex items-start gap-2.5">
+          <div className="mt-1 flex items-center justify-center w-3.5 h-3.5 rounded border border-neutral-700 bg-neutral-950 text-amber-500 transition-colors group-hover:border-amber-500/50">
+            {!isDeselected && (
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
+                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+              </svg>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-500 font-semibold text-xs select-none">
+                {book} {v.chapter}:{v.verse} ({v.translationId.toUpperCase()})
+              </span>
+            </div>
+            <p className={`leading-relaxed text-sm mt-1 transition-all ${isDeselected ? 'line-through text-neutral-600' : 'text-neutral-300'}`}>
+              {v.text}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // 1. /read tulos
   if (result.type === 'read') {
     const data = result.data as ReadResult;
     const verses = data.verses || [];
     return (
-      <div className="space-y-3">
+      <div className="space-y-1">
         {verses.length === 0 ? (
           <p className="text-neutral-500 text-sm italic">Ei jakeita löydetty viitteellä {data.reference}.</p>
         ) : (
-          verses.map((v) => {
-            const book = bookCitationAbbrevFi(v.bookId);
-            return (
-              <div key={v.id} className="pb-1">
-                <span className="text-amber-500 font-semibold text-xs mr-2 select-none">
-                  {book} {v.chapter}:{v.verse} ({v.translationId.toUpperCase()})
-                </span>
-                <p className="text-neutral-300 leading-relaxed text-sm mt-0.5">{v.text}</p>
-              </div>
-            );
-          })
+          verses.map((v) => <RenderVerseItem key={v.id} v={v} />)
         )}
       </div>
     );
@@ -197,17 +277,9 @@ const ResultRenderer: React.FC<{ result: CellResult }> = ({ result }) => {
         {verses.length === 0 ? (
           <p className="text-neutral-500 text-sm italic">Ei tuloksia.</p>
         ) : (
-          verses.map((v) => {
-            const book = bookCitationAbbrevFi(v.bookId);
-            return (
-              <div key={v.id} className="border-b border-neutral-900 pb-2 last:border-0 last:pb-0">
-                <span className="text-amber-500 font-semibold text-xs mr-2 select-none">
-                  {book} {v.chapter}:{v.verse} ({v.translationId.toUpperCase()})
-                </span>
-                <p className="text-neutral-300 leading-relaxed text-sm mt-0.5">{v.text}</p>
-              </div>
-            );
-          })
+          <div className="space-y-1">
+            {verses.map((v) => <RenderVerseItem key={v.id} v={v} />)}
+          </div>
         )}
       </div>
     );
@@ -223,18 +295,8 @@ const ResultRenderer: React.FC<{ result: CellResult }> = ({ result }) => {
         {refs.length === 0 ? (
           <p className="text-neutral-500 text-sm italic">Ei ristiinviitteitä löydetty (jae saattaa sisältää vain yleisiä sanoja).</p>
         ) : (
-          <div className="space-y-3">
-            {refs.map((v) => {
-              const book = bookCitationAbbrevFi(v.bookId);
-              return (
-                <div key={v.id} className="border-b border-neutral-900 pb-2 last:border-0 last:pb-0">
-                  <span className="text-amber-500 font-semibold text-xs mr-2 select-none">
-                    {book} {v.chapter}:{v.verse} ({v.translationId.toUpperCase()})
-                  </span>
-                  <p className="text-neutral-300 leading-relaxed text-sm mt-0.5">{v.text}</p>
-                </div>
-              );
-            })}
+          <div className="space-y-1">
+            {refs.map((v) => <RenderVerseItem key={v.id} v={v} />)}
           </div>
         )}
       </div>
@@ -260,18 +322,8 @@ const ResultRenderer: React.FC<{ result: CellResult }> = ({ result }) => {
         {suggestions.length === 0 ? (
           <p className="text-neutral-500 text-sm italic">Kirjoita ensin enemmän Markdown-soluihin saadaksesi teemakohtaisia ehdotuksia.</p>
         ) : (
-          <div className="space-y-3">
-            {suggestions.map((v) => {
-              const book = bookCitationAbbrevFi(v.bookId);
-              return (
-                <div key={v.id} className="border-b border-neutral-900 pb-2 last:border-0 last:pb-0">
-                  <span className="text-amber-500 font-semibold text-xs mr-2 select-none">
-                    {book} {v.chapter}:{v.verse} ({v.translationId.toUpperCase()})
-                  </span>
-                  <p className="text-neutral-300 leading-relaxed text-sm mt-0.5">{v.text}</p>
-                </div>
-              );
-            })}
+          <div className="space-y-1">
+            {suggestions.map((v) => <RenderVerseItem key={v.id} v={v} />)}
           </div>
         )}
       </div>
