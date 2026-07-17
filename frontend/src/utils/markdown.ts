@@ -4,9 +4,9 @@ export interface CLIResultData {
   source?: string;
   query?: string;
   reference?: string;
-  verses?: Array<{ bookId: string; chapter: number; verse: number; text: string }>;
-  references?: Array<{ bookId: string; chapter: number; verse: number; text: string }>;
-  suggestions?: Array<{ bookId: string; chapter: number; verse: number; text: string }>;
+  verses?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
+  references?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
+  suggestions?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
   keywords?: string[];
 }
 
