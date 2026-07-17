@@ -316,4 +316,57 @@ func TestCLIService_ExecuteCommand(t *testing.T) {
 			t.Errorf("expected suggestions, got 0")
 		}
 	})
+
+	// Test 5: Execute `/suggest --scope=prev`
+	t.Run("execute /suggest with scope=prev", func(t *testing.T) {
+		newCells := []models.Cell{
+			{
+				ID:         uuid.New().String(),
+				NotebookID: notebook.ID,
+				Type:       models.CellTypeMarkdown,
+				Content:    "This markdown cell talks only about faith.",
+				Position:   2,
+			},
+			{
+				ID:         uuid.New().String(),
+				NotebookID: notebook.ID,
+				Type:       models.CellTypeCode,
+				Content:    "/suggest --scope=prev",
+				Position:   3,
+			},
+		}
+
+		// Re-fetch all cells to avoid key violation and insert the new ones
+		allCells := append(cells, newCells...)
+		if err := notebookRepo.SaveCells(ctx, notebook.ID, allCells); err != nil {
+			t.Fatalf("failed to seed new cells: %v", err)
+		}
+
+		res, err := notebookService.ExecuteCellCommand(ctx, notebook.ID, newCells[1].ID, userID, "web")
+		if err != nil {
+			t.Fatalf("ExecuteCellCommand for /suggest --scope=prev failed: %v", err)
+		}
+		if res.Type != "suggest" {
+			t.Errorf("expected result type 'suggest', got %s", res.Type)
+		}
+		data := res.Data
+		kws := data["keywords"].([]string)
+
+		hasLoveOrGrace := false
+		hasFaith := false
+		for _, kw := range kws {
+			if kw == "love" || kw == "grace" {
+				hasLoveOrGrace = true
+			}
+			if kw == "faith" {
+				hasFaith = true
+			}
+		}
+		if hasLoveOrGrace {
+			t.Errorf("expected keywords to exclude 'love' or 'grace' when scope=prev, but got keywords: %v", kws)
+		}
+		if !hasFaith {
+			t.Errorf("expected keywords to include 'faith', but got: %v", kws)
+		}
+	})
 }
