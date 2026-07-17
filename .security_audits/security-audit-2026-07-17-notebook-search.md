@@ -24,20 +24,60 @@ Tämä raportti analysoi `/suggest`-komennon, dynaamisen PostgreSQL-kokotekstiha
 
 ---
 
-## 🔍 Arvioidut osa-alueet
+## 🏗️ Tietovirta ja rajapintojen turvamalli (Data Flow Diagram)
+
+Alla oleva kaavio havainnollistaa, miten käyttäjän syöte kulkee CLI-komennosta tietokantaan turvallisesti parametrisoituna:
+
+```mermaid
+graph TD
+    User([Käyttäjän syöte: '/suggest --scope=prev']) --> Parser[ParseCLICommand: erottaa liput ja argumentit]
+    Parser --> ValidConfig[Aktiivinen käännös tietokannasta -> Kieliasetus]
+    ValidConfig --> SwitchMap{Kielivalinta koodissa}
+    SwitchMap -->|fi| DictFi[ftsConfigName = 'finnish']
+    SwitchMap -->|en| DictEn[ftsConfigName = 'english']
+    SwitchMap -->|muu| DictSimple[ftsConfigName = 'simple']
+    
+    DictFi --> SQLBuilder[Querymuodostus: to_tsvector/to_tsquery]
+    DictEn --> SQLBuilder
+    DictSimple --> SQLBuilder
+    
+    Parser --> Extract[ExtractKeywords: Puhdistaa ja suodattaa stop-sanat]
+    Extract --> QueryParams[(SQL-parametrit: $1=TranslationID, $2=Hakuparametri, $3=Lukumäärä)]
+    
+    SQLBuilder --> Exec[Tietokanta-ajo: Safe Parameterized Query Execution]
+    QueryParams --> Exec
+```
+
+---
+
+## 🔍 Arvioidut osa-alueet & Vaatimuksenmukaisuustodisteet (Compliance Proofs)
 
 ### 1. SQL-injektiot (SQL Injection)
 
 Dynaamisessa haussa [verse_repo.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/db/verse_repo.go) FTS-sanakirjaa (`to_tsvector('%[1]s', text)`) ohjataan dynaamisesti `%[1]s`-paikkamerkillä. 
+
+* **Kooditodiste (Code Proof):**
+  ```go
+  ftsConfigName := "simple"
+  switch lang {
+  case "fi":
+      ftsConfigName = "finnish"
+  case "en":
+      ftsConfigName = "english"
+  }
+  ```
 * **Turvatarkastus:** Muuttuja `ftsConfigName` määritellään puhtaasti palvelimen sisäisen tilan ja valitun Raamatun käännöksen kielikoodin mukaan. Käyttäjän syötteet **eivät** pääse suoraan vaikuttamaan tähän arvoon.
-* `ftsConfigName` arvo on rajatto staattisesti switch-lausekkeessa kolmeen turvalliseen vaihtoehtoon: `"finnish"`, `"english"`, tai `"simple"`.
+* `ftsConfigName` arvo on rajattu staattisesti switch-lausekkeessa kolmeen turvalliseen vaihtoehtoon: `"finnish"`, `"english"`, tai `"simple"`. Arbitraarinen SQL-koodin syöttö sanakirjaparametrin kautta on estetty.
 * Hakukyselyt suoritetaan käyttämällä täysin parametrisoituja tietokantakyselyitä (`$1`, `$2`, `$3`), mikä eliminoi kokonaan SQL-injektioriskit käyttäjän hakutermeissä.
 
 ### 2. Syötteiden validointi ja käsittely
 
 Komento `/suggest --scope=prev` ja siihen liittyvä avainsanojen erotus [cli_service.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/cli_service.go) puhdistavat käyttäjän syötteet.
-* **Regex-sanitointi:** Teksti puhdistetaan poistamalla kaikki välimerkit ja erikoismerkit ennen avainsanojen laskentaa.
-* **Rune-pohjainen pituustarkastus:** Pituustarkastuksissa hyödynnetään `utf8.RuneCountInString`, mikä ehkäisee UTF-8-tavukonfliktit monen tavun merkistössä.
+* **Regex-sanitointi:** Teksti puhdistetaan poistamalla kaikki välimerkit ja erikoismerkit ennen avainsanojen laskentaa:
+  ```go
+  reg := regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]`)
+  ```
+* **Rune-pohjainen pituustarkastus:** Pituustarkastuksissa hyödynnetään `utf8.RuneCountInString`, mikä ehkäisee UTF-8-tavukonfliktit monen tavun merkistössä (kuten 3-merkkiset sanat "hän" tai "tie").
 * **Stop-sanalista:** Laajennettu stop-sanalista suodattaa pois kyselyistä metadatan, joten hyökkääjä ei pysty sotkemaan hakua myöskään tahallisilla metadatasanoilla.
 
 ---
