@@ -112,6 +112,12 @@ This PR is fully compliant with the security regulations of this codebase. A pre
   ```bash
   go test ./internal/...
   ```
+  **Backend Test Coverage:**
+  * `internal/services`: **71.8%** of statements
+  * `internal/parsers`: **93.5%** of statements
+  * `internal/config`: **96.9%** of statements
+  * **Overall Backend Total:** **63.0%** of statements
+
 * Confirmed that the frontend compiles and passes ESLint styling and compilation checks:
   ```bash
   task check
