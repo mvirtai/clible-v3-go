@@ -32,7 +32,7 @@ func TestExtractKeywords(t *testing.T) {
 	}{
 		{
 			input:    "Jumalan rakkaus ja armo ovat suuria asioita",
-			expected: []string{"armo", "asioita", "jumalan", "ovat", "rakkaus"}, // sorted alphabetically (top 5)
+			expected: []string{"armo", "asioita", "jumalan", "rakkaus", "suuria"}, // sorted alphabetically (top 5, 'ja' and 'ovat' are stopwords)
 		},
 		{
 			input:    "God showed his love and grace to us",

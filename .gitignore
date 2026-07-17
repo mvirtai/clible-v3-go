@@ -40,3 +40,4 @@ terraform.tfvars
 output.txt
 .plans/pop-os-disk-cleanup.md
 /debug_*.go
+backend/debug_files/*

@@ -188,3 +188,36 @@ func TestVerseRepository_Search(t *testing.T) {
 		}
 	})
 }
+
+func TestVerseRepository_SearchByKeywords(t *testing.T) {
+	conn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
+	_, _ = conn.ExecContext(ctx, `INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'John', 'NT', 4, 21)`)
+
+	repo := db.NewVerseRepository(conn)
+	verses := []models.Verse{
+		{ID: "web:Joh:3:16", TranslationID: "web", BookID: "Joh", Chapter: 3, Verse: 16, Text: "For God so loved the world"},
+		{ID: "web:Joh:3:17", TranslationID: "web", BookID: "Joh", Chapter: 3, Verse: 17, Text: "For God did not send his Son"},
+	}
+	if err := repo.BulkInsert(ctx, verses); err != nil {
+		t.Fatalf("failed to seed verses: %v", err)
+	}
+
+	results, err := repo.SearchByKeywords(ctx, []string{"loved", "world"}, "web", 5)
+	if err != nil {
+		t.Fatalf("SearchByKeywords failed: %v", err)
+	}
+	// SQLite implementation fallback uses LIKE, which should return the verse containing loved/world
+	if len(results) != 1 {
+		t.Errorf("expected 1 result, got %d", len(results))
+	}
+	if len(results) > 0 && results[0].Verse != 16 {
+		t.Errorf("expected Joh 3:16, got Joh 3:%d", results[0].Verse)
+	}
+}

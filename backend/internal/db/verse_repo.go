@@ -64,14 +64,34 @@ func (r *VerseRepository) SearchByKeywords(ctx context.Context, keywords []strin
 	}
 	tsQuery := strings.Join(queryTerms, " | ")
 
-	query := `
+	// Determine the language of the translation
+	var lang string
+	err := r.db.QueryRowContext(ctx, "SELECT language FROM translations WHERE id = $1", translationID).Scan(&lang)
+	if err != nil {
+		// Fallback based on translationID prefix/suffix if sql query fails
+		lowerID := strings.ToLower(translationID)
+		if strings.Contains(lowerID, "kr") || strings.Contains(lowerID, "biblia") || strings.Contains(lowerID, "fi") {
+			lang = "fi"
+		} else {
+			lang = "en"
+		}
+	}
+
+	ftsConfig := "simple"
+	if lang == "fi" {
+		ftsConfig = "finnish"
+	} else if lang == "en" {
+		ftsConfig = "english"
+	}
+
+	query := fmt.Sprintf(`
 		SELECT id, translation_id, book_id, chapter, verse, text
 		FROM verses
 		WHERE translation_id = $1
-		  AND to_tsvector('english', text) @@ to_tsquery('english', $2)
-		ORDER BY ts_rank(to_tsvector('english', text), to_tsquery('english', $2)) DESC
+		  AND to_tsvector('%s', text) @@ to_tsquery('%s', $2)
+		ORDER BY ts_rank(to_tsvector('%s', text), to_tsquery('%s', $2)) DESC
 		LIMIT $3;
-	`
+	`, ftsConfig, ftsConfig, ftsConfig, ftsConfig)
 
 	rows, err := r.db.QueryContext(ctx, query, translationID, tsQuery, limit)
 	if err != nil {
