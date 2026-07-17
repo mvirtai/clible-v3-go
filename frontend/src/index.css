@@ -7,12 +7,21 @@
   --surface-2: #faf9f6;
   --text: #1a1a1a;
   --text-2: #333333;
-  --muted: #6b6b6b;
+  --muted: #595959;
   --border: #e5e5e5;
   --border-soft: #f0f0f0;
-  --accent: #d4a373;
+  --accent: #9a662e;
+  --accent-contrast: #ffffff;
   --accent-bg: rgba(212, 163, 115, 0.12);
   --accent-border: rgba(212, 163, 115, 0.4);
+
+  --error: #b91c1c;
+  --error-bg: #fef2f2;
+  --error-border: #fee2e2;
+
+  --success: #15803d;
+  --success-bg: #f0fdf4;
+  --success-border: #dcfce7;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --serif: Georgia, 'Times New Roman', serif;
@@ -39,8 +48,17 @@
   --border: rgba(255, 255, 255, 0.10);
   --border-soft: rgba(255, 255, 255, 0.06);
   --accent: #e0b47f;
+  --accent-contrast: #0f1113;
   --accent-bg: rgba(224, 180, 127, 0.12);
   --accent-border: rgba(224, 180, 127, 0.35);
+
+  --error: #f87171;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --error-border: rgba(239, 68, 68, 0.25);
+
+  --success: #4ade80;
+  --success-bg: rgba(74, 222, 128, 0.1);
+  --success-border: rgba(74, 222, 128, 0.25);
 }
 
 /* Color transition */
@@ -240,7 +258,7 @@ select:focus {
 /* Accent-painikkeen tyylit ja tummennus hover/active-tiloissa */
 .btn-accent {
   background-color: var(--accent) !important;
-  color: #fff !important;
+  color: var(--accent-contrast) !important;
 }
 
 .btn-accent:hover:not(:disabled) {

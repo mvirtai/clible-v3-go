@@ -258,10 +258,11 @@ export function CompareView({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+                            <label htmlFor="left-translation" className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
                                 Vasen käännös (Left Translation)
                             </label>
                             <select
+                                id="left-translation"
                                 value={leftTr}
                                 onChange={(e) => {
                                     setLeftTr(e.target.value);
@@ -280,10 +281,11 @@ export function CompareView({
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+                            <label htmlFor="right-translation" className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
                                 Oikea käännös (Right Translation)
                             </label>
                             <select
+                                id="right-translation"
                                 value={rightTr}
                                 onChange={(e) => setRightTr(e.target.value)}
                                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm uppercase"

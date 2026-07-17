@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://clible-v3-421720438581.europe-north1.run.app/sitemap.xml

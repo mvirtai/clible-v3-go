@@ -243,7 +243,7 @@ export const VerseReader: React.FC<Props> = ({
       </form>
 
       {error && (
-        <p className="text-sm" style={{ color: '#c0392b' }}>{error}</p>
+        <p className="text-sm" style={{ color: 'var(--error)' }}>{error}</p>
       )}
 
 

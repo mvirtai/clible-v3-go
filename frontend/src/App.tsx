@@ -571,7 +571,7 @@ function App() {
                   <button
                     onClick={() => setShowManager(true)}
                     className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
-                    style={{ background: 'var(--accent)', color: '#fff' }}
+                    style={{ background: 'var(--accent)', color: 'var(--accent-contrast)' }}
                   >
                     Install a Translation
                   </button>
