@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,15 +15,17 @@ import (
 
 // NotebookService handles business logic for notebooks.
 type NotebookService struct {
-	repo      *db.NotebookRepository
-	scopeRepo *db.ScopeRepository
+	repo       *db.NotebookRepository
+	scopeRepo  *db.ScopeRepository
+	cliService *CLIService
 }
 
 // NewNotebookService constructs an explicitly injected notebook orchestration engine.
-func NewNotebookService(nb_repo *db.NotebookRepository, scope_repo *db.ScopeRepository) *NotebookService {
+func NewNotebookService(nb_repo *db.NotebookRepository, scope_repo *db.ScopeRepository, cliService *CLIService) *NotebookService {
 	return &NotebookService{
-		repo:      nb_repo,
-		scopeRepo: scope_repo,
+		repo:       nb_repo,
+		scopeRepo:  scope_repo,
+		cliService: cliService,
 	}
 }
 
@@ -225,4 +229,99 @@ func (s *NotebookService) GetNotebookCells(ctx context.Context, notebookID strin
 	}
 
 	return s.repo.GetCells(ctx, notebookID)
+}
+
+// ExecuteCellCommand retrieves the cell, parses the CLI slash command, executes it,
+// saves the result in cell.ResultJSON, and returns the structured CLIResult.
+func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, cellID, userID, translationID string) (*models.CLIResult, error) {
+	// 1. Verify notebook ownership and retrieve cells
+	notebook, err := s.repo.GetByID(ctx, notebookID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve notebook: %w", err)
+	}
+	if notebook == nil {
+		return nil, errors.New("notebook not found")
+	}
+	if notebook.UserID != userID {
+		return nil, errors.New("access denied")
+	}
+
+	cells, err := s.repo.GetCells(ctx, notebookID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load cells: %w", err)
+	}
+	notebook.Cells = cells
+
+	// 2. Find the target cell
+	var targetCell *models.Cell
+	for i := range notebook.Cells {
+		if notebook.Cells[i].ID == cellID {
+			targetCell = &notebook.Cells[i]
+			break
+		}
+	}
+	if targetCell == nil {
+		return nil, errors.New("cell not found in this notebook")
+	}
+	if targetCell.Type != models.CellTypeCode {
+		return nil, errors.New("cannot execute non-code cells")
+	}
+
+	// 3. Parse command using custom ParseCLICommand
+	cmd := ParseCLICommand(targetCell.Content)
+	if cmd == nil {
+		return nil, errors.New("invalid CLI command format (must start with '/')")
+	}
+
+	// 4. Collect context text from previous markdown cells for suggestions
+	var markdownTexts []string
+	usePrevOnly := cmd.Name == "/suggest" && cmd.Flags["scope"] == "prev"
+
+	if usePrevOnly {
+		var closestPrevMarkdown *models.Cell
+		for i := range notebook.Cells {
+			c := &notebook.Cells[i]
+			if c.Position < targetCell.Position && c.Type == models.CellTypeMarkdown {
+				if closestPrevMarkdown == nil || c.Position > closestPrevMarkdown.Position {
+					closestPrevMarkdown = c
+				}
+			}
+		}
+		if closestPrevMarkdown != nil {
+			markdownTexts = append(markdownTexts, closestPrevMarkdown.Content)
+		}
+	} else {
+		for i := range notebook.Cells {
+			c := &notebook.Cells[i]
+			if c.Position < targetCell.Position && c.Type == models.CellTypeMarkdown {
+				markdownTexts = append(markdownTexts, c.Content)
+			}
+		}
+	}
+	contextText := strings.Join(markdownTexts, " ")
+
+	// 5. Execute parsed command using CLIService
+	cliResult, err := s.cliService.ExecuteCommand(ctx, cmd, translationID, contextText)
+	if err != nil {
+		cliResult = &models.CLIResult{
+			Type: "error",
+			Data: map[string]interface{}{
+				"message": err.Error(),
+			},
+		}
+	}
+
+	// 6. Serialize result to JSON and save back to the repository
+	resultBytes, err := json.Marshal(cliResult)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	targetCell.ResultJSON = json.RawMessage(resultBytes)
+	err = s.repo.UpdateCellResult(ctx, cellID, resultBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save execution result: %w", err)
+	}
+
+	return cliResult, nil
 }

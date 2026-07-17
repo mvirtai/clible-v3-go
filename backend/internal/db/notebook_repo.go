@@ -249,3 +249,16 @@ func (r *NotebookRepository) GetCells(ctx context.Context, notebookID string) ([
 	}
 	return cells, nil
 }
+
+func (r *NotebookRepository) UpdateCellResult(ctx context.Context, cellID string, resultJSON []byte) error {
+	query := `
+		UPDATE notebook_cells
+		SET result_json = $1, update_at = $2
+		WHERE id = $3
+	`
+	_, err := r.db.ExecContext(ctx, query, resultJSON, time.Now(), cellID)
+	if err != nil {
+		return fmt.Errorf("failed to update cell result: %w", err)
+	}
+	return nil
+}

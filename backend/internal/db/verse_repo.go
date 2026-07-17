@@ -10,6 +10,112 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
 
+// SearchByKeywords queries the database using PostgreSQL full-text search.
+// It ranks the verses based on keyword frequency.
+func (r *VerseRepository) SearchByKeywords(ctx context.Context, keywords []string, translationID string, limit int) ([]models.Verse, error) {
+	if len(keywords) == 0 {
+		return nil, nil
+	}
+
+	if !r.isPostgres {
+		// SQLite fallback: simple LIKE query for unit testing
+		var whereClauses []string
+		var args []any
+		args = append(args, translationID)
+
+		for _, kw := range keywords {
+			whereClauses = append(whereClauses, fmt.Sprintf("text LIKE $%d", len(args)+1))
+			args = append(args, "%"+kw+"%")
+		}
+
+		query := `
+			SELECT id, translation_id, book_id, chapter, verse, text
+			FROM verses
+			WHERE translation_id = $1
+		`
+		if len(whereClauses) > 0 {
+			query += " AND (" + strings.Join(whereClauses, " OR ") + ")"
+		}
+		query += " LIMIT " + fmt.Sprintf("$%d", len(args)+1)
+		args = append(args, limit)
+
+		rows, err := r.db.QueryContext(ctx, query, args...)
+		if err != nil {
+			return nil, err
+		}
+		defer func() { _ = rows.Close() }()
+
+		var results []models.Verse
+		for rows.Next() {
+			var v models.Verse
+			if err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); err != nil {
+				return nil, err
+			}
+			results = append(results, v)
+		}
+		return results, rows.Err()
+	}
+
+	// Build a tsquery string, e.g. "love | world | son"
+	// Using OR operator (|) to find verses matching any of the main keywords.
+	queryTerms := make([]string, len(keywords))
+	for i, kw := range keywords {
+		queryTerms[i] = kw + ":*" // Prefix matching
+	}
+	tsQuery := strings.Join(queryTerms, " | ")
+
+	// Determine the language of the translation
+	var lang string
+	err := r.db.QueryRowContext(ctx, "SELECT language FROM translations WHERE id = $1", translationID).Scan(&lang)
+	if err != nil {
+		// Fallback based on translationID prefix/suffix if sql query fails
+		lowerID := strings.ToLower(translationID)
+		if strings.Contains(lowerID, "kr") || strings.Contains(lowerID, "biblia") || strings.Contains(lowerID, "fi") {
+			lang = "fi"
+		} else {
+			lang = "en"
+		}
+	}
+
+	ftsConfigName := "simple"
+	switch lang {
+	case "fi":
+		ftsConfigName = "finnish"
+	case "en":
+		ftsConfigName = "english"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, translation_id, book_id, chapter, verse, text
+		FROM verses
+		WHERE translation_id = $1
+		  AND to_tsvector('%[1]s', text) @@ to_tsquery('%[1]s', $2)
+		ORDER BY ts_rank(to_tsvector('%[1]s', text), to_tsquery('%[1]s', $2)) DESC
+		LIMIT $3;
+	`, ftsConfigName)
+
+	rows, err := r.db.QueryContext(ctx, query, translationID, tsQuery, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var results []models.Verse
+	for rows.Next() {
+		var v models.Verse
+		if err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); err != nil {
+			return nil, err
+		}
+		results = append(results, v)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 // VerseRepository handles data access operations for the verses table
 // using the explicit domain models and FTS5 triggers.
 type VerseRepository struct {

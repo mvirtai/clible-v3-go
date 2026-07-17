@@ -101,7 +101,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
   return (
     <div
       className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] cursor-pointer rounded-lg hover:bg-[var(--surface-2)]/30 border border-transparent hover:border-[var(--border-soft)] transition-all duration-200"
-      onDoubleClick={() => setIsEditing(true)}
+      onClick={() => setIsEditing(true)}
       title="Kaksoisklikkaa muokataksesi"
     >
       {cell.content.trim() ? (

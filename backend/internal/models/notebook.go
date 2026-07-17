@@ -32,3 +32,8 @@ type Cell struct {
 	CreatedAt  time.Time       `json:"createdAt"`
 	UpdatedAt  time.Time       `json:"updatedAt"`
 }
+
+type CLIResult struct {
+	Type string                 `json:"type"`
+	Data map[string]interface{} `json:"data"`
+}

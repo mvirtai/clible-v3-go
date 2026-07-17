@@ -33,52 +33,52 @@ Backend käyttää Regex-pohjaista tai yksinkertaista tokenointia parametrien ja
 package services
 
 import (
-	"strings"
-	"regexp"
+ "strings"
+ "regexp"
 )
 
 type CLICommand struct {
-	Name   string
-	Args   []string
-	Flags  map[string]string
+ Name   string
+ Args   []string
+ Flags  map[string]string
 }
 
 func ParseCLICommand(input string) *CLICommand {
-	input = strings.TrimSpace(input)
-	if !strings.HasPrefix(input, "/") {
-		return nil
-	}
+ input = strings.TrimSpace(input)
+ if !strings.HasPrefix(input, "/") {
+  return nil
+ }
 
-	parts := strings.Split(input, " ")
-	cmdName := parts[0]
-	
-	// Liput ja argumentit erotellaan
-	flags := make(map[string]string)
-	var args []string
+ parts := strings.Split(input, " ")
+ cmdName := parts[0]
+ 
+ // Liput ja argumentit erotellaan
+ flags := make(map[string]string)
+ var args []string
 
-	for i := 1; i < len(parts); i++ {
-		part := parts[i]
-		if strings.HasPrefix(part, "--") {
-			// Lipun jäsennys (esim. --translation=KJV tai --regex)
-			flagParts := strings.SplitN(part, "=", 2)
-			flagName := flagParts[0][2:]
-			flagValue := ""
-			if len(flagParts) > 1 {
-				flagValue = flagParts[1]
-			} else {
-				flagValue = "true"
-			}
-			flags[flagName] = flagValue
-		} else {
-			args = append(args, part)
-		}
-	}
+ for i := 1; i < len(parts); i++ {
+  part := parts[i]
+  if strings.HasPrefix(part, "--") {
+   // Lipun jäsennys (esim. --translation=KJV tai --regex)
+   flagParts := strings.SplitN(part, "=", 2)
+   flagName := flagParts[0][2:]
+   flagValue := ""
+   if len(flagParts) > 1 {
+    flagValue = flagParts[1]
+   } else {
+    flagValue = "true"
+   }
+   flags[flagName] = flagValue
+  } else {
+   args = append(args, part)
+  }
+ }
 
-	return &CLICommand{
-		Name:  cmdName,
-		Args:  args,
-		Flags: flags,
-	}
+ return &CLICommand{
+  Name:  cmdName,
+  Args:  args,
+  Flags: flags,
+ }
 }
 ```
 
@@ -109,9 +109,11 @@ Palvelu palauttaa standardoidun JSON-rakenteen, joka tallennetaan `notebook_cell
 Jotta komentojen kirjoittaminen on sujuvaa, koodisolun syötekenttään rakennetaan älykkäitä aputoimintoja.
 
 ### Komento-valikko (`/`)
+
 * Kun syötekenttä on tyhjä ja käyttäjä painaa `/`, aukeaa leijuva pikavalikko, joka ehdottaa tuettuja komentoja lyhyen kuvauksen kera (esim. `/read`, `/search`, `/compare`, `/analyze`).
 * Nuolinäppäimillä ja `Enter`-painikkeella käyttäjä voi valita haluamansa komennon.
 
 ### Jae-valitsin (`[`)
+
 * Kun käyttäjä kirjoittaa `[`-merkin mihin tahansa kohtaan komentoa, aukeaa hakuvalikko, joka listaa saatavilla olevat Raamatun kirjat ja ehdottaa viitteen automaattista täydentämistä.
 * Tämä nopeuttaa huomattavasti pitkien jakeiden kirjoittamista muistiinpanoihin.

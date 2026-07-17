@@ -88,7 +88,7 @@ func TestNotebookHandler_GetNotebooks(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 	handler := api.NewNotebookHandler(service)
 
 	userID := uuid.New().String()
@@ -160,7 +160,7 @@ func TestNotebookHandler_GetNotebook(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 	handler := api.NewNotebookHandler(service)
 
 	userID := uuid.New().String()
@@ -236,7 +236,7 @@ func TestNotebookHandler_CreateNotebook(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 	handler := api.NewNotebookHandler(service)
 
 	userID := uuid.New().String()
@@ -328,7 +328,7 @@ func TestNotebookHandler_UpdateNotebook(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 	handler := api.NewNotebookHandler(service)
 
 	userID := uuid.New().String()
@@ -412,7 +412,7 @@ func TestNotebookHandler_DeleteNotebook(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 	handler := api.NewNotebookHandler(service)
 
 	userID := uuid.New().String()
@@ -480,7 +480,7 @@ func TestNotebookHandler_SaveCells(t *testing.T) {
 
 	notebookRepo := db.NewNotebookRepository(conn)
 	scopeRepo := db.NewScopeRepository(conn)
-	service := services.NewNotebookService(notebookRepo, scopeRepo)
+	service := services.NewNotebookService(notebookRepo, scopeRepo, nil)
 	handler := api.NewNotebookHandler(service)
 
 	userID := uuid.New().String()
