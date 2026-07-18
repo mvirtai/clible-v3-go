@@ -36,6 +36,8 @@ interface AnalyticsViewProps {
     activeReference?: string;
 }
 
+import { useLanguage } from '../context/LanguageContext';
+
 export const AnalyticsView = ({
     defaultTranslation,
     activeScopeId,
@@ -66,6 +68,7 @@ export const AnalyticsView = ({
     }
 
     const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
+    const { strings } = useLanguage();
     const normalizedSavedDeepDive = loadedSavedDeepDive || null;
     if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
         setDeepDiveText(normalizedSavedDeepDive);
@@ -235,14 +238,14 @@ export const AnalyticsView = ({
             <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <Activity size={20} className="text-[var(--accent)]" />
-                    <span>Tekstianalyysi (Linguistic Analytics)</span>
+                    <span>{strings.tabAnalytics}</span>
                 </h2>
                 <div className="flex flex-col sm:flex-row gap-3">
                     <input
                         type="text"
                         value={reference}
                         onChange={(e) => setReference(e.target.value)}
-                        placeholder="Syötä jaeviite tai luku (esim. Joh. 3 tai Genesis 1)"
+                        placeholder={strings.versePlaceholder}
                         className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm"
                     />
                     <button
@@ -251,7 +254,7 @@ export const AnalyticsView = ({
                         className="px-6 py-2.5 rounded-xl bg-[var(--text)] text-[var(--bg)] font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
                     >
                         {loading ? <Loader2 size={16} className="animate-spin" /> : <Activity size={16} />}
-                        Analysoi teksti
+                                                {strings.analyzePassage}
                     </button>
                 </div>
                 {activeReference && reference.trim().toLowerCase() !== activeReference.trim().toLowerCase() && (
@@ -266,7 +269,7 @@ export const AnalyticsView = ({
                     </div>
                 )}
                 {!defaultTranslation && (
-                    <p className="text-xs text-red-500">Valitse käännös oikealta ylhäältä ennen analysointia.</p>
+                    <p className="text-xs text-red-500">{strings.errSelectTranslationFirst}</p>
                 )}
             </div>
 
@@ -288,14 +291,14 @@ export const AnalyticsView = ({
                                     onClick={() => setShowSaveForm(true)}
                                     className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                                 >
-                                    <Save size={12} /> Tallenna
+                                    <Save size={12} /> {strings.saveLabel}
                                 </button>
                                 {saveStatus === 'success' && (
-                                    <span className="text-xs font-semibold text-emerald-500">✓ Tallennettu työtilaan!</span>
-                                )}
-                                {saveStatus === 'error' && (
-                                    <span className="text-xs font-semibold text-red-500">✗ Tallennus epäonnistui.</span>
-                                )}
+                                                                    <span className="text-xs font-semibold text-emerald-500">{strings.saveSuccess}</span>
+                                                                )}
+                                                                {saveStatus === 'error' && (
+                                                                    <span className="text-xs font-semibold text-red-500">{strings.saveFail}</span>
+                                                                )}
                             </div>
                         )}
                     </div>
@@ -342,13 +345,13 @@ export const AnalyticsView = ({
                                 disabled={saving || !saveName.trim()}
                                 className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile"
                             >
-                                {saving ? 'Tallennetaan...' : 'Tallenna'}
+                                {saving ? strings.savingLabel : strings.saveLabel}
                             </button>
                             <button
                                 onClick={() => setShowSaveForm(false)}
                                 className="px-3 py-1.5 rounded-lg text-xs font-medium border text-[var(--muted)] border-[var(--border)] bg-transparent cursor-pointer"
                             >
-                                Peruuta
+                                {strings.cancelLabel}
                             </button>
                         </div>
                     )}
@@ -450,22 +453,22 @@ export const AnalyticsView = ({
                                 {!toneResult && !toneLoading && (
                                     <div className="space-y-3">
                                         <p className="text-sm text-[var(--muted)] leading-relaxed">
-                                            Analysoi tekstijakson kielellistä sävyä, teemoja ja teologista tyyliä tekoälyn avulla.
-                                        </p>
-                                        <button
-                                            type="button"
-                                            onClick={handleRunToneAnalysis}
-                                            className="rounded-full px-4 py-2 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
-                                        >
-                                            Suorita sävyanalyysi
-                                        </button>
+                                                                                    Analysoi tekstijakson kielellistä sävyä, teemoja ja teologista tyyliä tekoälyn avulla.
+                                                                                </p>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={handleRunToneAnalysis}
+                                                                                    className="rounded-full px-4 py-2 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                                                                                >
+                                                                                    {strings.analyzePassage}
+                                                                                </button>
                                     </div>
                                 )}
 
                                 {toneLoading && (
                                     <div className="flex items-center gap-2 text-sm text-[var(--muted)] py-4">
                                         <Loader2 size={16} className="animate-spin" />
-                                        <span>Tekoäly analysoi tekstin sävyjä...</span>
+                                        <span>{strings.aiReading}</span>
                                     </div>
                                 )}
 
@@ -493,10 +496,10 @@ export const AnalyticsView = ({
                                                     disabled={toneSaveStatus === 'saving'}
                                                     className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                                                 >
-                                                    {toneSaveStatus === 'saving' && 'Tallennetaan...'}
-                                                    {toneSaveStatus === 'success' && 'Tallennettu! ✓'}
-                                                    {toneSaveStatus === 'error' && 'Virhe tallennuksessa'}
-                                                    {toneSaveStatus === 'idle' && 'Tallenna sävyanalyysi työtilaan'}
+                                                    {toneSaveStatus === 'saving' && strings.savingLabel}
+                                                                                                        {toneSaveStatus === 'success' && strings.saveSuccess}
+                                                                                                        {toneSaveStatus === 'error' && strings.saveFail}
+                                                                                                        {toneSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabAnalytics}` }
                                                 </button>
                                             </div>
                                         )}

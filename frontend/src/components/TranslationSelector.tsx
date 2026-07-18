@@ -2,6 +2,7 @@
 import React from 'react';
 import type { InstalledTranslation } from '../types/bible';
 import { Globe } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   selectedTranslation: string;
@@ -14,7 +15,8 @@ export const TranslationSelector: React.FC<Props> = ({
   onSelectTranslation,
   translations,
 }) => {
-  const uiLanguage = 'fi'; // Kehitysfilosofian kieli
+  const { lang, strings } = useLanguage();
+  const uiLanguage = lang; // local alias for backwards-compatible naming
 
   // Jos käyttäjällä on jo asennettuja käännöksiä, näytetään yläpalkissa vain ne.
   // Jos ei ole yhtään asennettua käännöstä, näytetään kaikki tarjolla olevat käännökset,
@@ -28,7 +30,7 @@ export const TranslationSelector: React.FC<Props> = ({
     return (
       <div className="text-xs px-3 py-1.5 rounded-full"
         style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}>
-        {uiLanguage === 'fi' ? 'Ei käännöksiä' : 'No translations'}
+        {strings.noTranslations}
       </div>
     );
   }
@@ -51,7 +53,7 @@ export const TranslationSelector: React.FC<Props> = ({
       >
         {showPlaceholder && (
           <option value="" disabled>
-            {uiLanguage === 'fi' ? 'Valitse käännös...' : 'Select translation...'}
+            {strings.translationPlaceholder}
           </option>
         )}
         {list.map((t) => (

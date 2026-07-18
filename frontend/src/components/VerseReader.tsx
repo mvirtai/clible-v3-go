@@ -11,6 +11,7 @@ import { NextFocusChips } from './NextFocusChips';
 import { DeepDiveCard } from './DeepDiveCard';
 import { GeminiUsage } from './GeminiUsage';
 import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../types/ai';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   translation: string;
@@ -46,6 +47,8 @@ export const VerseReader: React.FC<Props> = ({
   const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
   const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
   const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
+  const { strings } = useLanguage();
 
   const isFinnish = translation.toLowerCase().startsWith('fi') || translation.toLowerCase().includes('fin');
   const lang: UILanguage = isFinnish ? 'fi' : 'en';
@@ -215,13 +218,13 @@ export const VerseReader: React.FC<Props> = ({
       border: '1px solid var(--border)',
     }}>
       <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-        Read by Reference
+        {strings.readByReference}
       </h2>
 
       <form onSubmit={handleFetch} className="flex gap-2">
         <input
           type="text"
-          placeholder="John 3:16 · Joh. 3:16 · 1 Moos 1:1"
+          placeholder={strings.versePlaceholder}
           value={reference}
           onChange={(e) => setReference(e.target.value)}
           className="flex-1 rounded-full px-5 py-2.5 text-sm transition-all outline-none"
@@ -238,7 +241,7 @@ export const VerseReader: React.FC<Props> = ({
           style={{ cursor: 'pointer' }}
         >
           {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-          Fetch
+          {strings.fetchButtonLabel}
         </button>
       </form>
 
@@ -360,8 +363,8 @@ export const VerseReader: React.FC<Props> = ({
                 </span>
               ))
             ) : (
-              <span style={{ color: 'var(--muted)' }}>No verses found.</span>
-            )}
+            <span style={{ color: 'var(--muted)' }}>{strings.noVersesFound}</span>
+          )}
           </p>
 
           {backReference && (
@@ -373,7 +376,7 @@ export const VerseReader: React.FC<Props> = ({
                 style={{ color: 'var(--muted)', cursor: 'pointer' }}
               >
                 <ArrowLeft size={12} />
-                <span>Takaisin laajempaan tekstiin ({backReference})</span>
+                <span>{strings.backToBroaderText} ({backReference})</span>
               </button>
             </div>
           )}
@@ -383,7 +386,7 @@ export const VerseReader: React.FC<Props> = ({
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
                 <Sparkles size={14} className="text-[var(--accent)]" />
-                {lang === 'fi' ? 'Tekoäly-analyysi (Gemini)' : 'AI Analysis (Gemini)'}
+                {strings.aiAnalysisTitle}
               </h3>
               {!aiInsight && !aiLoading && (
                 <button
@@ -391,7 +394,7 @@ export const VerseReader: React.FC<Props> = ({
                   onClick={handleFetchInsight}
                   className="rounded-full px-3 py-1 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                 >
-                  {lang === 'fi' ? 'Analysoi tekstiä' : 'Analyze Passage'}
+                  {strings.analyzePassage}
                 </button>
               )}
             </div>
@@ -399,25 +402,25 @@ export const VerseReader: React.FC<Props> = ({
             {aiLoading && (
               <div className="flex items-center gap-2 text-sm text-[var(--muted)] py-4">
                 <Loader2 size={16} className="animate-spin" />
-                <span>{lang === 'fi' ? 'Tekoäly opiskelee tekstikohtaa...' : 'AI is reading the passage...'}</span>
+                <span>{strings.aiReading}</span>
               </div>
             )}
 
             {aiError && (
-              <p className="text-xs text-red-500 font-semibold">{aiError}</p>
-            )}
+                          <p className="text-xs text-red-500 font-semibold">{aiError}</p>
+                        )}
 
             {aiInsight && (
-              <div className="space-y-4">
-                <div className="font-sans text-[var(--text-2)]">
-                  <ReactMarkdown
-                    components={markdownComponents({ invert: false, insightLayout: true })}
-                    remarkPlugins={[remarkGfm]}
-                  >
-                    {aiInsight.text}
-                  </ReactMarkdown>
-                  <GeminiUsage usage={aiInsight.geminiUsageMetadata} />
-                </div>
+                          <div className="space-y-4">
+                            <div className="font-sans text-[var(--text-2)]">
+                              <ReactMarkdown
+                                components={markdownComponents({ invert: false, insightLayout: true })}
+                                remarkPlugins={[remarkGfm]}
+                              >
+                                {aiInsight.text}
+                              </ReactMarkdown>
+                              <GeminiUsage usage={aiInsight.geminiUsageMetadata} />
+                            </div>
 
                 {activeScopeId && (
                   <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">

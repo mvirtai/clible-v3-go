@@ -19,6 +19,8 @@ import type { AiTextResponse } from './types/ai';
 import { NotebookEditor } from './components/notebook/NotebookEditor';
 import type { Notebook } from './components/notebook/types';
 import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut, Languages, FileText } from 'lucide-react';
+import { LanguageSwitcher } from './components/LanguageSwitcher/LanguageSwitcher';
+import { useLanguage } from './context/LanguageContext';
 
 
 interface LoadedSearchState {
@@ -280,7 +282,7 @@ function App() {
     setInstallSuccess(null);
     try {
       await apiService.linkTranslation(id);
-      setInstallSuccess(uiLanguage === 'fi' ? `Paketti ${id} asennettiin onnistuneesti.` : `Package ${id} installed successfully.`);
+      setInstallSuccess(lang === 'fi' ? `Paketti ${id} asennettiin onnistuneesti.` : `Package ${id} installed successfully.`);
       setTranslationTrigger((prev) => !prev);
     } catch (err) {
       const errorObj = err as Error;
@@ -304,8 +306,8 @@ function App() {
       const versesRes = await apiService.getVerses(ref, originalId);
       const verses = versesRes.verses;
       if (verses.length === 0) {
-        throw new Error(uiLanguage === 'fi' ? 'Alkutekstiä ei löytynyt tälle viitteelle.' : 'Original text not found for this reference.');
-      }
+              throw new Error(lang === 'fi' ? 'Alkutekstiä ei löytynyt tälle viitteelle.' : 'Original text not found for this reference.');
+            }
       const sourceText = verses.map((v: { text: string }) => v.text).join('\n');
       const sourceLanguage = originalId === 'greeksblgnt' ? 'grc' : 'he';
 
@@ -337,8 +339,7 @@ function App() {
     }
   };
 
-  const uiLanguage = 'fi'; // Kehitysfilosofian kieli
-
+  const { lang, strings } = useLanguage();
 
   // Sync system prefers-color-scheme changes with theme state
   const toggleTheme = () => {
@@ -420,35 +421,36 @@ function App() {
             )}
 
             <button
-              onClick={async () => {
-                await logout();
-                navigate('/login');
-              }}
-              aria-label="Kirjaudu ulos"
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)]"
-              style={{
-                border: '1px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--muted)',
-              }}
-            >
-              <LogOut size={14} />
-              <span className="max-md:hidden">Log out</span>
-            </button>
+                          onClick={async () => {
+                            await logout();
+                            navigate('/login');
+                          }}
+                          aria-label={strings.signOutTitle}
+                          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)]"
+                          style={{
+                            border: '1px solid var(--border)',
+                            background: 'transparent',
+                            color: 'var(--muted)',
+                          }}
+                        >
+                          <LogOut size={14} />
+                          <span className="max-md:hidden">{strings.signOutTitle}</span>
+                        </button>
 
             <button
-              onClick={() => setShowManager(!showManager)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)]"
-              style={{
-                border: '1px solid var(--border)',
-                background: showManager ? 'var(--accent-bg)' : 'transparent',
-                color: showManager ? 'var(--accent)' : 'var(--muted)',
-              }}
-            >
-              <Settings size={14} />
-              <span>{showManager ? 'Hide' : 'Translations'}</span>
-            </button>
+                          onClick={() => setShowManager(!showManager)}
+                          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)]"
+                          style={{
+                            border: '1px solid var(--border)',
+                            background: showManager ? 'var(--accent-bg)' : 'transparent',
+                            color: showManager ? 'var(--accent)' : 'var(--muted)',
+                          }}
+                        >
+                          <Settings size={14} />
+                          <span>{showManager ? strings.hideLabel : strings.translationsLabel}</span>
+                        </button>
 
+            <LanguageSwitcher />
             <TranslationSelector
               selectedTranslation={selectedTranslation}
               onSelectTranslation={handleSelectTranslation}
@@ -481,7 +483,7 @@ function App() {
               }`}
           >
             <BookOpen size={16} />
-            <span>Lukukone</span>
+            <span>{strings.tabReader}</span>
           </button>
 
           <button
@@ -493,7 +495,7 @@ function App() {
               }`}
           >
             <Activity size={16} />
-            <span>Tekstianalyysi</span>
+            <span>{strings.tabAnalytics}</span>
           </button>
 
           <button
@@ -505,7 +507,7 @@ function App() {
               }`}
           >
             <GitCompare size={16} />
-            <span>Käännösvertailu</span>
+            <span>{strings.tabCompare}</span>
           </button>
 
           <button
@@ -517,7 +519,7 @@ function App() {
               }`}
           >
             <Languages size={16} />
-            <span>Alkukieli</span>
+            <span>{strings.tabOriginal}</span>
           </button>
 
           <button
@@ -531,7 +533,7 @@ function App() {
                 }`}
                 >
                   <FileText size={16} />
-                  <span>Muistikirjat</span>
+                  <span>{strings.tabNotebooks}</span>
                 </button>
         </div>
 
@@ -540,43 +542,43 @@ function App() {
           <div className="lg:col-span-2 space-y-8">
             {viewMode === 'reader' && (
               selectedTranslation ? (
-                <>
-                  <VerseReader
-                    translation={selectedTranslation}
-                    activeReference={activeReference}
-                    activeScopeId={activeScopeId}
-                    onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
-                    loadedSavedInsight={loadedInsight}
-                    loadedSavedDeepDive={loadedInsightDeepDive}
-                  />
-                  <div onClick={handleSearchFinished}>
-                    <VerseSearch
-                      translation={selectedTranslation}
-                      onSelectVerse={handleSelectReference}
-                      activeScopeId={activeScopeId}
-                      onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
-                      loadedSavedResults={loadedSearch}
-                      onClearLoadedResults={() => setLoadedSearch(null)}
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="py-24 text-center space-y-4" style={{ color: 'var(--muted)' }}>
-                  <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center"
-                    style={{ background: 'var(--surface-2)', color: 'var(--accent)' }}>
-                    <BookOpen size={28} />
-                  </div>
-                  <p className="font-medium" style={{ color: 'var(--text)' }}>No translation selected</p>
-                  <p className="text-sm">Open <strong>Translations</strong> in the header and install one.</p>
-                  <button
-                    onClick={() => setShowManager(true)}
-                    className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
-                    style={{ background: 'var(--accent)', color: 'var(--accent-contrast)' }}
-                  >
-                    Install a Translation
-                  </button>
-                </div>
-              )
+                              <>
+                                <VerseReader
+                                  translation={selectedTranslation}
+                                  activeReference={activeReference}
+                                  activeScopeId={activeScopeId}
+                                  onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
+                                  loadedSavedInsight={loadedInsight}
+                                  loadedSavedDeepDive={loadedInsightDeepDive}
+                                />
+                                <div onClick={handleSearchFinished}>
+                                  <VerseSearch
+                                    translation={selectedTranslation}
+                                    onSelectVerse={handleSelectReference}
+                                    activeScopeId={activeScopeId}
+                                    onWorkspaceUpdated={() => setWorkspaceTrigger(p => !p)}
+                                    loadedSavedResults={loadedSearch}
+                                    onClearLoadedResults={() => setLoadedSearch(null)}
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <div className="py-24 text-center space-y-4" style={{ color: 'var(--muted)' }}>
+                                <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center"
+                                  style={{ background: 'var(--surface-2)', color: 'var(--accent)' }}>
+                                  <BookOpen size={28} />
+                                </div>
+                                <p className="font-medium" style={{ color: 'var(--text)' }}>{strings.noTranslationSelected}</p>
+                                <p className="text-sm">{strings.noTranslationHint}</p>
+                                <button
+                                  onClick={() => setShowManager(true)}
+                                  className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
+                                  style={{ background: 'var(--accent)', color: 'var(--accent-contrast)' }}
+                                >
+                                  {strings.installTranslation}
+                                </button>
+                              </div>
+                            )
             )}
 
             {viewMode === 'analytics' && (
@@ -606,7 +608,7 @@ function App() {
               <OriginalStudyView
                 installedTranslations={installedTranslations}
                 activeTranslationId={selectedTranslation}
-                uiLanguage={uiLanguage}
+                uiLanguage={lang}
                 installingTranslationId={installingTranslationId}
                 installError={installError}
                 installSuccess={installSuccess}
@@ -648,13 +650,13 @@ function App() {
                 ) : (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
-                      <h2 className="text-lg font-bold text-[var(--text)]">Teologiset muistikirjat</h2>
+                      <h2 className="text-lg font-bold text-[var(--text)]">{strings.notebookTitle}</h2>
                       <button
-                        onClick={handleCreateNotebook}
-                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-xs rounded transition-all shadow-sm"
-                      >
-                        + Luo muistikirja
-                      </button>
+                                              onClick={handleCreateNotebook}
+                                              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-xs rounded transition-all shadow-sm"
+                                            >
+                                              + {strings.createNotebook}
+                                            </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -707,10 +709,8 @@ function App() {
                 Quick Start
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
-                Install a translation, then try reading{' '}
-                <code>Joh. 3:16</code> or <code>John 3:16</code>, or search
-                for <code>light</code> in the text search below.
-              </p>
+                              {strings.quickStart}
+                            </p>
             </div>
           </div>
         </div>
