@@ -46,7 +46,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
           onScopeChanged(list[0].id);
         }
       } catch {
-        console.error('Failed to load scopes');
+        alert(strings.createScopeFailed);
       } finally {
         setLoadingScopes(false);
       }
@@ -84,19 +84,19 @@ export const WorkspaceSidebar: React.FC<Props> = ({
       setNewScopeName('');
       setShowAddForm(false);
     } catch {
-      alert('Työtilan luominen epäonnistui');
+      alert(strings.createScopeFailed);
     }
   };
 
   const handleDeleteScope = async () => {
-    if (!activeScopeId || !window.confirm('Haluatko varmasti poistaa tämän työtilan ja kaikki sen tallennetut tulokset?')) return;
+    if (!activeScopeId || !window.confirm(strings.deleteScopeConfirm)) return;
     try {
       await apiService.deleteScope(activeScopeId);
       const remaining = scopes.filter(s => s.id !== activeScopeId);
       setScopes(remaining);
       onScopeChanged(remaining[0]?.id || '');
     } catch {
-      alert('Työtilan poistaminen epäonnistui');
+      alert(strings.deleteScopeFailed);
     }
   };
 
@@ -115,7 +115,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
   };
 
   const handleDeleteSearch = async (searchId: string) => {
-    if (!window.confirm('Haluatko varmasti poistaa tämän haun?')) return;
+    if (!window.confirm(strings.deleteSearchConfirm)) return;
     try {
       await apiService.deleteSearch(searchId);
       if (workspace) {
@@ -125,7 +125,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
         });
       }
     } catch {
-      alert('Haun poistaminen epäonnistui');
+      alert(strings.deleteSearchFailed);
     }
   };
 
@@ -146,7 +146,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
   };
 
   const handleDeleteAnalysis = async (analysisId: string) => {
-    if (!window.confirm('Haluatko varmasti poistaa tämän analyysin?')) return;
+    if (!window.confirm(strings.deleteAnalysisConfirm)) return;
     try {
       await apiService.deleteAnalysis(analysisId);
       if (workspace) {
@@ -156,7 +156,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
         });
       }
     } catch {
-      alert('Analyysin poistaminen epäonnistui');
+      alert(strings.deleteAnalysisFailed);
     }
   };
 
@@ -247,14 +247,14 @@ export const WorkspaceSidebar: React.FC<Props> = ({
             <button
               onClick={handleRenameScope}
               className="p-2 rounded-xl text-[var(--muted)] hover:bg-[var(--surface-2)] transition-colors border border-transparent hover:border-[var(--border-soft)] cursor-pointer"
-              title="Nimeä työtila uudelleen"
+              title={strings.renameScopeTitle}
             >
               <Edit2 size={15} />
             </button>
             <button
               onClick={handleDeleteScope}
               className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/20 cursor-pointer"
-              title="Poista työtila"
+              title={strings.deleteButtonTitle}
             >
               <Trash2 size={15} />
             </button>

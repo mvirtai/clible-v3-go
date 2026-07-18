@@ -676,8 +676,8 @@ function App() {
                       ))}
                       {notebooks.length === 0 && (
                         <div className="col-span-2 text-center py-12 text-[var(--muted)] text-sm">
-                          Ei vielä muistikirjoja. Luo uusi aloittaaksesi!
-                        </div>
+                                                  {strings.noNotebooksText}
+                                                </div>
                       )}
                     </div>
                   </div>

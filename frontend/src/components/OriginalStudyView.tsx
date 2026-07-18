@@ -453,23 +453,23 @@ export function OriginalStudyView({
                   disabled={originalSaveStatus === 'saving'}
                   className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                 >
-                  {originalSaveStatus === 'saving' && 'Tallennetaan...'}
-                  {originalSaveStatus === 'success' && 'Tallennettu! ✓'}
-                  {originalSaveStatus === 'error' && 'Virhe tallennuksessa'}
-                  {originalSaveStatus === 'idle' && 'Tallenna alkukielitutkimus työtilaan'}
+                  {originalSaveStatus === 'saving' && strings.savingLabel}
+                                    {originalSaveStatus === 'success' && strings.saveSuccess}
+                                    {originalSaveStatus === 'error' && strings.saveFail}
+                                    {originalSaveStatus === 'idle' && `${strings.saveLabel} alkukielitutkimus työtilaan` }
                 </button>
               </div>
             )}
             {onNextFocusPick ? (
               <NextFocusChips
-                title={uiLanguage === 'fi' ? 'Syvennä seuraavaksi' : 'Next focus'}
+                title={strings.nextFocusTitle}
                 items={result.nextFocus ?? []}
                 onPick={onNextFocusPick}
               />
             ) : null}
             {deepDiveText && onDeepDiveClose ? (
               <DeepDiveCard
-                title={uiLanguage === 'fi' ? 'Syvennys' : 'Deep dive'}
+                title={strings.deepDiveToneTitle}
                 text={deepDiveText}
                 onClose={onDeepDiveClose}
                 geminiUsageMetadata={deepDiveUsage || undefined}

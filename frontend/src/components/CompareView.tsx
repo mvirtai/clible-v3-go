@@ -511,16 +511,16 @@ export function CompareView({
                                             disabled={aiSaveStatus === 'saving'}
                                             className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                                         >
-                                            {aiSaveStatus === 'saving' && 'Tallennetaan...'}
-                                            {aiSaveStatus === 'success' && 'Tallennettu! ✓'}
-                                            {aiSaveStatus === 'error' && 'Virhe tallennuksessa'}
-                                            {aiSaveStatus === 'idle' && 'Tallenna AI-vertailu työtilaan'}
+                                            {aiSaveStatus === 'saving' && strings.savingLabel}
+                                                                                        {aiSaveStatus === 'success' && strings.saveSuccess}
+                                                                                        {aiSaveStatus === 'error' && strings.saveFail}
+                                                                                        {aiSaveStatus === 'idle' && `${strings.saveLabel} AI-vertailu työtilaan` }
                                         </button>
                                     </div>
                                 )}
 
                                 <NextFocusChips
-                                    title="Suositellut teemat ja sanat"
+                                    title={strings.nextFocusTitle}
                                     items={aiResult.nextFocus ?? []}
                                     onPick={handleNextFocusPick}
                                 />
@@ -531,7 +531,7 @@ export function CompareView({
                     {deepDiveText && (
                         <div className="mt-4 w-full">
                             <DeepDiveCard
-                                title="Vertailun syvennys"
+                                title={strings.deepDiveCompareTitle}
                                 text={deepDiveText}
                                 onClose={() => {
                                     setDeepDiveText(null);

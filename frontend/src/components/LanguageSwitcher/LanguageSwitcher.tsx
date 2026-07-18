@@ -3,7 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { Globe } from 'lucide-react';
 
 export const LanguageSwitcher: React.FC = () => {
-  const { lang, setLang } = useLanguage();
+  const { lang, setLang, strings } = useLanguage();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -60,7 +60,7 @@ export const LanguageSwitcher: React.FC = () => {
               : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
             }`}
             style={{ transform: open ? 'translateX(0)' : 'translateX(-6px)', transition: 'transform 220ms ease, opacity 180ms ease', opacity: open ? 1 : 0 }}
-            title="English"
+            title={strings.englishLabel}
           >
             EN
           </button>
@@ -74,7 +74,7 @@ export const LanguageSwitcher: React.FC = () => {
               : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
             }`}
             style={{ transform: open ? 'translateX(0)' : 'translateX(-6px)', transition: 'transform 260ms ease 30ms, opacity 200ms ease 30ms', opacity: open ? 1 : 0 }}
-            title="Suomi"
+            title={strings.finnishLabel}
           >
             FI
           </button>

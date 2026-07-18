@@ -281,10 +281,10 @@ export const VerseReader: React.FC<Props> = ({
                     onClick={() => setShowSaveForm(true)}
                     className="px-3 py-1 rounded-full text-xs font-medium btn-accent btn-tactile"
                   >
-                    Tallenna jaehaku
+                    {strings.saveLabel}
                   </button>
                   {saveStatus === 'success' && (
-                    <span className="text-xs font-semibold text-emerald-500 animate-pulse">✓ Tallennettu työtilaan!</span>
+                    <span className="text-xs font-semibold text-emerald-500 animate-pulse">{strings.saveSuccess}</span>
                   )}
                   {saveStatus === 'error' && (
                     <span className="text-xs font-semibold text-red-500">✗ Tallennus epäonnistui.</span>
@@ -330,7 +330,7 @@ export const VerseReader: React.FC<Props> = ({
                     className="px-3 py-1 rounded-lg text-xs font-semibold btn-accent btn-tactile"
                     disabled={saveStatus === 'saving'}
                   >
-                    {saveStatus === 'saving' ? 'Tallennetaan...' : 'Tallenna'}
+                    {saveStatus === 'saving' ? strings.savingLabel : strings.saveLabel}
                   </button>
                   <button
                     type="button"
@@ -339,7 +339,7 @@ export const VerseReader: React.FC<Props> = ({
                     style={{ background: 'var(--surface)', color: 'var(--muted)', border: '1px solid var(--border)' }}
                     disabled={saveStatus === 'saving'}
                   >
-                    Peruuta
+                    {strings.cancelLabel}
                   </button>
                 </div>
               )}
@@ -430,23 +430,23 @@ export const VerseReader: React.FC<Props> = ({
                       disabled={aiSaveStatus === 'saving'}
                       className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                     >
-                      {aiSaveStatus === 'saving' && 'Tallennetaan...'}
-                      {aiSaveStatus === 'success' && 'Tallennettu! ✓'}
-                      {aiSaveStatus === 'error' && 'Virhe tallennuksessa'}
-                      {aiSaveStatus === 'idle' && (lang === 'fi' ? 'Tallenna analyysi työtilaan' : 'Save analysis to workspace')}
+                      {aiSaveStatus === 'saving' && strings.savingLabel}
+                                            {aiSaveStatus === 'success' && strings.saveSuccess}
+                                            {aiSaveStatus === 'error' && strings.saveFail}
+                                            {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabAnalytics}` }
                     </button>
                   </div>
                 )}
 
                 <NextFocusChips
-                  title={lang === 'fi' ? 'Seuraavat suositellut painopisteet' : 'Next focus suggestions'}
+                  title={strings.nextFocusTitle}
                   items={aiInsight.nextFocus ?? []}
                   onPick={handleNextFocusPick}
                 />
 
                 {deepDiveText && (
                   <DeepDiveCard
-                    title={lang === 'fi' ? 'Syvennys' : 'Deep dive'}
+                    title={strings.deepDiveToneTitle}
                     text={deepDiveText}
                     onClose={() => {
                       setDeepDiveText(null);

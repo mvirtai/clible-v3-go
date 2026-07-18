@@ -391,14 +391,14 @@ export const AnalyticsView = ({
                                     <button
                                         onClick={() => setChartType('bar')}
                                         className={`p-1.5 rounded-md transition-colors ${chartType === 'bar' ? 'bg-[var(--surface)] shadow-xs text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
-                                        title="Pylväsdiagrammi"
+                                        title={strings.chartBarTitle}
                                     >
                                         <BarChart3 size={14} />
                                     </button>
                                     <button
                                         onClick={() => setChartType('cloud')}
                                         className={`p-1.5 rounded-md transition-colors ${chartType === 'cloud' ? 'bg-[var(--surface)] shadow-xs text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
-                                        title="Sanapilvi"
+                                        title={strings.chartCloudTitle}
                                     >
                                         <Cloud size={14} />
                                     </button>
@@ -505,7 +505,7 @@ export const AnalyticsView = ({
                                         )}
 
                                         <NextFocusChips
-                                            title="Suositellut teemat ja sanat"
+                                            title={strings.nextFocusTitle}
                                             items={toneResult.nextFocus ?? []}
                                             onPick={handleNextFocusPick}
                                         />
@@ -519,7 +519,7 @@ export const AnalyticsView = ({
                     {deepDiveText && (
                         <div className="mt-8 w-full">
                             <DeepDiveCard
-                                title="Sävyn syvennys"
+                                title={strings.deepDiveToneTitle}
                                 text={deepDiveText}
                                 onClose={() => {
                                     setDeepDiveText(null);

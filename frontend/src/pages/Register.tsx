@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -12,6 +13,7 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const { strings } = useLanguage();
 
   const hasMinLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
@@ -67,7 +69,7 @@ const Register: React.FC = () => {
             <BookOpen size={28} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
-            Luo uusi tili
+            {strings.registerTitle}
           </h1>
           <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
             Rekisteröidy käyttääksesi Clible Workspacea
@@ -194,7 +196,7 @@ const Register: React.FC = () => {
             disabled={loading || !isPasswordValid}
             className="w-full py-3.5 mt-2 rounded-xl font-medium tracking-wide btn-tactile btn-accent focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Rekisteröidytään...' : 'Rekisteröidy'}
+            {loading ? strings.registeringLabel : strings.registerButton}
           </button>
         </form>
 
