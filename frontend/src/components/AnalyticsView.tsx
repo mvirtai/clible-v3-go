@@ -259,7 +259,7 @@ export const AnalyticsView = ({
                 </div>
                 {activeReference && reference.trim().toLowerCase() !== activeReference.trim().toLowerCase() && (
                     <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-[var(--muted)]">Viimeksi luettu jae:</span>
+                        <span className="text-xs text-[var(--muted)]">{strings.lastReadVerseLabel}</span>
                         <button
                             onClick={() => setReference(activeReference)}
                             className="px-2 py-0.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)] text-[var(--text)] transition-colors cursor-pointer"
@@ -306,13 +306,13 @@ export const AnalyticsView = ({
                     {showSaveForm && (
                         <div className="flex gap-2">
                             <input
-                                type="text"
-                                placeholder="Nimi analyysille (esim. Joh 3 sanasto)..."
-                                value={saveName}
-                                onChange={(e) => setSaveName(e.target.value)}
-                                className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
-                                style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
-                            />
+                                                            type="text"
+                                                            placeholder={strings.saveNamePlaceholder}
+                                                            value={saveName}
+                                                            onChange={(e) => setSaveName(e.target.value)}
+                                                            className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
+                                                            style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                                                        />
                             <button
                                 onClick={async () => {
                                     if (!saveName.trim()) return;

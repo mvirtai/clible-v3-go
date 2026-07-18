@@ -281,13 +281,13 @@ return (
         {showSaveForm && (
           <div className="flex gap-2">
             <input
-                              type="text"
-                              placeholder="Nimi tälle haulle (esim. Sana valo UT:ssa)..."
-                              value={saveName}
-                              onChange={(e) => setSaveName(e.target.value)}
-                              className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
-                              style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
-                            />
+                                          type="text"
+                                          placeholder={strings.saveNamePlaceholder}
+                                          value={saveName}
+                                          onChange={(e) => setSaveName(e.target.value)}
+                                          className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
+                                          style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                                        />
                             <button
                               onClick={handleSaveSearch}
                               disabled={saving || !saveName.trim()}

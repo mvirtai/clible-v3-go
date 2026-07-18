@@ -1,12 +1,14 @@
 import React from 'react';
 import { Cpu } from 'lucide-react';
 import type { GeminiUsageMetadata } from '../types/ai';
+import { useLanguage } from '../context/LanguageContext';
 
 interface GeminiUsageProps {
   usage?: GeminiUsageMetadata;
 }
 
 export const GeminiUsage: React.FC<GeminiUsageProps> = ({ usage }) => {
+  const { strings } = useLanguage();
   if (!usage || (usage.promptTokenCount === 0 && usage.candidatesTokenCount === 0)) {
     return null;
   }
@@ -15,7 +17,7 @@ export const GeminiUsage: React.FC<GeminiUsageProps> = ({ usage }) => {
     <div className="mt-4 pt-3 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-2 text-[11px] font-sans text-muted-foreground/60 select-none">
       <div className="flex items-center gap-1.5 text-[var(--muted)]">
         <Cpu size={12} className="text-[var(--accent)] animate-pulse" />
-        <span>Gemini Engine</span>
+        <span>{strings.geminiEngine}</span>
       </div>
       <div className="flex items-center gap-3 font-mono text-[10px]">
         <span className="flex items-center gap-1">

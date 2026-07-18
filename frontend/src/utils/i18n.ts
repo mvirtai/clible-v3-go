@@ -61,6 +61,37 @@ export interface Messages {
   rowsCompared: string;
   mostSimilarVerse: string;
   aiComparing: string;
+  saveNamePlaceholder: string;
+  compareReferencePlaceholder: string;
+  newScopePlaceholder: string;
+  codeCellPlaceholder: string;
+  markdownCellPlaceholder: string;
+  markdownEditTitle: string;
+  markdownEmptyText: string;
+  markdownCtrlEnterHint: string;
+  runLabel: string;
+  runningLabel: string;
+  cliOutputPrefix: string;
+  freezeLabel: string;
+  freezeDisabledTitle: string;
+  freezeEnabledTitle: string;
+  // Additional labels
+  searchResultsForQuery: string;
+  noResults: string;
+  dynamicRefsFor: string;
+  noRefsFound: string;
+  suggestNoData: string;
+  identifiedThemesLabel: string;
+  geminiEngine: string;
+  loadingLabel: string;
+  workspaceLabel: string;
+  newScopeTitle: string;
+  createLabel: string;
+  selectWorkspacePlaceholder: string;
+  renameTitlePrompt: string;
+  deleteScopeConfirm: string;
+  deleteSearchConfirm: string;
+  deleteAnalysisConfirm: string;
 }
 
 export const strings: Record<UILanguage, Messages> = {
@@ -133,6 +164,45 @@ export const strings: Record<UILanguage, Messages> = {
     rowsCompared: 'Rows compared',
     mostSimilarVerse: 'Most similar verse',
     aiComparing: 'AI is analyzing and comparing translations...',
+    saveNamePlaceholder: 'Name for this saved item (e.g. John 3 glossary)...',
+    compareReferencePlaceholder: 'e.g. John 3:16 or John 3:16-20',
+    newScopePlaceholder: 'Workspace name...',
+    codeCellPlaceholder: '/read Joh 3:16 or /suggest or /refs Joh 3:16',
+    markdownCellPlaceholder: 'Write notes here... You can reference verses using [[John 3:16]] or [[Joh. 3:16]]',
+    markdownEditTitle: 'Double-click to edit',
+    markdownEmptyText: 'Empty markdown cell. Double-click to add notes. You can reference verses with [[John 3:16]]',
+    markdownCtrlEnterHint: 'Ctrl+Enter to finish',
+    runLabel: 'Run',
+    runningLabel: 'Running...',
+    cliOutputPrefix: 'CLI Output —',
+    freezeLabel: 'Freeze',
+    freezeDisabledTitle: 'Select at least one verse to freeze',
+    freezeEnabledTitle: 'Convert selected verses to a Markdown cell below',
+    searchResultsForQuery: 'Search results for',
+    noResults: 'No results.',
+    dynamicRefsFor: 'Dynamic cross-references for',
+    noRefsFound: 'No cross-references found (the passage may contain only common words).',
+    suggestNoData: 'Write more into Markdown cells first to get theme-specific suggestions.',
+    identifiedThemesLabel: 'Identified themes:',
+    geminiEngine: 'Gemini Engine',
+    loadingLabel: 'Loading...',
+    workspaceLabel: 'Workspace (Scope)',
+    newScopeTitle: 'New workspace',
+    createLabel: 'Create',
+    selectWorkspacePlaceholder: '-- Select workspace --',
+    renameTitlePrompt: 'Provide a new name',
+    deleteScopeConfirm: 'Are you sure you want to delete this workspace and all saved items?',
+    deleteSearchConfirm: 'Are you sure you want to delete this saved search?',
+    deleteAnalysisConfirm: 'Are you sure you want to delete this analysis?',
+    exactMatchesLabel: 'Exact Matches',
+    verseLabel: 'Verse',
+    similarityLabel: 'Sim',
+    markdownOptionLabel: 'Markdown',
+    codeOptionLabel: 'CLI Command',
+    emptyNotebookText: 'This notebook has no cells yet.',
+    addMarkdownCellLabel: '+ Add Markdown cell',
+    addCodeCellLabel: '+ Add Code cell',
+    lastReadVerseLabel: 'Last read verse:',
   },
   fi: {
     // App / Shell
@@ -201,6 +271,65 @@ export const strings: Record<UILanguage, Messages> = {
     rowsCompared: 'Rivejä vertailtu',
     mostSimilarVerse: 'Samankaltaisin jae',
     aiComparing: 'Tekoäly analysoi ja vertailee käännöksiä...',
+    saveNamePlaceholder: 'Nimi tälle tallennukselle (esim. Joh 3 sanasto)...',
+    compareReferencePlaceholder: 'esim. Joh 3:16 tai Joh 3:16-20',
+    newScopePlaceholder: 'Työtilan nimi...',
+    codeCellPlaceholder: '/read Joh 3:16 tai /suggest tai /refs Joh 3:16',
+    markdownCellPlaceholder: 'Kirjoita muistiinpanoja tähän... Voit viitata jakeisiin muodolla [[Joh. 3:16]] tai [[John 3:16]]',
+    markdownEditTitle: 'Kaksoisklikkaa muokataksesi',
+    markdownEmptyText: 'Tyhjä markdown-solu. Kaksoisklikkaa lisätäksesi muistiinpanoja. Voit viitata jakeisiin esim. [[Joh. 3:16]]',
+    markdownCtrlEnterHint: 'Ctrl+Enter valmis',
+    runLabel: 'Suorita',
+    runningLabel: 'Suoritetaan...',
+    cliOutputPrefix: 'CLI Output —',
+    freezeLabel: 'Jäädytä',
+    freezeDisabledTitle: 'Valitse vähintään yksi jae jäädyttääksesi',
+    freezeEnabledTitle: 'Muunna valitut jaet Markdown-soluksi alla',
+    searchResultsForQuery: 'Hakutulokset haulle',
+    noResults: 'Ei tuloksia.',
+    dynamicRefsFor: 'Dynaamiset ristiinviitteet jakeelle',
+    noRefsFound: 'Ei ristiinviitteitä löydetty (jae saattaa sisältää vain yleisiä sanoja).',
+    suggestNoData: 'Kirjoita ensin enemmän Markdown-soluihin saadaksesi teemakohtaisia ehdotuksia.',
+    identifiedThemesLabel: 'Tunnistetut teemat:',
+    geminiEngine: 'Gemini Engine',
+    loadingLabel: 'Ladataan...',
+    workspaceLabel: 'Työtila (Scope)',
+    newScopeTitle: 'Uusi työtila',
+    createLabel: 'Luo',
+    selectWorkspacePlaceholder: '-- Valitse työtila --',
+    renameTitlePrompt: 'Anna uusi nimi',
+    deleteScopeConfirm: 'Haluatko varmasti poistaa tämän työtilan ja kaikki sen tallennetut tulokset?',
+    deleteSearchConfirm: 'Haluatko varmasti poistaa tämän haun?',
+    deleteAnalysisConfirm: 'Haluatko varmasti poistaa tämän analyysin?',
+    renameButtonTitle: 'Nimeä uudelleen',
+    deleteButtonTitle: 'Poista',
+    savedSearchesTitle: 'Tallennetut haut',
+    noSavedSearches: 'Ei tallennettuja hakuja.',
+    savedAnalysesTitle: 'Tallennetut analyysit',
+    noSavedAnalyses: 'Ei tallennettuja analyysejä.',
+    loadingNotebook: 'Ladataan muistikirjaa...',
+    errorHeading: 'Hups! Jotain meni vikaan',
+    retryButtonLabel: 'Yritä uudelleen',
+    unnamedNotebook: 'Nimetön muistikirja',
+    exactMatchesLabel: 'Täysin samat jakeet',
+    verseLabel: 'Jae',
+    similarityLabel: 'Suhde',
+    markdownOptionLabel: 'Markdown',
+    codeOptionLabel: 'CLI-komento',
+    emptyNotebookText: 'Tässä muistikirjassa ei ole vielä soluja.',
+    addMarkdownCellLabel: '+ Lisää Markdown-solu',
+    addCodeCellLabel: '+ Lisää CLI-solu',
+    lastReadVerseLabel: 'Viimeksi luettu jae:',
+  },
+    exactMatchesLabel: 'Exact Matches',
+    verseLabel: 'Verse',
+    similarityLabel: 'Sim',
+    markdownOptionLabel: 'Markdown',
+    codeOptionLabel: 'CLI Command',
+    emptyNotebookText: 'This notebook has no cells yet.',
+    addMarkdownCellLabel: '+ Add Markdown cell',
+    addCodeCellLabel: '+ Add Code cell',
+    lastReadVerseLabel: 'Last read verse:',
   },
 };
 

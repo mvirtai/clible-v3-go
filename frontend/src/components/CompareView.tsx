@@ -253,7 +253,7 @@ export function CompareView({
                             type="text"
                             value={reference}
                             onChange={(e) => setReference(e.target.value)}
-                            placeholder="e.g. John 3:16 or John 3:16-20"
+                            placeholder={strings.compareReferencePlaceholder}
                             className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm"
                             disabled={installedTranslations.length < 2}
                         />
@@ -362,7 +362,7 @@ export function CompareView({
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
-                                        placeholder="Nimi vertailulle (esim. Joh 3:16 kr92/web)..."
+                                        placeholder={strings.saveNamePlaceholder}
                                         value={saveName}
                                         onChange={(e) => setSaveName(e.target.value)}
                                         className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
@@ -422,7 +422,7 @@ export function CompareView({
                                 <dd className="font-mono font-semibold">{(result.summary.averageSimilarity * 100).toFixed(1)}%</dd>
                             </div>
                             <div className="flex justify-between py-1 border-b border-[var(--border-soft)]">
-                                <dt className="text-[var(--muted)]">Täysin samat jakeet (Exact Matches)</dt>
+                                <dt className="text-[var(--muted)]">{strings.exactMatchesLabel}</dt>
                                 <dd className="font-mono font-semibold">
                                     {result.summary.exactMatches} / {result.summary.totalVerses}{' '}
                                     <span className="font-sans font-normal text-[var(--muted)]">
@@ -549,10 +549,10 @@ export function CompareView({
                                 <table className="min-w-full text-sm border-collapse">
                                     <thead>
                                         <tr className="bg-[var(--surface-2)] text-left text-[var(--muted)] uppercase text-[10px] tracking-wider border-b border-[var(--border)]">
-                                            <th className="px-4 py-3 whitespace-nowrap">Jae (Verse)</th>
+                                            <th className="px-4 py-3 whitespace-nowrap">{strings.verseLabel}</th>
                                             <th className="px-4 py-3 min-w-[16rem]">{result.translationA}</th>
                                             <th className="px-4 py-3 min-w-[16rem]">{result.translationB}</th>
-                                            <th className="px-4 py-3 w-[10rem]">Suhde (Sim)</th>
+                                            <th className="px-4 py-3 w-[10rem]">{strings.similarityLabel}</th>
                                         </tr>
                                     </thead>
                                     <tbody>

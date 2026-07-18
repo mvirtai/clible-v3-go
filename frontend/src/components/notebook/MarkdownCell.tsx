@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'; 
 import ReactMarkdown from 'react-markdown'; 
-import type { Cell } from './types'; 
+import type { Cell } from './types';
+import { useLanguage } from '../../context/LanguageContext'; 
 
 interface MarkdownCellProps {
   cell: Cell;
@@ -79,40 +80,42 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
     );
   }
 
+  const { strings } = useLanguage();
+
   if (isEditing) {
-    return (
-      <div className="w-full relative">
-        <textarea
-          ref={textareaRef}
-          className="w-full min-h-[120px] p-4 font-serif bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-y transition-all"
-          value={cell.content}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={() => setIsEditing(false)}
-          onKeyDown={handleKeyDown}
-          placeholder="Kirjoita muistiinpanoja tästä... Voit viitata jakeisiin syntaksilla [[Joh. 3:16]] tai [[John 3:16]]"
-        />
-        <div className="absolute right-2 bottom-2 text-xs text-[var(--muted)] pointer-events-none select-none">
-          Ctrl+Enter valmis
-        </div>
+  return (
+    <div className="w-full relative">
+      <textarea
+        ref={textareaRef}
+        className="w-full min-h-[120px] p-4 font-serif bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-y transition-all"
+        value={cell.content}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => setIsEditing(false)}
+        onKeyDown={handleKeyDown}
+        placeholder={strings.markdownCellPlaceholder}
+      />
+      <div className="absolute right-2 bottom-2 text-xs text-[var(--muted)] pointer-events-none select-none">
+        {strings.markdownCtrlEnterHint}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div
-      className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] cursor-pointer rounded-lg hover:bg-[var(--surface-2)]/30 border border-transparent hover:border-[var(--border-soft)] transition-all duration-200"
-      onClick={() => setIsEditing(true)}
-      title="Kaksoisklikkaa muokataksesi"
-    >
+    className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] cursor-pointer rounded-lg hover:bg-[var(--surface-2)]/30 border border-transparent hover:border-[var(--border-soft)] transition-all duration-200"
+    onClick={() => setIsEditing(true)}
+    title={strings.markdownEditTitle}
+  >
       {cell.content.trim() ? (
         <ReactMarkdown components={markdownComponents}>
           {preprocessContent(cell.content)}
         </ReactMarkdown>
       ) : (
-        <p className="text-[var(--muted)] italic py-2">
-          Tyhjä markdown-solu. Kaksoisklikkaa lisätäksesi muistiinpanoja. Voit viitata jakeisiin esim. [[Joh. 3:16]]
-        </p>
-      )}
-    </div>
-  );
+    <p className="text-[var(--muted)] italic py-2">
+      {strings.markdownEmptyText}
+    </p>
+  )}
+</div>
+);
 };

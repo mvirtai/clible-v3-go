@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import type { Scope, ScopeWorkspace, SavedSearch, SavedAnalysis } from '../types/workspace';
 import { Folder, Plus, Trash2, Edit2, Search, BarChart3 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   activeScopeId: string;
@@ -18,6 +19,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
   onLoadSavedAnalysis,
   refreshTrigger
 }) => {
+  const { strings } = useLanguage();
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [newScopeName, setNewScopeName] = useState('');
   const [workspace, setWorkspace] = useState<ScopeWorkspace | null>(null);
@@ -198,48 +200,48 @@ export const WorkspaceSidebar: React.FC<Props> = ({
     <div className="rounded-3xl p-6 space-y-6 border text-left" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
       <div className="flex items-center justify-between">
         <label htmlFor="workspace-scope-select" className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--muted)' }}>
-          <Folder size={16} /> Työtila (Scope)
-        </label>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="p-1 rounded-full hover:bg-[var(--surface-2)] transition-colors text-[var(--accent)]"
-          title="Uusi työtila"
-        >
-          <Plus size={18} />
-        </button>
+            <Folder size={16} /> {strings.workspaceLabel}
+          </label>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="p-1 rounded-full hover:bg-[var(--surface-2)] transition-colors text-[var(--accent)]"
+            title={strings.newScopeTitle}
+          >
+            <Plus size={18} />
+          </button>
       </div>
 
       {showAddForm && (
         <form onSubmit={handleCreateScope} className="flex gap-2">
           <input
-            type="text"
-            placeholder="Työtilan nimi..."
-            value={newScopeName}
-            onChange={e => setNewScopeName(e.target.value)}
-            className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
-            style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
-            autoFocus
-          />
+                      type="text"
+                      placeholder={strings.newScopePlaceholder}
+                      value={newScopeName}
+                      onChange={e => setNewScopeName(e.target.value)}
+                      className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
+                      style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                      autoFocus
+                    />
           <button type="submit" className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile">
-            Luo
+            {strings.createLabel}
           </button>
         </form>
       )}
 
       <div className="flex gap-2">
         <select
-          id="workspace-scope-select"
-          aria-label="Valitse työtila"
-          value={activeScopeId}
-          onChange={e => onScopeChanged(e.target.value)}
-          className="flex-1 rounded-xl px-3 py-2 text-xs transition-all outline-none border cursor-pointer font-medium"
-          style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
-        >
-          <option value="">-- Valitse työtila --</option>
-          {scopes.map(s => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+        id="workspace-scope-select"
+        aria-label={strings.workspaceLabel}
+        value={activeScopeId}
+        onChange={e => onScopeChanged(e.target.value)}
+        className="flex-1 rounded-xl px-3 py-2 text-xs transition-all outline-none border cursor-pointer font-medium"
+        style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+      >
+        <option value="">{strings.selectWorkspacePlaceholder}</option>
+        {scopes.map(s => (
+          <option key={s.id} value={s.id}>{s.name}</option>
+        ))}
+      </select>
         {activeScopeId && (
           <>
             <button
@@ -275,9 +277,9 @@ export const WorkspaceSidebar: React.FC<Props> = ({
           >
             {/* Tallennetut haut */}
             <div className="space-y-2">
-              <h3 className="text-xs font-bold" style={{ color: 'var(--muted)' }}>Tallennetut haut</h3>
+              <h3 className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{strings.savedSearchesTitle}</h3>
               {searches.length === 0 ? (
-                <p className="text-xs italic" style={{ color: 'var(--muted)' }}>Ei tallennettuja hakuja.</p>
+                <p className="text-xs italic" style={{ color: 'var(--muted)' }}>{strings.noSavedSearches}</p>
               ) : (
                 <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
                   {searches.map(s => (
@@ -292,22 +294,22 @@ export const WorkspaceSidebar: React.FC<Props> = ({
                       </span>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRenameSearch(s.id, s.name);
-                          }}
-                          className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer"
-                          title="Nimeä uudelleen"
-                        >
-                          <Edit2 size={11} />
-                        </button>
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRenameSearch(s.id, s.name);
+                        }}
+                        className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer"
+                        title={strings.renameButtonTitle}
+                      >
+                        <Edit2 size={11} />
+                      </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteSearch(s.id);
                           }}
                           className="p-1 rounded-md text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
-                          title="Poista"
+                          title={strings.deleteButtonTitle}
                         >
                           <Trash2 size={11} />
                         </button>
@@ -320,9 +322,9 @@ export const WorkspaceSidebar: React.FC<Props> = ({
 
             {/* Tallennetut analyysit */}
             <div className="space-y-2">
-              <h3 className="text-xs font-bold" style={{ color: 'var(--muted)' }}>Tallennetut analyysit</h3>
+              <h3 className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{strings.savedAnalysesTitle}</h3>
               {analyses.length === 0 ? (
-                <p className="text-xs italic" style={{ color: 'var(--muted)' }}>Ei tallennettuja analyysejä.</p>
+                <p className="text-xs italic" style={{ color: 'var(--muted)' }}>{strings.noSavedAnalyses}</p>
               ) : (
                 <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
                   {analyses.map(a => (
@@ -342,7 +344,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
                             handleRenameAnalysis(a.id, a.name);
                           }}
                           className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer"
-                          title="Nimeä uudelleen"
+                          title={strings.renameButtonTitle}
                         >
                           <Edit2 size={11} />
                         </button>
@@ -352,7 +354,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
                             handleDeleteAnalysis(a.id);
                           }}
                           className="p-1 rounded-md text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
-                          title="Poista"
+                          title={strings.deleteButtonTitle}
                         >
                           <Trash2 size={11} />
                         </button>

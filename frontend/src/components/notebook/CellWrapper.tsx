@@ -1,5 +1,6 @@
 import React from 'react';
-import type { Cell, CellType } from './types';
+import type { CellType } from './types';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface CellWrapperProps {
   cell: Cell;
@@ -22,6 +23,7 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
   onChangeType,
   children,
 }) => {
+  const { strings } = useLanguage();
   return (
     <div className="group relative border border-[var(--border-soft)] hover:border-amber-500/20 bg-[var(--surface-2)]/10 hover:bg-[var(--surface-2)]/20 rounded-xl p-4 transition-all duration-300">
       {/* Solun toimintopalkki (ilmestyy kun hiiri leijuu solun päällä) */}
@@ -34,8 +36,8 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
           onChange={(e) => onChangeType(e.target.value as CellType)}
           className="bg-transparent text-[var(--muted)] text-[10px] font-medium focus:outline-none border-none cursor-pointer hover:text-amber-500"
         >
-          <option value="markdown" className="bg-[var(--surface)] text-[var(--text)]">Markdown</option>
-          <option value="code" className="bg-[var(--surface)] text-[var(--text)]">CLI Command</option>
+          <option value="markdown" className="bg-[var(--surface)] text-[var(--text)]">{strings.markdownOptionLabel}</option>
+          <option value="code" className="bg-[var(--surface)] text-[var(--text)]">{strings.codeOptionLabel}</option>
         </select>
 
         <span className="w-px h-3 bg-[var(--border-soft)]" />

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import type { Cell, CellResult } from './types';
 import { bookCitationAbbrevFi } from '../../utils/bookNames';
 import { formatResultToMarkdown, type CLIResultData } from '../../utils/markdown';
@@ -22,6 +23,8 @@ export const CodeCell: React.FC<CodeCellProps> = ({
   const [deselectedVerseIds, setDeselectedVerseIds] = useState<Record<string, boolean>>({});
 
   const [prevResultJson, setPrevResultJson] = useState<unknown>(null);
+
+  const { strings } = useLanguage();
 
   if (cell.resultJson !== prevResultJson) {
     setPrevResultJson(cell.resultJson);
@@ -98,7 +101,7 @@ export const CodeCell: React.FC<CodeCellProps> = ({
           className="flex-1 font-mono bg-transparent text-neutral-100 border-none outline-none focus:ring-0 text-sm placeholder-neutral-600"
           value={cell.content}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="/read Joh 3:16 tai /suggest tai /refs Joh 3:16"
+          placeholder={strings.codeCellPlaceholder}
           onKeyDown={handleKeyDown}
           disabled={isRunning}
         />
@@ -113,14 +116,14 @@ export const CodeCell: React.FC<CodeCellProps> = ({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              Running...
+              {strings.runningLabel}
             </>
           ) : (
             <>
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
               </svg>
-              Run
+              {strings.runLabel}
             </>
           )}
         </button>
@@ -131,8 +134,8 @@ export const CodeCell: React.FC<CodeCellProps> = ({
         <div className="p-4 bg-neutral-950/70 border-t border-neutral-900/50 font-sans text-neutral-200">
           <div className="flex justify-between items-center mb-3 border-b border-neutral-900 pb-2">
             <span className="text-[10px] uppercase font-mono tracking-wider text-amber-500/80 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10">
-              CLI Output — {cell.resultJson.type}
-            </span>
+            {strings.cliOutputPrefix} {cell.resultJson.type}
+          </span> 
             {hasFreezeOption && onFreeze && (
               <button
                 onClick={handleFreezeClick}
@@ -142,12 +145,9 @@ export const CodeCell: React.FC<CodeCellProps> = ({
                     ? 'text-neutral-600 bg-neutral-950 border-neutral-900 cursor-not-allowed'
                     : 'text-neutral-400 hover:text-amber-500 bg-neutral-900 hover:bg-neutral-800 border-neutral-800'
                 }`}
-                title={selectedCount === 0 ? "Valitse vähintään yksi jae jäädyttääksesi" : "Muunna Markdown-soluksi nykyisen solun alapuolelle"}
+                title={selectedCount === 0 ? strings.freezeDisabledTitle : strings.freezeEnabledTitle}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                Freeze {selectedCount > 0 ? `(${selectedCount})` : ''} to Markdown
+                {strings.freezeLabel}
               </button>
             )}
           </div>
@@ -259,10 +259,10 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     return (
       <div className="space-y-1">
         {verses.length === 0 ? (
-          <p className="text-neutral-500 text-sm italic">Ei jakeita löydetty viitteellä {data.reference}.</p>
-        ) : (
-          verses.map((v) => <RenderVerseItem key={v.id} v={v} />)
-        )}
+                  <p className="text-neutral-500 text-sm italic">{strings.noVersesFound} {data.reference}.</p>
+                ) : (
+                  verses.map((v) => <RenderVerseItem key={v.id} v={v} />)
+                )}
       </div>
     );
   }
@@ -273,10 +273,10 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     const verses = data.verses || [];
     return (
       <div className="space-y-3">
-        <p className="text-xs text-neutral-400">Hakutulokset kyselylle: <span className="text-neutral-200 font-mono">"{data.query}"</span></p>
+        <p className="text-xs text-neutral-400">{strings.searchResultsForQuery}: <span className="text-neutral-200 font-mono">"{data.query}"</span></p>
         {verses.length === 0 ? (
-          <p className="text-neutral-500 text-sm italic">Ei tuloksia.</p>
-        ) : (
+                  <p className="text-neutral-500 text-sm italic">{strings.noResults}</p>
+                ) : (
           <div className="space-y-1">
             {verses.map((v) => <RenderVerseItem key={v.id} v={v} />)}
           </div>
@@ -291,10 +291,10 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     const refs = data.references || [];
     return (
       <div className="space-y-3">
-        <p className="text-xs text-neutral-400">Dynaamiset ristiinviitteet jakeelle: <span className="text-amber-500 font-semibold">{data.source}</span></p>
+        <p className="text-xs text-neutral-400">{strings.dynamicRefsFor}: <span className="text-amber-500 font-semibold">{data.source}</span></p>
         {refs.length === 0 ? (
-          <p className="text-neutral-500 text-sm italic">Ei ristiinviitteitä löydetty (jae saattaa sisältää vain yleisiä sanoja).</p>
-        ) : (
+                  <p className="text-neutral-500 text-sm italic">{strings.noRefsFound}</p>
+                ) : (
           <div className="space-y-1">
             {refs.map((v) => <RenderVerseItem key={v.id} v={v} />)}
           </div>
@@ -310,9 +310,9 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     return (
       <div className="space-y-3">
         {data.keywords && data.keywords.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            <span className="text-[10px] text-neutral-500 self-center mr-1">Tunnistetut teemat:</span>
-            {data.keywords.map((kw) => (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    <span className="text-[10px] text-neutral-500 self-center mr-1">{strings.identifiedThemesLabel}</span>
+                    {data.keywords.map((kw) => (
               <span key={kw} className="text-[10px] font-mono bg-neutral-900 border border-neutral-800 text-neutral-300 px-2 py-0.5 rounded">
                 #{kw}
               </span>
@@ -320,8 +320,8 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
           </div>
         )}
         {suggestions.length === 0 ? (
-          <p className="text-neutral-500 text-sm italic">Kirjoita ensin enemmän Markdown-soluihin saadaksesi teemakohtaisia ehdotuksia.</p>
-        ) : (
+                  <p className="text-neutral-500 text-sm italic">{strings.suggestNoData}</p>
+                ) : (
           <div className="space-y-1">
             {suggestions.map((v) => <RenderVerseItem key={v.id} v={v} />)}
           </div>

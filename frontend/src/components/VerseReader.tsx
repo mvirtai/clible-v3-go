@@ -293,14 +293,14 @@ export const VerseReader: React.FC<Props> = ({
               ) : (
                 <div className="flex gap-2">
                   <input
-                    type="text"
-                    placeholder="Nimi (esim. Vuorisaarna)..."
-                    value={saveName}
-                    onChange={e => setSaveName(e.target.value)}
-                    className="flex-1 rounded-lg px-3 py-1 text-xs outline-none border"
-                    style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
-                    disabled={saveStatus === 'saving'}
-                  />
+                                      type="text"
+                                      placeholder={strings.saveNamePlaceholder}
+                                      value={saveName}
+                                      onChange={e => setSaveName(e.target.value)}
+                                      className="flex-1 rounded-lg px-3 py-1 text-xs outline-none border"
+                                      style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                                      disabled={saveStatus === 'saving'}
+                                    />
                   <button
                     type="button"
                     onClick={async () => {
