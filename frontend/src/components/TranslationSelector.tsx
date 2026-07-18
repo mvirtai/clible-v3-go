@@ -42,10 +42,10 @@ export const TranslationSelector: React.FC<Props> = ({
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
       style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
       <Globe size={13} style={{ color: 'var(--accent)' }} />
-      <label htmlFor="translation-select" className="sr-only" style={{ display: 'none' }}>Valitse käännös</label>
+      <label htmlFor="translation-select" className="sr-only" style={{ display: 'none' }}>{strings.chooseTranslation}</label>
       <select
         id="translation-select"
-        aria-label="Valitse käännös"
+        aria-label={strings.chooseTranslation}
         value={selectedTranslation}
         onChange={(e) => onSelectTranslation(e.target.value)}
         className="text-sm font-medium outline-none cursor-pointer"
