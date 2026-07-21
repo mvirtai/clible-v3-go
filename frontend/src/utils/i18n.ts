@@ -61,6 +61,33 @@ export interface Messages {
   rowsCompared: string;
   mostSimilarVerse: string;
   aiComparing: string;
+  originalSetupTitle: string;
+  originalSetupHint: string;
+  originalAlreadyInstalled: string;
+  originalInstallGreek: string;
+  originalInstallHebrew: string;
+  originalReferenceLabel: string;
+  originalReferencePlaceholder: string;
+  originalSelectOriginal: string;
+  originalSelectTranslations: string;
+  originalNeedTranslation: string;
+  originalNeedTargets: string;
+  originalRunButton: string;
+  originalVersesHeading: string;
+  compareVerseColumn: string;
+  originalAnalysisHeading: string;
+  originalStudyTitle: string;
+  compareExport: string;
+  originalLoading: string;
+  originalNoResult: string;
+  originalScopeLabel: string;
+  originalVerseScope: string;
+  originalChapterScope: string;
+  originalBookScope: string;
+  originalVerseScopeHint: string;
+  originalChapterScopeHint: string;
+  originalBookScopeHint: string;
+  originalSaveToWorkspace: string;
   saveNamePlaceholder: string;
   compareReferencePlaceholder: string;
   newScopePlaceholder: string;
@@ -205,6 +232,33 @@ export const strings: Record<UILanguage, Messages> = {
     rowsCompared: 'Rows compared',
     mostSimilarVerse: 'Most similar verse',
     aiComparing: 'AI is analyzing and comparing translations...',
+    originalSetupTitle: 'Install Original Language Packs',
+    originalSetupHint: 'To analyze original languages, you need Koine Greek (SBLGNT) or Biblical Hebrew (Aleppo Codex) source packs installed.',
+    originalAlreadyInstalled: 'Installed',
+    originalInstallGreek: 'Install SBLGNT Koine Greek',
+    originalInstallHebrew: 'Install Aleppo Codex Hebrew',
+    originalReferenceLabel: 'Bible Reference',
+    originalReferencePlaceholder: 'E.g. John 3:16 or Genesis 1:1',
+    originalSelectOriginal: 'Select Original Source Text',
+    originalSelectTranslations: 'Select Comparative Translations (max 3)',
+    originalNeedTranslation: 'Install at least one modern translation from the manager for comparative study.',
+    originalNeedTargets: 'Select at least one modern translation to compare.',
+    originalRunButton: 'Study Original Language with AI',
+    originalVersesHeading: 'Text Alignment Map',
+    compareVerseColumn: 'Verse',
+    originalAnalysisHeading: 'AI Original Text Analysis',
+    originalStudyTitle: 'Original Language & Translation Study',
+    compareExport: 'Export Analysis',
+    originalLoading: 'AI is analyzing original text and comparing translations...',
+    originalNoResult: 'Enter a reference and run study to generate AI-backed insights.',
+    originalScopeLabel: 'Study scope',
+    originalVerseScope: 'Verse',
+    originalChapterScope: 'Chapter',
+    originalBookScope: 'Book',
+    originalVerseScopeHint: 'Verse scope: a single verse or short range works best (e.g. "John 3:16-17").',
+    originalChapterScopeHint: 'Chapter scope: use a reference like "John 3" without a verse number.',
+    originalBookScopeHint: 'Book scope: use only a book name (e.g. "ROM", "GEN" or "John").',
+    originalSaveToWorkspace: 'Save original language study to workspace',
     saveNamePlaceholder: 'Name for this saved item (e.g. John 3 glossary)...',
     compareReferencePlaceholder: 'e.g. John 3:16 or John 3:16-20',
     newScopePlaceholder: 'Workspace name...',
@@ -335,6 +389,33 @@ export const strings: Record<UILanguage, Messages> = {
     rowsCompared: 'Rivejä vertailtu',
     mostSimilarVerse: 'Samankaltaisin jae',
     aiComparing: 'Tekoäly analysoi ja vertailee käännöksiä...',
+    originalSetupTitle: 'Asenna alkukieliset käännöspaketit',
+    originalSetupHint: 'Alkukielistä vertailua varten tarvitset kreikankielisen (SBLGNT) tai hepreankielisen (Aleppo Codex) lähdetekstin.',
+    originalAlreadyInstalled: 'Asennettu',
+    originalInstallGreek: 'Asenna SBLGNT Koine Greek',
+    originalInstallHebrew: 'Asenna Aleppo Codex Hebrew',
+    originalReferenceLabel: 'Raamatunkohta / Viite',
+    originalReferencePlaceholder: 'Esim. Johannes 3:16 tai 1. Moos. 1:1',
+    originalSelectOriginal: 'Valitse alkukielinen teksti',
+    originalSelectTranslations: 'Valitse rinnakkaiset käännökset (maks. 3)',
+    originalNeedTranslation: 'Asenna vähintään yksi moderni käännös hallintapaneelista rinnakkaisvertailua varten.',
+    originalNeedTargets: 'Valitse vähintään yksi vertailukäännös.',
+    originalRunButton: 'Tutki alkukieltä tekoälyllä',
+    originalVersesHeading: 'Tekstien rinnakkaisasettelu',
+    compareVerseColumn: 'Jae',
+    originalAnalysisHeading: 'Tekoälyn alkukielianalyysi',
+    originalStudyTitle: 'Alkukielen ja kääntämisen tutkimus',
+    compareExport: 'Vie analyysi',
+    originalLoading: 'Tekoäly analysoi alkutekstiä ja vertaa käännöksiä...',
+    originalNoResult: 'Syötä jaeviite ja käynnistä haku saadaksesi tekoälypohjaisen analyysin.',
+    originalScopeLabel: 'Tutkimuksen laajuus',
+    originalVerseScope: 'Jae',
+    originalChapterScope: 'Luku',
+    originalBookScope: 'Kirja',
+    originalVerseScopeHint: 'Jaehaku: yksittäinen jae tai jaealue toimii parhaiten (esim. "Joh 3:16-17").',
+    originalChapterScopeHint: 'Lukuvertailu: käytä muotoa "Joh 3" tai "John 3" ilman jaenumeroa.',
+    originalBookScopeHint: 'Kirjavertailu: käytä pelkkää kirjan nimeä (esim. "ROM", "GEN" tai "Joh").',
+    originalSaveToWorkspace: 'Tallenna alkukielitutkimus työtilaan',
     saveNamePlaceholder: 'Nimi tälle tallennukselle (esim. Joh 3 sanasto)...',
     compareReferencePlaceholder: 'esim. Joh 3:16 tai Joh 3:16-20',
     newScopePlaceholder: 'Työtilan nimi...',
