@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import type { InstalledTranslation } from '../types/bible';
 import type { OriginalStudyResult, StudyScope } from '../types/originalStudy';
 import { markdownComponents } from '../utils/markdownComponents';
+import { t } from '../utils/i18n';
 import { GeminiUsage } from './GeminiUsage';
 import type { NextFocusItem, GeminiUsageMetadata } from '../types/ai';
 import { NextFocusChips } from './NextFocusChips';
@@ -125,6 +126,7 @@ export function OriginalStudyView({
   onWorkspaceUpdated,
 }: OriginalStudyViewProps) {
   const m = localStrings[uiLanguage];
+  const strings = t(uiLanguage);
 
   const [originalSaveStatus, setOriginalSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 

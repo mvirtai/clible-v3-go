@@ -1,5 +1,5 @@
 import React from 'react';
-import type { CellType } from './types';
+import type { CellType, Cell } from './types';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface CellWrapperProps {

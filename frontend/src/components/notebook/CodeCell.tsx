@@ -155,6 +155,7 @@ export const CodeCell: React.FC<CodeCellProps> = ({
             result={cell.resultJson}
             deselectedVerseIds={deselectedVerseIds}
             onToggleVerse={toggleVerse}
+            strings={strings}
           />
         </div>
       )}
@@ -195,6 +196,7 @@ interface ResultRendererProps {
   result: CellResult;
   deselectedVerseIds?: Record<string, boolean>;
   onToggleVerse?: (id: string) => void;
+  strings: ReturnType<typeof useLanguage>['strings'];
 }
 
 /* Tulosten dynaaminen renderöijä eri komennon tyypeille */
@@ -202,6 +204,7 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
   result,
   deselectedVerseIds = {},
   onToggleVerse,
+  strings,
 }) => {
   if (result.type === 'error') {
     let errorMessage = 'Virhe komennon suorituksessa.';

@@ -92,6 +92,45 @@ export interface Messages {
   deleteScopeConfirm: string;
   deleteSearchConfirm: string;
   deleteAnalysisConfirm: string;
+  exactMatchesLabel: string;
+  verseLabel: string;
+  similarityLabel: string;
+  markdownOptionLabel: string;
+  codeOptionLabel: string;
+  emptyNotebookText: string;
+  addMarkdownCellLabel: string;
+  addCodeCellLabel: string;
+  lastReadVerseLabel: string;
+  createScopeFailed: string;
+  deleteScopeFailed: string;
+  deleteSearchFailed: string;
+  deleteAnalysisFailed: string;
+  noNotebooksText: string;
+  moveUpTitle: string;
+  moveDownTitle: string;
+  deleteCellTitle: string;
+  registerTitle: string;
+  registerButton: string;
+  registeringLabel: string;
+  chartBarTitle: string;
+  chartCloudTitle: string;
+  nextFocusTitle: string;
+  deepDiveToneTitle: string;
+  deepDiveCompareTitle: string;
+  englishLabel: string;
+  finnishLabel: string;
+  renameScopeTitle: string;
+  editTitleLabel: string;
+  renameButtonTitle?: string;
+  deleteButtonTitle?: string;
+  savedSearchesTitle?: string;
+  noSavedSearches?: string;
+  savedAnalysesTitle?: string;
+  noSavedAnalyses?: string;
+  loadingNotebook?: string;
+  errorHeading?: string;
+  retryButtonLabel?: string;
+  unnamedNotebook?: string;
 }
 
 export const strings: Record<UILanguage, Messages> = {
@@ -108,10 +147,12 @@ export const strings: Record<UILanguage, Messages> = {
         tabOriginal: 'Original',
         tabNotebooks: 'Notebooks',
         appBootLoading: 'Loading...',
-        noTranslations: 'No translations',
-        translationPlaceholder: 'Select translation...',
+            noTranslations: 'No translations',
+            translationPlaceholder: 'Select translation...',
+        notebookTitle: 'Notebooks',
+        createNotebook: 'Create Notebook',
 
-    // Errors
+        // Errors
     errFailedLoadTranslations: 'Failed to load translations.',
     errSelectTranslationFirst: 'Select a translation first.',
     errSearchFailed: 'Search failed.',
@@ -238,6 +279,8 @@ export const strings: Record<UILanguage, Messages> = {
     tabOriginal: 'Alkukieli',
     tabNotebooks: 'Muistikirjat',
     appBootLoading: 'Ladataan...',
+    notebookTitle: 'Muistikirjat',
+    createNotebook: 'Luo muistikirja',
 
     // Errors
     errFailedLoadTranslations: 'Käännösten lataaminen epäonnistui.',
@@ -353,7 +396,18 @@ export const strings: Record<UILanguage, Messages> = {
     registerTitle: 'Luo uusi tili',
     registerButton: 'Rekisteröidy',
     registeringLabel: 'Rekisteröidytään...',
-  },
+    noTranslations: 'Ei käännöksiä',
+    translationPlaceholder: 'Valitse käännös...',
+    chartBarTitle: 'Pylväskaavio',
+    chartCloudTitle: 'Sanapilvi',
+    nextFocusTitle: 'Seuraava painopiste',
+    deepDiveToneTitle: 'Syvällinen tutkimus',
+    deepDiveCompareTitle: 'Syvällinen tutkimus',
+    englishLabel: 'Englanti',
+    finnishLabel: 'Suomi',
+    renameScopeTitle: 'Nimeä työtila uudelleen',
+    editTitleLabel: 'Klikkaa muokataksesi',
+  }
 
 };
 
