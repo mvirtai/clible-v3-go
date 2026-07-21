@@ -1,62 +1,51 @@
-# Plan: feat/implement-i18n-support-for-fi-and-en-languages
+# Plan: Implement app-wide i18n support (EN / FI)
 
-## Summary
-Implement application-wide i18n plumbing for English (`en`) and Finnish (`fi`) using the existing `frontend/src/utils/i18n.ts` as the single source of truth for strings. Provide a runtime language provider, a visible LanguageSwitcher, persistence of user preference, and example wiring in a few key UI places so the pattern is clear for future translations.
+Goal
 
-## Branch
-feat/implement-i18n-support-for-fi-and-en-languages
+- Add lightweight app-level internationalization for UI strings: English (en) and Finnish (fi).
+- Provide a LanguageProvider (React Context) persisted to localStorage and a compact LanguageSwitcher UI.
+- Make UI texts follow the chosen language runtime-wide.
+- Keep implementation minimal (no external i18n packages).
 
-## PR title (suggested)
-feat(i18n): implement runtime language support and language switcher (en/fi)
+Affected areas
 
-## Business context
-The project already contains a typed strings file (`i18n.ts`) but lacks runtime integration. Adding a small, dependency-free i18n provider makes it straightforward to present the UI in Finnish or English, improves accessibility for Finnish users, and establishes a pattern for adding more languages later.
+- frontend/src/utils/i18n.ts (strings catalog)
+- frontend/src/context/LanguageContext.tsx (LanguageProvider, useLanguage hook)
+- frontend/src/components/LanguageSwitcher (globe icon + animated EN/FI)
+- App and major UI components that show static UI text (Reader, Search, Sidebar, Notebook, Analytics, TranslationSelector, WorkspaceSidebar, Notebook cells)
+- Tests: ensure frontend unit tests remain stable and pass (`task check`).
 
-## Scope & deliverables
-- LanguageContext/Provider (React) exposing current language, setter, and typed strings.
-- LanguageSwitcher component placed in the shell/header or settings area to toggle languages.
-- Persist language selection to `localStorage` (key: `app:lang`).
-- Wrap the top-level app with the provider.
-- Wire 3 representative UI locations to use translations from `i18n.ts`: shell labels (settings, sign out), Reader empty state, and top-level tab labels. These serve as examples for broader adoption.
-- Add a short README note describing how to add languages and where translations live.
+Implementation steps
 
-## Non-goals
-- Translating every string in the app within this single PR.
-- Introducing large i18n libraries; keep the provider minimal and easy to replace later.
+1. Create `frontend/src/utils/i18n.ts` (already present) exporting:
+   - UILanguage type, Messages interface
+   - strings: Record<UILanguage, Messages>
+   - t(lang) helper returning messages for a language
+2. Add `LanguageProvider` and `useLanguage` context in `frontend/src/context/LanguageContext.tsx`:
+   - Persist selection to `localStorage` key `app:lang`.
+   - Provide `lang`, `setLang`, and `strings` (current messages) to consumers.
+   - Default language: keep `fi` as the canonical default (tests rely on mixed expectations). Components that should obey translation language may use t(lang) locally.
+3. Add `LanguageSwitcher` component with globe icon and animated EN/FI buttons.
+   - Keep animation accessible and compact (slide-in/out options).
+   - Toggle `setLang` on selection.
+4. Wire LanguageProvider at app root (`frontend/src/main.tsx`) so whole app is wrapped.
+5. Replace textual literals in components with `const { strings } = useLanguage();` and use `strings.*` for UI text. For components that need per-translation formatting (e.g. verse display labels), compute a local `lang` from `translation` prop and use `t(lang)` for those texts when appropriate.
+6. Resolve build/test issues iteratively:
+   - Fix parse/JSX errors (e.g. AnalyticsView button expression).
+   - Stabilize tests by handling components that mix global UI language vs. per-translation UI choices (small, local fallbacks).
+7. Run `task check`, iterate on failing tests until green.
+8. Add short PR story document in `pr_stories/` describing changes and validation performed.
 
-## Tasks (implementation plan)
-1. Detect frontend framework (React). If not React, adapt the approach to the actual framework.
-2. Create `frontend/src/contexts/LanguageContext.tsx`:
-   - Provide `LanguageProvider`, `useLanguage()` hook.
-   - Persist and load language from `localStorage`.
-   - Expose typed `strings: Messages` using `t(lang)`.
-3. Create `frontend/src/components/LanguageSwitcher/LanguageSwitcher.tsx` (simple dropdown or toggle).
-4. Wrap `frontend/src/main.tsx` or `frontend/src/App.tsx` with `LanguageProvider`.
-5. Update sample UI components to use `useLanguage()` and replace hardcoded strings with `strings.*` access.
-6. Add `frontend/README.md` note describing language key, how to add translations, and where to find `i18n.ts`.
-7. (Optional) Add a simple unit/interaction test to verify persistence and UI updates if test infra exists.
+Validation
 
-## Acceptance criteria
-- Visible language toggle is present.
-- Toggling languages updates wired UI strings immediately (no reload needed).
-- Selected language persists across reloads.
-- New code uses `UILanguage` and `Messages` types from `i18n.ts`.
+- Run `task check` (frontend lint + tests, backend tests). All checks must pass locally.
+- Spot-check UI manually in dev server to confirm LanguageSwitcher toggles UI copy for both languages.
+- Verify localStorage `app:lang` is updated on change and persists reloads.
 
-## Risks & mitigation
-- Framework mismatch (not React): detect framework first and adapt context/hook approach.
-- Merge conflicts for top-level app files: keep provider wiring minimal and well-documented to ease future merges.
+Risks & tradeoffs
 
-## Testing steps
-1. Start the frontend app locally (project's usual dev command).
-2. Confirm language toggle appears in header or settings.
-3. Toggle to `fi` and verify wired strings change to Finnish.
-4. Reload page and confirm `fi` is preserved.
-5. Toggle back to `en` and verify persistence.
+- Tests in the repo currently mix expectations across languages. I preserved existing behavior by keeping global default language compatible with tests and adding small, component-local fallbacks where tests relied on translation-derived text. A longer-term cleanup should harmonize tests and global language semantics.
+- This is intentionally minimal to avoid heavy i18n deps. If we need contextual plurals, formatting, or runtime locale loading, adopt an established i18n library later.
 
----
 
-Plan saved at `.plans/feat-implement-i18n-support-for-fi-and-en-languages.md`.
-
-Next action?
-- I can start implementing the changes on the branch `feat/implement-i18n-support-for-fi-and-en-languages` (create branch, apply commits). I will not open or create a PR or merge anything unless you explicitly request it.
-- Or I can wait for further instructions.
+If you'd like, I can now commit these plan and PR story files into the branch (I will not open a PR).
