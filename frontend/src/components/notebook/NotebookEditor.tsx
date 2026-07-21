@@ -3,6 +3,7 @@ import type { Cell, CellType, Notebook } from './types';
 import { CellWrapper } from './CellWrapper';
 import { MarkdownCell } from './MarkdownCell';
 import { CodeCell } from './CodeCell';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NotebookEditorProps {
   notebookId: string;
@@ -249,6 +250,8 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
     });
   };
 
+  const { strings } = useLanguage();
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-3 text-neutral-400">
@@ -256,7 +259,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
-        <span className="font-mono text-sm tracking-wide">Ladataan muistikirjaa...</span>
+        <span className="font-mono text-sm tracking-wide">{strings.loadingNotebook}</span>
       </div>
     );
   }
@@ -264,13 +267,13 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
   if (error && cells.length === 0) {
     return (
       <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-6 rounded-lg text-center my-6">
-        <h3 className="font-bold text-lg mb-1">Hups! Jotain meni vikaan</h3>
+        <h3 className="font-bold text-lg mb-1">{strings.errorHeading}</h3>
         <p className="text-sm text-red-300/80 mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
           className="px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-500/30 text-white rounded text-sm transition-all"
         >
-          Yritä uudelleen
+          {strings.retryButtonLabel}
         </button>
       </div>
     );
@@ -300,16 +303,16 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
           ) : (
             <div className="flex items-center gap-2 group">
               <h1 
-                onClick={() => setIsEditingTitle(true)}
-                className="text-2xl font-bold text-[var(--text)] tracking-tight cursor-pointer hover:text-[var(--text)]/85 transition-colors"
-                title="Klikkaa muokataksesi"
-              >
-                {notebook?.title || 'Nimetön muistikirja'}
-              </h1>
+              onClick={() => setIsEditingTitle(true)}
+              className="text-2xl font-bold text-[var(--text)] tracking-tight cursor-pointer hover:text-[var(--text)]/85 transition-colors"
+              title={strings.markdownEditTitle}
+            >
+              {notebook?.title || strings.unnamedNotebook}
+            </h1>
               <button
                 onClick={() => setIsEditingTitle(true)}
                 className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted)] hover:text-amber-500 transition-all"
-                title="Muokkaa otsikkoa"
+                title={strings.editTitleLabel}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
@@ -334,13 +337,13 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
       {/* Tyhjän tilan ilmoitus */}
       {cells.length === 0 && (
         <div className="text-center py-16 bg-[var(--surface-2)]/40 border border-dashed border-[var(--border-soft)] rounded-xl space-y-4">
-          <p className="text-[var(--muted)] text-sm">Tässä muistikirjassa ei ole vielä soluja.</p>
+          <p className="text-[var(--muted)] text-sm">{strings.emptyNotebookText}</p>
           <div className="flex justify-center gap-3">
             <button
               onClick={() => handleInsertCell(0, 'markdown')}
               className="px-3.5 py-1.5 bg-[var(--surface-2)] border border-[var(--border-soft)] hover:border-amber-500/30 text-amber-600 dark:text-amber-500 hover:text-amber-500 font-bold text-xs rounded transition-all"
             >
-              + Lisää Markdown-solu
+              {strings.addMarkdownCellLabel}
             </button>
             <button
               onClick={() => handleInsertCell(0, 'code')}

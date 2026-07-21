@@ -142,7 +142,8 @@ resource "google_cloud_run_v2_service" "clible_v3" {
     service_account = google_service_account.clible_sa.email
 
     scaling {
-      max_instance_count = 10 # Nyt kun käytetään PostgreSQL:ää, voimme skaalautua vapaasti!
+      min_instance_count = 0  # Scale to zero when idle — ei kuluja ilman liikennettä
+      max_instance_count = 2  # Pieni dev-projekti — riittää yhdelle devaajalle, maksimi-riski pienempi
     }
 
     containers {
@@ -153,6 +154,7 @@ resource "google_cloud_run_v2_service" "clible_v3" {
           cpu    = "1"
           memory = "512Mi"
         }
+        cpu_idle = true  # CPU laskutetaan vain pyyntöjen käsittelyn aikana, ei idle-ajalta
       }
 
       env {

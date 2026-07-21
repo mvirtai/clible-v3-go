@@ -2,6 +2,7 @@
 import React from 'react';
 import type { InstalledTranslation } from '../types/bible';
 import { Globe } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   selectedTranslation: string;
@@ -14,7 +15,7 @@ export const TranslationSelector: React.FC<Props> = ({
   onSelectTranslation,
   translations,
 }) => {
-  const uiLanguage = 'fi'; // Kehitysfilosofian kieli
+  const { strings } = useLanguage();
 
   // Jos käyttäjällä on jo asennettuja käännöksiä, näytetään yläpalkissa vain ne.
   // Jos ei ole yhtään asennettua käännöstä, näytetään kaikki tarjolla olevat käännökset,
@@ -28,7 +29,7 @@ export const TranslationSelector: React.FC<Props> = ({
     return (
       <div className="text-xs px-3 py-1.5 rounded-full"
         style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}>
-        {uiLanguage === 'fi' ? 'Ei käännöksiä' : 'No translations'}
+        {strings.noTranslations}
       </div>
     );
   }
@@ -40,10 +41,10 @@ export const TranslationSelector: React.FC<Props> = ({
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
       style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
       <Globe size={13} style={{ color: 'var(--accent)' }} />
-      <label htmlFor="translation-select" className="sr-only" style={{ display: 'none' }}>Valitse käännös</label>
+      <label htmlFor="translation-select" className="sr-only" style={{ display: 'none' }}>{strings.chooseTranslation}</label>
       <select
         id="translation-select"
-        aria-label="Valitse käännös"
+        aria-label={strings.chooseTranslation}
         value={selectedTranslation}
         onChange={(e) => onSelectTranslation(e.target.value)}
         className="text-sm font-medium outline-none cursor-pointer"
@@ -51,7 +52,7 @@ export const TranslationSelector: React.FC<Props> = ({
       >
         {showPlaceholder && (
           <option value="" disabled>
-            {uiLanguage === 'fi' ? 'Valitse käännös...' : 'Select translation...'}
+            {strings.translationPlaceholder}
           </option>
         )}
         {list.map((t) => (

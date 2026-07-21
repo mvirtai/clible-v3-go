@@ -135,6 +135,7 @@ func (h *AIHandler) GetOriginalStudy(w http.ResponseWriter, r *http.Request) {
 		Reference      string              `json:"reference"`
 		SourceText     string              `json:"sourceText"`
 		SourceLanguage string              `json:"sourceLanguage"`
+		OutputLanguage string              `json:"outputLanguage"`
 		Translations   []map[string]string `json:"translations"`
 		Scope          string              `json:"scope"`
 		Focus          string              `json:"focus"`
@@ -148,7 +149,7 @@ func (h *AIHandler) GetOriginalStudy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.aiService.OriginalStudy(r.Context(), req.Reference, req.SourceText, req.SourceLanguage, req.Translations, req.Scope, req.Focus)
+	resp, err := h.aiService.OriginalStudy(r.Context(), req.Reference, req.SourceText, req.SourceLanguage, req.OutputLanguage, req.Translations, req.Scope, req.Focus)
 	if err != nil {
 		h.handleError(w, err)
 		return

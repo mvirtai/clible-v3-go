@@ -253,6 +253,7 @@ describe('ApiService', () => {
             reference: 'John 3:16',
             sourceText: 'houtos gar',
             sourceLanguage: 'grc',
+            outputLanguage: 'fi',
             translations: [{ id: 'kr92', name: '1992', text: 'Jumala' }],
             scope: 'verse',
         });
@@ -268,6 +269,7 @@ describe('ApiService', () => {
                     reference: 'John 3:16',
                     sourceText: 'houtos gar',
                     sourceLanguage: 'grc',
+                    outputLanguage: 'fi',
                     translations: [{ id: 'kr92', name: '1992', text: 'Jumala' }],
                     scope: 'verse'
                 })

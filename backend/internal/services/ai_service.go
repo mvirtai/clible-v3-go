@@ -120,7 +120,7 @@ type AIService interface {
 	GetInsight(ctx context.Context, text, focus string) (*AIResponse, error)
 	GetTone(ctx context.Context, text, focus string) (*AIResponse, error)
 	DeepDive(ctx context.Context, topic, outputLanguage string, contextData map[string]interface{}) (*AIResponse, error)
-	OriginalStudy(ctx context.Context, reference, sourceText, sourceLanguage string, translations []map[string]string, scope, focus string) (*AIResponse, error)
+	OriginalStudy(ctx context.Context, reference, sourceText, sourceLanguage, outputLanguage string, translations []map[string]string, scope, focus string) (*AIResponse, error)
 	AISearch(ctx context.Context, query, translationID, uiLanguage string) (map[string]interface{}, error)
 	GetComparison(ctx context.Context, reference, transA, textA, transB, textB, focus string) (*AIResponse, error)
 }
@@ -401,7 +401,7 @@ func (s *aiServiceImpl) DeepDive(ctx context.Context, topic, outputLanguage stri
 	return resp, nil
 }
 
-func (s *aiServiceImpl) OriginalStudy(ctx context.Context, reference, sourceText, sourceLanguage string, translations []map[string]string, scope, focus string) (*AIResponse, error) {
+func (s *aiServiceImpl) OriginalStudy(ctx context.Context, reference, sourceText, sourceLanguage, outputLanguage string, translations []map[string]string, scope, focus string) (*AIResponse, error) {
 	langLabel := "Koine Greek (primary text)"
 	if sourceLanguage == "he" {
 		langLabel = "Biblical Hebrew (primary text)"
@@ -499,6 +499,12 @@ func (s *aiServiceImpl) OriginalStudy(ctx context.Context, reference, sourceText
 			"**Primary text (%s)**\n\n%s\n\n"+
 			"---\n\n%s", reference, langLabel, len(translations), focusDirective(focus), reference, langLabel, sourceText, translationBlock)
 	}
+
+	outputLabel := "English"
+	if strings.EqualFold(strings.TrimSpace(outputLanguage), "fi") {
+		outputLabel = "Finnish"
+	}
+	prompt = fmt.Sprintf("## Output language\n\nWrite the entire response in %s. This includes every heading, paragraph, table header, label, explanation, comparison, and JSON footer. Do not mix in another natural language. Original Greek/Hebrew terms and transliterations may remain unchanged.\n\n%s", outputLabel, prompt)
 
 	raw, usage, err := s.callGemini(ctx, s.cfg.GeminiModelOriginal, originalStudySystemInstruction, prompt, false)
 	if err != nil {

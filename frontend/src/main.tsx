@@ -5,6 +5,7 @@ import App from './App.tsx';
 import Login from './pages/Login.tsx';
 import Register from './pages/Register.tsx';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
+import { LanguageProvider } from './context/LanguageContext.tsx';
 import './index.css';
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -35,20 +36,22 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <App />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <App />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </AuthProvider>
+      </LanguageProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
