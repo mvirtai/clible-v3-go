@@ -5,6 +5,7 @@ import type { Root } from 'react-dom/client';
 import { act } from 'react';
 import { VerseReader } from './VerseReader';
 import { apiService } from '../services/api';
+import { LanguageProvider } from '../context/LanguageContext';
 
 vi.mock('../services/api', () => ({
   apiService: {
@@ -39,6 +40,7 @@ describe('VerseReader', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     vi.restoreAllMocks();
+    localStorage.removeItem('app:lang');
   });
 
   afterEach(() => {
@@ -52,11 +54,16 @@ describe('VerseReader', () => {
     }
   });
 
-  it('renders input form and heading', async () => {
+  it('uses the global language setting for the reader UI even with a Finnish translation', async () => {
+    localStorage.setItem('app:lang', 'en');
     const r = createRoot(container!);
     root = r;
     await act(async () => {
-      r.render(<VerseReader translation="web" />);
+      r.render(
+        <LanguageProvider>
+          <VerseReader translation="fi-1992" />
+        </LanguageProvider>,
+      );
     });
 
     expect(container!.textContent).toContain('Read by Reference');
@@ -77,7 +84,7 @@ describe('VerseReader', () => {
     });
 
     expect(apiService.getVerses).toHaveBeenCalledWith('JHN 3', 'web');
-    expect(container!.textContent).toContain('John 3');
+    expect(container!.textContent).toContain('Evankeliumi Johanneksen mukaan 3');
     expect(container!.textContent).toContain('For God so loved the world');
     expect(container!.textContent).toContain('For God did not send his Son');
   });
@@ -112,7 +119,7 @@ describe('VerseReader', () => {
 
     // Check it queried JHN 3:16
     expect(apiService.getVerses).toHaveBeenLastCalledWith('JHN 3:16', 'web');
-    expect(container!.textContent).toContain('John 3:16');
+    expect(container!.textContent).toContain('Evankeliumi Johanneksen mukaan 3:16');
 
     // Confirm that the "Takaisin laajempaan tekstiin" button is visible with (JHN 3)
     const backBtn = container!.querySelector('button[type="button"]');

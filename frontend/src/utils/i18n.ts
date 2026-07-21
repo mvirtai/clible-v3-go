@@ -31,11 +31,15 @@ export interface Messages {
   readByReference: string;
   versePlaceholder: string;
   fetchButtonLabel: string;
+  fetchVersesFailed: string;
   noVersesFound: string;
   backToBroaderText: string;
   aiAnalysisTitle: string;
   analyzePassage: string;
   aiReading: string;
+  aiUnavailable: string;
+  aiInsightFailed: string;
+  deepDiveFailed: string;
   searchFindInScripture: string;
   searchVerseLookup: string;
   searchPlaceholderVerse: string;
@@ -50,6 +54,7 @@ export interface Messages {
   savingLabel: string;
   saveSuccess: string;
   saveFail: string;
+  saveReaderView: string;
   cancelLabel: string;
   searchRecentHeader: string;
   searchClear: string;
@@ -198,11 +203,15 @@ export const strings: Record<UILanguage, Messages> = {
     readByReference: 'Read by Reference',
     versePlaceholder: 'John 3:16 · Joh. 3:16 · 1 Moos 1:1',
     fetchButtonLabel: 'Fetch',
+    fetchVersesFailed: 'Failed to fetch verses. Check the reference (e.g. John 3:16, Joh. 3:16, 1 Genesis 1:1).',
     noVersesFound: 'No verses found.',
     backToBroaderText: 'Back to broader text',
     aiAnalysisTitle: 'AI Analysis (Gemini)',
     analyzePassage: 'Analyze Passage',
     aiReading: 'AI is reading the passage...',
+    aiUnavailable: 'AI not available. Set GEMINI_API_KEY.',
+    aiInsightFailed: 'Failed to fetch AI insights.',
+    deepDiveFailed: 'Deep dive failed.',
 
     // SearchPanel
     searchFindInScripture: 'Find in Scripture',
@@ -219,6 +228,7 @@ export const strings: Record<UILanguage, Messages> = {
     savingLabel: 'Saving...',
     saveSuccess: 'Saved!',
     saveFail: 'Failed.',
+    saveReaderView: 'Save this reading view to workspace',
     cancelLabel: 'Cancel',
     searchRecentHeader: 'Recent searches',
     searchClear: 'Clear',
@@ -355,11 +365,15 @@ export const strings: Record<UILanguage, Messages> = {
     readByReference: 'Lue viitteellä',
     versePlaceholder: 'Joh. 3:16 · John 3:16 · 1 Moos 1:1',
     fetchButtonLabel: 'Hae',
+    fetchVersesFailed: 'Jakeiden haku epäonnistui. Tarkista viite (esim. Joh. 3:16, John 3:16, 1. Moos. 1:1).',
     noVersesFound: 'Ei jakeita löytynyt.',
     backToBroaderText: 'Takaisin laajempaan tekstiin',
     aiAnalysisTitle: 'Tekoäly-analyysi (Gemini)',
     analyzePassage: 'Analysoi tekstiä',
     aiReading: 'Tekoäly opiskelee tekstikohtaa...',
+    aiUnavailable: 'Tekoäly ei ole käytettävissä. Aseta GEMINI_API_KEY.',
+    aiInsightFailed: 'Tekoälyanalyysin haku epäonnistui.',
+    deepDiveFailed: 'Syvällinen tutkimus epäonnistui.',
 
     // SearchPanel
     searchFindInScripture: 'Etsi kirjoituksista',
@@ -376,6 +390,7 @@ export const strings: Record<UILanguage, Messages> = {
     savingLabel: 'Tallennetaan...',
     saveSuccess: '✓ Tallennettu!',
     saveFail: '✗ Epäonnistui.',
+    saveReaderView: 'Tallenna tämä lukunäkymä työtilaan',
     cancelLabel: 'Peruuta',
     searchRecentHeader: 'Viimeisimmät haut',
     searchClear: 'Tyhjennä',
