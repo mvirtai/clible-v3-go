@@ -334,3 +334,69 @@ func TestAIService_GetComparison(t *testing.T) {
 		t.Errorf("expected label 'faith', got %q", resp.NextFocus[0].Label)
 	}
 }
+
+func TestAIService_OriginalStudy_UsesExplicitOutputLanguageAcrossScopes(t *testing.T) {
+	cfg := &config.Config{
+		GeminiAPIKey:        "test-key",
+		GeminiModelOriginal: "gemini-original-test",
+	}
+
+	var prompts []string
+	mockClient := &http.Client{
+		Transport: &mockTransport{
+			roundTrip: func(req *http.Request) (*http.Response, error) {
+				var payload geminiRequest
+				if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+					return nil, err
+				}
+				if len(payload.Contents) != 1 || len(payload.Contents[0].Parts) != 1 {
+					return nil, io.ErrUnexpectedEOF
+				}
+				prompts = append(prompts, payload.Contents[0].Parts[0].Text)
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(makeMockResponseJSON("## English heading\\nEnglish paragraph"))),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
+
+	service := &aiServiceImpl{cfg: cfg, client: mockClient}
+	translations := []map[string]string{{
+		"id": "web", "name": "World English Bible", "text": "God loved the world",
+	}}
+
+	tests := []struct {
+		name           string
+		scope          string
+		outputLanguage string
+		wantLanguage   string
+	}{
+		{name: "verse English", scope: "verse", outputLanguage: "en", wantLanguage: "English"},
+		{name: "chapter Finnish", scope: "chapter", outputLanguage: "fi", wantLanguage: "Finnish"},
+		{name: "book English", scope: "book", outputLanguage: "en", wantLanguage: "English"},
+		{name: "unknown defaults English", scope: "verse", outputLanguage: "", wantLanguage: "English"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := service.OriginalStudy(context.Background(), "John 3:16", "houtos gar", "grc", tc.outputLanguage, translations, tc.scope, "")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			prompt := prompts[len(prompts)-1]
+			want := "Write the entire response in " + tc.wantLanguage
+			if !strings.Contains(prompt, want) {
+				t.Fatalf("prompt does not contain %q: %s", want, prompt)
+			}
+			if !strings.Contains(prompt, "Do not mix in another natural language") {
+				t.Fatal("prompt is missing the no-mixed-language instruction")
+			}
+		})
+	}
+
+	if len(prompts) != len(tests) {
+		t.Fatalf("expected %d Gemini requests, got %d", len(tests), len(prompts))
+	}
+}

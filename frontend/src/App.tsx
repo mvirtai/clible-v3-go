@@ -323,10 +323,16 @@ function App() {
         });
       }
 
+      const selectedTranslationMeta = installedTranslations.find((t) => t.id === translationIds[0]);
+      const outputLanguage = selectedTranslationMeta?.language === 'fi' || selectedTranslationMeta?.language === 'en'
+        ? selectedTranslationMeta.language
+        : lang;
+
       const res = await apiService.getAiOriginalStudy({
         reference: ref,
         sourceText,
         sourceLanguage,
+        outputLanguage,
         translations,
         scope,
       });

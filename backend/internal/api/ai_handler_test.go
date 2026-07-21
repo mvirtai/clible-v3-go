@@ -16,7 +16,7 @@ type mockAIService struct {
 	getInsight    func(ctx context.Context, text, focus string) (*services.AIResponse, error)
 	getTone       func(ctx context.Context, text, focus string) (*services.AIResponse, error)
 	deepDive      func(ctx context.Context, topic, outputLanguage string, contextData map[string]interface{}) (*services.AIResponse, error)
-	originalStudy func(ctx context.Context, reference, sourceText, sourceLanguage string, translations []map[string]string, scope, focus string) (*services.AIResponse, error)
+	originalStudy func(ctx context.Context, reference, sourceText, sourceLanguage, outputLanguage string, translations []map[string]string, scope, focus string) (*services.AIResponse, error)
 	aiSearch      func(ctx context.Context, query, translationID, uiLanguage string) (map[string]interface{}, error)
 	getComparison func(ctx context.Context, reference, transA, textA, transB, textB, focus string) (*services.AIResponse, error)
 }
@@ -30,8 +30,8 @@ func (m *mockAIService) GetTone(ctx context.Context, text, focus string) (*servi
 func (m *mockAIService) DeepDive(ctx context.Context, topic, outputLanguage string, contextData map[string]interface{}) (*services.AIResponse, error) {
 	return m.deepDive(ctx, topic, outputLanguage, contextData)
 }
-func (m *mockAIService) OriginalStudy(ctx context.Context, reference, sourceText, sourceLanguage string, translations []map[string]string, scope, focus string) (*services.AIResponse, error) {
-	return m.originalStudy(ctx, reference, sourceText, sourceLanguage, translations, scope, focus)
+func (m *mockAIService) OriginalStudy(ctx context.Context, reference, sourceText, sourceLanguage, outputLanguage string, translations []map[string]string, scope, focus string) (*services.AIResponse, error) {
+	return m.originalStudy(ctx, reference, sourceText, sourceLanguage, outputLanguage, translations, scope, focus)
 }
 func (m *mockAIService) AISearch(ctx context.Context, query, translationID, uiLanguage string) (map[string]interface{}, error) {
 	return m.aiSearch(ctx, query, translationID, uiLanguage)
@@ -245,7 +245,7 @@ func TestAIHandler_GetTone_Success(t *testing.T) {
 
 func TestAIHandler_GetOriginalStudy_Success(t *testing.T) {
 	mockSvc := &mockAIService{
-		originalStudy: func(ctx context.Context, reference, sourceText, sourceLanguage string, translations []map[string]string, scope, focus string) (*services.AIResponse, error) {
+		originalStudy: func(ctx context.Context, reference, sourceText, sourceLanguage, outputLanguage string, translations []map[string]string, scope, focus string) (*services.AIResponse, error) {
 			return &services.AIResponse{
 				Text: "Mocked Original Study text",
 				GeminiUsageMetadata: services.GeminiUsageMetadata{

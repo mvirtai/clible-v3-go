@@ -496,6 +496,7 @@ export class ApiService {
         reference: string;
         sourceText: string;
         sourceLanguage: "grc" | "he";
+        outputLanguage: "fi" | "en";
         translations: Array<{ id: string; name: string; text: string }>;
         scope: "verse" | "chapter" | "book";
         focus?: string;
