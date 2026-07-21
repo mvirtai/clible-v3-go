@@ -12,6 +12,7 @@ import { DeepDiveCard } from './DeepDiveCard';
 import { GeminiUsage } from './GeminiUsage';
 import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../types/ai';
 import { useLanguage } from '../context/LanguageContext';
+import { t } from '../utils/i18n';
 
 interface Props {
   translation: string;
@@ -52,6 +53,8 @@ export const VerseReader: React.FC<Props> = ({
 
   const isFinnish = translation.toLowerCase().startsWith('fi') || translation.toLowerCase().includes('fin');
   const lang: UILanguage = isFinnish ? 'fi' : 'en';
+
+  const localStrings = t(lang);
 
   const displayRef = data ? parseReferenceForDisplay(data.reference, lang) : null;
 
@@ -218,31 +221,31 @@ export const VerseReader: React.FC<Props> = ({
       border: '1px solid var(--border)',
     }}>
       <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-        {strings.readByReference}
+        {localStrings.readByReference}
       </h2>
 
       <form onSubmit={handleFetch} className="flex gap-2">
         <input
-          type="text"
-          placeholder={strings.versePlaceholder}
-          value={reference}
-          onChange={(e) => setReference(e.target.value)}
-          className="flex-1 rounded-full px-5 py-2.5 text-sm transition-all outline-none"
-          style={{
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            color: 'var(--text)',
-          }}
-        />
-        <button
-          type="submit"
-          disabled={loading || !reference.trim()}
-          className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 btn-tactile btn-accent disabled:opacity-40"
-          style={{ cursor: 'pointer' }}
-        >
-          {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-          {strings.fetchButtonLabel}
-        </button>
+        type="text"
+        placeholder={localStrings.versePlaceholder}
+        value={reference}
+        onChange={(e) => setReference(e.target.value)}
+        className="flex-1 rounded-full px-5 py-2.5 text-sm transition-all outline-none"
+        style={{
+          background: 'var(--surface-2)',
+          border: '1px solid var(--border)',
+          color: 'var(--text)',
+        }}
+      />
+      <button
+        type="submit"
+        disabled={loading || !reference.trim()}
+        className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 btn-tactile btn-accent disabled:opacity-40"
+        style={{ cursor: 'pointer' }}
+      >
+        {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+        {localStrings.fetchButtonLabel}
+      </button>
       </form>
 
       {error && (

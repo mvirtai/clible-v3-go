@@ -70,6 +70,8 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
     }
   };
 
+  const { strings } = useLanguage();
+
   if (!isEditable) {
     return (
       <div className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)]">
@@ -79,8 +81,6 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
       </div>
     );
   }
-
-  const { strings } = useLanguage();
 
   if (isEditing) {
   return (

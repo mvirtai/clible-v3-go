@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { UILanguage, Messages } from '../utils/i18n';
 import { t } from '../utils/i18n';
@@ -10,7 +11,7 @@ export interface LanguageContextValue {
 
 const STORAGE_KEY = 'app:lang';
 
-const defaultLang: UILanguage = 'en';
+const defaultLang: UILanguage = 'fi';
 
 const LanguageContext = createContext<LanguageContextValue>({
   lang: defaultLang,
@@ -23,7 +24,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw === 'fi' || raw === 'en') return raw as UILanguage;
-    } catch (err) {
+    } catch {
       // ignore
     }
     return defaultLang;
@@ -32,7 +33,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, lang);
-    } catch (err) {
+    } catch {
       // ignore
     }
   }, [lang]);

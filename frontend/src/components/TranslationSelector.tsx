@@ -15,8 +15,7 @@ export const TranslationSelector: React.FC<Props> = ({
   onSelectTranslation,
   translations,
 }) => {
-  const { lang, strings } = useLanguage();
-  const uiLanguage = lang; // local alias for backwards-compatible naming
+  const { strings } = useLanguage();
 
   // Jos käyttäjällä on jo asennettuja käännöksiä, näytetään yläpalkissa vain ne.
   // Jos ei ole yhtään asennettua käännöstä, näytetään kaikki tarjolla olevat käännökset,

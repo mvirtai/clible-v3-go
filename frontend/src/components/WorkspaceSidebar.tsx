@@ -52,7 +52,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
       }
     };
     fetchScopes();
-  }, [refreshTrigger, activeScopeId, onScopeChanged]);
+  }, [refreshTrigger, activeScopeId, onScopeChanged, strings]);
 
   useEffect(() => {
     const fetchWorkspace = async () => {
@@ -72,7 +72,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
       }
     };
     fetchWorkspace();
-  }, [activeScopeId, refreshTrigger]);
+  }, [activeScopeId, refreshTrigger, strings]);
 
   const handleCreateScope = async (e: React.FormEvent) => {
     e.preventDefault();

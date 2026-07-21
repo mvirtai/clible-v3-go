@@ -496,10 +496,7 @@ export const AnalyticsView = ({
                                                     disabled={toneSaveStatus === 'saving'}
                                                     className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                                                 >
-                                                    {toneSaveStatus === 'saving' && strings.savingLabel}
-                                                                                                        {toneSaveStatus === 'success' && strings.saveSuccess}
-                                                                                                        {toneSaveStatus === 'error' && strings.saveFail}
-                                                                                                        {toneSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabAnalytics}` }
+                                                    { (toneSaveStatus === 'saving' && strings.savingLabel) || (toneSaveStatus === 'success' && strings.saveSuccess) || (toneSaveStatus === 'error' && strings.saveFail) || `${strings.saveLabel} ${strings.tabAnalytics}` }
                                                 </button>
                                             </div>
                                         )}
