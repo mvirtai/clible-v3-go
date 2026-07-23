@@ -438,10 +438,20 @@ export const VerseReader: React.FC<Props> = ({
                   key={`${v.chapter}-${v.verse}-${idx}`}
                   className="flex gap-2 items-baseline rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--accent-bg)] cursor-pointer"
                   onClick={() => handleVerseClick(v)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space') {
+                      e.preventDefault();
+                      handleVerseClick(v);
+                    }
+                  }}
+                  aria-label={`${strings.verseLabel} ${v.verse}: ${v.text}`}
                 >
                   <sup
                     className="font-sans text-[0.55em] font-semibold shrink-0"
                     style={{ color: 'var(--accent)' }}
+                    aria-hidden={true}
                   >
                     {v.verse}
                   </sup>
@@ -458,8 +468,17 @@ export const VerseReader: React.FC<Props> = ({
                   key={`${v.chapter}-${v.verse}-${idx}`}
                   className="inline px-1 py-0.5 rounded-md transition-colors hover:bg-[var(--accent-bg)] cursor-pointer"
                   onClick={() => handleVerseClick(v)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space') {
+                      e.preventDefault();
+                      handleVerseClick(v);
+                    }
+                  }}
+                  aria-label={`${strings.verseLabel} ${v.verse}: ${v.text}`}
                 >
-                  <sup className="mx-0.5 align-super font-sans text-[0.55em] font-semibold" style={{ color: 'var(--accent)' }}>
+                  <sup className="mx-0.5 align-super font-sans text-[0.55em] font-semibold" style={{ color: 'var(--accent)' }} aria-hidden={true}>
                     {v.verse}
                   </sup>
                   {v.text}
