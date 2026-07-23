@@ -173,6 +173,29 @@ describe('VerseReader', () => {
     expect(backBtnAfter).toBeUndefined();
   });
 
+  it('renders poetry books with one verse per line', async () => {
+    vi.mocked(apiService.getVerses).mockResolvedValue({
+      reference: 'PSA 23',
+      text: '...',
+      translationName: 'World English Bible',
+      verses: [
+        { bookName: 'PSA', chapter: 23, verse: 1, text: 'The LORD is my shepherd...' },
+        { bookName: 'PSA', chapter: 23, verse: 2, text: 'He makes me lie down...' },
+      ],
+    });
+
+    const r = createRoot(container!);
+    root = r;
+    await act(async () => {
+      r.render(<VerseReader translation="web" activeReference="PSA 23" />);
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    // Runous-tilassa jae-elementit ovat <div>, eivät <span>
+    const verseRows = container!.querySelectorAll('div.cursor-pointer');
+    expect(verseRows.length).toBe(2);
+  });
+
   it('renders GeminiUsage token counts when loadedSavedInsight contains usage metadata', async () => {
     const mockInsight = {
       text: 'Mocked insight text content',
