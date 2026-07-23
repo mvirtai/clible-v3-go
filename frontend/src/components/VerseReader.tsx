@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { apiService } from '../services/api';
 import type { BibleResponse, Verse } from '../types/bible';
-import { Search, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
+import { Search, Loader2, ArrowLeft, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { resolveBookId, parseReferenceForDisplay } from '../utils/bookNames';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -12,6 +12,8 @@ import { DeepDiveCard } from './DeepDiveCard';
 import { GeminiUsage } from './GeminiUsage';
 import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../types/ai';
 import { useLanguage } from '../context/LanguageContext';
+import { getNextChapterRef, getPreviousChapterRef, getChapterCount, formatChapterRef } from '../utils/readerNavigation';
+
 
 
 interface Props {
@@ -21,6 +23,14 @@ interface Props {
   onWorkspaceUpdated?: () => void;
   loadedSavedInsight?: AiTextResponse | null;
   loadedSavedDeepDive?: string | null;
+}
+
+const CURRENT_CHAPTER_MATCH = /^((?:\d[A-Z]{2}|[A-Z]{3}))\s+(\d+)/;
+
+const parseCurrentChapter = (reference: string): { bookId: string, chapter: number } | null => {
+  const m = reference.trim().match(CURRENT_CHAPTER_MATCH);
+  if (!m) return null;
+  return { bookId: m[1], chapter: parseInt(m[2], 10) };
 }
 
 export const VerseReader: React.FC<Props> = ({
@@ -52,6 +62,20 @@ export const VerseReader: React.FC<Props> = ({
   const { lang, strings } = useLanguage();
 
   const displayRef = data ? parseReferenceForDisplay(data.reference, lang) : null;
+
+  const currentChapterInfo = data ? parseCurrentChapter(data.reference) : null;
+
+  const nextChapterRef = currentChapterInfo
+    ? getNextChapterRef(currentChapterInfo.bookId, currentChapterInfo.chapter)
+    : null;
+
+  const prevChapterRef = currentChapterInfo
+    ? getPreviousChapterRef(currentChapterInfo.bookId, currentChapterInfo.chapter)
+    : null;
+
+  const totalChapters = currentChapterInfo
+    ? getChapterCount(currentChapterInfo.bookId)
+    : null;
 
   // Sync state during render instead of in useEffect to avoid cascading renders warning
   const [prevLoadedSavedInsight, setPrevLoadedSavedInsight] = useState<AiTextResponse | null>(null);
@@ -201,6 +225,20 @@ export const VerseReader: React.FC<Props> = ({
     }
   };
 
+  const handleNextChapter = () => {
+    if (!nextChapterRef) return;
+    const ref = formatChapterRef(nextChapterRef);
+    setReference(ref);
+    fetchVerses(ref);
+  };
+
+  const handlePreviousChapter = () => {
+    if (!prevChapterRef) return;
+    const ref = formatChapterRef(prevChapterRef);
+    setReference(ref);
+    fetchVerses(ref);
+  };
+
   // React to activeReference changes (e.g. clicked from search results)
   React.useEffect(() => {
     if (activeReference) {
@@ -267,6 +305,49 @@ export const VerseReader: React.FC<Props> = ({
               {data.translationName}
             </span>
           </div>
+
+          {/* Kontekstinavigaatio */}
+          {!data.reference.includes(':') && (
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={handlePreviousChapter}
+                disabled={!prevChapterRef}
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile px-3 py-1.5 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{
+                  color: 'var(--muted)',
+                  borderColor: 'var(--border-soft)',
+                  background: 'var(--surface-2)',
+                  cursor: prevChapterRef ? 'pointer' : 'default',
+                }}
+              >
+                <ChevronLeft size={14} />
+                {strings.previousChapterLabel}
+              </button>
+
+              {totalChapters !== null && currentChapterInfo && (
+                <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>
+                  {currentChapterInfo.chapter}/{totalChapters}
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={handleNextChapter}
+                disabled={!nextChapterRef}
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile px-3 py-1.5 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{
+                  color: 'var(--muted)',
+                  borderColor: 'var(--border-soft)',
+                  background: 'var(--surface-2)',
+                  cursor: nextChapterRef ? 'pointer' : 'default',
+                }}
+              >
+                {strings.nextChapterLabel}
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
 
           {/* Save verse passage to workspace */}
           {activeScopeId && data.verses.length > 0 && (
@@ -461,4 +542,3 @@ export const VerseReader: React.FC<Props> = ({
     </div>
   );
 };
-

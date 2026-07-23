@@ -163,6 +163,9 @@ export interface Messages {
   errorHeading?: string;
   retryButtonLabel?: string;
   unnamedNotebook?: string;
+
+  previousChapterLabel: string;
+  nextChapterLabel: string;
 }
 
 export const strings: Record<UILanguage, Messages> = {
@@ -195,6 +198,8 @@ export const strings: Record<UILanguage, Messages> = {
     readerEmptyHint: 'Enter a verse to begin.',
     readerShare: 'Share',
     readerExport: 'Export',
+    previousChapterLabel: 'Previous chapter',
+    nextChapterLabel: 'Next chapter',
 
     noTranslationSelected: 'No translation selected',
     noTranslationHint: 'Open Translations in the header and install one.',
@@ -357,6 +362,8 @@ export const strings: Record<UILanguage, Messages> = {
     readerEmptyHint: 'Syötä jaeviite aloittaaksesi.',
     readerShare: 'Jaa',
     readerExport: 'Vie',
+    previousChapterLabel: 'Edellinen luku',
+    nextChapterLabel: 'Seuraava luku',
 
     noTranslationSelected: 'Ei valittua käännöstä',
     noTranslationHint: 'Avaa ylävalikon Käännökset ja asenna yksi.',
@@ -513,4 +520,3 @@ export const strings: Record<UILanguage, Messages> = {
 export function t(lang: UILanguage): Messages {
   return strings[lang];
 }
-
