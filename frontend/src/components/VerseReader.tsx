@@ -13,6 +13,7 @@ import { GeminiUsage } from './GeminiUsage';
 import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../types/ai';
 import { useLanguage } from '../context/LanguageContext';
 import { getNextChapterRef, getPreviousChapterRef, getChapterCount, formatChapterRef } from '../utils/readerNavigation';
+import { getBookGenre } from '../utils/bookGenre';
 
 
 
@@ -77,6 +78,9 @@ export const VerseReader: React.FC<Props> = ({
     ? getChapterCount(currentChapterInfo.bookId)
     : null;
 
+  const genre = currentChapterInfo
+    ? getBookGenre(currentChapterInfo.bookId)
+    : null;
   // Sync state during render instead of in useEffect to avoid cascading renders warning
   const [prevLoadedSavedInsight, setPrevLoadedSavedInsight] = useState<AiTextResponse | null>(null);
   const normalizedSavedInsight = loadedSavedInsight || null;
@@ -425,26 +429,64 @@ export const VerseReader: React.FC<Props> = ({
             </div>
           )}
 
-          <p className="text-xl leading-relaxed font-serif" style={{ color: 'var(--text-2)' }}>
-            {data.verses.length > 0 ? (
-              data.verses.map((v, idx) => (
+          {data.verses.length === 0 ? (
+            <p style={{ color: 'var(--muted)' }}>{strings.noVersesFound}</p>
+          ) : genre === 'poetry' ? (
+            <div className="space-y-2 max-w-[65ch]">
+              {data.verses.map((v, idx) => (
+                <div
+                  key={`${v.chapter}-${v.verse}-${idx}`}
+                  className="flex gap-2 items-baseline rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--accent-bg)] cursor-pointer"
+                  onClick={() => handleVerseClick(v)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space') {
+                      e.preventDefault();
+                      handleVerseClick(v);
+                    }
+                  }}
+                  aria-label={`${strings.verseLabel} ${v.verse}: ${v.text}`}
+                >
+                  <sup
+                    className="font-sans text-[0.55em] font-semibold shrink-0"
+                    style={{ color: 'var(--accent)' }}
+                    aria-hidden={true}
+                  >
+                    {v.verse}
+                  </sup>
+                  <span className="text-xl leading-relaxed font-serif" style={{ color: 'var(--text-2)' }}>
+                    {v.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xl leading-relaxed font-serif max-w-[65ch]" style={{ color: 'var(--text-2)' }}>
+              {data.verses.map((v, idx) => (
                 <span
                   key={`${v.chapter}-${v.verse}-${idx}`}
                   className="inline px-1 py-0.5 rounded-md transition-colors hover:bg-[var(--accent-bg)] cursor-pointer"
                   onClick={() => handleVerseClick(v)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space') {
+                      e.preventDefault();
+                      handleVerseClick(v);
+                    }
+                  }}
+                  aria-label={`${strings.verseLabel} ${v.verse}: ${v.text}`}
                 >
-                  <sup className="mx-0.5 align-super font-sans text-[0.55em] font-semibold"
-                    style={{ color: 'var(--accent)' }}>
+                  <sup className="mx-0.5 align-super font-sans text-[0.55em] font-semibold" style={{ color: 'var(--accent)' }} aria-hidden={true}>
                     {v.verse}
                   </sup>
                   {v.text}
                   {idx < data.verses.length - 1 ? ' ' : null}
                 </span>
-              ))
-            ) : (
-            <span style={{ color: 'var(--muted)' }}>{strings.noVersesFound}</span>
+              ))}
+            </p>
           )}
-          </p>
 
           {backReference && (
             <div className="flex justify-start pt-6">
