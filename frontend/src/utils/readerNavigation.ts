@@ -61,3 +61,11 @@ export function getChapterCount(bookId: string): number | null {
 }
 
 export { MAX_POSITION };
+
+
+/*
+* Formats ref string for reader view navigation.
+*/
+export function formatChapterRef(ref: ChapterRef): string {
+  return `${ref.bookId} ${ref.chapter}`;
+}

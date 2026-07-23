@@ -1,6 +1,6 @@
 // frontend/src/utils/readerNavigation.test.ts
 import { describe, it, expect } from 'vitest';
-import { getNextChapterRef, getPreviousChapterRef, getChapterCount } from './readerNavigation';
+import { getNextChapterRef, getPreviousChapterRef, getChapterCount, formatChapterRef } from './readerNavigation';
 
 describe('getNextChapterRef', () => {
   it('should return the next chapter ref', () => {
@@ -49,3 +49,9 @@ describe('getChapterCount', () => {
     expect(getChapterCount('XYZ')).toBeNull();
   });
 })
+
+describe('formatChapterRef', () => {
+  it('should format chapter ref as bookId chapter', () => {
+    expect(formatChapterRef({ bookId: 'PSA', chapter: 1 })).toBe('PSA 1');
+  });
+});
