@@ -134,3 +134,4 @@ The docs cover:
 ## License
 
 This project is licensed under the MIT License. Bible translation data sources and license details can be found in `NOTICE.md`.
+# Deployment trigger
