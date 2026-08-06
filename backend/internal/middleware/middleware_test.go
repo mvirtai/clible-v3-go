@@ -112,3 +112,31 @@ func TestLogger(t *testing.T) {
 		t.Errorf("expected status 418, got %d", rec.Code)
 	}
 }
+
+// TestSecurityHeaders verifies standard security headers are injected into HTTP responses.
+func TestSecurityHeaders(t *testing.T) {
+	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	secHandler := SecurityHeaders(nextHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "http://localhost/api/verses", nil)
+	rec := httptest.NewRecorder()
+
+	secHandler.ServeHTTP(rec, req)
+
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Errorf("expected X-Content-Type-Options nosniff, got %q", rec.Header().Get("X-Content-Type-Options"))
+	}
+	if rec.Header().Get("X-Frame-Options") != "DENY" {
+		t.Errorf("expected X-Frame-Options DENY, got %q", rec.Header().Get("X-Frame-Options"))
+	}
+	if rec.Header().Get("Referrer-Policy") != "strict-origin-when-cross-origin" {
+		t.Errorf("expected Referrer-Policy strict-origin-when-cross-origin, got %q", rec.Header().Get("Referrer-Policy"))
+	}
+	if rec.Header().Get("Strict-Transport-Security") != "max-age=31536000; includeSubDomains" {
+		t.Errorf("expected HSTS header, got %q", rec.Header().Get("Strict-Transport-Security"))
+	}
+}
+

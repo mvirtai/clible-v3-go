@@ -170,6 +170,7 @@ func main() {
 	var handler http.Handler = mux
 	handler = middleware.RateLimitMiddleware(limiter)(handler)
 	handler = middleware.Logger(handler)
+	handler = middleware.SecurityHeaders(handler)
 	handler = middleware.CORS(handler)
 	handler = middleware.Recovery(handler)
 
