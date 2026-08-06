@@ -204,6 +204,8 @@ func (s *CLIService) ExecuteCommand(ctx context.Context, cmd *CLICommand, transl
 		return s.executeRefsCommand(ctx, cmd, translationID)
 	case "/suggest":
 		return s.executeSuggestCommand(ctx, cmd, translationID, contextText)
+	case "/themes":
+		return s.executeThemesCommand(ctx, cmd, contextText)
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd.Name)
 	}

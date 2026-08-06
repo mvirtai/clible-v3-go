@@ -611,11 +611,11 @@ func TestParseCellScopeFlags(t *testing.T) {
 			expectedCnt:  4,
 		},
 		{
-			name:         "flexible --n with suffix 3n (3 next / down)",
-			cmd:          &services.CLICommand{Flags: map[string]string{"n": "3n"}},
-			defaultDir:   "up",
-			defaultCount: -1,
-			expectedDir:  "down",
+			name:         "flexible --n with combined suffix 3p5 (3 up, limit 5)",
+			cmd:          &services.CLICommand{Flags: map[string]string{"n": "3p5"}},
+			defaultDir:   "down",
+			defaultCount: 1,
+			expectedDir:  "up",
 			expectedCnt:  3,
 		},
 	}

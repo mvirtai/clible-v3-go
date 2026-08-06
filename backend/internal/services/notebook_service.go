@@ -70,22 +70,27 @@ func ParseCellScopeFlags(cmd *CLICommand, defaultDir string, defaultCount int) C
 		}
 	}
 
-	// 3. Flexible --n flag (e.g. 3n, 2p, 3d, 2u, 5)
+	// 3. Flexible --n flag (e.g. 3n, 2p, 3d, 2u, 5, or combined 3p5 / 3d10)
 	if nVal, ok := cmd.Flags["n"]; ok {
 		nVal = strings.ToLower(strings.TrimSpace(nVal))
-		re := regexp.MustCompile(`^(\*|\d+)([a-z]+)?$`)
+		re := regexp.MustCompile(`^(\*|\d+)([a-z]+)?(\d+)?$`)
 		matches := re.FindStringSubmatch(nVal)
 		if len(matches) >= 2 {
 			if parsedCount, err := strconv.Atoi(matches[1]); err == nil && parsedCount > 0 {
 				count = parsedCount
 			}
-			if len(matches) == 3 && matches[2] != "" {
+			if len(matches) >= 3 && matches[2] != "" {
 				suffix := matches[2]
 				switch suffix {
 				case "n", "d":
 					dir = "down"
 				case "p", "u":
 					dir = "up"
+				}
+			}
+			if len(matches) >= 4 && matches[3] != "" {
+				if _, hasLimit := cmd.Flags["limit"]; !hasLimit {
+					cmd.Flags["limit"] = matches[3]
 				}
 			}
 		}
