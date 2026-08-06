@@ -4,12 +4,23 @@ import type { Cell, CellResult } from './types';
 import { bookCitationAbbrevFi } from '../../utils/bookNames';
 import { formatResultToMarkdown, type CLIResultData } from '../../utils/markdown';
 
+interface ThemeItem {
+  word: string;
+  count: number;
+}
+
+interface ThemesResult {
+  themes: ThemeItem[];
+  limit?: number;
+  count: number;
+}
+
 interface CodeCellProps {
   cell: Cell;
   onChange: (content: string) => void;
   onExecute: () => Promise<void>;
   translation?: string;
-  onFreeze?: (markdown: string) => void;
+  onFreeze?: (markdown: string, direction?: 'up' | 'down') => void;
 }
 
 export const CodeCell: React.FC<CodeCellProps> = ({
@@ -49,10 +60,14 @@ export const CodeCell: React.FC<CodeCellProps> = ({
   };
 
   const hasFreezeOption = cell.resultJson && 
-    ['read', 'search', 'refs', 'suggest'].includes(cell.resultJson.type);
+    ['read', 'search', 'refs', 'suggest', 'themes'].includes(cell.resultJson.type);
 
   const selectedCount = (() => {
     if (!cell.resultJson) return 0;
+    if (cell.resultJson.type === 'themes') {
+      const data = cell.resultJson.data as CLIResultData;
+      return (data.themes || []).length;
+    }
     const data = cell.resultJson.data as CLIResultData;
     const verses = data.verses || data.references || data.suggestions || [];
     return verses.filter(v => !deselectedVerseIds[v.id]).length;
@@ -87,7 +102,25 @@ export const CodeCell: React.FC<CodeCellProps> = ({
       translation
     );
     if (markdown) {
-      onFreeze(markdown);
+      let direction: 'up' | 'down' = 'down';
+      const content = cell.content.toLowerCase().trim();
+
+      // Tarkistetaan --dir=up / --ref=up
+      if (content.includes('--dir=up') || content.includes('--dir=u') || content.includes('--dir=prev') || content.includes('--ref=up') || content.includes('--ref=prev')) {
+        direction = 'up';
+      }
+      // Tarkistetaan --n=...p tai --n=...u
+      const nMatch = content.match(/--n=(\d+)?([a-z]+)/);
+      if (nMatch && nMatch[2]) {
+        const suffix = nMatch[2];
+        if (suffix.startsWith('p') || suffix.startsWith('u')) {
+          direction = 'up';
+        } else if (suffix.startsWith('n') || suffix.startsWith('d')) {
+          direction = 'down';
+        }
+      }
+
+      onFreeze(markdown, direction);
     }
   };
 
@@ -191,6 +224,8 @@ interface SuggestResult {
   keywords: string[];
   suggestions: Verse[];
 }
+
+
 
 interface ResultRendererProps {
   result: CellResult;
@@ -323,8 +358,8 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
           </div>
         )}
         {suggestions.length === 0 ? (
-                  <p className="text-neutral-500 text-sm italic">{strings.suggestNoData}</p>
-                ) : (
+          <p className="text-neutral-500 text-sm italic">{strings.suggestNoData}</p>
+        ) : (
           <div className="space-y-1">
             {suggestions.map((v) => <RenderVerseItem key={v.id} v={v} />)}
           </div>
@@ -332,6 +367,39 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
       </div>
     );
   }
+
+  // 5. /themes result
+  if (result.type === 'themes') {
+    const data = result.data as ThemesResult;
+    const themes = data.themes || [];
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between text-xs text-neutral-400 font-mono border-b border-neutral-800 pb-2">
+          <span>Tunnistetut avainteemat</span>
+          <span>{data.count || 0} teemaa</span>
+        </div>
+        
+        {themes.length === 0 ? (
+          <p className="text-neutral-500 text-sm italic">Ei tunnistettuja teemoja valituista soluista.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {themes.map((t, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium transition-all hover:border-amber-500/60"
+              >
+                <span>{t.word}</span>
+                <span className="text-[10px] bg-amber-500/20 text-amber-200 px-1.5 py-0.2 rounded-full font-mono font-bold">
+                  {t.count}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
 
   // Fallback: raakateksti / JSON stringify
   return (
