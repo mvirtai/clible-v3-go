@@ -158,6 +158,7 @@ func TestNotebookService_GetNotebook(t *testing.T) {
 		}
 		if retrieved == nil {
 			t.Fatal("expected notebook, got nil")
+			return
 		}
 		if retrieved.ID != nb.ID {
 			t.Errorf("expected ID %q, got %q", nb.ID, retrieved.ID)

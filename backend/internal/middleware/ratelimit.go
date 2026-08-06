@@ -3,6 +3,7 @@ package middleware
 import (
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -77,10 +78,7 @@ func (i *IPRateLimiter) cleanupVisitorMap() {
 func RateLimitMiddleware(limiter *IPRateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				ip = r.RemoteAddr
-			}
+			ip := getClientIP(r)
 
 			// Bypass rate limiting for localhost/loopback IPs (developer machine)
 			if ip == "127.0.0.1" || ip == "::1" {
@@ -97,4 +95,22 @@ func RateLimitMiddleware(limiter *IPRateLimiter) func(http.Handler) http.Handler
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// getClientIP retrieves true customer-IP noticing X-Forwarded-For-header
+func getClientIP(r *http.Request) string {
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		parts := strings.Split(xff, ",")
+		clientIP := strings.TrimSpace(parts[0])
+		if clientIP != "" {
+			return clientIP
+		}
+	}
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+
+	return ip
 }

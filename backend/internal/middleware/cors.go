@@ -5,6 +5,8 @@ import "net/http"
 var allowedOrigins = map[string]bool{
 	"http://localhost:5173": true,
 	"http://localhost:8080": true,
+	"https://clible.fi":     true,
+	"https://www.clible.fi": true,
 }
 
 // CORS injects basic loose safety standard access headers required for React frontend decoupling.

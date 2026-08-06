@@ -49,6 +49,7 @@ func TestNotebookRepository(t *testing.T) {
 		}
 		if fetched == nil {
 			t.Fatal("expected notebook to be found, got nil")
+			return
 		}
 		if fetched.Title != nb.Title {
 			t.Errorf("expected Title %q, got %q", nb.Title, fetched.Title)

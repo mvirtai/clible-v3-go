@@ -35,6 +35,7 @@ func (h *AIHandler) handleError(w http.ResponseWriter, err error) {
 
 // GetInsight handles POST /api/ai/insight
 func (h *AIHandler) GetInsight(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 100*1024)
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -44,10 +45,17 @@ func (h *AIHandler) GetInsight(w http.ResponseWriter, r *http.Request) {
 		Text  string `json:"text"`
 		Focus string `json:"focus"`
 	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+
+	if len(req.Text) > 15000 {
+		http.Error(w, "Input text exceeds maximum allowed length (15 000 characters)", http.StatusBadRequest)
+		return
+	}
+
 	if strings.TrimSpace(req.Text) == "" {
 		http.Error(w, "Missing required 'text' field", http.StatusBadRequest)
 		return
@@ -65,6 +73,7 @@ func (h *AIHandler) GetInsight(w http.ResponseWriter, r *http.Request) {
 
 // GetTone handles POST /api/ai/tone
 func (h *AIHandler) GetTone(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 100*1024)
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -74,10 +83,17 @@ func (h *AIHandler) GetTone(w http.ResponseWriter, r *http.Request) {
 		Text  string `json:"text"`
 		Focus string `json:"focus"`
 	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+
+	if len(req.Text) > 15000 {
+		http.Error(w, "Input text exceeds maximum allowed length (15 000 characters)", http.StatusBadRequest)
+		return
+	}
+
 	if strings.TrimSpace(req.Text) == "" {
 		http.Error(w, "Missing required 'text' field", http.StatusBadRequest)
 		return
@@ -95,6 +111,8 @@ func (h *AIHandler) GetTone(w http.ResponseWriter, r *http.Request) {
 
 // GetDeepDive handles POST /api/ai/deep-dive
 func (h *AIHandler) GetDeepDive(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 100*1024)
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -105,10 +123,17 @@ func (h *AIHandler) GetDeepDive(w http.ResponseWriter, r *http.Request) {
 		OutputLanguage string                 `json:"outputLanguage"`
 		Context        map[string]interface{} `json:"context"`
 	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+
+	if len(req.Topic) > 15000 {
+		http.Error(w, "Input topic exceeds maximum allowed length (15 000 characters)", http.StatusBadRequest)
+		return
+	}
+
 	if strings.TrimSpace(req.Topic) == "" {
 		http.Error(w, "Missing required 'topic' field", http.StatusBadRequest)
 		return
@@ -126,6 +151,8 @@ func (h *AIHandler) GetDeepDive(w http.ResponseWriter, r *http.Request) {
 
 // GetOriginalStudy handles POST /api/ai/original-study
 func (h *AIHandler) GetOriginalStudy(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 100*1024)
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -140,10 +167,17 @@ func (h *AIHandler) GetOriginalStudy(w http.ResponseWriter, r *http.Request) {
 		Scope          string              `json:"scope"`
 		Focus          string              `json:"focus"`
 	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+
+	if len(req.SourceText) > 15000 {
+		http.Error(w, "Input source text exceeds maximum allowed length (15 000 characters)", http.StatusBadRequest)
+		return
+	}
+
 	if strings.TrimSpace(req.Reference) == "" || strings.TrimSpace(req.SourceText) == "" || len(req.Translations) == 0 {
 		http.Error(w, "Missing required fields reference, sourceText, or translations", http.StatusBadRequest)
 		return
@@ -161,6 +195,8 @@ func (h *AIHandler) GetOriginalStudy(w http.ResponseWriter, r *http.Request) {
 
 // AISearch handles POST /api/ai/search
 func (h *AIHandler) AISearch(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 100*1024)
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -171,10 +207,17 @@ func (h *AIHandler) AISearch(w http.ResponseWriter, r *http.Request) {
 		TranslationID string `json:"translationId"`
 		UILanguage    string `json:"uiLanguage"`
 	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+
+	if len(req.Query) > 15000 {
+		http.Error(w, "Input query exceeds maximum allowed length (15 000 characters)", http.StatusBadRequest)
+		return
+	}
+
 	if strings.TrimSpace(req.Query) == "" || strings.TrimSpace(req.TranslationID) == "" {
 		http.Error(w, "Missing required query or translationId field", http.StatusBadRequest)
 		return
@@ -192,6 +235,8 @@ func (h *AIHandler) AISearch(w http.ResponseWriter, r *http.Request) {
 
 // GetComparison handles POST /api/ai/compare
 func (h *AIHandler) GetComparison(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 100*1024)
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
