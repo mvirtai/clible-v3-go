@@ -552,3 +552,147 @@ func TestNotebookService_GetNotebookCells(t *testing.T) {
 		}
 	})
 }
+
+func TestParseCellScopeFlags(t *testing.T) {
+	tests := []struct {
+		name         string
+		cmd          *services.CLICommand
+		defaultDir   string
+		defaultCount int
+		expectedDir  string
+		expectedCnt  int
+	}{
+		{
+			name:         "backward compatibility with --scope=prev",
+			cmd:          &services.CLICommand{Flags: map[string]string{"scope": "prev"}},
+			defaultDir:   "up",
+			defaultCount: -1,
+			expectedDir:  "up",
+			expectedCnt:  1,
+		},
+		{
+			name:         "explicit --dir=down and --n=3",
+			cmd:          &services.CLICommand{Flags: map[string]string{"dir": "down", "n": "3"}},
+			defaultDir:   "up",
+			defaultCount: -1,
+			expectedDir:  "down",
+			expectedCnt:  3,
+		},
+		{
+			name:         "explicit --dir alias 'next' and 'prev'",
+			cmd:          &services.CLICommand{Flags: map[string]string{"dir": "next"}},
+			defaultDir:   "up",
+			defaultCount: -1,
+			expectedDir:  "down",
+			expectedCnt:  -1,
+		},
+		{
+			name:         "explicit --ref=all",
+			cmd:          &services.CLICommand{Flags: map[string]string{"ref": "all"}},
+			defaultDir:   "up",
+			defaultCount: -1,
+			expectedDir:  "all",
+			expectedCnt:  -1,
+		},
+		{
+			name:         "flexible --n with suffix 2p (2 prev / up)",
+			cmd:          &services.CLICommand{Flags: map[string]string{"n": "2p"}},
+			defaultDir:   "down",
+			defaultCount: 1,
+			expectedDir:  "up",
+			expectedCnt:  2,
+		},
+		{
+			name:         "flexible --n with suffix 4d (4 down)",
+			cmd:          &services.CLICommand{Flags: map[string]string{"n": "4d"}},
+			defaultDir:   "up",
+			defaultCount: -1,
+			expectedDir:  "down",
+			expectedCnt:  4,
+		},
+		{
+			name:         "flexible --n with suffix 3n (3 next / down)",
+			cmd:          &services.CLICommand{Flags: map[string]string{"n": "3n"}},
+			defaultDir:   "up",
+			defaultCount: -1,
+			expectedDir:  "down",
+			expectedCnt:  3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := services.ParseCellScopeFlags(tt.cmd, tt.defaultDir, tt.defaultCount)
+			if opts.Direction != tt.expectedDir {
+				t.Errorf("expected Direction %q, got %q", tt.expectedDir, opts.Direction)
+			}
+			if opts.Count != tt.expectedCnt {
+				t.Errorf("expected Count %d, got %d", tt.expectedCnt, opts.Count)
+			}
+		})
+	}
+}
+
+func TestResolveCellContext(t *testing.T) {
+	cells := []models.Cell{
+		{ID: "c1", Type: models.CellTypeMarkdown, Content: "Header 1"},
+		{ID: "c2", Type: models.CellTypeMarkdown, Content: "Paragraph 1"},
+		{ID: "c3", Type: models.CellTypeCode, Content: "/suggest"},
+		{ID: "c4", Type: models.CellTypeMarkdown, Content: "Paragraph 2"},
+		{ID: "c5", Type: models.CellTypeMarkdown, Content: "Footer"},
+	}
+
+	t.Run("/suggest default fetches all preceding markdown cells", func(t *testing.T) {
+		cmd := &services.CLICommand{Name: "/suggest", Flags: map[string]string{}}
+		result := services.ResolveCellContext(cells, "c3", cmd)
+		expected := "Header 1\n\nParagraph 1"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("/suggest with --n=1 fetches only previous cell", func(t *testing.T) {
+		cmd := &services.CLICommand{Name: "/suggest", Flags: map[string]string{"n": "1"}}
+		result := services.ResolveCellContext(cells, "c3", cmd)
+		expected := "Paragraph 1"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("/themes default fetches next markdown cell", func(t *testing.T) {
+		cmd := &services.CLICommand{Name: "/themes", Flags: map[string]string{}}
+		result := services.ResolveCellContext(cells, "c3", cmd)
+		expected := "Paragraph 2"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("/themes with --n=2d fetches two downward markdown cells", func(t *testing.T) {
+		cmd := &services.CLICommand{Name: "/themes", Flags: map[string]string{"n": "2d"}}
+		result := services.ResolveCellContext(cells, "c3", cmd)
+		expected := "Paragraph 2\n\nFooter"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("--ref=all fetches all markdown cells except target", func(t *testing.T) {
+		cmd := &services.CLICommand{Name: "/suggest", Flags: map[string]string{"ref": "all"}}
+		result := services.ResolveCellContext(cells, "c3", cmd)
+		expected := "Header 1\n\nParagraph 1\n\nParagraph 2\n\nFooter"
+		if result != expected {
+			t.Errorf("expected %q, got %q", expected, result)
+		}
+	})
+
+	t.Run("returns empty string when target cell not found", func(t *testing.T) {
+		cmd := &services.CLICommand{Name: "/suggest", Flags: map[string]string{}}
+		result := services.ResolveCellContext(cells, "nonexistent", cmd)
+		if result != "" {
+			t.Errorf("expected empty string, got %q", result)
+		}
+	})
+}
+
