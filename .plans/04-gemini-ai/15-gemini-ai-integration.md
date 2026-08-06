@@ -46,23 +46,23 @@ Lisätään Gemini-avain ja malliasetukset backendin konfiguraatiorakenteeseen.
 
    modelInsight := cleanEnv(os.Getenv("GEMINI_MODEL_INSIGHT"))
    if modelInsight == "" {
-       modelInsight = "gemini-2.5-flash"
+       modelInsight = "gemini-3.1-flash"
    }
    modelTone := cleanEnv(os.Getenv("GEMINI_MODEL_TONE"))
    if modelTone == "" {
-       modelTone = "gemini-2.5-flash"
+       modelTone = "gemini-3.1-flash"
    }
    modelStudy := cleanEnv(os.Getenv("GEMINI_MODEL_STUDY"))
    if modelStudy == "" {
-       modelStudy = "gemini-2.5-flash"
+       modelStudy = "gemini-3.1-flash"
    }
    modelOriginal := cleanEnv(os.Getenv("GEMINI_MODEL_ORIGINAL_STUDY"))
    if modelOriginal == "" {
-       modelOriginal = "gemini-2.5-flash" // Google AI Studio tukee tätä erinomaisesti
+       modelOriginal = "gemini-3.1-flash" 
    }
    modelSearch := cleanEnv(os.Getenv("GEMINI_MODEL_AI_SEARCH"))
    if modelSearch == "" {
-       modelSearch = "gemini-2.5-flash"
+       modelSearch = "gemini-3.1-flash"
    }
 
    return &Config{
