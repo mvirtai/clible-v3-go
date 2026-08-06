@@ -189,6 +189,52 @@ tasks:
       - echo "PR created successfully! Cleaning up intermediate assets..."
       - rm temp_pr_story.md
 
+  git:commit:
+    desc: 'Stage changes and create a formatted conventional commit. Usage: task commit TYPE=feat SCOPE=setup MSG="add config loader" [FILES="file1 file2"]'
+    cmds:
+      - |
+        VALID_TYPES="feat fix docs style refactor perf test build ci chore"
+        TYPE="{{.TYPE}}"
+        SCOPE="{{.SCOPE}}"
+        MSG="{{.MSG}}"
+        FILES="{{.FILES}}"
+
+        if [ -z "$FILES" ]; then
+          FILES="."
+        fi
+
+        if [ -z "$TYPE" ] || [ -z "$SCOPE" ] || [ -z "$MSG" ]; then
+          echo "ERROR: Parameters TYPE, SCOPE, and MSG are required!"
+          echo "Usage: task commit TYPE=feat SCOPE=setup MSG=\"add configuration loader\" [FILES=\"cmd/ internal/config/config.go\"]"
+          echo "Allowed TYPE values: $VALID_TYPES"
+          echo "Example SCOPE values: setup, config, handler, server, test, docs, db, auth"
+          exit 1
+        fi
+
+        IS_VALID=0
+        for t in $VALID_TYPES; do
+          if [ "$t" = "$TYPE" ]; then
+            IS_VALID=1
+            break
+          fi
+        done
+
+        if [ $IS_VALID -eq 0 ]; then
+          echo "ERROR: Invalid commit type '$TYPE'."
+          echo "Allowed TYPE values are: $VALID_TYPES"
+          exit 1
+        fi
+
+        FULL_MSG="${TYPE}(${SCOPE}): ${MSG}"
+
+        echo "[TASK] Formatted commit message: '$FULL_MSG'"
+        echo "[TASK] Staging files: '$FILES'"
+        task check
+        git add $FILES
+        git commit -m "$FULL_MSG"
+        echo "[TASK] Conventional commit created successfully: '$FULL_MSG'"
+
+
   git:post-merge-branch:
     desc: Force-switch to main, hard-reset to origin/main, and delete the topic branch after PR merge
     cmds:

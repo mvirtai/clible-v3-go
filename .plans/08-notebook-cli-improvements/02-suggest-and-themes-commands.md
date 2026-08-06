@@ -179,4 +179,5 @@ Suorita muistikirjan koodisoluissa seuraavat komennot:
 2. `/suggest --n=3p`
 3. `/themes --n=3n --limit=10`
 4. `/themes --n=2p --limit=5`
-5. Paina jäädytyspainiketta ("Freeze to Markdown") ja varmista, että osio muuntuu markdown-listaksi siististi.
+5. `/themes --n=3p5` (Pikasyöte: 3 solua ylöspäin, max 5 teemaa)
+6. Paina jäädytyspainiketta ("Freeze to Markdown") ja varmista, että osio muuntuu markdown-listaksi siististi.
