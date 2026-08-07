@@ -8,6 +8,7 @@ export interface CLIResultData {
   references?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
   suggestions?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
   keywords?: string[];
+  themes?: Array<{ word: string; count: number }>;
 }
 
 export function formatResultToMarkdown(type: string, data: CLIResultData, translation: string): string {
@@ -51,6 +52,17 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
       const book = bookCitationAbbrevFi(v.bookId);
       markdown += `*   **${book} ${v.chapter}:${v.verse}** — *"${v.text}"*\n`;
     });
+  }
+
+  else if (type === 'themes') {
+    const themes = data.themes || [];
+    if (themes.length === 0) return 'Ei tunnistettuja teemoja.';
+
+    let md = `### Tunnistetut teemat\n\n`;
+    themes.forEach(t => {
+      md += `- **${t.word}** (${t.count})\n`;
+    });
+    markdown = md;
   }
 
   return markdown;

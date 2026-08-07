@@ -200,9 +200,6 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
     if (!targetCell) return;
 
     try {
-      // Tallenna heti solujen nykyinen tila ennen suoritusta, jotta palvelimella on uusin sisältö
-      await saveCells(cells);
-
       const res = await fetch(`/api/notebooks/${notebookId}/cells/${id}/execute?translation=${translation}`, {
         method: 'POST',
       });
@@ -233,19 +230,20 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
     }
   };
 
-  const handleFreezeCell = (index: number, markdown: string) => {
+  const handleFreezeCell = (index: number, markdown: string, direction: 'up' | 'down' = 'down') => {
+    const insertIndex = direction === 'up' ? index : index + 1;
     const newCell: Cell = {
       id: crypto.randomUUID(),
       notebookId,
       type: 'markdown',
       content: markdown,
-      position: index + 1,
+      position: insertIndex,
       resultJson: null,
     };
 
     setCells((prev) => {
       const next = [...prev];
-      next.splice(index + 1, 0, newCell);
+      next.splice(insertIndex, 0, newCell);
       return reorderCells(next);
     });
   };
@@ -401,7 +399,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
                   onChange={(content) => handleCellContentChange(cell.id, content)}
                   onExecute={() => handleExecuteCell(cell.id)}
                   translation={translation}
-                  onFreeze={(markdown) => handleFreezeCell(index, markdown)}
+                  onFreeze={(markdown, direction) => handleFreezeCell(index, markdown, direction)}
                 />
               )}
             </CellWrapper>

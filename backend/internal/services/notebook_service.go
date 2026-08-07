@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +14,12 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
+
+// CellScopeOptions defines options for cell scoping.
+type CellScopeOptions struct {
+	Direction string // "up", "down", or "all"
+	Count     int    // -1 = "unlimited"
+}
 
 // NotebookService handles business logic for notebooks.
 type NotebookService struct {
@@ -27,6 +35,127 @@ func NewNotebookService(nb_repo *db.NotebookRepository, scope_repo *db.ScopeRepo
 		scopeRepo:  scope_repo,
 		cliService: cliService,
 	}
+}
+
+var cellScopeFlagRegex = regexp.MustCompile(`^(\*|\d+)([a-z]+)?(\d+)?$`)
+
+// ParseCellScopeFlags parses the flags --ref, --dir, --n and --scope
+func ParseCellScopeFlags(cmd *CLICommand, defaultDir string, defaultCount int) CellScopeOptions {
+	dir := defaultDir
+	count := defaultCount
+
+	// 1. Compatible with old --scope=prev flag
+	if cmd.Flags["scope"] == "prev" {
+		return CellScopeOptions{Direction: "up", Count: 1}
+	}
+
+	// 2. Explicit --dir or --ref flag
+	if d, ok := cmd.Flags["dir"]; ok {
+		d = strings.ToLower(d)
+		switch d {
+		case "down", "next", "d", "n":
+			dir = "down"
+		case "up", "prev", "u", "p":
+			dir = "up"
+		}
+	}
+
+	if r, ok := cmd.Flags["ref"]; ok {
+		r = strings.ToLower(r)
+		switch r {
+		case "down", "next":
+			dir = "down"
+		case "up", "prev":
+			dir = "up"
+		case "all":
+			dir = "all"
+		}
+	}
+
+	// 3. Flexible --n flag (e.g. 3n, 2p, 3d, 2u, 5, or combined 3p5 / 3d10)
+	if nVal, ok := cmd.Flags["n"]; ok {
+		nVal = strings.ToLower(strings.TrimSpace(nVal))
+		matches := cellScopeFlagRegex.FindStringSubmatch(nVal)
+		if len(matches) >= 2 {
+			if parsedCount, err := strconv.Atoi(matches[1]); err == nil && parsedCount > 0 {
+				count = parsedCount
+			}
+			if len(matches) >= 3 && matches[2] != "" {
+				suffix := matches[2]
+				switch suffix {
+				case "n", "d":
+					dir = "down"
+				case "p", "u":
+					dir = "up"
+				}
+			}
+			if len(matches) >= 4 && matches[3] != "" {
+				if _, hasLimit := cmd.Flags["limit"]; !hasLimit {
+					cmd.Flags["limit"] = matches[3]
+				}
+			}
+		}
+	}
+
+	return CellScopeOptions{Direction: dir, Count: count}
+}
+
+// ResolveCellContext collects markdown-cell texts in the given direction and count.
+func ResolveCellContext(cells []models.Cell, targetCellID string, cmd *CLICommand) string {
+	targetIdx := -1
+	for i, c := range cells {
+		if c.ID == targetCellID {
+			targetIdx = i
+			break
+		}
+	}
+	if targetIdx == -1 {
+		return ""
+	}
+
+	defaultDir := "up"
+	defaultCount := -1
+	if cmd.Name == "/themes" {
+		defaultDir = "down"
+		defaultCount = 1
+	}
+
+	scopeOpts := ParseCellScopeFlags(cmd, defaultDir, defaultCount)
+	var selectedTexts []string
+
+	if scopeOpts.Direction == "all" {
+		for i, c := range cells {
+			if i != targetIdx && c.Type == models.CellTypeMarkdown && strings.TrimSpace(c.Content) != "" {
+				selectedTexts = append(selectedTexts, c.Content)
+			}
+		}
+	} else if scopeOpts.Direction == "up" {
+		var upCells []string
+		for i := targetIdx - 1; i >= 0; i-- {
+			c := cells[i]
+			if c.Type == models.CellTypeMarkdown && strings.TrimSpace(c.Content) != "" {
+				upCells = append(upCells, c.Content)
+				if scopeOpts.Count > 0 && len(upCells) >= scopeOpts.Count {
+					break
+				}
+			}
+		}
+		// Maintain order from top to bottom
+		for i := len(upCells) - 1; i >= 0; i-- {
+			selectedTexts = append(selectedTexts, upCells[i])
+		}
+	} else if scopeOpts.Direction == "down" {
+		for i := targetIdx + 1; i < len(cells); i++ {
+			c := cells[i]
+			if c.Type == models.CellTypeMarkdown && strings.TrimSpace(c.Content) != "" {
+				selectedTexts = append(selectedTexts, c.Content)
+				if scopeOpts.Count > 0 && len(selectedTexts) >= scopeOpts.Count {
+					break
+				}
+			}
+		}
+	}
+	return strings.Join(selectedTexts, "\n\n")
 }
 
 // CreateNotebook initializes and inserts a brand new notebook for a user.
@@ -273,32 +402,11 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 		return nil, errors.New("invalid CLI command format (must start with '/')")
 	}
 
-	// 4. Collect context text from previous markdown cells for suggestions
-	var markdownTexts []string
-	usePrevOnly := cmd.Name == "/suggest" && cmd.Flags["scope"] == "prev"
-
-	if usePrevOnly {
-		var closestPrevMarkdown *models.Cell
-		for i := range notebook.Cells {
-			c := &notebook.Cells[i]
-			if c.Position < targetCell.Position && c.Type == models.CellTypeMarkdown {
-				if closestPrevMarkdown == nil || c.Position > closestPrevMarkdown.Position {
-					closestPrevMarkdown = c
-				}
-			}
-		}
-		if closestPrevMarkdown != nil {
-			markdownTexts = append(markdownTexts, closestPrevMarkdown.Content)
-		}
-	} else {
-		for i := range notebook.Cells {
-			c := &notebook.Cells[i]
-			if c.Position < targetCell.Position && c.Type == models.CellTypeMarkdown {
-				markdownTexts = append(markdownTexts, c.Content)
-			}
-		}
+	// 4. Collect context text for /suggest and /themes using cell scoping engine
+	var contextText string
+	if cmd.Name == "/suggest" || cmd.Name == "/themes" {
+		contextText = ResolveCellContext(notebook.Cells, cellID, cmd)
 	}
-	contextText := strings.Join(markdownTexts, " ")
 
 	// 5. Execute parsed command using CLIService
 	cliResult, err := s.cliService.ExecuteCommand(ctx, cmd, translationID, contextText)
