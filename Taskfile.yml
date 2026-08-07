@@ -190,7 +190,7 @@ tasks:
       - rm temp_pr_story.md
 
   git:commit:
-    desc: 'Stage changes and create a formatted conventional commit. Usage: task commit TYPE=feat SCOPE=setup MSG="add config loader" [FILES="file1 file2"]'
+    desc: 'Stage changes and create a formatted conventional commit. Usage: task git:commit TYPE=feat SCOPE=setup MSG="add config loader" [FILES="file1 file2"]'
     cmds:
       - |
         VALID_TYPES="feat fix docs style refactor perf test build ci chore"
@@ -205,7 +205,7 @@ tasks:
 
         if [ -z "$TYPE" ] || [ -z "$SCOPE" ] || [ -z "$MSG" ]; then
           echo "ERROR: Parameters TYPE, SCOPE, and MSG are required!"
-          echo "Usage: task commit TYPE=feat SCOPE=setup MSG=\"add configuration loader\" [FILES=\"cmd/ internal/config/config.go\"]"
+          echo "Usage: task git:commit TYPE=feat SCOPE=setup MSG=\"add configuration loader\" [FILES=\"cmd/ internal/config/config.go\"]"
           echo "Allowed TYPE values: $VALID_TYPES"
           echo "Example SCOPE values: setup, config, handler, server, test, docs, db, auth"
           exit 1
@@ -229,7 +229,18 @@ tasks:
 
         echo "[TASK] Formatted commit message: '$FULL_MSG'"
         echo "[TASK] Staging files: '$FILES'"
-        task check
+
+        if [ "$SCOPE" = "frontend" ] || [ "$SCOPE" = "backend" ]; then
+          echo "Scope is $SCOPE. Running target lint and tests..."
+          task "$SCOPE:lint"
+          task "$SCOPE:test"
+        elif [ "$SCOPE" = "docs" ] || [ "$SCOPE" = "doc" ]; then
+          echo "Scope is $SCOPE. Documentation change, bypassing quality checks."
+        else
+          echo "Scope is $SCOPE. Running global quality checks (task check)..."
+          task check
+        fi
+
         git add $FILES
         git commit -m "$FULL_MSG"
         echo "[TASK] Conventional commit created successfully: '$FULL_MSG'"

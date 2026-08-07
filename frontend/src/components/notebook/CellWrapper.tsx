@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSortable } from '@dnd-kit/react/sortable';
 import type { CellType, Cell } from './types';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -24,11 +25,34 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
   children,
 }) => {
   const { strings } = useLanguage();
+
+  // @dnd-kit/react sortable hook — ref koko soluun, handleRef vain kahvaan
+  const { ref, handleRef, isDragging } = useSortable({ id: cell.id, index });
+
   return (
-    <div className="group relative border border-[var(--border-soft)] hover:border-amber-500/20 bg-[var(--surface-2)]/10 hover:bg-[var(--surface-2)]/20 rounded-xl p-4 transition-all duration-300">
+    <div
+      ref={ref}
+      className={`group relative border border-[var(--border-soft)] hover:border-amber-500/30 bg-[var(--surface-2)]/10 hover:bg-[var(--surface-2)]/20 rounded-xl p-4 transition-all duration-200 ${
+        isDragging ? 'opacity-40 ring-2 ring-amber-500/50 shadow-2xl z-50' : ''
+      }`}
+    >
       {/* Solun toimintopalkki (ilmestyy kun hiiri leijuu solun päällä) */}
       <div className="absolute -top-3 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[var(--surface)] border border-[var(--border-soft)] rounded-md px-1.5 py-0.5 shadow-md z-10">
-        
+
+        {/* Drag Handle (Vetokahva) — handleRef rajoittaa vedon vain tähän elementtiin */}
+        <span
+          ref={handleRef}
+          className="p-1 text-[var(--muted)] hover:text-amber-500 cursor-grab active:cursor-grabbing transition-colors focus:outline-none select-none touch-none"
+          title={strings.dragHandleTitle || 'Drag to reorder'}
+          aria-label={strings.dragHandleTitle || 'Drag to reorder'}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6h16.5" />
+          </svg>
+        </span>
+
+        <span className="w-px h-3 bg-[var(--border-soft)]" />
+
         {/* Solutyypin valinta */}
         <select
           aria-label="Valitse solun tyyppi"
@@ -44,11 +68,11 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
 
         {/* Siirto ylös */}
         <button
-        onClick={onMoveUp}
-        disabled={index === 0}
-        className="p-1 text-[var(--muted)] hover:text-amber-500 disabled:text-[var(--border-soft)] disabled:hover:text-[var(--border-soft)] transition-colors"
-        title={strings.moveUpTitle}
-      >
+          onClick={onMoveUp}
+          disabled={index === 0}
+          className="p-1 text-[var(--muted)] hover:text-amber-500 disabled:text-[var(--border-soft)] disabled:hover:text-[var(--border-soft)] transition-colors"
+          title={strings.moveUpTitle}
+        >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
           </svg>

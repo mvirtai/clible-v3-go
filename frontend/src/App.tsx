@@ -21,6 +21,66 @@ import type { Notebook } from './components/notebook/types';
 import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut, Languages, FileText } from 'lucide-react';
 import { LanguageSwitcher } from './components/LanguageSwitcher/LanguageSwitcher';
 import { useLanguage } from './context/LanguageContext';
+import { DragDropProvider } from '@dnd-kit/react';
+import { useSortable } from '@dnd-kit/react/sortable';
+import { move } from '@dnd-kit/helpers';
+
+// ---------------------------------------------------------------------------
+// SortableNotebookCard — käyttää useSortable-hookkia @dnd-kit/react/sortable.
+// Toimii 2D-gridissä koska @dnd-kit mittaa elementtien todellisia
+// DOM-positioita eikä laske akselia geometrisesti kuten motion/react.
+// ---------------------------------------------------------------------------
+interface SortableNotebookCardProps {
+  nb: Notebook;
+  index: number;
+  onClick: () => void;
+  dragHandleTitle: string;
+  updatedAtLabel: string;
+  noDateLabel: string;
+}
+
+const SortableNotebookCard: React.FC<SortableNotebookCardProps> = ({
+  nb,
+  index,
+  onClick,
+  dragHandleTitle,
+  updatedAtLabel,
+  noDateLabel,
+}) => {
+  const { ref, isDragging } = useSortable({ id: nb.id, index });
+
+  return (
+    <div
+      ref={ref}
+      onClick={onClick}
+      className={`p-5 bg-[var(--surface-2)]/10 border border-[var(--border-soft)] hover:border-amber-500/20 rounded-xl cursor-grab active:cursor-grabbing hover:bg-[var(--surface-2)]/20 transition-all group relative select-none ${
+        isDragging ? 'opacity-50 ring-2 ring-amber-500/40 z-50' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-bold text-[var(--text)] group-hover:text-amber-500 transition-colors">
+          {nb.title}
+        </h3>
+        <span
+          className="p-1 text-[var(--muted)] opacity-30 group-hover:opacity-80 transition-opacity cursor-grab"
+          title={dragHandleTitle}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6h16.5" />
+          </svg>
+        </span>
+      </div>
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--border-soft)] text-[10px] text-[var(--muted)]">
+        <span>
+          {updatedAtLabel}:{' '}
+          {nb.updatedAt || nb.createdAt
+            ? new Date(nb.updatedAt || nb.createdAt).toLocaleDateString()
+            : noDateLabel}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 
 interface LoadedSearchState {
@@ -665,27 +725,30 @@ function App() {
                                             </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {notebooks.map((nb) => (
-                        <div
-                          key={nb.id}
-                          onClick={() => setSelectedNotebookId(nb.id)}
-                          className="p-5 bg-[var(--surface-2)]/10 border border-[var(--border-soft)] hover:border-amber-500/20 rounded-xl cursor-pointer hover:bg-[var(--surface-2)]/20 transition-all group"
-                        >
-                          <h3 className="font-bold text-[var(--text)] group-hover:text-amber-500 transition-colors">
-                            {nb.title}
-                          </h3>
-                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--border-soft)] text-[10px] text-[var(--muted)]">
-                            <span>Päivitetty: {new Date(nb.updatedAt || nb.createdAt).toLocaleDateString()}</span>
+                    <DragDropProvider
+                      onDragEnd={(event) => {
+                        setNotebooks((prev) => move(prev, event));
+                      }}
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {notebooks.map((nb, index) => (
+                          <SortableNotebookCard
+                            key={nb.id}
+                            nb={nb}
+                            index={index}
+                            onClick={() => setSelectedNotebookId(nb.id)}
+                            dragHandleTitle={strings.dragHandleTitle || 'Vedä järjestääksesi'}
+                            updatedAtLabel="Päivitetty"
+                            noDateLabel="-"
+                          />
+                        ))}
+                        {notebooks.length === 0 && (
+                          <div className="col-span-2 text-center py-12 text-[var(--muted)] text-sm">
+                            {strings.noNotebooksText}
                           </div>
-                        </div>
-                      ))}
-                      {notebooks.length === 0 && (
-                        <div className="col-span-2 text-center py-12 text-[var(--muted)] text-sm">
-                                                  {strings.noNotebooksText}
-                                                </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    </DragDropProvider>
                   </div>
                 )}
               </div>

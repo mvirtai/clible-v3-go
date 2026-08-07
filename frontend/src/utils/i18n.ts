@@ -166,6 +166,9 @@ export interface Messages {
 
   previousChapterLabel: string;
   nextChapterLabel: string;
+
+  // Drag and Drop
+  dragHandleTitle: string;
 }
 
 export const strings: Record<UILanguage, Messages> = {
@@ -334,6 +337,9 @@ export const strings: Record<UILanguage, Messages> = {
     finnishLabel: 'Finnish',
     renameScopeTitle: 'Rename workspace',
     editTitleLabel: 'Click to edit',
+
+    // Drag and Drop
+    dragHandleTitle: 'Drag to reorder cells',
   },
   fi: {
     // App / Shell
@@ -510,6 +516,8 @@ export const strings: Record<UILanguage, Messages> = {
     finnishLabel: 'Suomi',
     renameScopeTitle: 'Nimeä työtila uudelleen',
     editTitleLabel: 'Klikkaa muokataksesi',
+    // Drag and Drop
+    dragHandleTitle: 'Vedä solua uudelleen järjestämiseksi',
   }
 
 };
