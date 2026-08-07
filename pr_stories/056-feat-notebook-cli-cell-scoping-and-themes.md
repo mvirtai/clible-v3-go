@@ -106,12 +106,35 @@ graph TD
 
 ## Testing Strategy
 
-### Automated Tests
+### Automated Test Results & Code Coverage
+
+#### Backend (Go) Test Coverage (from `.cov/backend/coverage.txt`)
+
+* **Total Backend Statement Coverage:** `63.6%`
+* **Notebook Service (`internal/services/notebook_service.go`):**
+  * `ParseCellScopeFlags`: **90.0%**
+  * `ResolveCellContext`: **100.0%**
+  * `ExecuteCellCommand`: **73.0%**
+  * `CreateNotebook`: **85.7%**
+  * `GetNotebookByID`: **78.6%**
+  * `SaveCells`: **100.0%**
+* **CLI Service (`internal/services/cli_service.go`):**
+  * `ExtractKeywords`: **94.4%**
+  * `ParseCLICommand`: **97.4%**
+  * `ExecuteCommand`: **71.4%**
+
+#### Frontend (React / Vitest) Test Output
+
+* **Test Suites:** `6 passed (6)`
+* **Tests:** `45 passed (45)`
+* **Execution Duration:** `1.80s`
+
 * Comprehensive Go unit tests in `backend/internal/services/notebook_service_test.go`:
   * `TestParseCellScopeFlags`: Verifies flag parsing for `--scope=prev`, `--dir`, `--ref=all`, and flexible `--n` suffixes (`2p`, `4d`, `3p5`).
   * `TestResolveCellContext`: Verifies cell scoping for `/suggest` (upward), `/themes` (downward), `--n` limits, `--ref=all`, and error handling for missing target cells.
 
 ### Manual Verification
+
 1. `/suggest --ref=down` — Verifies scanning downward markdown cells.
 2. `/suggest --n=3p` — Verifies scanning 3 preceding markdown cells.
 3. `/themes --n=3n --limit=10` — Verifies thematic extraction across 3 subsequent markdown cells.
