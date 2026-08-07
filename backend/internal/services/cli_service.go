@@ -20,14 +20,15 @@ type ThemeItem struct {
 	Count int    `json:"count"`
 }
 
+var nonAlphaRegex = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
+
 // ExtractThemes analyzes text, remove stopwords and returns the most common words with their frequencies.
 func ExtractThemes(text string, limit int) []ThemeItem {
 	if limit <= 0 {
 		limit = 10
 	}
 
-	reg, _ := regexp.Compile(`[^a-zA-ZäöÄÖåÅ\s]+`)
-	cleaned := reg.ReplaceAllString(strings.ToLower(text), " ")
+	cleaned := nonAlphaRegex.ReplaceAllString(strings.ToLower(text), " ")
 
 	words := strings.Fields(cleaned)
 	wordCounts := make(map[string]int)
@@ -61,8 +62,7 @@ func ExtractThemes(text string, limit int) []ThemeItem {
 // filters out stop words, and returns the top 5 most frequent words.
 func ExtractKeywords(text string) []string {
 	// Clean text: keep letters and spaces, convert to lowercase
-	reg, _ := regexp.Compile(`[^a-zA-ZäöÄÖåÅ\s]+`)
-	cleaned := reg.ReplaceAllString(strings.ToLower(text), " ")
+	cleaned := nonAlphaRegex.ReplaceAllString(strings.ToLower(text), " ")
 
 	words := strings.Fields(cleaned)
 	wordCounts := make(map[string]int)
