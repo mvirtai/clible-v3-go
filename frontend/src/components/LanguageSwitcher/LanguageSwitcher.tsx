@@ -52,30 +52,16 @@ export const LanguageSwitcher: React.FC = () => {
         />
       </button>
 
-      {/* Options: inline, push other header items and animate width/opacity so the translation selector can shrink */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 6,
-          alignItems: 'center',
-          overflow: 'hidden',
-          maxWidth: visible ? 160 : 0,
-          opacity: visible ? 1 : 0,
-          transform: visible ? 'translateX(0)' : 'translateX(-6px)',
-          transition: 'max-width 320ms cubic-bezier(.2,.9,.2,1), opacity 260ms ease, transform 320ms cubic-bezier(.2,.9,.2,1)',
-          pointerEvents: visible ? 'auto' : 'none',
-        }}
-      >
-        <div className="flex rounded-xl bg-[var(--surface-2)] border border-[var(--border-soft)] p-1">
+      {visible && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 flex rounded-xl bg-[var(--surface-2)] border border-[var(--border)] p-1 shadow-lg backdrop-blur-md">
           <button
             type="button"
             onClick={() => handleChoose('en')}
             aria-pressed={lang === 'en'}
-            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all btn-tactile cursor-pointer ${lang === 'en'
+            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all btn-tactile cursor-pointer ${lang === 'en'
               ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
               : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
             }`}
-            style={{ transform: visible ? 'translateX(0)' : 'translateX(-6px)', transition: 'transform 300ms ease, opacity 260ms ease', opacity: visible ? 1 : 0 }}
             title={strings.englishLabel}
           >
             EN
@@ -85,17 +71,16 @@ export const LanguageSwitcher: React.FC = () => {
             type="button"
             onClick={() => handleChoose('fi')}
             aria-pressed={lang === 'fi'}
-            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all btn-tactile cursor-pointer ${lang === 'fi'
+            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all btn-tactile cursor-pointer ${lang === 'fi'
               ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
               : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
             }`}
-            style={{ transform: visible ? 'translateX(0)' : 'translateX(-6px)', transition: 'transform 340ms ease 45ms, opacity 290ms ease 45ms', opacity: visible ? 1 : 0 }}
             title={strings.finnishLabel}
           >
             FI
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 };

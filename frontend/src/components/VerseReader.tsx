@@ -253,21 +253,21 @@ export const VerseReader: React.FC<Props> = ({
   }, [activeReference, fetchVerses]);
 
   return (
-    <div className="rounded-3xl p-8 space-y-6" style={{
+    <div className="rounded-3xl p-4 sm:p-8 space-y-4 sm:space-y-6" style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
     }}>
-      <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+      <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
         {strings.readByReference}
       </h2>
 
-      <form onSubmit={handleFetch} className="flex gap-2">
+      <form onSubmit={handleFetch} className="flex flex-col sm:flex-row gap-2.5 sm:gap-2">
         <input
         type="text"
         placeholder={strings.versePlaceholder}
         value={reference}
         onChange={(e) => setReference(e.target.value)}
-        className="flex-1 rounded-full px-5 py-2.5 text-sm transition-all outline-none"
+        className="flex-1 rounded-full px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
         style={{
           background: 'var(--surface-2)',
           border: '1px solid var(--border)',
@@ -277,7 +277,7 @@ export const VerseReader: React.FC<Props> = ({
       <button
         type="submit"
         disabled={loading || !reference.trim()}
-        className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 btn-tactile btn-accent disabled:opacity-40"
+        className="rounded-full px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 btn-tactile btn-accent disabled:opacity-40 w-full sm:w-auto"
         style={{ cursor: 'pointer' }}
       >
         {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}

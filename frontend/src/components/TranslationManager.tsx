@@ -47,11 +47,11 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
   const available = translations.filter(t => !t.installed);
 
   return (
-    <div className="rounded-3xl p-8 space-y-6" style={{
+    <div className="rounded-3xl p-4 sm:p-8 space-y-4 sm:space-y-6" style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
     }}>
-      <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+      <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
         Translation Management
       </h2>
 

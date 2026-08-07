@@ -38,16 +38,16 @@ export const TranslationSelector: React.FC<Props> = ({
   const showPlaceholder = !selectedTranslation || !list.some(t => t.id === selectedTranslation);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+    <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full max-w-[125px] sm:max-w-xs shrink"
       style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-      <Globe size={13} style={{ color: 'var(--accent)' }} />
+      <Globe size={13} className="shrink-0" style={{ color: 'var(--accent)' }} />
       <label htmlFor="translation-select" className="sr-only" style={{ display: 'none' }}>{strings.chooseTranslation}</label>
       <select
         id="translation-select"
         aria-label={strings.chooseTranslation}
         value={selectedTranslation}
         onChange={(e) => onSelectTranslation(e.target.value)}
-        className="text-sm font-medium outline-none cursor-pointer"
+        className="text-xs sm:text-sm font-medium outline-none cursor-pointer truncate w-full"
         style={{ background: 'transparent', border: 'none', color: 'var(--text)' }}
       >
         {showPlaceholder && (
