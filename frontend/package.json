@@ -14,6 +14,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@dnd-kit/helpers": "^0.5.0",
+    "@dnd-kit/react": "^0.5.0",
     "d3": "^7.9.0",
     "lucide-react": "^1.21.0",
     "motion": "^12.41.0",
