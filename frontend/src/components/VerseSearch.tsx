@@ -168,22 +168,22 @@ export const VerseSearch: React.FC<Props> = ({
 
 
 return (
-  <div className="rounded-3xl p-8 space-y-6" style={{
+  <div className="rounded-3xl p-4 sm:p-8 space-y-4 sm:space-y-6" style={{
     background: 'var(--surface)',
     border: '1px solid var(--border)',
   }}>
-    <h2 className="text-sm font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--muted)' }}>
+    <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--muted)' }}>
       {strings.searchFindInScripture}
     </h2>
 
     <form onSubmit={handleSearch} className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-2">
         <input
         type="text"
         placeholder={strings.searchPlaceholderVerse}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-          className="flex-1 rounded-full px-5 py-2.5 text-sm transition-all outline-none"
+          className="flex-1 rounded-full px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
           style={{
             background: 'var(--surface-2)',
             border: '1px solid var(--border)',
@@ -193,7 +193,7 @@ return (
         <button
         type="submit"
         disabled={loading || !query.trim()}
-        className="rounded-full px-5 py-2.5 text-sm font-medium flex items-center gap-2 btn-tactile btn-accent disabled:opacity-40"
+        className="rounded-full px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 btn-tactile btn-accent disabled:opacity-40 w-full sm:w-auto"
         style={{ cursor: 'pointer' }}
       >
         {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}

@@ -451,9 +451,9 @@ function App() {
         top: 0,
         zIndex: 50,
       }}>
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 min-h-16 py-2.5 sm:py-0 flex items-center justify-between gap-2">
           {/* Logo */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Theme switch */}
             <button
               type="button"
@@ -468,18 +468,18 @@ function App() {
               )}
             </button>
 
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center"
               style={{ background: 'var(--text)', color: 'var(--bg)' }}>
-              <Terminal size={16} />
+              <Terminal size={15} />
             </div>
-            <h1 className="text-lg font-medium tracking-tight" style={{ color: 'var(--text)' }}>
-              Clible <span style={{ color: 'var(--muted)', fontWeight: 400 }}>Workspace</span>
-              <span className="ml-2 text-xs font-mono" style={{ color: 'var(--accent)' }}>v3</span>
+            <h1 className="text-sm sm:text-lg font-medium tracking-tight" style={{ color: 'var(--text)' }}>
+              Clible <span className="hidden sm:inline" style={{ color: 'var(--muted)', fontWeight: 400 }}>Workspace</span>
+              <span className="ml-1 sm:ml-2 text-xs font-mono" style={{ color: 'var(--accent)' }}>v3</span>
             </h1>
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink">
             {user && (
               <span className="text-xs max-md:hidden" style={{ color: 'var(--muted)' }}>
                 {user.email}
@@ -492,7 +492,7 @@ function App() {
                             navigate('/login');
                           }}
                           aria-label={strings.signOutTitle}
-                          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)]"
+                          className="flex items-center gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)] shrink-0"
                           style={{
                             border: '1px solid var(--border)',
                             background: 'transparent',
@@ -505,7 +505,7 @@ function App() {
 
             <button
                           onClick={() => setShowManager(!showManager)}
-                          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)]"
+                          className="flex items-center gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] shrink-0"
                           style={{
                             border: '1px solid var(--border)',
                             background: showManager ? 'var(--accent-bg)' : 'transparent',
@@ -513,7 +513,7 @@ function App() {
                           }}
                         >
                           <Settings size={14} />
-                          <span>{showManager ? strings.hideLabel : strings.translationsLabel}</span>
+                          <span className="max-sm:hidden">{showManager ? strings.hideLabel : strings.translationsLabel}</span>
                         </button>
 
             <LanguageSwitcher />
@@ -527,10 +527,10 @@ function App() {
       </header>
 
       {/* ── Main ── */}
-      <main className="max-w-5xl mx-auto px-6 py-12">
+      <main className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-12">
 
         {showManager && (
-          <div className="mb-10 max-w-2xl mx-auto">
+          <div className="mb-8 sm:mb-10 max-w-2xl mx-auto">
             <TranslationManager
               translations={installedTranslations}
               onTranslationChanged={handleTranslationChanged}
@@ -539,52 +539,58 @@ function App() {
         )}
 
         {/* View Selection Tabs */}
-        <div className="flex gap-1.5 p-1 rounded-xl w-fit mb-8 bg-[var(--surface-2)] border border-[var(--border-soft)]">
+        <div className="grid grid-cols-5 sm:flex gap-1 sm:gap-1.5 p-1 rounded-xl w-full sm:w-fit mb-6 sm:mb-8 bg-[var(--surface-2)] border border-[var(--border-soft)] select-none">
           <button
             type="button"
             onClick={() => setViewMode('reader')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile ${viewMode === 'reader'
+            className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium transition-all btn-tactile text-center ${viewMode === 'reader'
               ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
               : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
               }`}
           >
-            <BookOpen size={16} />
+            <BookOpen size={16} className="shrink-0" />
             <span>{strings.tabReader}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setViewMode('analytics')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile ${viewMode === 'analytics'
+            className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium transition-all btn-tactile text-center ${viewMode === 'analytics'
               ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
               : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
               }`}
           >
-            <Activity size={16} />
-            <span>{strings.tabAnalytics}</span>
+            <Activity size={16} className="shrink-0" />
+            <span>
+              <span className="hidden sm:inline">{strings.tabAnalytics}</span>
+              <span className="sm:hidden">{lang === 'fi' ? 'Analyysi' : 'Analytics'}</span>
+            </span>
           </button>
 
           <button
             type="button"
             onClick={() => setViewMode('compare')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile ${viewMode === 'compare'
+            className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium transition-all btn-tactile text-center ${viewMode === 'compare'
               ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
               : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
               }`}
           >
-            <GitCompare size={16} />
-            <span>{strings.tabCompare}</span>
+            <GitCompare size={16} className="shrink-0" />
+            <span>
+              <span className="hidden sm:inline">{strings.tabCompare}</span>
+              <span className="sm:hidden">{lang === 'fi' ? 'Vertailu' : 'Compare'}</span>
+            </span>
           </button>
 
           <button
             type="button"
             onClick={() => setViewMode('original')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile ${viewMode === 'original'
+            className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium transition-all btn-tactile text-center ${viewMode === 'original'
               ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
               : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
               }`}
           >
-            <Languages size={16} />
+            <Languages size={16} className="shrink-0" />
             <span>{strings.tabOriginal}</span>
           </button>
 
@@ -592,14 +598,17 @@ function App() {
             type="button"
             onClick={() => { setViewMode('notebooks');
               setSelectedNotebookId(null); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all btn-tactile
+              className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium transition-all btn-tactile text-center
                 ${viewMode === 'notebooks' 
                   ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
-                  : 'text-[var(--muten)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
+                  : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
                 }`}
                 >
-                  <FileText size={16} />
-                  <span>{strings.tabNotebooks}</span>
+                  <FileText size={16} className="shrink-0" />
+                  <span>
+                    <span className="hidden sm:inline">{strings.tabNotebooks}</span>
+                    <span className="sm:hidden">{lang === 'fi' ? 'Muistio' : 'Notebooks'}</span>
+                  </span>
                 </button>
         </div>
 

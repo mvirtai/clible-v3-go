@@ -179,7 +179,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
   // VAIHE 4: Haamukuvion renderöinti alussa
   if (loadingScopes && scopes.length === 0) {
     return (
-      <div className="rounded-3xl p-6 space-y-6 border text-left animate-pulse" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+      <div className="rounded-3xl p-4 sm:p-6 space-y-4 sm:space-y-6 border text-left animate-pulse" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
         <div className="flex items-center justify-between">
           <div className="h-4 bg-[var(--surface-2)] rounded w-1/3"></div>
           <div className="w-5 h-5 bg-[var(--surface-2)] rounded-full"></div>
@@ -197,9 +197,9 @@ export const WorkspaceSidebar: React.FC<Props> = ({
   }
 
   return (
-    <div className="rounded-3xl p-6 space-y-6 border text-left" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+    <div className="rounded-3xl p-4 sm:p-6 space-y-4 sm:space-y-6 border text-left" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
       <div className="flex items-center justify-between">
-        <label htmlFor="workspace-scope-select" className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--muted)' }}>
+        <label htmlFor="workspace-scope-select" className="text-xs sm:text-sm font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--muted)' }}>
             <Folder size={16} /> {strings.workspaceLabel}
           </label>
           <button
@@ -218,23 +218,23 @@ export const WorkspaceSidebar: React.FC<Props> = ({
                       placeholder={strings.newScopePlaceholder}
                       value={newScopeName}
                       onChange={e => setNewScopeName(e.target.value)}
-                      className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
+                      className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border min-w-0"
                       style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
                       autoFocus
                     />
-          <button type="submit" className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile">
+          <button type="submit" className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile shrink-0">
             {strings.createLabel}
           </button>
         </form>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <select
         id="workspace-scope-select"
         aria-label={strings.workspaceLabel}
         value={activeScopeId}
         onChange={e => onScopeChanged(e.target.value)}
-        className="flex-1 rounded-xl px-3 py-2 text-xs transition-all outline-none border cursor-pointer font-medium"
+        className="flex-1 rounded-xl px-2.5 sm:px-3 py-2 text-xs transition-all outline-none border cursor-pointer font-medium min-w-0 truncate"
         style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
       >
         <option value="">{strings.selectWorkspacePlaceholder}</option>
