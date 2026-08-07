@@ -4,12 +4,15 @@ import { CellWrapper } from './CellWrapper';
 import { MarkdownCell } from './MarkdownCell';
 import { CodeCell } from './CodeCell';
 import { useLanguage } from '../../context/LanguageContext';
+import { DragDropProvider } from '@dnd-kit/react';
+import { move } from '@dnd-kit/helpers';
 
 interface NotebookEditorProps {
   notebookId: string;
   translation?: string;
   onSelectVerse?: (ref: string) => void;
 }
+
 
 export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, translation = 'WEB', onSelectVerse }) => {
   const [notebook, setNotebook] = useState<Notebook | null>(null);
@@ -331,6 +334,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
           )}
         </div>
       </div>
+          
 
       {/* Tyhjän tilan ilmoitus */}
       {cells.length === 0 && (
@@ -353,81 +357,87 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
         </div>
       )}
 
-      {/* Solulistaus */}
-      <div className="space-y-4">
-        {cells.map((cell, index) => (
-          <React.Fragment key={cell.id}>
-            {/* Leijuva välipainike solujen välissä uuden solun lisäämiseksi */}
-            <div className="h-2 relative group/divider flex items-center justify-center">
-              <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55 opacity-0 group-hover/divider:opacity-100 transition-opacity duration-200" />
-              <div className="absolute opacity-0 group-hover/divider:opacity-100 transition-all duration-200 flex gap-2 scale-90 group-hover/divider:scale-100 bg-[var(--surface)] px-2 py-1 rounded-full border border-[var(--border-soft)] shadow-lg z-20">
+      {/* Solulistaus kääritään DragDropProvider-kontekstiin */}
+      <DragDropProvider
+        onDragEnd={(event) => {
+          setCells((prev) => reorderCells(move(prev, event)));
+        }}
+      >
+        <div className="space-y-4">
+          {cells.map((cell, index) => (
+            <React.Fragment key={cell.id}>
+              {/* Leijuva välipainike solujen välissä uuden solun lisäämiseksi */}
+              <div className="h-2 relative group/divider flex items-center justify-center">
+                <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55 opacity-0 group-hover/divider:opacity-100 transition-opacity duration-200" />
+                <div className="absolute opacity-0 group-hover/divider:opacity-100 transition-all duration-200 flex gap-2 scale-90 group-hover/divider:scale-100 bg-[var(--surface)] px-2 py-1 rounded-full border border-[var(--border-soft)] shadow-lg z-20">
+                  <button
+                    onClick={() => handleInsertCell(index, 'markdown')}
+                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+                  >
+                    + Markdown
+                  </button>
+                  <span className="w-px h-3 bg-[var(--border-soft)] self-center" />
+                  <button
+                    onClick={() => handleInsertCell(index, 'code')}
+                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+                  >
+                    + Command
+                  </button>
+                </div>
+              </div>
+
+              {/* CellWrapper käyttää useSortable-hookkia sisäisesti */}
+              <CellWrapper
+                cell={cell}
+                index={index}
+                totalCells={cells.length}
+                onDelete={() => handleCellDelete(cell.id)}
+                onMoveUp={() => handleMoveUp(index)}
+                onMoveDown={() => handleMoveDown(index)}
+                onChangeType={(newType) => handleCellTypeChange(cell.id, newType)}
+              >
+                {cell.type === 'markdown' ? (
+                  <MarkdownCell
+                    cell={cell}
+                    onChange={(content) => handleCellContentChange(cell.id, content)}
+                    onSelectVerse={onSelectVerse}
+                  />
+                ) : (
+                  <CodeCell
+                    cell={cell}
+                    onChange={(content) => handleCellContentChange(cell.id, content)}
+                    onExecute={() => handleExecuteCell(cell.id)}
+                    translation={translation}
+                    onFreeze={(markdown, direction) => handleFreezeCell(index, markdown, direction)}
+                  />
+                )}
+              </CellWrapper>
+            </React.Fragment>
+          ))}
+
+          {/* Lisäyspainike alareunassa, kun soluja on jo olemassa */}
+          {cells.length > 0 && (
+            <div className="h-6 relative group/divider flex items-center justify-center mt-6">
+              <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55" />
+              <div className="absolute flex gap-2 bg-[var(--surface)] px-3 py-1 rounded-full border border-[var(--border-soft)] shadow-md">
                 <button
-                  onClick={() => handleInsertCell(index, 'markdown')}
-                  className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+                  onClick={() => handleInsertCell(cells.length, 'markdown')}
+                  className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors"
                 >
-                  + Markdown
+                  + Markdown loppuun
                 </button>
                 <span className="w-px h-3 bg-[var(--border-soft)] self-center" />
                 <button
-                  onClick={() => handleInsertCell(index, 'code')}
-                  className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+                  onClick={() => handleInsertCell(cells.length, 'code')}
+                  className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors"
                 >
-                  + Command
+                  + Command loppuun
                 </button>
               </div>
             </div>
-
-            {/* Itse solu wrapperin sisällä */}
-            <CellWrapper
-              cell={cell}
-              index={index}
-              totalCells={cells.length}
-              onDelete={() => handleCellDelete(cell.id)}
-              onMoveUp={() => handleMoveUp(index)}
-              onMoveDown={() => handleMoveDown(index)}
-              onChangeType={(newType) => handleCellTypeChange(cell.id, newType)}
-            >
-              {cell.type === 'markdown' ? (
-                <MarkdownCell
-                  cell={cell}
-                  onChange={(content) => handleCellContentChange(cell.id, content)}
-                  onSelectVerse={onSelectVerse}
-                />
-              ) : (
-                <CodeCell
-                  cell={cell}
-                  onChange={(content) => handleCellContentChange(cell.id, content)}
-                  onExecute={() => handleExecuteCell(cell.id)}
-                  translation={translation}
-                  onFreeze={(markdown, direction) => handleFreezeCell(index, markdown, direction)}
-                />
-              )}
-            </CellWrapper>
-          </React.Fragment>
-        ))}
-
-        {/* Lisäyspainike alareunassa, kun soluja on jo olemassa */}
-        {cells.length > 0 && (
-          <div className="h-6 relative group/divider flex items-center justify-center mt-6">
-            <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55" />
-            <div className="absolute flex gap-2 bg-[var(--surface)] px-3 py-1 rounded-full border border-[var(--border-soft)] shadow-md">
-              <button
-                onClick={() => handleInsertCell(cells.length, 'markdown')}
-                className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors"
-              >
-                + Markdown loppuun
-              </button>
-              <span className="w-px h-3 bg-[var(--border-soft)] self-center" />
-              <button
-                onClick={() => handleInsertCell(cells.length, 'code')}
-                className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors"
-              >
-                + Command loppuun
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </DragDropProvider>
     </div>
   );
 };
