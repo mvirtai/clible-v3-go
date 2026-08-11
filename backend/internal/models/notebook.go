@@ -24,7 +24,7 @@ type Notebook struct {
 	ScopeID    string    `json:"scopeId,omitempty"`
 	ColSpan    int       `json:"colSpan"`
 	ColHeight  *int      `json:"colHeight"`
-	CellCounts *Cell     `json:"cellCounts,omitempty"`
+	CellCounts *CellCounts `json:"cellCounts,omitempty"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 	Cells      []Cell    `json:"cells,omitempty"`

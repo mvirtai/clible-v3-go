@@ -117,7 +117,53 @@ func TestNotebookRepository(t *testing.T) {
 			t.Errorf("expected result json %q, got %q", `{"verse": "Genesis 1:1"}`, string(fetchedCells[1].ResultJSON))
 		}
 
-		// 6. Delete
+		// Verify CellCounts in GetByUserID
+		userList, err := repo.GetByUserID(ctx, "test-user-id")
+		if err != nil {
+			t.Fatalf("GetByUserID after SaveCells failed: %v", err)
+		}
+		if len(userList) != 1 {
+			t.Fatalf("expected 1 notebook, got %d", len(userList))
+		}
+		if userList[0].CellCounts == nil {
+			t.Fatal("expected CellCounts not to be nil")
+		}
+		if userList[0].CellCounts.Markdown != 1 || userList[0].CellCounts.Code != 1 {
+			t.Errorf("expected CellCounts {Markdown: 1, Code: 1}, got %+v", *userList[0].CellCounts)
+		}
+
+		// 6. GetByScopeID
+		emptyScopeList, err := repo.GetByScopeID(ctx, "")
+		if err != nil {
+			t.Fatalf("GetByScopeID with empty string failed: %v", err)
+		}
+		if len(emptyScopeList) != 0 {
+			t.Errorf("expected 0 notebooks for empty scope, got %d", len(emptyScopeList))
+		}
+
+		byScopeList, err := repo.GetByScopeID(ctx, "test-scope-id")
+		if err != nil {
+			t.Fatalf("GetByScopeID failed: %v", err)
+		}
+		if len(byScopeList) != 1 {
+			t.Errorf("expected 1 notebook for test-scope-id, got %d", len(byScopeList))
+		}
+
+		// 7. UpdateCellResult
+		cellToUpdateID := fetchedCells[1].ID
+		newResult := []byte(`{"verse":"Genesis 1:1","updated":true}`)
+		if err := repo.UpdateCellResult(ctx, cellToUpdateID, newResult); err != nil {
+			t.Fatalf("UpdateCellResult failed: %v", err)
+		}
+		updatedCells, err := repo.GetCells(ctx, nbID)
+		if err != nil {
+			t.Fatalf("GetCells after UpdateCellResult failed: %v", err)
+		}
+		if string(updatedCells[1].ResultJSON) != string(newResult) {
+			t.Errorf("expected updated cell result %s, got %s", string(newResult), string(updatedCells[1].ResultJSON))
+		}
+
+		// 8. Delete
 		if err := repo.Delete(ctx, nbID); err != nil {
 			t.Fatalf("Delete failed: %v", err)
 		}

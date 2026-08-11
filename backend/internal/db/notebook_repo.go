@@ -58,10 +58,23 @@ func (r *NotebookRepository) GetByID(ctx context.Context, id string) (*models.No
 
 func (r *NotebookRepository) GetByUserID(ctx context.Context, userID string) ([]models.Notebook, error) {
 	query := `
-		SELECT id, title, user_id, COALESCE(scope_id, ''), created_at, updated_at
-		FROM notebooks
-		WHERE user_id = $1
-		ORDER BY created_at DESC
+		SELECT
+			n.id,
+			n.title,
+			n.user_id,
+			COALESCE(n.scope_id, ''),
+			COALESCE(n.col_span, 12),
+			COALESCE(n.col_height, 0),
+			n.created_at,
+			n.updated_at,
+			COUNT(CASE WHEN nc.cell_type = 'markdown' THEN 1 END) AS md_count,
+			COUNT(CASE WHEN nc.cell_type = 'code' THEN 1 END) AS code_count
+		FROM notebooks n
+		LEFT JOIN notebook_cells nc ON nc.notebook_id = n.id
+		WHERE n.user_id = $1
+		GROUP BY n.id, n.title, n.user_id, n.scope_id, n.col_span,
+				n.col_height, n.created_at, n.updated_at
+		ORDER BY n.created_at DESC
 	`
 	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
@@ -72,17 +85,16 @@ func (r *NotebookRepository) GetByUserID(ctx context.Context, userID string) ([]
 	var notebooks []models.Notebook
 	for rows.Next() {
 		var nb models.Notebook
+		var mdCount, codeCount int
 		err := rows.Scan(
-			&nb.ID,
-			&nb.Title,
-			&nb.UserID,
-			&nb.ScopeID,
-			&nb.CreatedAt,
-			&nb.UpdatedAt,
+			&nb.ID, &nb.Title, &nb.UserID, &nb.ScopeID,
+			&nb.ColSpan, &nb.ColHeight, &nb.CreatedAt, &nb.UpdatedAt,
+			&mdCount, &codeCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan notebook: %w", err)
 		}
+		nb.CellCounts = &models.CellCounts{Markdown: mdCount, Code: codeCount}
 		nb.Cells = []models.Cell{}
 		notebooks = append(notebooks, nb)
 	}

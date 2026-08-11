@@ -139,13 +139,19 @@ func (h *NotebookHandler) UpdateNotebook(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req struct {
-		Title   string `json:"title"`
-		ScopeID string `json:"scopeId"`
+		Title     string `json:"title"`
+		ScopeID   string `json:"scopeId"`
+		ColSpan   int    `json:"colSpan"`
+		ColHeight int    `json:"colHeigth"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && r.ContentLength > 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
 		return
+	}
+
+	if req.ColSpan < 6 || req.ColSpan > 24 {
+		req.ColSpan = 12 // default value
 	}
 
 	notebook, err := h.notebookService.UpdateNotebook(r.Context(), id, req.Title, req.ScopeID, userID)
