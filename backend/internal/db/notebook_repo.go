@@ -21,7 +21,7 @@ func NewNotebookRepository(db *sql.DB) *NotebookRepository {
 
 func (r *NotebookRepository) Create(ctx context.Context, nb *models.Notebook) error {
 	query := `
-		INSERT INTO notebooks (id, title, user_id, scope_id, create_at, update_at)
+		INSERT INTO notebooks (id, title, user_id, scope_id, created_at, updated_at)
 		VALUES ($1, $2, $3, NULLIF($4, ''), $5, $6)
 	`
 	_, err := r.db.ExecContext(ctx, query, nb.ID, nb.Title, nb.UserID, nb.ScopeID, nb.CreatedAt, nb.UpdatedAt)
@@ -33,7 +33,7 @@ func (r *NotebookRepository) Create(ctx context.Context, nb *models.Notebook) er
 
 func (r *NotebookRepository) GetByID(ctx context.Context, id string) (*models.Notebook, error) {
 	query := `
-		SELECT id, title, user_id, COALESCE(scope_id, ''), create_at, update_at
+		SELECT id, title, user_id, COALESCE(scope_id, ''), created_at, updated_at
 		FROM notebooks
 		WHERE id = $1
 	`
@@ -58,10 +58,10 @@ func (r *NotebookRepository) GetByID(ctx context.Context, id string) (*models.No
 
 func (r *NotebookRepository) GetByUserID(ctx context.Context, userID string) ([]models.Notebook, error) {
 	query := `
-		SELECT id, title, user_id, COALESCE(scope_id, ''), create_at, update_at
+		SELECT id, title, user_id, COALESCE(scope_id, ''), created_at, updated_at
 		FROM notebooks
 		WHERE user_id = $1
-		ORDER BY create_at DESC
+		ORDER BY created_at DESC
 	`
 	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
@@ -97,10 +97,10 @@ func (r *NotebookRepository) GetByScopeID(ctx context.Context, scopeID string) (
 		return []models.Notebook{}, nil
 	}
 	query := `
-		SELECT id, title, user_id, COALESCE(scope_id, ''), create_at, update_at
+		SELECT id, title, user_id, COALESCE(scope_id, ''), created_at, updated_at
 		FROM notebooks
 		WHERE scope_id = $1
-		ORDER BY create_at DESC
+		ORDER BY created_at DESC
 	`
 	rows, err := r.db.QueryContext(ctx, query, scopeID)
 	if err != nil {
@@ -134,7 +134,7 @@ func (r *NotebookRepository) GetByScopeID(ctx context.Context, scopeID string) (
 func (r *NotebookRepository) Update(ctx context.Context, nb *models.Notebook) error {
 	query := `
 		UPDATE notebooks
-		SET title = $1, scope_id = NULLIF($2, ''), update_at = $3
+		SET title = $1, scope_id = NULLIF($2, ''), updated_at = $3
 		WHERE id = $4
 	`
 	_, err := r.db.ExecContext(ctx, query, nb.Title, nb.ScopeID, nb.UpdatedAt, nb.ID)
@@ -166,7 +166,7 @@ func (r *NotebookRepository) SaveCells(ctx context.Context, notebookID string, c
 	}
 
 	query := `
-		INSERT INTO notebook_cells (id, notebook_id, content, cell_type, result_json, position, create_at, update_at)
+		INSERT INTO notebook_cells (id, notebook_id, content, cell_type, result_json, position, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 	now := time.Now()
@@ -211,7 +211,7 @@ func (r *NotebookRepository) SaveCells(ctx context.Context, notebookID string, c
 
 func (r *NotebookRepository) GetCells(ctx context.Context, notebookID string) ([]models.Cell, error) {
 	query := `
-		SELECT id, notebook_id, content, cell_type, result_json, position, create_at, update_at
+		SELECT id, notebook_id, content, cell_type, result_json, position, created_at, updated_at
 		FROM notebook_cells
 		WHERE notebook_id = $1
 		ORDER BY position ASC
@@ -253,7 +253,7 @@ func (r *NotebookRepository) GetCells(ctx context.Context, notebookID string) ([
 func (r *NotebookRepository) UpdateCellResult(ctx context.Context, cellID string, resultJSON []byte) error {
 	query := `
 		UPDATE notebook_cells
-		SET result_json = $1, update_at = $2
+		SET result_json = $1, updated_at = $2
 		WHERE id = $3
 	`
 	_, err := r.db.ExecContext(ctx, query, resultJSON, time.Now(), cellID)

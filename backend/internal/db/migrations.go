@@ -84,9 +84,13 @@ func RunMigrations(db *sql.DB) error {
 				content = strings.ReplaceAll(content, "drop type if exists cell_type;", "")
 			}
 			if filename == "013_notebook_col_span.sql" {
-				// SQLite does not support NOT NULL DEFAULT together with ALTER TABLE
+				// SQLite does not support NOT NULL DEFAULT together with ALTER TABLE ADD COLUMN in some versions
 				content = strings.Join([]string{
-					"ALTER TABLE notebooks ADD COLUMN col_span INTERGER;",
+					"ALTER TABLE notebooks RENAME COLUMN create_at TO created_at;",
+					"ALTER TABLE notebooks RENAME COLUMN update_at TO updated_at;",
+					"ALTER TABLE notebook_cells RENAME COLUMN create_at TO created_at;",
+					"ALTER TABLE notebook_cells RENAME COLUMN update_at TO updated_at;",
+					"ALTER TABLE notebooks ADD COLUMN col_span INTEGER;",
 					"UPDATE notebooks SET col_span = 12 WHERE col_span IS NULL;",
 					"ALTER TABLE notebooks ADD COLUMN col_height INTEGER;",
 				}, "\n")

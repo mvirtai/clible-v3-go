@@ -12,14 +12,22 @@ const (
 	CellTypeCode     CellType = "code"
 )
 
+type CellCounts struct {
+	Markdown int `json:"markdown"`
+	Code     int `json:"code"`
+}
+
 type Notebook struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	UserID    string    `json:"userId"`
-	ScopeID   string    `json:"scopeId,omitempty"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	Cells     []Cell    `json:"cells,omitempty"`
+	ID         string    `json:"id"`
+	Title      string    `json:"title"`
+	UserID     string    `json:"userId"`
+	ScopeID    string    `json:"scopeId,omitempty"`
+	ColSpan    int       `json:"colSpan"`
+	ColHeight  *int      `json:"colHeight"`
+	CellCounts *Cell     `json:"cellCounts,omitempty"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+	Cells      []Cell    `json:"cells,omitempty"`
 }
 
 type Cell struct {
