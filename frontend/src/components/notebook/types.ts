@@ -1,5 +1,5 @@
 export type CellType = 'markdown' | 'code';
-
+export type CellWidth = 'full' | 'half' | 'third' | 'twothirds'
 export interface CellResult {
     type: string; // e.g. 'verse', 'verse_list', 'graph', 'error'
     data: unknown; // json data from backend
@@ -11,7 +11,10 @@ export interface Cell {
     notebookId: string;
     type: CellType;
     content: string;
-    position: number;
+    width?: CellWidth;
+    colSpan?: number; // 1 - 12 (oletus 12 eli 100%)
+    customHeight?: number; // pikseleinä
+    position?: number;
     resultJson?: CellResult | null;
     createdAt?: string;
     updatedAt?: string;

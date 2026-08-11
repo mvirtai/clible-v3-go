@@ -163,6 +163,11 @@ export interface Messages {
   errorHeading?: string;
   retryButtonLabel?: string;
   unnamedNotebook?: string;
+  // Notebook Cell Width
+  cellWidthFull: string;
+  cellWidthHalf: string;
+  cellWidthThird: string;
+  cellWidthTwoThirds: string;
 
   previousChapterLabel: string;
   nextChapterLabel: string;
@@ -337,6 +342,11 @@ export const strings: Record<UILanguage, Messages> = {
     finnishLabel: 'Finnish',
     renameScopeTitle: 'Rename workspace',
     editTitleLabel: 'Click to edit',
+    // Notebook Cell Width
+    cellWidthFull: 'Full (100%)',
+    cellWidthHalf: 'Half (50%)',
+    cellWidthThird: 'Third (33%)',
+    cellWidthTwoThirds: 'Two Thirds (66%)',
 
     // Drag and Drop
     dragHandleTitle: 'Drag to reorder cells',
@@ -516,6 +526,12 @@ export const strings: Record<UILanguage, Messages> = {
     finnishLabel: 'Suomi',
     renameScopeTitle: 'Nimeä työtila uudelleen',
     editTitleLabel: 'Klikkaa muokataksesi',
+    // Notebook Cell Width
+    cellWidthFull: 'Täysi (100%)',
+    cellWidthHalf: 'Puolikas (50%)',
+    cellWidthThird: 'Kolmannes (33%)',
+    cellWidthTwoThirds: 'Kaksi kolmannesta (66%)',
+
     // Drag and Drop
     dragHandleTitle: 'Vedä solua uudelleen järjestämiseksi',
   }
