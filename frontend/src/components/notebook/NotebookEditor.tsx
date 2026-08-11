@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { Cell, CellType, Notebook } from './types';
+import type { Cell, CellType, CellWidth, Notebook } from './types';
 import { CellWrapper } from './CellWrapper';
 import { MarkdownCell } from './MarkdownCell';
 import { CodeCell } from './CodeCell';
@@ -153,6 +153,26 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
     );
   };
 
+  const handleCellWidthChange = (
+    id: string,
+    newWidth: CellWidth,
+    colSpan?: number,
+    customHeight?: number
+  ) => {
+    setCells((prev) =>
+      prev.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              width: newWidth,
+              ...(colSpan !== undefined && { colSpan }),
+              ...(customHeight !== undefined && { customHeight }),
+            }
+          : c
+      )
+    );
+  };
+
   const handleCellDelete = (id: string) => {
     setCells((prev) => reorderCells(prev.filter((c) => c.id !== id)));
   };
@@ -217,16 +237,13 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
       );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Tuntematon virhe suorituksessa';
-      setCells((prev) =>
-        prev.map((c) =>
+      setCells(prev =>
+        prev.map(c =>
           c.id === id
-            ? {
-                ...c,
-                resultJson: {
-                  type: 'error',
-                  data: { message: errorMessage },
-                },
-              }
+            ? { ...c, resultJson: {
+              type: 'error',
+                data: { message: errorMessage },
+              }}
             : c
         )
       );
@@ -281,7 +298,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
+    <div className="max-w-7xl mx-auto py-8 px-4 space-y-6">
       {/* Otsikkoalue */}
       <div className="border-b border-[var(--border-soft)] pb-5 flex items-center justify-between">
         <div className="flex-1 mr-4">
@@ -357,17 +374,17 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
         </div>
       )}
 
-      {/* Solulistaus kääritään DragDropProvider-kontekstiin */}
+      {/* Solulistaus kääritään DragDropProvider-kontekstiin ja 12-sarakkeiseen CSS Grid -kehikkoon */}
       <DragDropProvider
         onDragEnd={(event) => {
           setCells((prev) => reorderCells(move(prev, event)));
         }}
       >
-        <div className="space-y-4">
+        <div className="grid grid-cols-12 gap-4 items-start">
           {cells.map((cell, index) => (
             <React.Fragment key={cell.id}>
               {/* Leijuva välipainike solujen välissä uuden solun lisäämiseksi */}
-              <div className="h-2 relative group/divider flex items-center justify-center">
+              <div className="col-span-12 h-2 relative group/divider flex items-center justify-center">
                 <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55 opacity-0 group-hover/divider:opacity-100 transition-opacity duration-200" />
                 <div className="absolute opacity-0 group-hover/divider:opacity-100 transition-all duration-200 flex gap-2 scale-90 group-hover/divider:scale-100 bg-[var(--surface)] px-2 py-1 rounded-full border border-[var(--border-soft)] shadow-lg z-20">
                   <button
@@ -395,6 +412,9 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
                 onMoveUp={() => handleMoveUp(index)}
                 onMoveDown={() => handleMoveDown(index)}
                 onChangeType={(newType) => handleCellTypeChange(cell.id, newType)}
+                onChangeWidth={(newWidth, colSpan, customHeight) =>
+                  handleCellWidthChange(cell.id, newWidth, colSpan, customHeight)
+                }
               >
                 {cell.type === 'markdown' ? (
                   <MarkdownCell
@@ -417,7 +437,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
 
           {/* Lisäyspainike alareunassa, kun soluja on jo olemassa */}
           {cells.length > 0 && (
-            <div className="h-6 relative group/divider flex items-center justify-center mt-6">
+            <div className="col-span-12 h-6 relative group/divider flex items-center justify-center mt-6">
               <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55" />
               <div className="absolute flex gap-2 bg-[var(--surface)] px-3 py-1 rounded-full border border-[var(--border-soft)] shadow-md">
                 <button
