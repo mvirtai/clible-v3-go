@@ -83,6 +83,14 @@ func RunMigrations(db *sql.DB) error {
 				content = strings.ReplaceAll(content, "type        cell_type", "type        text")
 				content = strings.ReplaceAll(content, "drop type if exists cell_type;", "")
 			}
+			if filename == "013_notebook_col_span.sql" {
+				// SQLite does not support NOT NULL DEFAULT together with ALTER TABLE
+				content = strings.Join([]string{
+					"ALTER TABLE notebooks ADD COLUMN col_span INTERGER;",
+					"UPDATE notebooks SET col_span = 12 WHERE col_span IS NULL;",
+					"ALTER TABLE notebooks ADD COLUMN col_height INTEGER;",
+				}, "\n")
+			}
 		}
 
 		// Execute migration logic wrapped in a database transaction block
