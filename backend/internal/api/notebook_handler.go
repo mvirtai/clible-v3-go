@@ -142,7 +142,7 @@ func (h *NotebookHandler) UpdateNotebook(w http.ResponseWriter, r *http.Request)
 		Title     string `json:"title"`
 		ScopeID   string `json:"scopeId"`
 		ColSpan   int    `json:"colSpan"`
-		ColHeight int    `json:"colHeigth"`
+		ColHeight *int   `json:"colHeight"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && r.ContentLength > 0 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -150,11 +150,7 @@ func (h *NotebookHandler) UpdateNotebook(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if req.ColSpan < 6 || req.ColSpan > 24 {
-		req.ColSpan = 12 // default value
-	}
-
-	notebook, err := h.notebookService.UpdateNotebook(r.Context(), id, req.Title, req.ScopeID, userID)
+	notebook, err := h.notebookService.UpdateNotebook(r.Context(), id, req.Title, req.ScopeID, req.ColSpan, req.ColHeight, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			w.WriteHeader(http.StatusNotFound)

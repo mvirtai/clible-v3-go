@@ -33,7 +33,7 @@ func (r *NotebookRepository) Create(ctx context.Context, nb *models.Notebook) er
 
 func (r *NotebookRepository) GetByID(ctx context.Context, id string) (*models.Notebook, error) {
 	query := `
-		SELECT id, title, user_id, COALESCE(scope_id, ''), created_at, updated_at
+		SELECT id, title, user_id, COALESCE(scope_id, ''), COALESCE(col_span, 12), col_height, created_at, updated_at
 		FROM notebooks
 		WHERE id = $1
 	`
@@ -43,6 +43,8 @@ func (r *NotebookRepository) GetByID(ctx context.Context, id string) (*models.No
 		&nb.Title,
 		&nb.UserID,
 		&nb.ScopeID,
+		&nb.ColSpan,
+		&nb.ColHeight,
 		&nb.CreatedAt,
 		&nb.UpdatedAt,
 	)
@@ -64,7 +66,7 @@ func (r *NotebookRepository) GetByUserID(ctx context.Context, userID string) ([]
 			n.user_id,
 			COALESCE(n.scope_id, ''),
 			COALESCE(n.col_span, 12),
-			COALESCE(n.col_height, 0),
+			n.col_height,
 			n.created_at,
 			n.updated_at,
 			COUNT(CASE WHEN nc.cell_type = 'markdown' THEN 1 END) AS md_count,
@@ -95,7 +97,12 @@ func (r *NotebookRepository) GetByUserID(ctx context.Context, userID string) ([]
 			return nil, fmt.Errorf("failed to scan notebook: %w", err)
 		}
 		nb.CellCounts = &models.CellCounts{Markdown: mdCount, Code: codeCount}
-		nb.Cells = []models.Cell{}
+		cells, err := r.GetCells(ctx, nb.ID)
+		if err == nil {
+			nb.Cells = cells
+		} else {
+			nb.Cells = []models.Cell{}
+		}
 		notebooks = append(notebooks, nb)
 	}
 	if err = rows.Err(); err != nil {
@@ -109,7 +116,7 @@ func (r *NotebookRepository) GetByScopeID(ctx context.Context, scopeID string) (
 		return []models.Notebook{}, nil
 	}
 	query := `
-		SELECT id, title, user_id, COALESCE(scope_id, ''), created_at, updated_at
+		SELECT id, title, user_id, COALESCE(scope_id, ''), COALESCE(col_span, 12), col_height, created_at, updated_at
 		FROM notebooks
 		WHERE scope_id = $1
 		ORDER BY created_at DESC
@@ -128,6 +135,8 @@ func (r *NotebookRepository) GetByScopeID(ctx context.Context, scopeID string) (
 			&nb.Title,
 			&nb.UserID,
 			&nb.ScopeID,
+			&nb.ColSpan,
+			&nb.ColHeight,
 			&nb.CreatedAt,
 			&nb.UpdatedAt,
 		)
@@ -146,10 +155,10 @@ func (r *NotebookRepository) GetByScopeID(ctx context.Context, scopeID string) (
 func (r *NotebookRepository) Update(ctx context.Context, nb *models.Notebook) error {
 	query := `
 		UPDATE notebooks
-		SET title = $1, scope_id = NULLIF($2, ''), updated_at = $3
-		WHERE id = $4
+		SET title = $1, scope_id = NULLIF($2, ''), col_span = $3, col_height = $4, updated_at = $5
+		WHERE id = $6
 	`
-	_, err := r.db.ExecContext(ctx, query, nb.Title, nb.ScopeID, nb.UpdatedAt, nb.ID)
+	_, err := r.db.ExecContext(ctx, query, nb.Title, nb.ScopeID, nb.ColSpan, nb.ColHeight, nb.UpdatedAt, nb.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update notebook: %w", err)
 	}
