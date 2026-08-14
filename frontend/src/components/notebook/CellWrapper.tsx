@@ -4,19 +4,36 @@ import type { CellType, CellWidth, Cell } from './types';
 import { useLanguage } from '../../context/LanguageContext';
 import { UseResizableCell } from './useResizableCell';
 
+/**
+ * Props for the {@link CellWrapper} component.
+ */
 interface CellWrapperProps {
+  /** The notebook cell model data */
   cell: Cell;
+  /** Index position of the cell in the notebook list */
   index: number;
+  /** Total number of cells in the notebook */
   totalCells: number;
+  /** Callback triggered when deleting the cell */
   onDelete: () => void;
+  /** Callback triggered when moving the cell up in order */
   onMoveUp: () => void;
+  /** Callback triggered when moving the cell down in order */
   onMoveDown: () => void;
+  /** Callback triggered when changing the cell type */
   onChangeType: (newType: CellType) => void;
+  /** Callback triggered when changing the cell width, column span, or height */
   onChangeWidth: (newWidth: CellWidth, colSpan?: number, customHeight?: number) => void;
+  /** Renderable inner cell content (MarkdownCell or CodeCell) */
   children: React.ReactNode;
 }
 
-// Sarakeluokkien kartoitus breakpointeittain numeeriselle colSpanille (1-12)
+/**
+ * Maps numeric column spans (1 to 12) to responsive Tailwind CSS grid column classes.
+ *
+ * @param colSpan Grid column count (defaults to 12 for full width).
+ * @returns Tailwind CSS grid column class string.
+ */
 const getColSpanClass = (colSpan: number = 12): string => {
   switch (colSpan) {
     case 3:
@@ -35,7 +52,11 @@ const getColSpanClass = (colSpan: number = 12): string => {
   }
 };
 
-export const CellWrapper: React.FC<CellWrapperProps> = ({
+/**
+ * Wrapper component for notebook cells providing drag-and-drop sortability,
+ * toolbar controls (reordering, resizing, type toggling, deletion), and drag-resize handles.
+ */
+export function CellWrapper({
   cell,
   index,
   totalCells,
@@ -45,18 +66,21 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
   onChangeType,
   onChangeWidth,
   children,
-}) => {
+}: CellWrapperProps) {
   const { strings } = useLanguage();
 
   const cardRef = useRef<HTMLDivElement | null>(null);
-  // @dnd-kit/react sortable hook — ref koko soluun, handleRef vain kahvaan
+  // Sortable hook from @dnd-kit/react/sortable
   const { ref: sortableRef, handleRef, isDragging } = useSortable({ id: cell.id, index });
 
-  // Yhdistetään React 19 -sopivasti ilman as-lausekkeita
+  // React 19 callback ref with cleanup function
   const setCombinedRef = useCallback(
     (node: HTMLDivElement | null) => {
       sortableRef(node);
       cardRef.current = node;
+      return () => {
+        cardRef.current = null;
+      };
     },
     [sortableRef]
   );
@@ -84,10 +108,10 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
         isDragging ? 'opacity-40 ring-2 ring-amber-500/50 shadow-2xl z-50' : ''
       } ${isResizing ? 'ring-2 ring-amber-500/80 shadow-lg select-none' : ''}`}
     >
-      {/* Solun toimintopalkki (ilmestyy kun hiiri leijuu solun päällä) */}
+      {/* Cell action toolbar (appears on hover) */}
       <div className="absolute -top-3 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[var(--surface)] border border-[var(--border-soft)] rounded-md px-1.5 py-0.5 shadow-md z-10">
 
-        {/* Drag Handle (Vetokahva) — handleRef rajoittaa vedon vain tähän elementtiin */}
+        {/* Drag handle */}
         <span
           ref={handleRef}
           className="p-1 text-[var(--muted)] hover:text-amber-500 cursor-grab active:cursor-grabbing transition-colors focus:outline-none select-none touch-none"
@@ -101,16 +125,16 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
 
         <span className="w-px h-3 bg-[var(--border-soft)]" />
 
-        {/* Leveyden näyttö / pikavalinta */}
+        {/* Column span width percentage indicator */}
         <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-semibold px-1">
           {Math.round((colSpan / 12) * 100)}%
         </span>
 
         <span className="w-px h-3 bg-[var(--border-soft)]" />
 
-        {/* Solun leveyden/koon valitsin */}
+        {/* Cell width selector */}
         <select
-          aria-label="Valitse solun leveys"
+          aria-label="Select cell width"
           value={cell.width || 'full'}
           onChange={(e) => onChangeWidth(e.target.value as CellWidth)}
           className="bg-transparent text-[var(--muted)] text-[10px] font-medium focus:outline-none border-none cursor-pointer hover:text-amber-500"
@@ -123,9 +147,9 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
 
         <span className="w-px h-3 bg-[var(--border-soft)]" />
 
-        {/* Solutyypin valinta */}
+        {/* Cell type selector */}
         <select
-          aria-label="Valitse solun tyyppi"
+          aria-label="Select cell type"
           value={cell.type}
           onChange={(e) => onChangeType(e.target.value as CellType)}
           className="bg-transparent text-[var(--muted)] text-[10px] font-medium focus:outline-none border-none cursor-pointer hover:text-amber-500"
@@ -136,7 +160,7 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
 
         <span className="w-px h-3 bg-[var(--border-soft)]" />
 
-        {/* Siirto ylös */}
+        {/* Move cell up */}
         <button
           onClick={onMoveUp}
           disabled={index === 0}
@@ -148,7 +172,7 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
           </svg>
         </button>
 
-        {/* Siirto alas */}
+        {/* Move cell down */}
         <button
           onClick={onMoveDown}
           disabled={index === totalCells - 1}
@@ -162,7 +186,7 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
 
         <span className="w-px h-3 bg-[var(--border-soft)]" />
 
-        {/* Poisto */}
+        {/* Delete cell */}
         <button
           onClick={onDelete}
           className="p-1 text-[var(--muted)] hover:text-red-500 transition-colors"
@@ -174,18 +198,18 @@ export const CellWrapper: React.FC<CellWrapperProps> = ({
         </button>
       </div>
 
-      {/* Solun varsinainen sisältö */}
+      {/* Main cell inner content */}
       <div className="pt-2">
         {children}
       </div>
 
-      {/* HIIRIVENYTYSKAHVA (Bottom-Right Resize Handle) */}
+      {/* Bottom-right corner drag-resize handle */}
       <div
         onPointerDown={(e) => handlePointerDown(e, cardRef.current)}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-end justify-end p-0.5 text-[var(--muted)] hover:text-amber-500 opacity-40 hover:opacity-100 transition-opacity touch-none select-none"
-        title="Vedä hiirellä muuttaaksesi kortin kokoa"
+        title="Drag to resize cell width and height"
       >
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 19.5l-6-6m6 0l-6 6M19.5 13.5l-3-3" />

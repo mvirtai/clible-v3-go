@@ -1,5 +1,11 @@
+/**
+ * Supported UI display languages.
+ */
 export type UILanguage = 'en' | 'fi';
 
+/**
+ * Interface mapping localized string keys to display text across supported languages.
+ */
 export interface Messages {
   chooseTranslation: string;
   translationsLabel: string;
@@ -168,6 +174,8 @@ export interface Messages {
   cellWidthHalf: string;
   cellWidthThird: string;
   cellWidthTwoThirds: string;
+
+  resetNotebookSizes?: string;
 
   previousChapterLabel: string;
   nextChapterLabel: string;
@@ -350,6 +358,7 @@ export const strings: Record<UILanguage, Messages> = {
 
     // Drag and Drop
     dragHandleTitle: 'Drag to reorder cells',
+    resetNotebookSizes: 'Reset sizes',
   },
   fi: {
     // App / Shell
@@ -534,6 +543,7 @@ export const strings: Record<UILanguage, Messages> = {
 
     // Drag and Drop
     dragHandleTitle: 'Vedä solua uudelleen järjestämiseksi',
+    resetNotebookSizes: 'Palauta koot',
   }
 
 };

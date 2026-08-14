@@ -1,11 +1,24 @@
 import { useState, useRef, useCallback } from 'react';
 
+/**
+ * Options for configuring the {@link UseResizableCell} hook.
+ */
 interface UseResizableCellOptions {
+    /** Initial column span for the cell grid layout (1 to 12) */
     initialColSpan?: number;
+    /** Initial height of the cell in pixels */
     initialHeight?: number;
+    /** Callback triggered when dragging ends with final column span and height */
     onResizeEnd: (colSpan: number, height?: number) => void;
 }
 
+/**
+ * Custom React hook for handling drag-to-resize pointer events on notebook cells.
+ * Manages dynamic column spanning (12-column grid) and card height adjustments.
+ *
+ * @param options Configuration options for initial dimensions and resize completion callback.
+ * @returns State flags, current dimensions, and pointer event handlers for drag resizing.
+ */
 export function UseResizableCell({
     initialColSpan = 12,
     initialHeight,
@@ -28,7 +41,7 @@ export function UseResizableCell({
             e.preventDefault();
             e.stopPropagation();
 
-            // Lukitaan pointer-tapahtumat vetoelementtiin
+            // Lock pointer capture to handle drag events outside the element bounds
             e.currentTarget.setPointerCapture(e.pointerId);
 
             const parentGrid = cardElement.parentElement;
@@ -52,16 +65,16 @@ export function UseResizableCell({
             const deltaX = e.clientX - startXRef.current;
             const deltaY = e.clientY - startYRef.current;
 
-            // Lasketaan yhden sarakkeen leveys pikseleinä (12-sarakkeen grid)
+            // Calculate width of a single grid column in pixels (12-column grid layout)
             const columnWidthPx = containerWidthRef.current / 12;
 
-            // Lasketaan uusi colSpan (rajoitettu välille 3 - 12)
+            // Compute new column span constrained between 3 and 12
             const rawDeltaCols = Math.round(deltaX / columnWidthPx);
             const newCols = Math.min(12, Math.max(3, startColSpanRef.current + rawDeltaCols));
 
             setColSpan(newCols);
 
-            // Korkeuden päivitys, jos vedetään myös pystysuunnassa
+            // Update height if dragging vertically as well
             if (startHeightRef.current) {
                 const newH = Math.max(120, Math.round(startHeightRef.current + deltaY));
                 setHeight(newH);
@@ -75,18 +88,18 @@ export function UseResizableCell({
             if (!isResizing) return;
     
             try {
-            if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-                e.currentTarget.releasePointerCapture(e.pointerId);
-            }
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                }
             } catch {
-            // Ignoroidaan jos capturaus oli jo vapautunut
+                // Ignore errors if pointer capture was already released
             }
     
             setIsResizing(false);
             onResizeEnd(colSpan, height);
         },
         [isResizing, colSpan, height, onResizeEnd]
-        );
+    );
 
     return {
         colSpan,
