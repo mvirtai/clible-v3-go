@@ -36,6 +36,12 @@ export interface Cell {
     width?: CellWidth;
     /** Grid column span (1 - 12, default is 12) */
     colSpan?: number;
+    /** Grid starting row position (1 - 12, default is 1) */
+    colStart?: number;
+    /** Grid starting row position (1 - N, default is automatic) */
+    rowStart?: number;
+    /** Grid row height span (1 - N units of 24px, default is automatic) */
+    rowSpan?: number;
     /** Custom height override in pixels */
     customHeight?: number;
     /** Position index within the notebook */
@@ -72,6 +78,12 @@ export interface Notebook {
     cells?: Cell[];
     /** Card grid column span (6 - 24, default is 12 = 50%) */
     colSpan?: number;
+    /** Card grid starting column position (1 - 24) */
+    colStart?: number;
+    /** Card grid starting row position (1 - N, default is 1) */
+    rowStart?: number;
+    /** Card grid row span (units of 24px) */
+    rowSpan?: number;
     /** Card height in pixels (undefined for automatic height) */
     colHeight?: number;
     /** Aggregated cell counts */

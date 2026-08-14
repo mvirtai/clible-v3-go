@@ -40,8 +40,8 @@ interface SortableNotebookCardProps {
   onClick: () => void;
   /** Optional callback triggered when card resizing begins */
   onResizeStart?: () => void;
-  /** Callback triggered when card resizing ends with new column span and height */
-  onResizeEnd: (colSpan: number, height?: number) => void;
+  /** Callback triggered when card resizing ends with new column span and row span */
+  onResizeEnd: (colSpan: number, rowSpan?: number) => void;
   /** Accessible title for the drag handle button */
   dragHandleTitle: string;
   /** Localized label for last update timestamp */
@@ -95,29 +95,41 @@ function SortableNotebookCard({
     [sortableRef]
   );
 
-  const { colSpan, height, isResizing, handlePointerDown, handlePointerMove, handlePointerUp } =
+  // Tiukka dynaminen maxRowSpan kortin sisältöjen perusteella (5 riviä pohja + 1 rivi per esikatselusolu, max 9 riviä = 216px)
+  const contentCellCount = nb.cells ? Math.min(4, nb.cells.length) : 0;
+  const maxRowSpan = contentCellCount > 0 ? (5 + contentCellCount) : 5;
+  const effectiveRowSpan = Math.min(maxRowSpan, nb.rowSpan ?? (nb.colHeight ? Math.max(5, Math.round(nb.colHeight / 24)) : 5));
+
+  const { colSpan, rowSpan, isResizing, handlePointerDown, handlePointerMove, handlePointerUp } =
     useResizableCard({
       initialColSpan: nb.colSpan ?? 12,
-      initialHeight: nb.colHeight ?? undefined,
+      initialColStart: nb.colStart ?? 1,
+      initialRowStart: nb.rowStart,
+      initialRowSpan: effectiveRowSpan,
+      maxRowSpan,
       onResizeStart,
       onResizeEnd,
     });
 
-  const hasCustomHeight = Boolean(height && height > 100);
+  // Aseta eksplisiittiset CSS Grid matrix -koordinaatit kortille (automaattisella flow-fall-backilla)
+  const gridStyle: React.CSSProperties = {
+    gridColumn: nb.colStart && nb.colStart > 1 ? `${nb.colStart} / span ${colSpan}` : `span ${colSpan}`,
+    ...(nb.rowStart && nb.rowStart > 1 ? { gridRowStart: nb.rowStart } : {}),
+    gridRowEnd: `span ${rowSpan || effectiveRowSpan}`,
+  };
+
+  const hasCustomHeight = Boolean((rowSpan || effectiveRowSpan) > 5);
 
   return (
     <div
       ref={setCombinedRef}
-      style={{
-        gridColumn: `span ${colSpan}`,
-        ...(height ? { height: `${height}px` } : {}),
-      }}
+      style={gridStyle}
       onClick={() => {
         if (!isResizing) {
           onClick();
         }
       }}
-      className={`relative group p-4 bg-[var(--surface-2)]/10 border border-[var(--border-soft)]
+      className={`h-full relative group p-4 bg-[var(--surface-2)]/10 border border-[var(--border-soft)]
                   hover:border-amber-500/20 rounded-xl cursor-pointer select-none
                   hover:bg-[var(--surface-2)]/20 transition-all flex flex-col justify-between overflow-hidden
                   ${isDragging ? 'opacity-50 ring-2 ring-amber-500/40 z-50' : ''}
@@ -156,18 +168,18 @@ function SortableNotebookCard({
 
         {/* Content Preview Block (Revealed when vertically expanded/stretched) */}
         {hasCustomHeight && (
-          <div className="mt-3 pt-3 border-t border-[var(--border-soft)]/50 flex-1 min-h-0 flex flex-col justify-around gap-2.5 overflow-y-auto pr-1">
+          <div className="mt-3 pt-3 border-t border-[var(--border-soft)]/50 flex-1 min-h-0 flex flex-col justify-start gap-2 overflow-y-auto pr-1">
             {nb.cells && nb.cells.length > 0 ? (
               nb.cells.slice(0, 4).map((cell) => {
                 const cleanText = stripMarkdown(cell.content);
                 return (
-                  <div key={cell.id} className="text-xs flex-1 flex flex-col justify-center min-h-0">
+                  <div key={cell.id} className="text-xs shrink-0">
                     {cell.type === 'markdown' ? (
-                      <div className="text-[var(--muted)] text-[11px] line-clamp-3 leading-relaxed bg-[var(--surface-2)]/30 rounded-lg p-2.5 border border-[var(--border-soft)]/40 shadow-2xs">
+                      <div className="text-[var(--muted)] text-[11px] line-clamp-3 leading-relaxed bg-[var(--surface-2)]/30 rounded-lg p-2 border border-[var(--border-soft)]/40 shadow-2xs">
                         {cleanText || <em className="italic text-[var(--muted)]/60">Empty note...</em>}
                       </div>
                     ) : (
-                      <div className="font-mono text-[11px] bg-[var(--surface-2)]/60 rounded-lg px-2.5 py-1.5 text-amber-500/90 truncate border border-[var(--border-soft)]/50 flex items-center gap-2 shadow-2xs">
+                      <div className="font-mono text-[11px] bg-[var(--surface-2)]/60 rounded-lg px-2.5 py-1 text-amber-500/90 truncate border border-[var(--border-soft)]/50 flex items-center gap-2 shadow-2xs">
                         <span className="text-[8px] font-bold text-amber-500/70 uppercase shrink-0 px-1 py-0.5 bg-amber-500/10 rounded">CLI</span>
                         <span className="truncate">{cleanText || '/read Joh 3:16'}</span>
                       </div>
@@ -357,7 +369,14 @@ function App() {
 
   const handleResetNotebookSizes = async () => {
     setNotebooks((prev) =>
-      prev.map((nb) => ({ ...nb, colSpan: 12, colHeight: undefined }))
+      prev.map((nb) => ({
+        ...nb,
+        colSpan: 12,
+        colStart: undefined,
+        rowStart: undefined,
+        rowSpan: 5,
+        colHeight: undefined,
+      }))
     );
     try {
       await Promise.all(
@@ -367,6 +386,9 @@ function App() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               colSpan: 12,
+              colStart: null,
+              rowStart: null,
+              rowSpan: 5,
               colHeight: null,
             }),
           })
@@ -738,7 +760,7 @@ function App() {
         )}
 
         {/* View Selection Tabs */}
-        <div className="grid grid-cols-5 sm:flex gap-1 sm:gap-1.5 p-1 rounded-xl w-full sm:w-fit mb-6 sm:mb-8 bg-[var(--surface-2)] border border-[var(--border-soft)] select-none">
+        <div className="grid grid-cols-5 sm:flex items-center overflow-x-auto gap-1 sm:gap-1.5 p-1 rounded-xl w-full sm:w-fit mb-6 sm:mb-8 bg-[var(--surface-2)] border border-[var(--border-soft)] select-none">
           <button
             type="button"
             onClick={() => setViewMode('reader')}
@@ -950,54 +972,49 @@ function App() {
                         setNotebooks((prev) => move(prev, event));
                       }}
                     >
-                      <div
-                        style={{
-                          position: 'relative',
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(24, 1fr)',
-                          gap: '1rem',
-                          alignItems: 'start',
-                        }}
-                      >
-                        <GridOverlay visible={isAnyCardResizing} />
-                        {notebooks.map((nb, index) => (
-                          <SortableNotebookCard
-                            key={nb.id}
-                            nb={nb}
-                            index={index}
-                            onClick={() => setSelectedNotebookId(nb.id)}
-                            onResizeStart={() => setIsAnyCardResizing(true)}
-                            onResizeEnd={async (colSpan, height) => {
-                              setIsAnyCardResizing(false);
-                              try {
-                                await fetch(`/api/notebooks/${nb.id}`, {
-                                  method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    colSpan,
-                                    colHeight: height,
-                                  }),
-                                });
-                                setNotebooks((prev) =>
-                                  prev.map((item) =>
-                                    item.id === nb.id ? { ...item, colSpan, colHeight: height } : item
-                                  )
-                                );
-                              } catch (err) {
-                                console.error('Failed to update notebook dimensions:', err);
-                              }
-                            }}
-                            dragHandleTitle={strings.dragHandleTitle || 'Vedä järjestääksesi'}
-                            updatedAtLabel="Päivitetty"
-                            noDateLabel="-"
-                          />
-                        ))}
-                        {notebooks.length === 0 && (
-                          <div className="col-span-24 text-center py-12 text-[var(--muted)] text-sm">
-                            {strings.noNotebooksText}
-                          </div>
-                        )}
-                      </div>
+                    {/* 24-sarakkeinen tiivis CSS Grid -kontti 24px automaattisilla rivikorkeuksilla */}
+                    <div className="grid grid-cols-24 auto-rows-[24px] grid-flow-row-dense gap-4 items-start relative">
+                      <GridOverlay visible={isAnyCardResizing} />
+                      {notebooks.map((nb, index) => (
+                        <SortableNotebookCard
+                          key={nb.id}
+                          nb={nb}
+                          index={index}
+                          onClick={() => setSelectedNotebookId(nb.id)}
+                          onResizeStart={() => setIsAnyCardResizing(true)}
+                          onResizeEnd={async (colSpan, rowSpan) => {
+                            setIsAnyCardResizing(false);
+                            try {
+                              // Tallenna matriisikoot taustajärjestelmään (colSpan ja rowSpan)
+                              await fetch(`/api/notebooks/${nb.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  colSpan,
+                                  rowSpan,
+                                }),
+                              });
+                              // Päivitä tila synkronisesti frontendissä
+                              setNotebooks((prev) =>
+                                prev.map((item) =>
+                                  item.id === nb.id ? { ...item, colSpan, rowSpan } : item
+                                )
+                              );
+                            } catch (err) {
+                              console.error('Failed to update notebook dimensions:', err);
+                            }
+                          }}
+                          dragHandleTitle={strings.dragHandleTitle || 'Vedä järjestääksesi'}
+                          updatedAtLabel="Päivitetty"
+                          noDateLabel="-"
+                        />
+                      ))}
+                      {notebooks.length === 0 && (
+                        <div className="col-span-24 text-center py-12 text-[var(--muted)] text-sm">
+                          {strings.noNotebooksText}
+                        </div>
+                      )}
+                    </div>
                     </DragDropProvider>
                   </div>
                 )}

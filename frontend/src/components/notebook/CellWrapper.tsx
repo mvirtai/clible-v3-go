@@ -28,6 +28,8 @@ interface CellWrapperProps {
   children: React.ReactNode;
 }
 
+
+
 /**
  * Maps numeric column spans (1 to 12) to responsive Tailwind CSS grid column classes.
  *
