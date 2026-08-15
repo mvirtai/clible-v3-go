@@ -264,6 +264,7 @@ describe('useResizableCard hook', () => {
       handleBottom.dispatchEvent(upEvent);
     });
 
+    expect(hookResult?.isResizing).toBe(false);
     expect(onResizeEnd).toHaveBeenCalledTimes(1);
     expect(onResizeEnd).toHaveBeenCalledWith(12, 10);
   });

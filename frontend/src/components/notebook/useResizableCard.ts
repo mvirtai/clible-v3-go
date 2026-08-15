@@ -83,7 +83,7 @@ export function useResizableCard({
   // Transient reference tracking during pointer drag gestures
   const startXRef = useRef<number>(0);
   const startYRef = useRef<number>(0);
-  const startColSpanRef = useRef<number | undefined>(initialColSpan);
+  const startColSpanRef = useRef<number>(initialColSpan);
   const startRowSpanRef = useRef<number>(initialRowSpan || MIN_ROW_SPAN);
   const containerWidthRef = useRef<number>(1000);
   const edgeRef = useRef<ResizeEdge>('right');

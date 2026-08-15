@@ -48,7 +48,7 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
         const data: Notebook = await res.json();
         
         // Sort cells by position index
-        const sortedCells = (data.cells || []).sort((a, b) => a.position - b.position);
+        const sortedCells = (data.cells || []).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setNotebook(data);
         setCells(sortedCells);
         setTitleInput(data.title || '');
