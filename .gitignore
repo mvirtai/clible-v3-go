@@ -66,3 +66,6 @@ demos/03-3d-spatial-mindmap.html
 demos/interactive-grid-demo.html
 .plans/08-notebook-cli-improvements/00-cli-improvements-roadmap.md
 .plans/08-notebook-cli-improvements/00-cli-improvements-roadmap.md
+.plans/08-notebook-cli-improvements/00-cli-improvements-roadmap.md
+.plans/08-notebook-cli-improvements/05-step-by-step-phase-1-dsl-lexer-parser.md
+.plans/08-notebook-cli-improvements/05A-dsl-lexer-ja-kielioppiopas.md
