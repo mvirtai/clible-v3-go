@@ -27,6 +27,7 @@ import { useLanguage } from './context/LanguageContext';
 import { DragDropProvider } from '@dnd-kit/react';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { move } from '@dnd-kit/helpers';
+import { APP_VERSION } from './utils/version';
 
 /**
  * Props for the {@link SortableNotebookCard} component.
@@ -1053,9 +1054,14 @@ function App() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="py-6 mt-12 text-center text-xs"
+      <footer className="py-6 mt-12 text-center text-xs flex items-center justify-center gap-2"
         style={{ borderTop: '1px solid var(--border)', color: 'var(--muted)' }}>
-        Clible-v3-go — Built in partnership with Antigravity.
+        <span>Clible-v3-go</span>
+        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-medium border"
+          style={{ background: 'var(--surface-2)', borderColor: 'var(--border-soft)', color: 'var(--accent)' }}>
+          v{APP_VERSION}
+        </span>
+        <span>— Built in partnership with Antigravity.</span>
       </footer>
     </div>
   );

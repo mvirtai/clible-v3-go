@@ -81,8 +81,13 @@ func main() {
 	authHandler := api.NewAuthHandler(authService, userRepo)
 	aiHandler := api.NewAIHandler(aiService)
 	notebookHandler := api.NewNotebookHandler(notebookService)
+	versionHandler := api.NewVersionHandler()
 
 	mux := http.NewServeMux()
+
+	// Version & Health endpoints (Public)
+	mux.HandleFunc("GET /api/version", versionHandler.GetVersion)
+	mux.HandleFunc("GET /api/health", versionHandler.GetVersion)
 
 	requireAuth := middleware.RequireAuth(authService)
 
