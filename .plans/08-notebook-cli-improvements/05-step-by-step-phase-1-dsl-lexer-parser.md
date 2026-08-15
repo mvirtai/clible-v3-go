@@ -9,7 +9,7 @@ Tämä opas tarjoaa yksityiskohtaiset ohjeet ja koodirakenteet Clible Magic DSL 
 Vaiheessa 1 luodaan backend-paketti `internal/dsl`, joka vastaa taikalausekkeiden (`@`, `?`, `^`, `=>`, `? :`) muuntamisesta suoritettavaksi abstraktiksi syntaksipuuksi (AST) ja niiden ajamisesta tietokantaa vasten.
 
 ```text
-[Raakasyöte: "@Joh 3:16 ? KR92 : KJV"]
+[Raw Input: "@Joh 3:16 ? KR92 : KJV"]
                  │
                  ▼
          [Lexer / Tokenizer]
@@ -20,8 +20,8 @@ Vaiheessa 1 luodaan backend-paketti `internal/dsl`, joka vastaa taikalausekkeide
                  ▼
          [AST: ComparisonNode]
             ├── Target: VerseRefNode(Joh 3:16)
-            ├── Left: TranslationNode(KR92)
-            └── Right: TranslationNode(KJV)
+            ├── Left: ActionNode(translation=KR92)
+            └── Right: ActionNode(translation=KJV)
                  │
                  ▼
          [DSLExecutor / Service]
@@ -38,13 +38,13 @@ Luodaan uusi paketti `backend/internal/dsl/`:
 
 ```text
 backend/internal/dsl/
-├── token.go        # Token-tyyppien ja vakioiden määrittely
-├── lexer.go        # Tokenizer-logiikka (merkkijonosta tokeneiksi)
-├── ast.go          # Abstraktin syntaksipuun solmurakenteet
-├── parser.go       # Syntaksijäsennin (tokeneista AST-puuksi)
-├── executor.go     # AST-solmujen suorituslogiikka ja datan haku
-├── lexer_test.go   # Lexerin yksikkötestit
-└── parser_test.go  # Parserin ja suorittimen yksikkötestit
+├── token.go        # Token type definitions and lexical structures
+├── lexer.go        # Tokenizer logic (raw string to token stream)
+├── ast.go          # Abstract Syntax Tree node representations
+├── parser.go       # Recursive descent parser (token stream to AST)
+├── executor.go     # AST execution engine and service orchestration
+├── lexer_test.go   # Lexer unit tests
+└── parser_test.go  # Parser and AST unit tests
 ```
 
 ---
@@ -58,40 +58,41 @@ package dsl
 
 import "fmt"
 
-// TokenType määrittelee tokenin luokan.
+// TokenType represents the classification of a lexical token.
 type TokenType string
 
 const (
 	TokenEOF     TokenType = "EOF"
 	TokenIllegal TokenType = "ILLEGAL"
 
-	// Symbolit ja operaattorit
-	TokenAt           TokenType = "@"  // Viittaus (@Joh 3:16)
-	TokenSearch       TokenType = "?"  // Haku (? "rakkaus") tai Ternary if
-	TokenPipe         TokenType = "=>" // Projektio / muunnos
-	TokenColon        TokenType = ":"  // Ternary else tai avain-arvo (:card, limit:5)
-	TokenCaret        TokenType = "^"  // Kontekstiviittaus edeltäviin soluihin (^, ^3)
-	TokenHash         TokenType = "#"  // Funktio/tagi (#themes, #refs, #suggest)
-	TokenBracketOpen  TokenType = "["  // Lista [KR92, KJV]
-	TokenBracketClose TokenType = "]"  // Lista loppu
-	TokenParenOpen    TokenType = "("  // Sulku
-	TokenParenClose   TokenType = ")"  // Sulku loppu
-	TokenComma        TokenType = ","  // Erotin
+	// Symbols and operators
+	TokenAt           TokenType = "@"  // Verse reference prefix (@Joh 3:16)
+	TokenSearch       TokenType = "?"  // Search prefix (? "love") or Ternary condition
+	TokenPipe         TokenType = "=>" // Pipeline projection / transform operator
+	TokenColon        TokenType = ":"  // Ternary else delimiter or key-value separator (:card, limit:5)
+	TokenCaret        TokenType = "^"  // Context scope referencing preceding cells (^, ^3)
+	TokenHash         TokenType = "#"  // Function / tag indicator (#themes, #refs, #suggest)
+	TokenBracketOpen  TokenType = "["  // List open delimiter [KR92, KJV]
+	TokenBracketClose TokenType = "]"  // List close delimiter
+	TokenParenOpen    TokenType = "("  // Parenthesis open delimiter
+	TokenParenClose   TokenType = ")"  // Parenthesis close delimiter
+	TokenComma        TokenType = ","  // Argument delimiter
 
-	// Literaalit ja tunnisteet
+	// Literals and identifiers
 	TokenIdent  TokenType = "IDENT"  // Joh, KR92, limit, cards
-	TokenString TokenType = "STRING" // "rakkaus", "uusi liitto"
+	TokenString TokenType = "STRING" // "love", "new covenant"
 	TokenNumber TokenType = "NUMBER" // 3, 16, 5
-	TokenRegex  TokenType = "REGEX"  // /vanhurska.*/
+	TokenRegex  TokenType = "REGEX"  // /righteousness.*/
 )
 
-// Token edustaa yhtä leksikaalista yksikköä.
+// Token represents a single lexical token with type, literal value, and byte offset position.
 type Token struct {
 	Type    TokenType
 	Literal string
 	Pos     int
 }
 
+// String returns a formatted representation of the token for debugging.
 func (t Token) String() string {
 	return fmt.Sprintf("Token(%s, %q, pos=%d)", t.Type, t.Literal, t.Pos)
 }
@@ -111,11 +112,13 @@ import (
 	"unicode"
 )
 
+// Lexer transforms a DSL expression string into a sequential token stream.
 type Lexer struct {
 	input []rune
 	pos   int
 }
 
+// NewLexer constructs a new Lexer initialized with input runes.
 func NewLexer(input string) *Lexer {
 	return &Lexer{
 		input: []rune(input),
@@ -123,6 +126,7 @@ func NewLexer(input string) *Lexer {
 	}
 }
 
+// NextToken scans and returns the next lexical token from the input.
 func (l *Lexer) NextToken() Token {
 	l.skipWhitespace()
 
@@ -174,11 +178,7 @@ func (l *Lexer) NextToken() Token {
 	case '"', '\'':
 		return l.readString(ch)
 	case '/':
-		if l.isRegexStart() {
-			return l.readRegex()
-		}
-		l.pos++
-		return Token{Type: TokenIllegal, Literal: "/", Pos: startPos}
+		return l.readRegex()
 	default:
 		if unicode.IsDigit(ch) {
 			return l.readNumber()
@@ -206,14 +206,14 @@ func (l *Lexer) skipWhitespace() {
 
 func (l *Lexer) readString(quote rune) Token {
 	startPos := l.pos
-	l.pos++ // ohitetaan alkulainausmerkki
+	l.pos++ // Skip opening quote
 	var sb strings.Builder
 	for l.pos < len(l.input) && l.input[l.pos] != quote {
 		sb.WriteRune(l.input[l.pos])
 		l.pos++
 	}
 	if l.pos < len(l.input) {
-		l.pos++ // ohitetaan loppulainausmerkki
+		l.pos++ // Skip closing quote
 	}
 	return Token{Type: TokenString, Literal: sb.String(), Pos: startPos}
 }
@@ -238,21 +238,16 @@ func (l *Lexer) readIdent() Token {
 	return Token{Type: TokenIdent, Literal: sb.String(), Pos: startPos}
 }
 
-func (l *Lexer) isRegexStart() bool {
-	// Yksinkertaistettu regex-tunnistus
-	return true
-}
-
 func (l *Lexer) readRegex() Token {
 	startPos := l.pos
-	l.pos++ // ohitetaan alkuslash
+	l.pos++ // Skip opening slash
 	var sb strings.Builder
 	for l.pos < len(l.input) && l.input[l.pos] != '/' {
 		sb.WriteRune(l.input[l.pos])
 		l.pos++
 	}
 	if l.pos < len(l.input) {
-		l.pos++ // ohitetaan loppuslash
+		l.pos++ // Skip closing slash
 	}
 	return Token{Type: TokenRegex, Literal: sb.String(), Pos: startPos}
 }
@@ -271,40 +266,40 @@ Määritellään abstraktin syntaksipuun solmut.
 ```go
 package dsl
 
-// Node on kaikkien AST-solmujen kantapinta.
+// Node represents the base interface for all AST nodes.
 type Node interface {
 	node()
 	String() string
 }
 
-// VerseRefNode edustaa yhtä raamattuviittausta (esim. @Joh 3:16-18).
+// VerseRefNode represents an explicit Bible verse reference (e.g. @Joh 3:16-18).
 type VerseRefNode struct {
-	Reference string // "Joh 3:16-18" tai "Room 8:28"
+	Reference string // e.g. "Joh 3:16-18" or "Rom 8:28"
 }
 
 func (n *VerseRefNode) node() {}
 func (n *VerseRefNode) String() string { return "@" + n.Reference }
 
-// SearchNode edustaa hakukyselyä (esim. ? "rakkaus" in @Joh).
+// SearchNode represents a full-text or regex search query (e.g. ? "love" in @Joh).
 type SearchNode struct {
 	Query     string
 	IsRegex   bool
-	ScopeBook string // valinnainen, esim. "Joh"
+	ScopeBook string // Optional book filter, e.g. "Joh"
 }
 
 func (n *SearchNode) node() {}
 func (n *SearchNode) String() string { return "? " + n.Query }
 
-// ScopeNode edustaa viittausta aiempiin soluihin (esim. ^ tai ^3 tai ^all).
+// ScopeNode represents a contextual scope reference to preceding cells (e.g. ^, ^3, ^all).
 type ScopeNode struct {
-	Count int    // esim. 1, 3 (tai -1 koko muistikirjalle)
-	All   bool
+	Count int  // Number of cells, e.g. 1, 3 (-1 for all notebook cells)
+	All   bool // Flag for full notebook scope
 }
 
 func (n *ScopeNode) node() {}
 func (n *ScopeNode) String() string { return "^" }
 
-// PipeNode edustaa projektio- tai muunnosputkea (Target => Action/Option).
+// PipeNode represents a pipeline transform or projection operator (Target => Action/Option).
 type PipeNode struct {
 	Left  Node
 	Right Node
@@ -313,11 +308,11 @@ type PipeNode struct {
 func (n *PipeNode) node() {}
 func (n *PipeNode) String() string { return n.Left.String() + " => " + n.Right.String() }
 
-// ComparisonNode edustaa ternary-vertailua (Target ? OptionA : OptionB).
+// ComparisonNode represents a ternary multi-option or comparison expression (Target ? OptionA : OptionB).
 type ComparisonNode struct {
 	Target Node
-	Left   Node // esim. KR92
-	Right  Node // esim. KJV
+	Left   Node // e.g. KR92
+	Right  Node // e.g. KJV
 }
 
 func (n *ComparisonNode) node() {}
@@ -325,11 +320,11 @@ func (n *ComparisonNode) String() string {
 	return n.Target.String() + " ? " + n.Left.String() + " : " + n.Right.String()
 }
 
-// ActionNode edustaa erikoistoimintoa (#themes, #refs, #suggest, :card, limit:5).
+// ActionNode represents a function modifier or formatting option (#themes, #refs, #suggest, :card, limit:5).
 type ActionNode struct {
-	Kind  string            // "themes", "refs", "suggest", "format", "limit"
-	Value string            // "card", "5", jne.
-	Args  map[string]string
+	Kind  string            // "themes", "refs", "suggest", "style", "limit", "translation"
+	Value string            // "card", "5", "KR92", etc.
+	Args  map[string]string // Optional key-value parameters
 }
 
 func (n *ActionNode) node() {}
@@ -352,15 +347,18 @@ import (
 	"strings"
 )
 
+// Parser parses a token stream into an Abstract Syntax Tree (AST).
 type Parser struct {
 	tokens []Token
 	pos    int
 }
 
+// NewParser constructs a new Parser instance.
 func NewParser(tokens []Token) *Parser {
 	return &Parser{tokens: tokens, pos: 0}
 }
 
+// Parse takes a raw DSL string, tokenizes it, and returns the root AST Node.
 func Parse(input string) (Node, error) {
 	lexer := NewLexer(input)
 	var tokens []Token
@@ -388,6 +386,7 @@ func (p *Parser) next() {
 	}
 }
 
+// ParseExpression parses the top-level DSL expression including pipelines and ternary comparisons.
 func (p *Parser) ParseExpression() (Node, error) {
 	left, err := p.parsePrimary()
 	if err != nil {
@@ -403,7 +402,7 @@ func (p *Parser) ParseExpression() (Node, error) {
 				return nil, err
 			}
 			left = &PipeNode{Left: left, Right: right}
-		} else if tok.Type == TokenSearch { // Ternary ?
+		} else if tok.Type == TokenSearch { // Ternary comparison operator '?'
 			p.next()
 			firstOption, err := p.parseActionOrOption()
 			if err != nil {
@@ -436,7 +435,7 @@ func (p *Parser) parsePrimary() (Node, error) {
 	switch tok.Type {
 	case TokenAt:
 		p.next()
-		// Luetaan raamattuviite (esim. Joh 3:16 tai 1. Kor 13:4-8)
+		// Parse verse citation parts (e.g. Joh 3:16 or 1. Kor 13:4-8)
 		var parts []string
 		for {
 			cur := p.current()
@@ -503,7 +502,7 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 	if tok.Type == TokenIdent {
 		val := tok.Literal
 		p.next()
-		// Tarkistetaan avain-arvo kuten limit:5
+		// Check for key-value pairs like limit:5
 		if p.current().Type == TokenColon {
 			p.next()
 			argVal := p.current().Literal
@@ -546,8 +545,8 @@ func TestDSLParser(t *testing.T) {
 			expected: "@Joh 3:16 ? #translation : #translation",
 		},
 		{
-			input:    `? "rakkaus" => limit:5`,
-			expected: `? rakkaus => #limit`,
+			input:    `? "love" => limit:5`,
+			expected: `? love => #limit`,
 		},
 		{
 			input:    "^3 => #themes",
@@ -572,6 +571,8 @@ func TestDSLParser(t *testing.T) {
 ## 8. Seuraavat toimenpiteet
 
 Tämän toteutusoppaan pohjalta kehittäjä voi:
+
 1. Luoda tiedostot `backend/internal/dsl/` -hakemistoon.
 2. Ajaa `go test ./internal/dsl/...` ja varmistaa testien läpäisy.
 3. Siirtyä vaiheeseen 2 (DSLExecutor & VerseService -integraatio).
+
