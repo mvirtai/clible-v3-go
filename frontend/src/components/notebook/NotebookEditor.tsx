@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { Cell, CellType, Notebook } from './types';
+import type { Cell, CellType, CellWidth, Notebook } from './types';
 import { CellWrapper } from './CellWrapper';
 import { MarkdownCell } from './MarkdownCell';
 import { CodeCell } from './CodeCell';
@@ -7,47 +7,57 @@ import { useLanguage } from '../../context/LanguageContext';
 import { DragDropProvider } from '@dnd-kit/react';
 import { move } from '@dnd-kit/helpers';
 
+/**
+ * Props for the {@link NotebookEditor} component.
+ */
 interface NotebookEditorProps {
+  /** Unique identifier of the target notebook */
   notebookId: string;
+  /** Active Bible translation identifier (defaults to 'WEB') */
   translation?: string;
+  /** Optional callback triggered when clicking a Bible verse reference */
   onSelectVerse?: (ref: string) => void;
 }
 
-
-export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, translation = 'WEB', onSelectVerse }) => {
+/**
+ * Main interactive editor component for a single notebook.
+ * Renders an editable title, drag-and-drop sortable cell grid, cell creation controls,
+ * and auto-saving logic synced with the backend REST API.
+ */
+export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse }: NotebookEditorProps) {
   const [notebook, setNotebook] = useState<Notebook | null>(null);
   const [cells, setCells] = useState<Cell[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Otsikon muokkaustila
+  // Title edit state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
 
-  // Käytetään viitettä estämään tallennuksen ajaminen alkulatauksen aikana
+  // Ref flag to prevent auto-saving during initial fetch
   const initialLoadDone = useRef(false);
 
-  // 1. Ladataan notebook
+  // 1. Fetch notebook details on mount or ID change
   useEffect(() => {
     const fetchNotebook = async () => {
       setIsLoading(true);
       try {
         const res = await fetch(`/api/notebooks/${notebookId}`);
-        if (!res.ok) throw new Error('Notebookia ei saatu ladattua.');
+        if (!res.ok) throw new Error('Failed to load notebook.');
         const data: Notebook = await res.json();
         
-        // Järjestetään solut valmiiksi position mukaan
-        const sortedCells = (data.cells || []).sort((a, b) => a.position - b.position);
+        // Sort cells by position index
+        const sortedCells = (data.cells || []).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setNotebook(data);
         setCells(sortedCells);
         setTitleInput(data.title || '');
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Haku epäonnistui');
+        setError(err instanceof Error ? err.message : 'Fetch failed');
       } finally {
         setIsLoading(false);
-        // Merkitään alkulataus suoritetuksi pienen viiveen jälkeen
+        // Mark initial loading completed after brief delay
         setTimeout(() => {
           initialLoadDone.current = true;
         }, 100);
@@ -57,7 +67,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
     fetchNotebook();
   }, [notebookId]);
 
-  // 2. Tallenna otsikon muutos
+  // 2. Save modified title to backend
   const handleTitleSave = async () => {
     const trimmed = titleInput.trim();
     if (!trimmed || !notebook || trimmed === notebook.title) {
@@ -79,7 +89,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
         }),
       });
 
-      if (!res.ok) throw new Error('Otsikon tallennus epäonnistui');
+      if (!res.ok) throw new Error('Title update failed');
       const updated: Notebook = await res.json();
       setNotebook(updated);
       setTitleInput(updated.title);
@@ -87,17 +97,17 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
       setError(null);
     } catch (err) {
       console.error(err);
-      setError('Otsikon tallennus epäonnistui.');
+      setError('Title save failed.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // 3. Tallenna solujen nykyinen tila backendille
+  // 3. Persist current cell list state to backend
   const saveCells = useCallback(async (currentCells: Cell[]) => {
     setIsSaving(true);
     try {
-      // Lähetetään solujen sisältö ja uudet positiot
+      // Send cell contents and updated position indices
       const res = await fetch(`/api/notebooks/${notebookId}/cells`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -106,33 +116,33 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
             id: c.id,
             type: c.type,
             content: c.content,
-            position: index, // Varmistetaan uusi indeksi
+            position: index,
           }))
         ),
       });
 
-      if (!res.ok) throw new Error('Virhe solujen tallentamisessa');
+      if (!res.ok) throw new Error('Cell persistence error');
       setError(null);
     } catch (err) {
       console.error(err);
-      setError('Automaattinen tallennus epäonnistui. Tarkista verkko.');
+      setError('Auto-save failed. Check network connection.');
     } finally {
       setIsSaving(false);
     }
   }, [notebookId]);
 
-  // 3. Debounce-efekti tallennukselle
+  // Debounced effect for auto-saving cell changes
   useEffect(() => {
     if (!initialLoadDone.current) return;
 
     const timer = setTimeout(() => {
       saveCells(cells);
-    }, 1500); // 1.5 sekunnin debounce
+    }, 1500); // 1.5 second debounce delay
 
     return () => clearTimeout(timer);
   }, [cells, saveCells]);
 
-  // 4. Aputoiminto: solujen positioiden uudelleenlaskenta
+  // 4. Helper function: recalculate cell position indices sequentially
   const reorderCells = (updated: Cell[]): Cell[] => {
     return updated.map((cell, idx) => ({
       ...cell,
@@ -140,7 +150,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
     }));
   };
 
-  // 5. Muokkaustoiminnot solulle
+  // 5. Cell state mutation handlers
   const handleCellContentChange = (id: string, newContent: string) => {
     setCells((prev) =>
       prev.map((c) => (c.id === id ? { ...c, content: newContent } : c))
@@ -150,6 +160,26 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
   const handleCellTypeChange = (id: string, newType: CellType) => {
     setCells((prev) =>
       prev.map((c) => (c.id === id ? { ...c, type: newType } : c))
+    );
+  };
+
+  const handleCellWidthChange = (
+    id: string,
+    newWidth: CellWidth,
+    colSpan?: number,
+    customHeight?: number
+  ) => {
+    setCells((prev) =>
+      prev.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              width: newWidth,
+              ...(colSpan !== undefined && { colSpan }),
+              ...(customHeight !== undefined && { customHeight }),
+            }
+          : c
+      )
     );
   };
 
@@ -179,10 +209,10 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
     });
   };
 
-  // 6. Uuden solun luonti tiettyyn indeksiin (indeksi = väli solujen välissä)
+  // 6. Create and insert a new cell at a target index position
   const handleInsertCell = (index: number, type: CellType) => {
     const newCell: Cell = {
-      id: crypto.randomUUID(), // Väliaikainen tai heti uniikki UUID
+      id: crypto.randomUUID(),
       notebookId,
       type,
       content: '',
@@ -197,7 +227,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
     });
   };
 
-  // 7. Koodisolun suoritus
+  // 7. Execute code cell CLI command via backend
   const handleExecuteCell = async (id: string) => {
     const targetCell = cells.find((c) => c.id === id);
     if (!targetCell) return;
@@ -206,9 +236,8 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
       const res = await fetch(`/api/notebooks/${notebookId}/cells/${id}/execute?translation=${translation}`, {
         method: 'POST',
       });
-      if (!res.ok) throw new Error('Suoritus epäonnistui');
+      if (!res.ok) throw new Error('Execution failed');
       const resultData = await res.json();
-      console.log("DEBUG: Execute result data:", resultData);
 
       setCells((prev) =>
         prev.map((c) =>
@@ -216,17 +245,14 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
         )
       );
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Tuntematon virhe suorituksessa';
-      setCells((prev) =>
-        prev.map((c) =>
+      const errorMessage = err instanceof Error ? err.message : 'Unknown execution error';
+      setCells(prev =>
+        prev.map(c =>
           c.id === id
-            ? {
-                ...c,
-                resultJson: {
-                  type: 'error',
-                  data: { message: errorMessage },
-                },
-              }
+            ? { ...c, resultJson: {
+              type: 'error',
+                data: { message: errorMessage },
+              }}
             : c
         )
       );
@@ -281,8 +307,8 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
-      {/* Otsikkoalue */}
+    <div className="max-w-7xl mx-auto py-8 px-4 space-y-6">
+      {/* Header section */}
       <div className="border-b border-[var(--border-soft)] pb-5 flex items-center justify-between">
         <div className="flex-1 mr-4">
           {isEditingTitle ? (
@@ -336,7 +362,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
       </div>
           
 
-      {/* Tyhjän tilan ilmoitus */}
+      {/* Empty state notice */}
       {cells.length === 0 && (
         <div className="text-center py-16 bg-[var(--surface-2)]/40 border border-dashed border-[var(--border-soft)] rounded-xl space-y-4">
           <p className="text-[var(--muted)] text-sm">{strings.emptyNotebookText}</p>
@@ -357,17 +383,17 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
         </div>
       )}
 
-      {/* Solulistaus kääritään DragDropProvider-kontekstiin */}
+      {/* Cell list wrapped inside DragDropProvider context and 12-column CSS Grid */}
       <DragDropProvider
         onDragEnd={(event) => {
           setCells((prev) => reorderCells(move(prev, event)));
         }}
       >
-        <div className="space-y-4">
+        <div className="grid grid-cols-12 gap-4 items-start">
           {cells.map((cell, index) => (
             <React.Fragment key={cell.id}>
-              {/* Leijuva välipainike solujen välissä uuden solun lisäämiseksi */}
-              <div className="h-2 relative group/divider flex items-center justify-center">
+              {/* Floating divider insertion handle between cells */}
+              <div className="col-span-12 h-2 relative group/divider flex items-center justify-center">
                 <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55 opacity-0 group-hover/divider:opacity-100 transition-opacity duration-200" />
                 <div className="absolute opacity-0 group-hover/divider:opacity-100 transition-all duration-200 flex gap-2 scale-90 group-hover/divider:scale-100 bg-[var(--surface)] px-2 py-1 rounded-full border border-[var(--border-soft)] shadow-lg z-20">
                   <button
@@ -386,7 +412,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
                 </div>
               </div>
 
-              {/* CellWrapper käyttää useSortable-hookkia sisäisesti */}
+              {/* CellWrapper delegates sortable hooks internally */}
               <CellWrapper
                 cell={cell}
                 index={index}
@@ -395,6 +421,9 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
                 onMoveUp={() => handleMoveUp(index)}
                 onMoveDown={() => handleMoveDown(index)}
                 onChangeType={(newType) => handleCellTypeChange(cell.id, newType)}
+                onChangeWidth={(newWidth, colSpan, customHeight) =>
+                  handleCellWidthChange(cell.id, newWidth, colSpan, customHeight)
+                }
               >
                 {cell.type === 'markdown' ? (
                   <MarkdownCell
@@ -415,9 +444,9 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ notebookId, tran
             </React.Fragment>
           ))}
 
-          {/* Lisäyspainike alareunassa, kun soluja on jo olemassa */}
+          {/* Append button at the bottom of notebook */}
           {cells.length > 0 && (
-            <div className="h-6 relative group/divider flex items-center justify-center mt-6">
+            <div className="col-span-12 h-6 relative group/divider flex items-center justify-center mt-6">
               <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55" />
               <div className="absolute flex gap-2 bg-[var(--surface)] px-3 py-1 rounded-full border border-[var(--border-soft)] shadow-md">
                 <button

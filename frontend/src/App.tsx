@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TranslationSelector } from './components/TranslationSelector';
 import { TranslationManager } from './components/TranslationManager';
@@ -17,70 +17,258 @@ import { OriginalStudyView } from './components/OriginalStudyView';
 import type { OriginalStudyResult } from './types/originalStudy';
 import type { AiTextResponse } from './types/ai';
 import { NotebookEditor } from './components/notebook/NotebookEditor';
+import { GridOverlay } from './components/notebook/GridOverlay';
+import { CellBadge } from './components/notebook/CellBadge';
+import { useResizableCard } from './components/notebook/useResizableCard';
 import type { Notebook } from './components/notebook/types';
-import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut, Languages, FileText } from 'lucide-react';
+import { Terminal, Settings, BookOpen, Activity, GitCompare, Sun, Moon, LogOut, Languages, FileText, RotateCcw } from 'lucide-react';
 import { LanguageSwitcher } from './components/LanguageSwitcher/LanguageSwitcher';
 import { useLanguage } from './context/LanguageContext';
 import { DragDropProvider } from '@dnd-kit/react';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { move } from '@dnd-kit/helpers';
 
-// ---------------------------------------------------------------------------
-// SortableNotebookCard — käyttää useSortable-hookkia @dnd-kit/react/sortable.
-// Toimii 2D-gridissä koska @dnd-kit mittaa elementtien todellisia
-// DOM-positioita eikä laske akselia geometrisesti kuten motion/react.
-// ---------------------------------------------------------------------------
+/**
+ * Props for the {@link SortableNotebookCard} component.
+ */
 interface SortableNotebookCardProps {
+  /** The notebook data entity */
   nb: Notebook;
+  /** Index of the card in the grid list */
   index: number;
+  /** Callback triggered when clicking the card to open notebook details */
   onClick: () => void;
+  /** Optional callback triggered when card resizing begins */
+  onResizeStart?: () => void;
+  /** Callback triggered when card resizing ends with new column span and row span */
+  onResizeEnd: (colSpan: number, rowSpan?: number) => void;
+  /** Accessible title for the drag handle button */
   dragHandleTitle: string;
+  /** Localized label for last update timestamp */
   updatedAtLabel: string;
+  /** Localized placeholder label when no date is present */
   noDateLabel: string;
 }
 
-const SortableNotebookCard: React.FC<SortableNotebookCardProps> = ({
+/**
+ * Helper utility to strip raw Markdown markdown syntax and verse brackets for clean card previews.
+ */
+function stripMarkdown(raw: string): string {
+  if (!raw) return '';
+  return raw
+    .replace(/#+\s*/g, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/>+\s*/g, '')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Interactive card component representing a notebook item in the grid view.
+ * Supports drag-and-drop reordering via `@dnd-kit/react/sortable` and multi-edge drag resizing.
+ * Dynamically renders notebook cell previews when stretched vertically.
+ */
+function SortableNotebookCard({
   nb,
   index,
   onClick,
+  onResizeStart,
+  onResizeEnd,
   dragHandleTitle,
   updatedAtLabel,
   noDateLabel,
-}) => {
-  const { ref, isDragging } = useSortable({ id: nb.id, index });
+}: SortableNotebookCardProps) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const { ref: sortableRef, handleRef, isDragging } = useSortable({ id: nb.id, index });
+
+  // React 19 callback ref with optional cleanup
+  const setCombinedRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      sortableRef(node);
+      cardRef.current = node;
+      return () => {
+        cardRef.current = null;
+      };
+    },
+    [sortableRef]
+  );
+
+  // Tiukka dynaminen maxRowSpan kortin sisältöjen perusteella (5 riviä pohja + 1 rivi per esikatselusolu, max 9 riviä = 216px)
+  const contentCellCount = nb.cells ? Math.min(4, nb.cells.length) : 0;
+  const maxRowSpan = contentCellCount > 0 ? (5 + contentCellCount) : 5;
+  const effectiveRowSpan = Math.min(maxRowSpan, nb.rowSpan ?? (nb.colHeight ? Math.max(5, Math.round(nb.colHeight / 24)) : 5));
+
+  const { colSpan, rowSpan, isResizing, handlePointerDown, handlePointerMove, handlePointerUp } =
+    useResizableCard({
+      initialColSpan: nb.colSpan ?? 12,
+      initialColStart: nb.colStart ?? 1,
+      initialRowStart: nb.rowStart,
+      initialRowSpan: effectiveRowSpan,
+      maxRowSpan,
+      onResizeStart,
+      onResizeEnd,
+    });
+
+  // Aseta eksplisiittiset CSS Grid matrix -koordinaatit kortille (automaattisella flow-fall-backilla)
+  const gridStyle: React.CSSProperties = {
+    gridColumn: nb.colStart && nb.colStart > 1 ? `${nb.colStart} / span ${colSpan}` : `span ${colSpan}`,
+    ...(nb.rowStart && nb.rowStart > 1 ? { gridRowStart: nb.rowStart } : {}),
+    gridRowEnd: `span ${rowSpan || effectiveRowSpan}`,
+  };
+
+  const hasCustomHeight = Boolean((rowSpan || effectiveRowSpan) > 5);
 
   return (
     <div
-      ref={ref}
-      onClick={onClick}
-      className={`p-5 bg-[var(--surface-2)]/10 border border-[var(--border-soft)] hover:border-amber-500/20 rounded-xl cursor-grab active:cursor-grabbing hover:bg-[var(--surface-2)]/20 transition-all group relative select-none ${
-        isDragging ? 'opacity-50 ring-2 ring-amber-500/40 z-50' : ''
-      }`}
+      ref={setCombinedRef}
+      style={gridStyle}
+      onClick={() => {
+        if (!isResizing) {
+          onClick();
+        }
+      }}
+      className={`h-full relative group p-4 bg-[var(--surface-2)]/10 border border-[var(--border-soft)]
+                  hover:border-amber-500/20 rounded-xl cursor-pointer select-none
+                  hover:bg-[var(--surface-2)]/20 transition-all flex flex-col justify-between overflow-hidden
+                  ${isDragging ? 'opacity-50 ring-2 ring-amber-500/40 z-50' : ''}
+                  ${isResizing ? 'ring-2 ring-amber-400/60 shadow-lg' : ''}`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="font-bold text-[var(--text)] group-hover:text-amber-500 transition-colors">
-          {nb.title}
-        </h3>
-        <span
-          className="p-1 text-[var(--muted)] opacity-30 group-hover:opacity-80 transition-opacity cursor-grab"
-          title={dragHandleTitle}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6h16.5" />
-          </svg>
+      {/* Header section: Drag handle, title, and timestamp */}
+      <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
+        <div className="flex items-start gap-2 flex-shrink-0">
+          <span
+            ref={handleRef}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-0.5 flex-shrink-0 p-1 -ml-1 text-[var(--muted)]
+                       opacity-20 group-hover:opacity-60 transition-opacity
+                       cursor-grab active:cursor-grabbing touch-none"
+            title={dragHandleTitle}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                 stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6h16.5" />
+            </svg>
+          </span>
+
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm leading-snug text-[var(--text)]
+                           group-hover:text-amber-500 transition-colors truncate">
+              {nb.title}
+            </h3>
+            <p className="text-[10px] text-[var(--muted)] mt-0.5">
+              {updatedAtLabel}:{' '}
+              {nb.updatedAt || nb.createdAt
+                ? new Date(nb.updatedAt || nb.createdAt).toLocaleDateString('fi-FI')
+                : noDateLabel}
+            </p>
+          </div>
+        </div>
+
+        {/* Content Preview Block (Revealed when vertically expanded/stretched) */}
+        {hasCustomHeight && (
+          <div className="mt-3 pt-3 border-t border-[var(--border-soft)]/50 flex-1 min-h-0 flex flex-col justify-start gap-2 overflow-y-auto pr-1">
+            {nb.cells && nb.cells.length > 0 ? (
+              nb.cells.slice(0, 4).map((cell) => {
+                const cleanText = stripMarkdown(cell.content);
+                return (
+                  <div key={cell.id} className="text-xs shrink-0">
+                    {cell.type === 'markdown' ? (
+                      <div className="text-[var(--muted)] text-[11px] line-clamp-3 leading-relaxed bg-[var(--surface-2)]/30 rounded-lg p-2 border border-[var(--border-soft)]/40 shadow-2xs">
+                        {cleanText || <em className="italic text-[var(--muted)]/60">Empty note...</em>}
+                      </div>
+                    ) : (
+                      <div className="font-mono text-[11px] bg-[var(--surface-2)]/60 rounded-lg px-2.5 py-1 text-amber-500/90 truncate border border-[var(--border-soft)]/50 flex items-center gap-2 shadow-2xs">
+                        <span className="text-[8px] font-bold text-amber-500/70 uppercase shrink-0 px-1 py-0.5 bg-amber-500/10 rounded">CLI</span>
+                        <span className="truncate">{cleanText || '/read Joh 3:16'}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-3 px-3 rounded-lg bg-[var(--surface-2)]/30 border border-dashed border-[var(--border-soft)] text-center hover:border-amber-500/30 transition-colors my-auto">
+                <p className="text-[11px] text-[var(--muted)] leading-tight">
+                  Click to open notebook and add cells
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer section: Cell badges and width indicator */}
+      <div className="flex items-center justify-between mt-3 pt-2.5
+                      border-t border-[var(--border-soft)] flex-shrink-0">
+        <div className="flex gap-1.5 flex-wrap">
+          {nb.cellCounts && (
+            <>
+              <CellBadge type="markdown" count={nb.cellCounts.markdown} />
+              <CellBadge type="code" count={nb.cellCounts.code} />
+            </>
+          )}
+          {(!nb.cellCounts ||
+            (nb.cellCounts.markdown === 0 && nb.cellCounts.code === 0)) && (
+            <span className="text-[9px] text-[var(--muted)] italic">Empty</span>
+          )}
+        </div>
+
+        <span className="text-[9px] font-mono text-amber-500/50
+                         opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          {Math.round((colSpan / 24) * 100)}%
         </span>
       </div>
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--border-soft)] text-[10px] text-[var(--muted)]">
-        <span>
-          {updatedAtLabel}:{' '}
-          {nb.updatedAt || nb.createdAt
-            ? new Date(nb.updatedAt || nb.createdAt).toLocaleDateString()
-            : noDateLabel}
-        </span>
+
+      {/* Resize handles — multi-edge pointer interactions */}
+      {/* Right edge */}
+      <div className="absolute top-2 right-0 bottom-2 w-2.5 cursor-ew-resize
+                      opacity-0 group-hover:opacity-100 transition-opacity
+                      flex items-center justify-center touch-none select-none z-20"
+           onClick={(e) => e.stopPropagation()}
+           onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'right')}
+           onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+        <div className="w-0.5 h-8 rounded-full"
+          style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
+      </div>
+
+      {/* Left edge */}
+      <div className="absolute top-2 left-0 bottom-2 w-2.5 cursor-ew-resize
+                      opacity-0 group-hover:opacity-100 transition-opacity
+                      flex items-center justify-center touch-none select-none z-20"
+           onClick={(e) => e.stopPropagation()}
+           onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'left')}
+           onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+        <div className="w-0.5 h-8 rounded-full"
+          style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
+      </div>
+
+      {/* Bottom edge */}
+      <div className="absolute bottom-0 left-2 right-2 h-2.5 cursor-ns-resize
+                      opacity-0 group-hover:opacity-100 transition-opacity
+                      flex items-center justify-center touch-none select-none z-20"
+           onClick={(e) => e.stopPropagation()}
+           onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'bottom')}
+           onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+        <div className="h-0.5 w-8 rounded-full"
+          style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
+      </div>
+
+      {/* Bottom-right corner handle */}
+      <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize
+                      opacity-0 group-hover:opacity-100 transition-opacity
+                      touch-none select-none z-30"
+           onClick={(e) => e.stopPropagation()}
+           onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'corner')}
+           onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+        <svg viewBox="0 0 10 10" className="w-full h-full"
+          style={{ fill: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }}>
+          <polygon points="10,0 10,10 0,10" />
+        </svg>
       </div>
     </div>
   );
-};
+}
 
 
 interface LoadedSearchState {
@@ -114,6 +302,7 @@ function App() {
   const [translationTrigger, setTranslationTrigger] = useState(false);
   const [showManager, setShowManager] = useState(false);
   const [viewMode, setViewMode] = useState<'reader' | 'analytics' | 'compare' | 'original' | 'notebooks'>('reader');
+  const [isAnyCardResizing, setIsAnyCardResizing] = useState(false);
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
@@ -175,6 +364,38 @@ function App() {
       }
     } catch (err) {
       console.error('Creating notebook failed:', err);
+    }
+  };
+
+  const handleResetNotebookSizes = async () => {
+    setNotebooks((prev) =>
+      prev.map((nb) => ({
+        ...nb,
+        colSpan: 12,
+        colStart: undefined,
+        rowStart: undefined,
+        rowSpan: 5,
+        colHeight: undefined,
+      }))
+    );
+    try {
+      await Promise.all(
+        notebooks.map((nb) =>
+          fetch(`/api/notebooks/${nb.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              colSpan: 12,
+              colStart: null,
+              rowStart: null,
+              rowSpan: 5,
+              colHeight: null,
+            }),
+          })
+        )
+      );
+    } catch (err) {
+      console.error('Resetting notebook sizes failed:', err);
     }
   };
 
@@ -539,7 +760,7 @@ function App() {
         )}
 
         {/* View Selection Tabs */}
-        <div className="grid grid-cols-5 sm:flex gap-1 sm:gap-1.5 p-1 rounded-xl w-full sm:w-fit mb-6 sm:mb-8 bg-[var(--surface-2)] border border-[var(--border-soft)] select-none">
+        <div className="grid grid-cols-5 sm:flex items-center overflow-x-auto gap-1 sm:gap-1.5 p-1 rounded-xl w-full sm:w-fit mb-6 sm:mb-8 bg-[var(--surface-2)] border border-[var(--border-soft)] select-none">
           <button
             type="button"
             onClick={() => setViewMode('reader')}
@@ -726,12 +947,24 @@ function App() {
                   <div className="space-y-6">
                     <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
                       <h2 className="text-lg font-bold text-[var(--text)]">{strings.notebookTitle}</h2>
-                      <button
-                                              onClick={handleCreateNotebook}
-                                              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-xs rounded transition-all shadow-sm"
-                                            >
-                                              + {strings.createNotebook}
-                                            </button>
+                      <div className="flex items-center gap-2">
+                        {notebooks.length > 0 && (
+                          <button
+                            onClick={handleResetNotebookSizes}
+                            className="px-3 py-1.5 bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 border border-[var(--border-soft)] text-[var(--muted)] hover:text-amber-500 text-xs rounded font-medium transition-all flex items-center gap-1.5 shadow-xs"
+                            title={strings.resetNotebookSizes || 'Palauta koot'}
+                          >
+                            <RotateCcw size={13} />
+                            <span>{strings.resetNotebookSizes || 'Palauta koot'}</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={handleCreateNotebook}
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-xs rounded transition-all shadow-sm"
+                        >
+                          + {strings.createNotebook}
+                        </button>
+                      </div>
                     </div>
 
                     <DragDropProvider
@@ -739,24 +972,49 @@ function App() {
                         setNotebooks((prev) => move(prev, event));
                       }}
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {notebooks.map((nb, index) => (
-                          <SortableNotebookCard
-                            key={nb.id}
-                            nb={nb}
-                            index={index}
-                            onClick={() => setSelectedNotebookId(nb.id)}
-                            dragHandleTitle={strings.dragHandleTitle || 'Vedä järjestääksesi'}
-                            updatedAtLabel="Päivitetty"
-                            noDateLabel="-"
-                          />
-                        ))}
-                        {notebooks.length === 0 && (
-                          <div className="col-span-2 text-center py-12 text-[var(--muted)] text-sm">
-                            {strings.noNotebooksText}
-                          </div>
-                        )}
-                      </div>
+                    {/* 24-sarakkeinen tiivis CSS Grid -kontti 24px automaattisilla rivikorkeuksilla */}
+                    <div className="grid grid-cols-24 auto-rows-[24px] grid-flow-row-dense gap-4 items-start relative">
+                      <GridOverlay visible={isAnyCardResizing} />
+                      {notebooks.map((nb, index) => (
+                        <SortableNotebookCard
+                          key={nb.id}
+                          nb={nb}
+                          index={index}
+                          onClick={() => setSelectedNotebookId(nb.id)}
+                          onResizeStart={() => setIsAnyCardResizing(true)}
+                          onResizeEnd={async (colSpan, rowSpan) => {
+                            setIsAnyCardResizing(false);
+                            try {
+                              // Tallenna matriisikoot taustajärjestelmään (colSpan ja rowSpan)
+                              await fetch(`/api/notebooks/${nb.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  colSpan,
+                                  rowSpan,
+                                }),
+                              });
+                              // Päivitä tila synkronisesti frontendissä
+                              setNotebooks((prev) =>
+                                prev.map((item) =>
+                                  item.id === nb.id ? { ...item, colSpan, rowSpan } : item
+                                )
+                              );
+                            } catch (err) {
+                              console.error('Failed to update notebook dimensions:', err);
+                            }
+                          }}
+                          dragHandleTitle={strings.dragHandleTitle || 'Vedä järjestääksesi'}
+                          updatedAtLabel="Päivitetty"
+                          noDateLabel="-"
+                        />
+                      ))}
+                      {notebooks.length === 0 && (
+                        <div className="col-span-24 text-center py-12 text-[var(--muted)] text-sm">
+                          {strings.noNotebooksText}
+                        </div>
+                      )}
+                    </div>
                     </DragDropProvider>
                   </div>
                 )}

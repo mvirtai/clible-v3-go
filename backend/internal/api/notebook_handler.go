@@ -139,16 +139,18 @@ func (h *NotebookHandler) UpdateNotebook(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req struct {
-		Title   string `json:"title"`
-		ScopeID string `json:"scopeId"`
+		Title     string `json:"title"`
+		ScopeID   string `json:"scopeId"`
+		ColSpan   int    `json:"colSpan"`
+		ColHeight *int   `json:"colHeight"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && r.ContentLength > 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
 		return
 	}
 
-	notebook, err := h.notebookService.UpdateNotebook(r.Context(), id, req.Title, req.ScopeID, userID)
+	notebook, err := h.notebookService.UpdateNotebook(r.Context(), id, req.Title, req.ScopeID, req.ColSpan, req.ColHeight, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			w.WriteHeader(http.StatusNotFound)

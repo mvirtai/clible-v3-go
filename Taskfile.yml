@@ -40,7 +40,14 @@ tasks:
     dir: backend
     cmds:
       - mkdir -p ../.cov/backend
-      - go test -v -race -coverprofile=../.cov/backend/coverage.out ./internal/...
+      - |
+        bash -c '
+          (go test -v -race -coverprofile=../.cov/backend/coverage.out ./internal/... 2>&1 | tee ../.cov/backend/test_output.log; echo ${PIPESTATUS[0]} > ../.cov/backend/.exit_code) || true
+          grep -E -- "--- FAIL:|FAIL\t|FAIL:|panic:|[a-zA-Z0-9_-]+\.go:[0-9]+:" ../.cov/backend/test_output.log > ../.cov/backend/test_failures.log || true
+          EXIT_CODE=$(cat ../.cov/backend/.exit_code 2>/dev/null || echo 1)
+          rm -f ../.cov/backend/.exit_code
+          if [ "$EXIT_CODE" -ne 0 ]; then exit $EXIT_CODE; fi
+        '
       - go tool cover -func=../.cov/backend/coverage.out | tee ../.cov/backend/coverage.txt
 
   backend:test-pkg:
@@ -53,9 +60,15 @@ tasks:
         msg: "Missing PKG argument. Usage: task backend:test-pkg PKG=middleware"
     cmds:
       - mkdir -p ../.cov/backend
-      - go test -v -race -coverprofile=../.cov/backend/{{.PKG}}.out ./internal/{{.PKG}}/...
+      - |
+        bash -c '
+          (go test -v -race -coverprofile=../.cov/backend/{{.PKG}}.out ./internal/{{.PKG}}/... 2>&1 | tee ../.cov/backend/{{.PKG}}_test_output.log; echo ${PIPESTATUS[0]} > ../.cov/backend/.exit_code) || true
+          grep -E -- "--- FAIL:|FAIL\t|FAIL:|panic:|[a-zA-Z0-9_-]+\.go:[0-9]+:" ../.cov/backend/{{.PKG}}_test_output.log > ../.cov/backend/{{.PKG}}_test_failures.log || true
+          EXIT_CODE=$(cat ../.cov/backend/.exit_code 2>/dev/null || echo 1)
+          rm -f ../.cov/backend/.exit_code
+          if [ "$EXIT_CODE" -ne 0 ]; then exit $EXIT_CODE; fi
+        '
       - go tool cover -func=../.cov/backend/{{.PKG}}.out | tee ../.cov/backend/{{.PKG}}.txt
-
 
   backend:build:
     desc: Build the Go HTTP API production binary
@@ -104,14 +117,21 @@ tasks:
     desc: Run frontend unit tests and produce coverage report
     dir: frontend
     cmds:
-      - pnpm run test -- --coverage --reporter=verbose
+      - mkdir -p ../.cov/frontend
+      - |
+        bash -c '
+          (pnpm run test -- --coverage --reporter=verbose 2>&1 | tee ../.cov/frontend/test_output.log; echo ${PIPESTATUS[0]} > ../.cov/frontend/.exit_code) || true
+          grep -E -- "FAIL|ERROR|AssertionError|Test Files.*failed|×" ../.cov/frontend/test_output.log > ../.cov/frontend/test_failures.log || true
+          EXIT_CODE=$(cat ../.cov/frontend/.exit_code 2>/dev/null || echo 1)
+          rm -f ../.cov/frontend/.exit_code
+          if [ "$EXIT_CODE" -ne 0 ]; then exit $EXIT_CODE; fi
+        '
 
   frontend:test-ui:
     desc: Run frontend unit tests with Vitest UI
     dir: frontend
     cmds:
       - pnpm run test -- --coverage --reporter=html
-
 
   frontend:dev:
     desc: Run the React+Vite frontend development bin/server
@@ -150,7 +170,6 @@ tasks:
     cmds:
       - task: frontend:lint
       - task: frontend:test-cov
-
 
   # --- Git --- #
   # --- Git & GitHub Automation ---
@@ -228,23 +247,40 @@ tasks:
         FULL_MSG="${TYPE}(${SCOPE}): ${MSG}"
 
         echo "[TASK] Formatted commit message: '$FULL_MSG'"
-        echo "[TASK] Staging files: '$FILES'"
+        HAS_BACKEND=0
+        HAS_FRONTEND=0
 
-        if [ "$SCOPE" = "frontend" ] || [ "$SCOPE" = "backend" ]; then
-          echo "Scope is $SCOPE. Running target lint and tests..."
-          task "$SCOPE:lint"
-          task "$SCOPE:test"
-        elif [ "$SCOPE" = "docs" ] || [ "$SCOPE" = "doc" ]; then
-          echo "Scope is $SCOPE. Documentation change, bypassing quality checks."
-        else
-          echo "Scope is $SCOPE. Running global quality checks (task check)..."
+        if [ "$SCOPE" = "backend" ]; then HAS_BACKEND=1; fi
+        if [ "$SCOPE" = "frontend" ]; then HAS_FRONTEND=1; fi
+
+        for f in $FILES; do
+          if [[ "$f" == backend/* ]] || [ "$f" = "backend" ]; then HAS_BACKEND=1; fi
+          if [[ "$f" == frontend/* ]] || [ "$f" = "frontend" ]; then HAS_FRONTEND=1; fi
+        done
+
+        if [ "$FILES" = "." ] && [ $HAS_BACKEND -eq 0 ] && [ $HAS_FRONTEND -eq 0 ]; then
+          if [ "$SCOPE" != "docs" ] && [ "$SCOPE" != "doc" ] && [ "$SCOPE" != "plans" ] && [ "$SCOPE" != "ci" ] && [ "$SCOPE" != "setup" ] && [ "$SCOPE" != "chore" ]; then
+            HAS_BACKEND=1
+            HAS_FRONTEND=1
+          fi
+        fi
+
+        if [ $HAS_BACKEND -eq 1 ] && [ $HAS_FRONTEND -eq 1 ]; then
+          echo "Changes affect both backend and frontend. Running global quality checks..."
           task check
+        elif [ $HAS_BACKEND -eq 1 ]; then
+          echo "Changes affect backend. Running backend quality checks..."
+          task backend:check
+        elif [ $HAS_FRONTEND -eq 1 ]; then
+          echo "Changes affect frontend. Running frontend quality checks..."
+          task frontend:check
+        else
+          echo "Scope '$SCOPE' / files '$FILES' do not require backend/frontend test execution. Bypassing quality checks."
         fi
 
         git add $FILES
         git commit -m "$FULL_MSG"
         echo "[TASK] Conventional commit created successfully: '$FULL_MSG'"
-
 
   git:post-merge-branch:
     desc: Force-switch to main, hard-reset to origin/main, and delete the topic branch after PR merge
@@ -262,7 +298,6 @@ tasks:
         git branch -D "$CURRENT_BRANCH"
         git clean -fd
         echo "Post-merge cleanup completed successfully!"
-
 
   git:merge:
     desc: Squash and merge the current branch's PR on GitHub and delete the branch
@@ -307,7 +342,7 @@ tasks:
   git:new-branch:
     desc: "Create a new branch from main. USAGE: task git:new-branch FEAT_TYPE=feat/fix/ci/docs/refactor/chore/test/perf BRANCH_NAME=new-feature"
     vars:
-      BRANCH_NAME: '{{.BRANCH_NAME}}'
+      BRANCH_NAME: "{{.BRANCH_NAME}}"
       FEAT_TYPE: '{{.FEAT_TYPE | default "feat"}}'
     preconditions:
       - sh: 'test -n "{{.BRANCH_NAME}}"'
@@ -320,10 +355,18 @@ tasks:
   git:commit-all:
     desc: "Execute all staged commits defined in .git-commits.sh and clean up on success"
     preconditions:
-      - sh: 'test -f .git-commits.sh'
+      - sh: "test -f .git-commits.sh"
         msg: "No .git-commits.sh file found. Please create one with git commands first."
     cmds:
       - bash .git-commits.sh && rm .git-commits.sh
+
+  git:diff-head:
+    desc: Show all diffs from HEAD (last commit) and output the results in git-diffs.txt
+    cmds:
+      - |
+        echo "Generating diffs from HEAD (last commit) to main branch..."
+        git diff HEAD > git-diffs.txt
+        echo "Diffs generated successfully!"
 
   # --- Docker Tasks --- #
   docker:build:
@@ -353,7 +396,7 @@ tasks:
       REGISTRY: '{{.REGISTRY | default "mvirtai"}}'
       IMAGE_NAME: '{{.IMAGE_NAME | default "clible-v3"}}'
       COMMIT:
-       - sh: git rev-parse --short HEAD
+        - sh: git rev-parse --short HEAD
       TAG: '{{.COMMIT | default "latest"}}'
     preconditions:
       - sh: 'test -n "{{.COMMIT}}"'
@@ -361,16 +404,26 @@ tasks:
     cmds:
       - task: docker:tag
       - cmd: echo "Pushing {{.REGISTRY}}/{{.IMAGE_NAME}}:{{.TAG}} to DockerHub [1/2]"
-        vars: { REGISTRY: "{{.REGISTRY}}", IMAGE_NAME: "{{.IMAGE_NAME}}", TAG: "{{.TAG}}" }
+        vars:
+          {
+            REGISTRY: "{{.REGISTRY}}",
+            IMAGE_NAME: "{{.IMAGE_NAME}}",
+            TAG: "{{.TAG}}",
+          }
       - docker push {{.REGISTRY}}/{{.IMAGE_NAME}}:{{.TAG}}
       - cmd: echo "Pushing {{.REGISTRY}}/{{.IMAGE_NAME}}:latest to DockerHub [2/2]"
-        vars: { REGISTRY: "{{.REGISTRY}}", IMAGE_NAME: "{{.IMAGE_NAME}}", TAG: "{{.TAG}}" }
+        vars:
+          {
+            REGISTRY: "{{.REGISTRY}}",
+            IMAGE_NAME: "{{.IMAGE_NAME}}",
+            TAG: "{{.TAG}}",
+          }
       - docker push {{.REGISTRY}}/{{.IMAGE_NAME}}:latest
 
   docker:push-gcr:
     desc: "Build and push to Google Container Registry. Usage: task docker:push-gcr PROJECT_ID=your-project-id"
     vars:
-      PROJECT_ID: '{{.PROJECT_ID}}'
+      PROJECT_ID: "{{.PROJECT_ID}}"
       COMMIT:
         sh: git rev-parse --short HEAD
       IMAGE: "gcr.io/{{.PROJECT_ID}}/clible-v3"
@@ -388,7 +441,7 @@ tasks:
   deploy:gcr:
     desc: "Deploy to Cloud Run from GCR. Usage: task deploy:gcr PROJECT_ID=your-project-id"
     vars:
-      PROJECT_ID: '{{.PROJECT_ID}}'
+      PROJECT_ID: "{{.PROJECT_ID}}"
       IMAGE: "gcr.io/{{.PROJECT_ID}}/clible-v3:latest"
     preconditions:
       - sh: 'test -n "{{.PROJECT_ID}}"'
@@ -397,9 +450,9 @@ tasks:
       - task: docker:push-gcr
         vars: { PROJECT_ID: "{{.PROJECT_ID}}" }
       - gcloud run deploy clible-v3 \
-          --image {{.IMAGE}} \
-          --region europe-north1 \
-          --project {{.PROJECT_ID}} \
-          --allow-unauthenticated \
-          --set-env-vars "PORT=8080,ENV=production,DATABASE_URL={{.DATABASE_URL}},JWT_SECRET={{.JWT_SECRET}},GEMINI_API_KEY={{.GEMINI_API_KEY}}"
+        --image {{.IMAGE}} \
+        --region europe-north1 \
+        --project {{.PROJECT_ID}} \
+        --allow-unauthenticated \
+        --set-env-vars "PORT=8080,ENV=production,DATABASE_URL={{.DATABASE_URL}},JWT_SECRET={{.JWT_SECRET}},GEMINI_API_KEY={{.GEMINI_API_KEY}}"
       - echo "✅ Deployed to Cloud Run!"

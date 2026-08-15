@@ -249,8 +249,8 @@ func (s *NotebookService) GetNotebooksByUser(ctx context.Context, userID string)
 	return s.GetNotebooksByUserID(ctx, userID)
 }
 
-// UpdateNotebook updates a notebook's title and optional scope.
-func (s *NotebookService) UpdateNotebook(ctx context.Context, id string, title string, scopeID string, userID string) (*models.Notebook, error) {
+// UpdateNotebook updates a notebook's title, scope, colSpan, and colHeight.
+func (s *NotebookService) UpdateNotebook(ctx context.Context, id string, title string, scopeID string, colSpan int, colHeight *int, userID string) (*models.Notebook, error) {
 	if id == "" || userID == "" {
 		return nil, errors.New("notebook id and userID are required")
 	}
@@ -283,6 +283,14 @@ func (s *NotebookService) UpdateNotebook(ctx context.Context, id string, title s
 		nb.Title = title
 	}
 	nb.ScopeID = scopeID
+	if colSpan >= 6 && colSpan <= 24 {
+		nb.ColSpan = colSpan
+	} else if colSpan != 0 && nb.ColSpan == 0 {
+		nb.ColSpan = 12
+	}
+	if colHeight != nil {
+		nb.ColHeight = colHeight
+	}
 	nb.UpdatedAt = time.Now()
 
 	if err := s.repo.Update(ctx, nb); err != nil {
