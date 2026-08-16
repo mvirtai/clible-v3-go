@@ -115,6 +115,11 @@ export interface Messages {
   freezeEnabledTitle: string;
   // Additional labels
   searchResultsForQuery: string;
+  countResultsForSearch: string;
+  countVersesForRef: string;
+  countMatchSingular: string;
+  countMatchPlural: string;
+  defaultTranslationLabel: string;
   noResults: string;
   dynamicRefsFor: string;
   noRefsFound: string;
@@ -305,6 +310,11 @@ export const strings: Record<UILanguage, Messages> = {
     freezeDisabledTitle: 'Select at least one verse to freeze',
     freezeEnabledTitle: 'Convert selected verses to a Markdown cell below',
     searchResultsForQuery: 'Search results for',
+    countResultsForSearch: 'Search results for query',
+    countVersesForRef: 'Verses for reference',
+    countMatchSingular: 'hit',
+    countMatchPlural: 'hits',
+    defaultTranslationLabel: 'Default translation',
     noResults: 'No results.',
     dynamicRefsFor: 'Dynamic cross-references for',
     noRefsFound: 'No cross-references found (the passage may contain only common words).',
@@ -478,6 +488,11 @@ export const strings: Record<UILanguage, Messages> = {
     freezeDisabledTitle: 'Valitse vähintään yksi jae jäädyttääksesi',
     freezeEnabledTitle: 'Muunna valitut jaet Markdown-soluksi alla',
     searchResultsForQuery: 'Hakutulokset haulle',
+    countResultsForSearch: 'Hakutulokset kyselylle',
+    countVersesForRef: 'Jakeet viitteelle',
+    countMatchSingular: 'osuma',
+    countMatchPlural: 'osumaa',
+    defaultTranslationLabel: 'Oletuskäännös',
     noResults: 'Ei tuloksia.',
     dynamicRefsFor: 'Dynaamiset ristiinviitteet jakeelle',
     noRefsFound: 'Ei ristiinviitteitä löydetty (jae saattaa sisältää vain yleisiä sanoja).',
