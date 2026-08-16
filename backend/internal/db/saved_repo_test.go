@@ -94,4 +94,49 @@ func TestSavedRepository_SaveAndGet(t *testing.T) {
 			t.Errorf("expected ResultJSON %s, got %s", item.ResultJSON, retrieved.ResultJSON)
 		}
 	})
+
+	t.Run("successfully rename and delete saved search", func(t *testing.T) {
+		err := repo.RenameSearch(ctx, "search-1", "Uusi Nimi", "test-user-id")
+		if err != nil {
+			t.Fatalf("RenameSearch failed: %v", err)
+		}
+
+		list, _ := repo.GetSearchesByScope(ctx, "test-scope-id")
+		if len(list) != 1 || list[0].Name != "Uusi Nimi" {
+			t.Errorf("expected updated name, got %v", list)
+		}
+
+		err = repo.DeleteSearch(ctx, "search-1", "test-user-id")
+		if err != nil {
+			t.Fatalf("DeleteSearch failed: %v", err)
+		}
+
+		listAfter, _ := repo.GetSearchesByScope(ctx, "test-scope-id")
+		if len(listAfter) != 0 {
+			t.Errorf("expected 0 saved searches after delete, got %d", len(listAfter))
+		}
+	})
+
+	t.Run("successfully rename and delete saved analysis", func(t *testing.T) {
+		err := repo.RenameAnalysis(ctx, "analysis-1", "Uusi Analyysi", "test-user-id")
+		if err != nil {
+			t.Fatalf("RenameAnalysis failed: %v", err)
+		}
+
+		list, _ := repo.GetAnalysesByScope(ctx, "test-scope-id")
+		if len(list) != 1 || list[0].Name != "Uusi Analyysi" {
+			t.Errorf("expected updated name, got %v", list)
+		}
+
+		err = repo.DeleteAnalysis(ctx, "analysis-1", "test-user-id")
+		if err != nil {
+			t.Fatalf("DeleteAnalysis failed: %v", err)
+		}
+
+		listAfter, _ := repo.GetAnalysesByScope(ctx, "test-scope-id")
+		if len(listAfter) != 0 {
+			t.Errorf("expected 0 saved analyses after delete, got %d", len(listAfter))
+		}
+	})
 }
+

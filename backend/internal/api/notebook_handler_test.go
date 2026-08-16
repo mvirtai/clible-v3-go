@@ -579,3 +579,119 @@ func TestNotebookHandler_SaveCells(t *testing.T) {
 		}
 	})
 }
+
+func TestNotebookHandler_ExecuteCommand(t *testing.T) {
+	conn := setupHandlerTestDB(t)
+	defer func() { _ = conn.Close() }()
+
+	_, _ = conn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
+	_, _ = conn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21)`)
+
+	verseRepo := db.NewVerseRepository(conn)
+	translationRepo := db.NewTranslationRepository(conn)
+	notebookRepo := db.NewNotebookRepository(conn)
+	scopeRepo := db.NewScopeRepository(conn)
+
+	ctx := context.Background()
+	verses := []models.Verse{
+		{
+			ID:            "web:JHN:3:16",
+			TranslationID: "web",
+			BookID:        "JHN",
+			Chapter:       3,
+			Verse:         16,
+			Text:          "For God so loved the world, that he gave his only Son.",
+		},
+	}
+	_ = verseRepo.BulkInsert(ctx, verses)
+
+	verseService := services.NewVerseService(verseRepo, translationRepo)
+	cliService := services.NewCLIService(verseRepo, verseService)
+	notebookService := services.NewNotebookService(notebookRepo, scopeRepo, cliService)
+	handler := api.NewNotebookHandler(notebookService)
+
+	userID := uuid.New().String()
+	seedHandlerTestUser(t, conn, userID)
+
+	nb, err := notebookService.CreateNotebook(ctx, "Test Notebook", userID, "")
+	if err != nil {
+		t.Fatalf("failed to create notebook: %v", err)
+	}
+
+	cellID := uuid.New().String()
+	cells := []models.Cell{
+		{
+			ID:         cellID,
+			NotebookID: nb.ID,
+			Type:       models.CellTypeCode,
+			Content:    "@JHN 3:16",
+			Position:   0,
+		},
+	}
+	_ = notebookRepo.SaveCells(ctx, nb.ID, cells)
+
+	t.Run("successfully executes cell command", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/notebooks/"+nb.ID+"/cells/"+cellID+"/execute?translation=web", nil)
+		req.SetPathValue("id", nb.ID)
+		req.SetPathValue("cell_id", cellID)
+		req = req.WithContext(contextWithUserID(userID))
+		w := httptest.NewRecorder()
+
+		handler.ExecuteCommand(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d, body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("returns 401 when not authenticated", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/notebooks/"+nb.ID+"/cells/"+cellID+"/execute", nil)
+		req.SetPathValue("id", nb.ID)
+		req.SetPathValue("cell_id", cellID)
+		w := httptest.NewRecorder()
+
+		handler.ExecuteCommand(w, req)
+
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("expected status 401, got %d", w.Code)
+		}
+	})
+
+	t.Run("returns 405 for non-POST methods", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/notebooks/"+nb.ID+"/cells/"+cellID+"/execute", nil)
+		w := httptest.NewRecorder()
+
+		handler.ExecuteCommand(w, req)
+
+		if w.Code != http.StatusMethodNotAllowed {
+			t.Errorf("expected status 405, got %d", w.Code)
+		}
+	})
+
+	t.Run("returns 400 when missing path params", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/notebooks//cells//execute", nil)
+		req = req.WithContext(contextWithUserID(userID))
+		w := httptest.NewRecorder()
+
+		handler.ExecuteCommand(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400, got %d", w.Code)
+		}
+	})
+
+	t.Run("returns 500 when execution fails on non-existent cell", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/notebooks/"+nb.ID+"/cells/non-existent/execute", nil)
+		req.SetPathValue("id", nb.ID)
+		req.SetPathValue("cell_id", "non-existent")
+		req = req.WithContext(contextWithUserID(userID))
+		w := httptest.NewRecorder()
+
+		handler.ExecuteCommand(w, req)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Errorf("expected status 500, got %d", w.Code)
+		}
+	})
+}
+
