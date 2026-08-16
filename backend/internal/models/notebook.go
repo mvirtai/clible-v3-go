@@ -41,7 +41,13 @@ type Cell struct {
 	UpdatedAt  time.Time       `json:"updatedAt"`
 }
 
+type ThemeItem struct {
+	Word  string `json:"word"`
+	Count int    `json:"count"`
+}
+
 type CLIResult struct {
 	Type string                 `json:"type"`
 	Data map[string]interface{} `json:"data"`
 }
+
