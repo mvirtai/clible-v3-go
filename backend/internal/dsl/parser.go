@@ -125,9 +125,34 @@ func (p *Parser) parsePrimary() (Node, error) {
 			return nil, errors.New("expected search query after '?'")
 		}
 		p.next()
+
+		scopeBook := ""
+		if p.current().Type == TokenAt {
+			p.next()
+			var sb strings.Builder
+			for {
+				cur := p.current()
+				if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon {
+					if cur.Type == TokenColon || (sb.Len() > 0 && sb.String()[sb.Len()-1] == ':') {
+						sb.WriteString(cur.Literal)
+					} else {
+						if sb.Len() > 0 {
+							sb.WriteString(" ")
+						}
+						sb.WriteString(cur.Literal)
+					}
+					p.next()
+				} else {
+					break
+				}
+			}
+			scopeBook = sb.String()
+		}
+
 		return &SearchNode{
-			Query:   queryTok.Literal,
-			IsRegex: queryTok.Type == TokenRegex,
+			Query:     queryTok.Literal,
+			IsRegex:   queryTok.Type == TokenRegex,
+			ScopeBook: scopeBook,
 		}, nil
 
 	case TokenCaret:

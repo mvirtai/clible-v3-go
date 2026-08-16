@@ -22,11 +22,15 @@ func (m *mockVerseFetcher) GetVerses(_ context.Context, ref, translationID strin
 }
 
 type mockVerseSearcher struct {
-	results []models.Verse
-	err     error
+	results   []models.Verse
+	err       error
+	lastScope string
+	lastValue string
 }
 
-func (m *mockVerseSearcher) SearchVerses(_ context.Context, _ string, _ bool, _ string, _, _ string) ([]models.Verse, error) {
+func (m *mockVerseSearcher) SearchVerses(_ context.Context, _ string, _ bool, _ string, searchScope, scopeValue string) ([]models.Verse, error) {
+	m.lastScope = searchScope
+	m.lastValue = scopeValue
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -303,6 +307,38 @@ func TestDSLExecutor(t *testing.T) {
 		}
 		if resRef.Data["target_type"] != "reference" {
 			t.Errorf("expected target_type 'reference', got %v", resRef.Data["target_type"])
+		}
+
+		// 4. Scoped Search with count: ? armo @Room => web => count
+		nodeScoped, err := Parse(`? armo @Room => web => count`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resScoped, err := Execute(ctx, nodeScoped)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resScoped.Type != "count" {
+			t.Errorf("expected type 'count', got %q", resScoped.Type)
+		}
+		if resScoped.Data["scope_book"] != "Room" {
+			t.Errorf("expected scope_book 'Room', got %v", resScoped.Data["scope_book"])
+		}
+		if searcher.lastScope != "book" || searcher.lastValue != "ROM" {
+			t.Errorf("expected searcher scope ('book', 'ROM'), got (%q, %q)", searcher.lastScope, searcher.lastValue)
+		}
+
+		// 5. Scoped Search with testament NT/UT: ? "love" @UT
+		nodeUT, err := Parse(`? "love" @UT`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		_, err = Execute(ctx, nodeUT)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if searcher.lastScope != "nt" {
+			t.Errorf("expected searcher scope 'nt', got %q", searcher.lastScope)
 		}
 	})
 

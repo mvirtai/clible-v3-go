@@ -127,6 +127,32 @@ func TestDSLParser_ValidExpressions(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:  "Scoped Search with Book Scope",
+			input: "? armo @Room",
+			validate: func(t *testing.T, node Node) {
+				search, ok := node.(*SearchNode)
+				if !ok {
+					t.Fatalf("expected *SearchNode, got %T", node)
+				}
+				if search.Query != "armo" || search.ScopeBook != "Room" || search.IsRegex {
+					t.Errorf("expected SearchNode(armo, ScopeBook=Room), got %#v", search)
+				}
+			},
+		},
+		{
+			name:  "Scoped Regex Search with Multi-token Book Scope",
+			input: "? /opetuslaps.*/ @1. Kor",
+			validate: func(t *testing.T, node Node) {
+				search, ok := node.(*SearchNode)
+				if !ok {
+					t.Fatalf("expected *SearchNode, got %T", node)
+				}
+				if search.Query != "opetuslaps.*" || search.ScopeBook != "1. Kor" || !search.IsRegex {
+					t.Errorf("expected SearchNode(opetuslaps.*, ScopeBook=1. Kor, IsRegex=true), got %#v", search)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -149,6 +175,7 @@ func TestParser_CountAction(t *testing.T) {
 	}{
 		{`? /opetuslaps.*/ => count`},
 		{`? "rakkaus" => KR92 => count`},
+		{`? armo @Room => KR92 => count`},
 		{`@Joh 3 => count`},
 	}
 

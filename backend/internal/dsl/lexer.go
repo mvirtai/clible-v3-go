@@ -118,6 +118,10 @@ func (l *Lexer) readNumber() Token {
 		sb.WriteRune(l.input[l.pos])
 		l.pos++
 	}
+	if l.pos < len(l.input) && l.input[l.pos] == '.' {
+		sb.WriteRune('.')
+		l.pos++
+	}
 	return Token{Type: TokenNumber, Literal: sb.String(), Pos: startPos}
 }
 
@@ -146,5 +150,5 @@ func (l *Lexer) readRegex() Token {
 }
 
 func isIdentRune(r rune) bool {
-	return unicode.IsLetter(r) || r == '_' || r == 'ä' || r == 'ö' || r == 'å' || r == 'Ä' || r == 'Ö' || r == 'Å'
+	return unicode.IsLetter(r) || r == '_' || r == '.' || r == 'ä' || r == 'ö' || r == 'å' || r == 'Ä' || r == 'Ö' || r == 'Å'
 }
