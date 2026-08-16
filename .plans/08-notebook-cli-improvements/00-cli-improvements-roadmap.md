@@ -60,5 +60,9 @@ Tulevissa PR-vaiheissa samaa solukohdennusmoottoria hyödynnetään seuraavissa 
 - [`03-cli-cell-freeze-and-magic-links-refactoring.md`](file:///home/vivaldev/code/clible-v3-go/.plans/08-notebook-cli-improvements/03-cli-cell-freeze-and-magic-links-refactoring.md): CLI-solujen tulosten pakastus (Freeze) ja taikalinkkien refaktorointi.
 - [`04-unified-hybrid-cell-and-dsl-syntax-architecture.md`](file:///home/vivaldev/code/clible-v3-go/.plans/08-notebook-cli-improvements/04-unified-hybrid-cell-and-dsl-syntax-architecture.md): Yhdistetty hybridi-solu ja uusi Clible Magic DSL -syntaksi (`@`, `=>`, `? :`, `^`).
 - [`05-step-by-step-phase-1-dsl-lexer-parser.md`](file:///home/vivaldev/code/clible-v3-go/.plans/08-notebook-cli-improvements/05-step-by-step-phase-1-dsl-lexer-parser.md): Step-by-Step toteutusopas: Vaihe 1 – DSL Lexer, AST Parser & Backend Execution Engine.
+- [`05A-dsl-lexer-ja-kielioppiopas.md`](file:///home/vivaldev/code/clible-v3-go/.plans/08-notebook-cli-improvements/05A-dsl-lexer-ja-kielioppiopas.md): Clible Magic DSL: Lexer-arkkitehtuuri ja Kielioppiopas (opettavainen katsaus Go-käsitteisiin ja tokenisointiin).
+- [`05B-clible-magic-dsl-kielioppi-ja-kokonaisarkkitehtuuri.md`](file:///home/vivaldev/code/clible-v3-go/.plans/08-notebook-cli-improvements/05B-clible-magic-dsl-kielioppi-ja-kokonaisarkkitehtuuri.md): Clible Magic DSL: Kielioppi ja Kokonaisarkkitehtuuri (kooste tietovirrasta ja AST-jäsennyksestä).
+
+
 
 
