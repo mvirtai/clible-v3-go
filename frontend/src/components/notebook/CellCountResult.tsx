@@ -7,6 +7,7 @@ export interface CountResultData {
   query?: string;
   reference?: string;
   is_regex?: boolean;
+  scope_book?: string;
   count: number;
   translation?: string;
 }
@@ -31,6 +32,11 @@ export const CellCountResult: React.FC<CountResultProps> = ({ data }) => {
               <code className="px-1.5 py-0.5 rounded bg-black/40 text-amber-200 font-mono">
                 {data.is_regex ? `/${data.query}/` : `"${data.query}"`}
               </code>
+              {data.scope_book && (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-xs font-semibold">
+                  @{data.scope_book}
+                </span>
+              )}
             </span>
           ) : (
             <span>

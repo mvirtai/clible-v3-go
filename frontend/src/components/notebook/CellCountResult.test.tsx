@@ -96,4 +96,30 @@ describe('CellCountResult', () => {
     expect(content).toContain('1');
     expect(content).toContain('osuma');
   });
+
+  it('renders search count result with book scope correctly', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CellCountResult
+            data={{
+              target_type: 'search',
+              query: 'armo',
+              is_regex: false,
+              scope_book: 'Room',
+              count: 24,
+              translation: 'KR92',
+            }}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const content = container?.textContent || '';
+    expect(content).toContain('"armo"');
+    expect(content).toContain('@Room');
+    expect(content).toContain('24');
+    expect(content).toContain('osumaa');
+  });
 });
