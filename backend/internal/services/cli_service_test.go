@@ -369,4 +369,155 @@ func TestCLIService_ExecuteCommand(t *testing.T) {
 			t.Errorf("expected keywords to include 'faith', but got: %v", kws)
 		}
 	})
+
+	// Test 6: Execute `/themes`
+	t.Run("execute /themes", func(t *testing.T) {
+		cmd := services.ParseCLICommand("/themes --limit=3")
+		res, err := cliService.ExecuteCommand(ctx, cmd, "web", "Rakkaus ja armo ovat Jumalan suuria lahjoja ihmisille.")
+		if err != nil {
+			t.Fatalf("execute /themes failed: %v", err)
+		}
+		if res.Type != "themes" {
+			t.Errorf("expected result type 'themes', got %s", res.Type)
+		}
+		data := res.Data
+		themes, ok := data["themes"].([]services.ThemeItem)
+		if !ok {
+			t.Fatalf("expected []services.ThemeItem, got %T", data["themes"])
+		}
+		if len(themes) == 0 {
+			t.Errorf("expected themes, got 0")
+		}
+		if data["limit"] != 3 {
+			t.Errorf("expected limit 3, got %v", data["limit"])
+		}
+
+		// Empty context test
+		resEmpty, err := cliService.ExecuteCommand(ctx, cmd, "web", "")
+		if err != nil {
+			t.Fatalf("execute /themes with empty context failed: %v", err)
+		}
+		if resEmpty.Type != "themes" {
+			t.Errorf("expected result type 'themes', got %s", resEmpty.Type)
+		}
+	})
 }
+
+func TestCLIService_ExecuteDSL(t *testing.T) {
+	conn := setupCLITestDB(t)
+	defer func() { _ = conn.Close() }()
+
+	verseRepo := db.NewVerseRepository(conn)
+	translationRepo := db.NewTranslationRepository(conn)
+
+	ctx := context.Background()
+
+	// Seed test verses
+	verses := []models.Verse{
+		{
+			ID:            "web:JHN:3:16",
+			TranslationID: "web",
+			BookID:        "JHN",
+			Chapter:       3,
+			Verse:         16,
+			Text:          "For God so loved the world, that he gave his only Son.",
+		},
+		{
+			ID:            "web:ROM:5:8",
+			TranslationID: "web",
+			BookID:        "ROM",
+			Chapter:       5,
+			Verse:         8,
+			Text:          "But God commends his own love toward the world, in that while we were yet sinners, Christ died for us.",
+		},
+	}
+	if err := verseRepo.BulkInsert(ctx, verses); err != nil {
+		t.Fatalf("failed to seed test verses: %v", err)
+	}
+
+	verseService := services.NewVerseService(verseRepo, translationRepo)
+	cliService := services.NewCLIService(verseRepo, verseService)
+
+	t.Run("execute verse reference @JHN 3:16", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(ctx, "@JHN 3:16", "web", "")
+		if err != nil {
+			t.Fatalf("ExecuteDSL failed: %v", err)
+		}
+		if res.Type != "read" {
+			t.Errorf("expected type 'read', got %s", res.Type)
+		}
+		data := res.Data
+		if data["reference"] != "JHN 3:16" {
+			t.Errorf("expected reference 'JHN 3:16', got %v", data["reference"])
+		}
+		versesList, ok := data["verses"].([]models.Verse)
+		if !ok || len(versesList) != 1 {
+			t.Fatalf("expected 1 verse, got %v", data["verses"])
+		}
+		if versesList[0].Text != verses[0].Text {
+			t.Errorf("verse text mismatch: got %q, expected %q", versesList[0].Text, verses[0].Text)
+		}
+	})
+
+	t.Run("execute search query ? \"sinners\"", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(ctx, `? "sinners"`, "web", "")
+		if err != nil {
+			t.Fatalf("ExecuteDSL search failed: %v", err)
+		}
+		if res.Type != "search" {
+			t.Errorf("expected type 'search', got %s", res.Type)
+		}
+		data := res.Data
+		if data["query"] != "sinners" {
+			t.Errorf("expected query 'sinners', got %v", data["query"])
+		}
+		versesList, ok := data["verses"].([]models.Verse)
+		if !ok || len(versesList) != 1 {
+			t.Fatalf("expected 1 verse, got %d", len(versesList))
+		}
+		if versesList[0].BookID != "ROM" {
+			t.Errorf("expected ROM book, got %s", versesList[0].BookID)
+		}
+	})
+
+	t.Run("execute scope themes ^1 => #themes", func(t *testing.T) {
+		contextText := "Rakkaus ja armo ovat Jumalan lahjoja."
+		res, err := cliService.ExecuteDSL(ctx, "^1 => #themes", "web", contextText)
+		if err != nil {
+			t.Fatalf("ExecuteDSL themes failed: %v", err)
+		}
+		if res.Type != "themes" {
+			t.Errorf("expected type 'themes', got %s", res.Type)
+		}
+		data := res.Data
+		themes, ok := data["themes"].([]models.ThemeItem)
+		if !ok {
+			t.Fatalf("expected themes slice, got %T", data["themes"])
+		}
+		if len(themes) == 0 {
+			t.Errorf("expected themes to be extracted, got 0")
+		}
+	})
+
+	t.Run("execute comparison @JHN 3:16 ? web : web", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(ctx, "@JHN 3:16 ? web : web", "web", "")
+		if err != nil {
+			t.Fatalf("ExecuteDSL comparison failed: %v", err)
+		}
+		if res.Type != "compare" {
+			t.Errorf("expected type 'compare', got %s", res.Type)
+		}
+		data := res.Data
+		if data["reference"] != "JHN 3:16" {
+			t.Errorf("expected reference 'JHN 3:16', got %v", data["reference"])
+		}
+	})
+
+	t.Run("invalid DSL syntax returns error", func(t *testing.T) {
+		_, err := cliService.ExecuteDSL(ctx, "@", "web", "")
+		if err == nil {
+			t.Errorf("expected parse error for invalid DSL, got nil")
+		}
+	})
+}
+

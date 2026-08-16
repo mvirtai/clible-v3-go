@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/dsl"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
 
@@ -21,6 +22,32 @@ type ThemeItem struct {
 }
 
 var nonAlphaRegex = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
+
+// ExecuteDSL parses and executes a Clible Magic DSL expression.
+func (s *CLIService) ExecuteDSL(ctx context.Context, input string, defaultTrans string, contextText string) (*models.CLIResult, error) {
+	node, err := dsl.Parse(input)
+	if err != nil {
+		return nil, fmt.Errorf("DSL parse error: %w", err)
+	}
+
+	execCtx := &dsl.ExecutionContext{
+		Ctx:           ctx,
+		DefaultTrans:  defaultTrans,
+		ContextText:   contextText,
+		VerseFetcher:  s.verseService,
+		VerseSearcher: s.verseService,
+		ThemeExtractor: func(text string, limit int) []models.ThemeItem {
+			items := ExtractThemes(text, limit)
+			var res []models.ThemeItem
+			for _, item := range items {
+				res = append(res, models.ThemeItem{Word: item.Word, Count: item.Count})
+			}
+			return res
+		},
+	}
+
+	return dsl.Execute(execCtx, node)
+}
 
 // ExtractThemes analyzes text, remove stopwords and returns the most common words with their frequencies.
 func ExtractThemes(text string, limit int) []ThemeItem {
