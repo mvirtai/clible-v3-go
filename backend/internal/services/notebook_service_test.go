@@ -696,3 +696,148 @@ func TestResolveCellContext(t *testing.T) {
 	})
 }
 
+func TestNotebookService_ExecuteCellCommand(t *testing.T) {
+	conn := setupTestDB(t)
+	defer func() { _ = conn.Close() }()
+
+	// Seed required lookups
+	_, _ = conn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
+	_, _ = conn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21)`)
+
+	verseRepo := db.NewVerseRepository(conn)
+	translationRepo := db.NewTranslationRepository(conn)
+	notebookRepo := db.NewNotebookRepository(conn)
+	scopeRepo := db.NewScopeRepository(conn)
+
+	ctx := context.Background()
+
+	// Seed test verse
+	verses := []models.Verse{
+		{
+			ID:            "web:JHN:3:16",
+			TranslationID: "web",
+			BookID:        "JHN",
+			Chapter:       3,
+			Verse:         16,
+			Text:          "For God so loved the world, that he gave his only Son.",
+		},
+	}
+	if err := verseRepo.BulkInsert(ctx, verses); err != nil {
+		t.Fatalf("failed to seed test verses: %v", err)
+	}
+
+	verseService := services.NewVerseService(verseRepo, translationRepo)
+	cliService := services.NewCLIService(verseRepo, verseService)
+	notebookService := services.NewNotebookService(notebookRepo, scopeRepo, cliService)
+
+	userID := uuid.New().String()
+	seedUser(t, conn, userID)
+
+	nb, err := notebookService.CreateNotebook(ctx, "DSL Test Notebook", userID, "")
+	if err != nil {
+		t.Fatalf("failed to create notebook: %v", err)
+	}
+
+	t.Run("executes DSL verse reference cell", func(t *testing.T) {
+		cellID := uuid.New().String()
+		cells := []models.Cell{
+			{
+				ID:         cellID,
+				NotebookID: nb.ID,
+				Type:       models.CellTypeCode,
+				Content:    "@JHN 3:16",
+				Position:   0,
+			},
+		}
+		if err := notebookRepo.SaveCells(ctx, nb.ID, cells); err != nil {
+			t.Fatalf("failed to save cell: %v", err)
+		}
+
+		res, err := notebookService.ExecuteCellCommand(ctx, nb.ID, cellID, userID, "web")
+		if err != nil {
+			t.Fatalf("ExecuteCellCommand failed for DSL verse ref: %v", err)
+		}
+		if res.Type != "read" {
+			t.Errorf("expected type 'read', got %s", res.Type)
+		}
+	})
+
+	t.Run("executes DSL search cell", func(t *testing.T) {
+		cellID := uuid.New().String()
+		cells := []models.Cell{
+			{
+				ID:         cellID,
+				NotebookID: nb.ID,
+				Type:       models.CellTypeCode,
+				Content:    `? "loved"`,
+				Position:   0,
+			},
+		}
+		if err := notebookRepo.SaveCells(ctx, nb.ID, cells); err != nil {
+			t.Fatalf("failed to save cell: %v", err)
+		}
+
+		res, err := notebookService.ExecuteCellCommand(ctx, nb.ID, cellID, userID, "web")
+		if err != nil {
+			t.Fatalf("ExecuteCellCommand failed for DSL search: %v", err)
+		}
+		if res.Type != "search" {
+			t.Errorf("expected type 'search', got %s", res.Type)
+		}
+	})
+
+	t.Run("executes DSL scope cell", func(t *testing.T) {
+		cellID1 := uuid.New().String()
+		cellID2 := uuid.New().String()
+		cells := []models.Cell{
+			{
+				ID:         cellID1,
+				NotebookID: nb.ID,
+				Type:       models.CellTypeMarkdown,
+				Content:    "Rakkaus ja armo täyttävät sydämen.",
+				Position:   0,
+			},
+			{
+				ID:         cellID2,
+				NotebookID: nb.ID,
+				Type:       models.CellTypeCode,
+				Content:    "^1 => #themes",
+				Position:   1,
+			},
+		}
+		if err := notebookRepo.SaveCells(ctx, nb.ID, cells); err != nil {
+			t.Fatalf("failed to save cells: %v", err)
+		}
+
+		res, err := notebookService.ExecuteCellCommand(ctx, nb.ID, cellID2, userID, "web")
+		if err != nil {
+			t.Fatalf("ExecuteCellCommand failed for DSL scope: %v", err)
+		}
+		if res.Type != "themes" {
+			t.Errorf("expected type 'themes', got %s", res.Type)
+		}
+	})
+
+	t.Run("rejects unsupported cell content format", func(t *testing.T) {
+		cellID := uuid.New().String()
+		cells := []models.Cell{
+			{
+				ID:         cellID,
+				NotebookID: nb.ID,
+				Type:       models.CellTypeCode,
+				Content:    "invalid cell content",
+				Position:   0,
+			},
+		}
+		if err := notebookRepo.SaveCells(ctx, nb.ID, cells); err != nil {
+			t.Fatalf("failed to save cell: %v", err)
+		}
+
+		_, err := notebookService.ExecuteCellCommand(ctx, nb.ID, cellID, userID, "web")
+		if err == nil {
+			t.Errorf("expected error for unsupported cell content, got nil")
+		}
+	})
+}
+
+

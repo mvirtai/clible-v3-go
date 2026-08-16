@@ -404,30 +404,55 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 		return nil, errors.New("cannot execute non-code cells")
 	}
 
-	// 3. Parse command using custom ParseCLICommand
-	cmd := ParseCLICommand(targetCell.Content)
-	if cmd == nil {
-		return nil, errors.New("invalid CLI command format (must start with '/')")
-	}
+	// 3. Parse and execute either Clible Magic DSL or traditional slash command
+	trimmedContent := strings.TrimSpace(targetCell.Content)
+	var cliResult *models.CLIResult
 
-	// 4. Collect context text for /suggest and /themes using cell scoping engine
-	var contextText string
-	if cmd.Name == "/suggest" || cmd.Name == "/themes" {
-		contextText = ResolveCellContext(notebook.Cells, cellID, cmd)
-	}
-
-	// 5. Execute parsed command using CLIService
-	cliResult, err := s.cliService.ExecuteCommand(ctx, cmd, translationID, contextText)
-	if err != nil {
-		cliResult = &models.CLIResult{
-			Type: "error",
-			Data: map[string]interface{}{
-				"message": err.Error(),
-			},
+	if strings.HasPrefix(trimmedContent, "@") || strings.HasPrefix(trimmedContent, "?") || strings.HasPrefix(trimmedContent, "^") {
+		// 1. Clible Magic DSL execution
+		var contextText string
+		if strings.HasPrefix(trimmedContent, "^") {
+			contextText = ResolveCellContext(notebook.Cells, cellID, &CLICommand{Name: "/themes"})
 		}
+		res, err := s.cliService.ExecuteDSL(ctx, trimmedContent, translationID, contextText)
+		if err != nil {
+			cliResult = &models.CLIResult{
+				Type: "error",
+				Data: map[string]interface{}{
+					"message": err.Error(),
+				},
+			}
+		} else {
+			cliResult = res
+		}
+	} else if strings.HasPrefix(trimmedContent, "/") {
+		// 2. Traditional Slash command execution
+		cmd := ParseCLICommand(trimmedContent)
+		if cmd == nil {
+			return nil, errors.New("invalid CLI command format (must start with '/')")
+		}
+
+		var contextText string
+		if cmd.Name == "/suggest" || cmd.Name == "/themes" {
+			contextText = ResolveCellContext(notebook.Cells, cellID, cmd)
+		}
+
+		res, err := s.cliService.ExecuteCommand(ctx, cmd, translationID, contextText)
+		if err != nil {
+			cliResult = &models.CLIResult{
+				Type: "error",
+				Data: map[string]interface{}{
+					"message": err.Error(),
+				},
+			}
+		} else {
+			cliResult = res
+		}
+	} else {
+		return nil, errors.New("unsupported cell content format (must start with '@', '?', '^', or '/')")
 	}
 
-	// 6. Serialize result to JSON and save back to the repository
+	// 4. Serialize result to JSON and save back to the repository
 	resultBytes, err := json.Marshal(cliResult)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal result: %w", err)
@@ -441,3 +466,4 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 
 	return cliResult, nil
 }
+
