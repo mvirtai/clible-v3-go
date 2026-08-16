@@ -143,6 +143,31 @@ func TestDSLParser_ValidExpressions(t *testing.T) {
 	}
 }
 
+func TestParser_CountAction(t *testing.T) {
+	tests := []struct {
+		input string
+	}{
+		{`? /opetuslaps.*/ => count`},
+		{`? "rakkaus" => KR92 => count`},
+		{`@Joh 3 => count`},
+	}
+
+	for _, tt := range tests {
+		node, err := Parse(tt.input)
+		if err != nil {
+			t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+		}
+		pipe, ok := node.(*PipeNode)
+		if !ok {
+			t.Fatalf("expected *PipeNode, got %T", node)
+		}
+		action, ok := pipe.Right.(*ActionNode)
+		if !ok || action.Kind != "count" {
+			t.Fatalf("expected Right to be count ActionNode, got %+v", pipe.Right)
+		}
+	}
+}
+
 func TestDSLParser_InvalidExpressions(t *testing.T) {
 	invalidInputs := []string{
 		"@",                        // Empty verse reference

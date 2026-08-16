@@ -169,13 +169,20 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 	if tok.Type == TokenIdent {
 		val := tok.Literal
 		p.next()
-		// Check for specific known key-value options like limit:5
+		// 1. Key-value option, e.g. limit:5
 		if val == "limit" && p.current().Type == TokenColon {
 			p.next()
 			argVal := p.current().Literal
 			p.next()
 			return &ActionNode{Kind: val, Value: argVal}, nil
 		}
+
+		// 2. Special functions and aggregates. E.g. => count
+		if val == "count" {
+			return &ActionNode{Kind: "count"}, nil
+		}
+
+		// 3. TranslationID as default. E.g. KR92 or KJV
 		return &ActionNode{Kind: "translation", Value: val}, nil
 	}
 

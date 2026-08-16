@@ -247,6 +247,65 @@ func TestDSLExecutor(t *testing.T) {
 		}
 	})
 
+	t.Run("Execute Count Action", func(t *testing.T) {
+		// 1. Direct Search count: ? /opetuslaps.*/ => count
+		nodeSearch, err := Parse(`? /opetuslaps.*/ => count`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resSearch, err := Execute(ctx, nodeSearch)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resSearch.Type != "count" {
+			t.Errorf("expected type 'count', got %q", resSearch.Type)
+		}
+		if resSearch.Data["count"] != 2 {
+			t.Errorf("expected count 2, got %v", resSearch.Data["count"])
+		}
+		if resSearch.Data["target_type"] != "search" {
+			t.Errorf("expected target_type 'search', got %v", resSearch.Data["target_type"])
+		}
+
+		// 2. Search with translation piped to count: ? "love" => web => count
+		nodeSearchTrans, err := Parse(`? "love" => web => count`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resSearchTrans, err := Execute(ctx, nodeSearchTrans)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resSearchTrans.Type != "count" {
+			t.Errorf("expected type 'count', got %q", resSearchTrans.Type)
+		}
+		if resSearchTrans.Data["count"] != 2 {
+			t.Errorf("expected count 2, got %v", resSearchTrans.Data["count"])
+		}
+		if resSearchTrans.Data["translation"] != "web" {
+			t.Errorf("expected translation 'web', got %v", resSearchTrans.Data["translation"])
+		}
+
+		// 3. Verse reference count: @Joh 3:16 => count
+		nodeRef, err := Parse(`@Joh 3:16 => count`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resRef, err := Execute(ctx, nodeRef)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resRef.Type != "count" {
+			t.Errorf("expected type 'count', got %q", resRef.Type)
+		}
+		if resRef.Data["count"] != 1 {
+			t.Errorf("expected count 1, got %v", resRef.Data["count"])
+		}
+		if resRef.Data["target_type"] != "reference" {
+			t.Errorf("expected target_type 'reference', got %v", resRef.Data["target_type"])
+		}
+	})
+
 	t.Run("Error handling and missing dependencies", func(t *testing.T) {
 		// Missing VerseFetcher
 		noFetcherCtx := &ExecutionContext{Ctx: context.Background(), DefaultTrans: "web"}

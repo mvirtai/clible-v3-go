@@ -113,9 +113,13 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 }
 
 func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) {
-	action, ok := n.Right.(*ActionNode)
-	if !ok {
+	action, isAction := n.Right.(*ActionNode)
+	if !isAction {
 		return nil, fmt.Errorf("pipeline target must be an action, got %T", n.Right)
+	}
+
+	if action.Kind == "count" {
+		return executeCountPipe(ctx, n.Left)
 	}
 
 	switch src := n.Left.(type) {
@@ -151,6 +155,72 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 
 	default:
 		return nil, fmt.Errorf("unsupported pipeline source type: %T", n.Left)
+	}
+}
+
+func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, error) {
+	switch target := left.(type) {
+	case *SearchNode:
+		if ctx.VerseSearcher == nil {
+			return nil, errors.New("verse searcher dependency not configured")
+		}
+		verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, target.Query, target.IsRegex, ctx.DefaultTrans, "", "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to search verses for count: %w", err)
+		}
+		return &models.CLIResult{
+			Type: "count",
+			Data: map[string]interface{}{
+				"target_type": "search",
+				"query":       target.Query,
+				"is_regex":    target.IsRegex,
+				"count":       len(verses),
+				"translation": ctx.DefaultTrans,
+			},
+		}, nil
+
+	case *VerseRefNode:
+		if ctx.VerseFetcher == nil {
+			return nil, errors.New("verse fetcher dependency not configured")
+		}
+		verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, target.Reference, ctx.DefaultTrans)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch verses for count: %w", err)
+		}
+		return &models.CLIResult{
+			Type: "count",
+			Data: map[string]interface{}{
+				"target_type": "reference",
+				"reference":   target.Reference,
+				"count":       len(verses),
+				"translation": ctx.DefaultTrans,
+			},
+		}, nil
+
+	case *PipeNode:
+		// Jos ketjutettu: ? /armo.*/ => KR92 => count
+		if transAction, ok := target.Right.(*ActionNode); ok && transAction.Kind == "translation" {
+			if searchNode, isSearch := target.Left.(*SearchNode); isSearch {
+				verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, searchNode.Query, searchNode.IsRegex, transAction.Value, "", "")
+				if err != nil {
+					return nil, fmt.Errorf("failed to search verses for count: %w", err)
+				}
+				return &models.CLIResult{
+					Type: "count",
+					Data: map[string]interface{}{
+						"target_type": "search",
+						"query":       searchNode.Query,
+						"is_regex":    searchNode.IsRegex,
+						"count":       len(verses),
+						"translation": transAction.Value,
+					},
+				}, nil
+			}
+		}
+		return nil, fmt.Errorf("unsupported piped count target: %T", target)
+
+	default:
+		return nil, fmt.Errorf("cannot count elements for node type %T", left)
 	}
 }
 

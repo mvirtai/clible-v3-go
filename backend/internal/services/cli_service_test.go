@@ -513,6 +513,23 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 		}
 	})
 
+	t.Run("execute count modifier ? \"sinners\" => count", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(ctx, `? "sinners" => count`, "web", "")
+		if err != nil {
+			t.Fatalf("ExecuteDSL count failed: %v", err)
+		}
+		if res.Type != "count" {
+			t.Errorf("expected type 'count', got %s", res.Type)
+		}
+		data := res.Data
+		if data["count"] != 1 {
+			t.Errorf("expected count 1, got %v", data["count"])
+		}
+		if data["target_type"] != "search" {
+			t.Errorf("expected target_type 'search', got %v", data["target_type"])
+		}
+	})
+
 	t.Run("invalid DSL syntax returns error", func(t *testing.T) {
 		_, err := cliService.ExecuteDSL(ctx, "@", "web", "")
 		if err == nil {
