@@ -45,9 +45,9 @@ func (d *dummyNode) String() string { return "dummy" }
 func TestDSLExecutor(t *testing.T) {
 	fetcher := &mockVerseFetcher{
 		verses: map[string][]models.Verse{
-			"Joh 3:16@KR92": {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "Sillä niin on Jumala maailmaa rakastanut"}},
-			"Joh 3:16@KJV":  {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world"}},
-			"Joh 3:16@web":  {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world (WEB)"}},
+			"Joh 3:16@fin-1992": {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "Sillä niin on Jumala maailmaa rakastanut"}},
+			"Joh 3:16@kjv":      {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world"}},
+			"Joh 3:16@web":      {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world (WEB)"}},
 		},
 	}
 	searcher := &mockVerseSearcher{

@@ -54,8 +54,10 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 		return nil, fmt.Errorf("failed to parse reference via engine: %w", err)
 	}
 
-	//  2. Resolve fallback translation id if the frontend did not provide an explicit ID.
-	tid := translationID
+	// 2. Resolve translation alias (e.g. KR92 -> fin-1992, KJV -> kjv)
+	tid := parser.ResolveTranslationID(translationID)
+
+	// 3. Resolve fallback translation id if the frontend did not provide an explicit ID.
 	if tid == "" {
 		// Fetch all installed translations and select the first one as default
 		userID, ok := ctxkeys.GetUserID(ctx)
@@ -90,7 +92,7 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 		}
 	}
 
-	// 3. Coordinate data retrieval based on the resolved query scope.
+	// 4. Coordinate data retrieval based on the resolved query scope.
 	switch parsed.Scope {
 	case parser.ScopeVerse:
 		return s.verseRepo.GetByReference(ctx, tid, parsed.BookName, parsed.Chapter, parsed.VerseStart, parsed.VerseEnd)
@@ -107,25 +109,30 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 // When useRegex is true, the query is treated as a Go regexp pattern applied
 // against a full table scan. When false, FTS5 MATCH is used for fast full-text search.
 func (s *VerseService) SearchVerses(ctx context.Context, query string, useRegex bool, translationID string, searchScope string, scopeValue string) ([]models.Verse, error) {
+	tid := parser.ResolveTranslationID(translationID)
+	if tid == "" {
+		tid = "web"
+	}
+
 	// Verify accessibility of the translation ID
 	userID, ok := ctxkeys.GetUserID(ctx)
 	if ok {
-		accessible, err := s.translationRepo.IsAccessible(ctx, userID, translationID)
+		accessible, err := s.translationRepo.IsAccessible(ctx, userID, tid)
 		if err != nil {
 			return nil, fmt.Errorf("failed to verify translation accessibility: %w", err)
 		}
 		if !accessible {
-			return nil, fmt.Errorf("translation %q is not accessible", translationID)
+			return nil, fmt.Errorf("translation %q is not accessible", tid)
 		}
 	} else {
 		// If not authenticated, restrict to fixed preset (web only)
-		if translationID != "web" {
-			return nil, fmt.Errorf("translation %q is not accessible", translationID)
+		if tid != "web" {
+			return nil, fmt.Errorf("translation %q is not accessible", tid)
 		}
 	}
 
 	params := db.SearchParams{
-		TranslationID: translationID,
+		TranslationID: tid,
 		SearchScope:   searchScope,
 		ScopeValue:    scopeValue,
 	}

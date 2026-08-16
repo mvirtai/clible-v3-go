@@ -62,9 +62,9 @@ func executeVerseRef(ctx *ExecutionContext, n *VerseRefNode, transID string) (*m
 		return nil, errors.New("verse fetcher dependency is not configured")
 	}
 
-	tid := transID
+	tid := parsers.ResolveTranslationID(transID)
 	if tid == "" {
-		tid = ctx.DefaultTrans
+		tid = parsers.ResolveTranslationID(ctx.DefaultTrans)
 	}
 
 	verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.Reference, tid)
@@ -102,9 +102,9 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 		return nil, errors.New("verse searcher dependency not configured")
 	}
 
-	tid := transID
+	tid := parsers.ResolveTranslationID(transID)
 	if tid == "" {
-		tid = ctx.DefaultTrans
+		tid = parsers.ResolveTranslationID(ctx.DefaultTrans)
 	}
 
 	searchScope, scopeValue := resolveSearchScope(n.ScopeBook)
@@ -185,13 +185,18 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 }
 
 func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, error) {
+	defaultTid := parsers.ResolveTranslationID(ctx.DefaultTrans)
+	if defaultTid == "" {
+		defaultTid = "web"
+	}
+
 	switch target := left.(type) {
 	case *SearchNode:
 		if ctx.VerseSearcher == nil {
 			return nil, errors.New("verse searcher dependency not configured")
 		}
 		searchScope, scopeValue := resolveSearchScope(target.ScopeBook)
-		verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, target.Query, target.IsRegex, ctx.DefaultTrans, searchScope, scopeValue)
+		verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, target.Query, target.IsRegex, defaultTid, searchScope, scopeValue)
 		if err != nil {
 			return nil, fmt.Errorf("failed to search verses for count: %w", err)
 		}
@@ -203,7 +208,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 				"is_regex":    target.IsRegex,
 				"scope_book":  target.ScopeBook,
 				"count":       len(verses),
-				"translation": ctx.DefaultTrans,
+				"translation": defaultTid,
 			},
 		}, nil
 
@@ -211,7 +216,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 		if ctx.VerseFetcher == nil {
 			return nil, errors.New("verse fetcher dependency not configured")
 		}
-		verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, target.Reference, ctx.DefaultTrans)
+		verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, target.Reference, defaultTid)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch verses for count: %w", err)
 		}
@@ -221,7 +226,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 				"target_type": "reference",
 				"reference":   target.Reference,
 				"count":       len(verses),
-				"translation": ctx.DefaultTrans,
+				"translation": defaultTid,
 			},
 		}, nil
 
@@ -229,8 +234,9 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 		// Jos ketjutettu: ? /armo.*/ @Room => KR92 => count
 		if transAction, ok := target.Right.(*ActionNode); ok && transAction.Kind == "translation" {
 			if searchNode, isSearch := target.Left.(*SearchNode); isSearch {
+				tid := parsers.ResolveTranslationID(transAction.Value)
 				searchScope, scopeValue := resolveSearchScope(searchNode.ScopeBook)
-				verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, searchNode.Query, searchNode.IsRegex, transAction.Value, searchScope, scopeValue)
+				verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, searchNode.Query, searchNode.IsRegex, tid, searchScope, scopeValue)
 				if err != nil {
 					return nil, fmt.Errorf("failed to search verses for count: %w", err)
 				}
@@ -242,7 +248,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 						"is_regex":    searchNode.IsRegex,
 						"scope_book":  searchNode.ScopeBook,
 						"count":       len(verses),
-						"translation": transAction.Value,
+						"translation": tid,
 					},
 				}, nil
 			}
@@ -260,14 +266,14 @@ func executeComparison(ctx *ExecutionContext, n *ComparisonNode) (*models.CLIRes
 		return nil, fmt.Errorf("comparison target must be a verse reference, got %T", n.Target)
 	}
 
-	leftTrans := "default"
+	leftTrans := parsers.ResolveTranslationID(ctx.DefaultTrans)
 	if leftAct, ok := n.Left.(*ActionNode); ok && leftAct.Value != "" {
-		leftTrans = leftAct.Value
+		leftTrans = parsers.ResolveTranslationID(leftAct.Value)
 	}
 
-	rightTrans := "default"
+	rightTrans := parsers.ResolveTranslationID(ctx.DefaultTrans)
 	if rightAct, ok := n.Right.(*ActionNode); ok && rightAct.Value != "" {
-		rightTrans = rightAct.Value
+		rightTrans = parsers.ResolveTranslationID(rightAct.Value)
 	}
 
 	leftVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, leftTrans)
