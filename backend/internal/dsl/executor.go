@@ -1,0 +1,238 @@
+package dsl
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/mvirtai/clible-v3-go/internal/models"
+)
+
+// VerseFetcher defines the interface for retrieving verses by reference.
+type VerseFetcher interface {
+	GetVerses(ctx context.Context, ref, translationID string) ([]models.Verse, error)
+}
+
+// VerseSearcher defines the interface for searching verses by query.
+type VerseSearcher interface {
+	SearchVerses(ctx context.Context, query string, isRegex bool, translationID, startBook, endBook string) ([]models.Verse, error)
+}
+
+// ExecutionContext is the runtime context for AST evaluation.
+type ExecutionContext struct {
+	Ctx            context.Context
+	DefaultTrans   string
+	ContextText    string
+	VerseFetcher   VerseFetcher
+	VerseSearcher  VerseSearcher
+	ThemeExtractor func(text string, limit int) []models.ThemeItem
+}
+
+// Execute evaluates an AST Node and returns a structured CLIResult.
+func Execute(ctx *ExecutionContext, node Node) (*models.CLIResult, error) {
+	if node == nil {
+		return nil, errors.New("cannot execute nil AST node")
+	}
+	if ctx == nil {
+		return nil, errors.New("execution context cannot be nil")
+	}
+
+	switch n := node.(type) {
+	case *VerseRefNode:
+		return executeVerseRef(ctx, n, ctx.DefaultTrans)
+	case *SearchNode:
+		return executeSearch(ctx, n, ctx.DefaultTrans, 0)
+	case *PipeNode:
+		return executePipe(ctx, n)
+	case *ComparisonNode:
+		return executeComparison(ctx, n)
+	case *ScopeNode:
+		return executeScope(ctx, n)
+
+	default:
+		return nil, fmt.Errorf("unsupported node type: %T", n)
+	}
+}
+
+func executeVerseRef(ctx *ExecutionContext, n *VerseRefNode, transID string) (*models.CLIResult, error) {
+	if ctx.VerseFetcher == nil {
+		return nil, errors.New("verse fetcher dependency is not configured")
+	}
+
+	tid := transID
+	if tid == "" {
+		tid = ctx.DefaultTrans
+	}
+
+	verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.Reference, tid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch verses for %q: %w", n.Reference, err)
+	}
+
+	return &models.CLIResult{
+		Type: "read",
+		Data: map[string]interface{}{
+			"reference":   n.Reference,
+			"translation": tid,
+			"verses":      verses,
+		},
+	}, nil
+}
+
+func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit int) (*models.CLIResult, error) {
+	if ctx.VerseSearcher == nil {
+		return nil, errors.New("verse searcher dependency not configured")
+	}
+
+	tid := transID
+	if tid == "" {
+		tid = ctx.DefaultTrans
+	}
+
+	verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, n.Query, n.IsRegex, tid, "", "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute search: %w", err)
+	}
+
+	if limit > 0 && len(verses) > limit {
+		verses = verses[:limit]
+	}
+
+	return &models.CLIResult{
+		Type: "search",
+		Data: map[string]interface{}{
+			"query":       n.Query,
+			"isRegex":     n.IsRegex,
+			"translation": tid,
+			"verses":      verses,
+			"count":       len(verses),
+		},
+	}, nil
+}
+
+func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) {
+	action, ok := n.Right.(*ActionNode)
+	if !ok {
+		return nil, fmt.Errorf("pipeline target must be an action, got %T", n.Right)
+	}
+
+	switch src := n.Left.(type) {
+	case *VerseRefNode:
+		if action.Kind == "translation" {
+			return executeVerseRef(ctx, src, action.Value)
+		}
+		res, err := executeVerseRef(ctx, src, ctx.DefaultTrans)
+		if err != nil {
+			return nil, err
+		}
+		return applyActionToResult(ctx, res, action)
+
+	case *SearchNode:
+		if action.Kind == "translation" {
+			return executeSearch(ctx, src, action.Value, 0)
+		}
+		if action.Kind == "limit" {
+			limit, _ := strconv.Atoi(action.Value)
+			return executeSearch(ctx, src, ctx.DefaultTrans, limit)
+		}
+		res, err := executeSearch(ctx, src, ctx.DefaultTrans, 0)
+		if err != nil {
+			return nil, err
+		}
+		return applyActionToResult(ctx, res, action)
+
+	case *ScopeNode:
+		if action.Kind == "themes" {
+			return executeThemesOnText(ctx, ctx.ContextText, 10)
+		}
+		return executeScope(ctx, src)
+
+	default:
+		return nil, fmt.Errorf("unsupported pipeline source type: %T", n.Left)
+	}
+}
+
+func executeComparison(ctx *ExecutionContext, n *ComparisonNode) (*models.CLIResult, error) {
+	refNode, ok := n.Target.(*VerseRefNode)
+	if !ok {
+		return nil, fmt.Errorf("comparison target must be a verse reference, got %T", n.Target)
+	}
+
+	leftTrans := "default"
+	if leftAct, ok := n.Left.(*ActionNode); ok && leftAct.Value != "" {
+		leftTrans = leftAct.Value
+	}
+
+	rightTrans := "default"
+	if rightAct, ok := n.Right.(*ActionNode); ok && rightAct.Value != "" {
+		rightTrans = rightAct.Value
+	}
+
+	leftVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, leftTrans)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch left verses %q: %w", leftTrans, err)
+	}
+
+	rightVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, rightTrans)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch right verses %q: %w", rightTrans, err)
+	}
+
+	return &models.CLIResult{
+		Type: "compare",
+		Data: map[string]interface{}{
+			"reference": refNode.Reference,
+			"left": map[string]interface{}{
+				"translation": leftTrans,
+				"verses":      leftVerses,
+			},
+			"right": map[string]interface{}{
+				"translation": rightTrans,
+				"verses":      rightVerses,
+			},
+		},
+	}, nil
+}
+
+func executeScope(ctx *ExecutionContext, _ *ScopeNode) (*models.CLIResult, error) {
+	return executeThemesOnText(ctx, ctx.ContextText, 10)
+}
+
+func executeThemesOnText(ctx *ExecutionContext, text string, limit int) (*models.CLIResult, error) {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" || ctx.ThemeExtractor == nil {
+		return &models.CLIResult{
+			Type: "themes",
+			Data: map[string]interface{}{
+				"themes": []models.ThemeItem{},
+				"limit":  limit,
+				"count":  0,
+			},
+		}, nil
+	}
+
+	themes := ctx.ThemeExtractor(trimmed, limit)
+	return &models.CLIResult{
+		Type: "themes",
+		Data: map[string]interface{}{
+			"themes": themes,
+			"limit":  limit,
+			"count":  len(themes),
+		},
+	}, nil
+}
+
+func applyActionToResult(_ *ExecutionContext, res *models.CLIResult, action *ActionNode) (*models.CLIResult, error) {
+	if action.Kind == "style" || action.Kind == "card" || action.Kind == "cards" {
+		if res.Data == nil {
+			res.Data = make(map[string]interface{})
+		}
+		res.Data["viewStyle"] = action.Value
+		if action.Value == "" {
+			res.Data["viewStyle"] = action.Kind
+		}
+	}
+	return res, nil
+}
