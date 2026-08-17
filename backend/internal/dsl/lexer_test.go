@@ -38,7 +38,10 @@ func TestLexer_NextToken(t *testing.T) {
 		{TokenEOF, ""},
 	}
 
-	lexer := NewLexer(input)
+	lexer, err := NewLexer(input)
+	if err != nil {
+		t.Fatalf("NewLexer failed: %v", err)
+	}
 
 	for i, tt := range tests {
 		tok := lexer.NextToken()
@@ -58,7 +61,10 @@ func TestLexer_NextToken(t *testing.T) {
 func TestLexer_UnicodeFinnish(t *testing.T) {
 	input := `@Room 8:28 => "Kaikki yhdessä vaikuttaa"`
 
-	lexer := NewLexer(input)
+	lexer, err := NewLexer(input)
+	if err != nil {
+		t.Fatalf("NewLexer failed: %v", err)
+	}
 
 	expected := []struct {
 		expectedType    TokenType
@@ -87,7 +93,10 @@ func TestLexer_UnicodeFinnish(t *testing.T) {
 
 func TestLexer_RangeDash(t *testing.T) {
 	input := `@Room 8:1-5 ? KR92 : KR38`
-	lexer := NewLexer(input)
+	lexer, err := NewLexer(input)
+	if err != nil {
+		t.Fatalf("NewLexer failed: %v", err)
+	}
 
 	expected := []struct {
 		expectedType    TokenType

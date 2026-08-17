@@ -20,7 +20,10 @@ func NewParser(tokens []Token) *Parser {
 
 // Parse takes a raw DSL string, tokenizes it, and returns the root AST Node.
 func Parse(input string) (Node, error) {
-	lexer := NewLexer(input)
+	lexer, err := NewLexer(input)
+	if err != nil {
+		return nil, err
+	}
 	var tokens []Token
 	for {
 		tok := lexer.NextToken()

@@ -153,13 +153,22 @@ func main() {
 
 	// Static SPA fallback
 	fs := http.FileServer(http.Dir(cfg.FrontendDir))
+	absFrontendDir, _ := filepath.Abs(cfg.FrontendDir)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			http.Error(w, "API endpoint not found", http.StatusNotFound)
 			return
 		}
 
-		filePath := filepath.Join(cfg.FrontendDir, r.URL.Path)
+		// VULN-002: Prevent path traversal by validating resolved path stays within FrontendDir
+		cleanPath := filepath.Clean(r.URL.Path)
+		filePath := filepath.Join(cfg.FrontendDir, cleanPath)
+		absPath, _ := filepath.Abs(filePath)
+		if !strings.HasPrefix(absPath, absFrontendDir) {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
 		info, err := os.Stat(filePath)
 
 		if os.IsNotExist(err) || info.IsDir() {
@@ -173,6 +182,7 @@ func main() {
 	limiter := middleware.NewIPRateLimiter(rate.Limit(20), 30)
 
 	var handler http.Handler = mux
+	handler = middleware.MaxBodySize(1 * 1024 * 1024)(handler) // VULN-003: 1 MB global body size limit
 	handler = middleware.RateLimitMiddleware(limiter)(handler)
 	handler = middleware.Logger(handler)
 	handler = middleware.SecurityHeaders(handler)
