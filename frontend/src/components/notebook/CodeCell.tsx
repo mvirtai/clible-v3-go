@@ -4,6 +4,7 @@ import type { Cell, CellResult } from './types';
 import { bookCitationAbbrevFi } from '../../utils/bookNames';
 import { formatResultToMarkdown, type CLIResultData } from '../../utils/markdown';
 import { CellCountResult, type CountResultData } from './CellCountResult';
+import { CellCompareResult, type CompareResultData } from './CellCompareResult';
 
 interface ThemeItem {
   word: string;
@@ -61,12 +62,20 @@ export const CodeCell: React.FC<CodeCellProps> = ({
   };
 
   const hasFreezeOption = cell.resultJson && 
-    ['read', 'search', 'refs', 'suggest', 'themes', 'count'].includes(cell.resultJson.type);
+    ['read', 'search', 'refs', 'suggest', 'themes', 'count', 'compare'].includes(cell.resultJson.type);
 
   const selectedCount = (() => {
     if (!cell.resultJson) return 0;
     if (cell.resultJson.type === 'themes' || cell.resultJson.type === 'count') {
       return 1;
+    }
+    if (cell.resultJson.type === 'compare') {
+      const comp = cell.resultJson.data as CompareResultData;
+      const leftVerses = comp.left?.verses || [];
+      const rightVerses = comp.right?.verses || [];
+      const allIds = new Set([...leftVerses.map(v => v.id), ...rightVerses.map(v => v.id)]);
+      const nonDeselected = Array.from(allIds).filter(id => !deselectedVerseIds[id]);
+      return nonDeselected.length;
     }
     const data = cell.resultJson.data as CLIResultData;
     const verses = data.verses || data.references || data.suggestions || [];
@@ -94,6 +103,20 @@ export const CodeCell: React.FC<CodeCellProps> = ({
     }
     if (data.suggestions) {
       filteredData.suggestions = data.suggestions.filter(v => !deselectedVerseIds[v.id]);
+    }
+
+    if (data.left?.verses) {
+      filteredData.left = {
+        ...data.left,
+        verses: data.left.verses.filter(v => !deselectedVerseIds[v.id]),
+      };
+    }
+
+    if (data.right?.verses) {
+      filteredData.right = {
+        ...data.right,
+        verses: data.right.verses.filter(v => !deselectedVerseIds[v.id]),
+      };
     }
 
     const markdown = formatResultToMarkdown(
@@ -403,6 +426,17 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
   // 6. count result
   if (result.type === 'count') {
     return <CellCountResult data={result.data as CountResultData} />;
+  }
+
+  // 7. compare result
+  if (result.type === 'compare') {
+    return (
+      <CellCompareResult
+        data={result.data as CompareResultData}
+        deselectedVerseIds={deselectedVerseIds}
+        onToggleVerse={onToggleVerse}
+      />
+    );
   }
 
   // Fallback: raakateksti / JSON stringify
