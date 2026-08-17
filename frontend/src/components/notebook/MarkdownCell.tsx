@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'; 
 import ReactMarkdown from 'react-markdown'; 
+import remarkGfm from 'remark-gfm';
 import type { Cell } from './types';
 import { useLanguage } from '../../context/LanguageContext'; 
 
@@ -75,7 +76,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
   if (!isEditable) {
     return (
       <div className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)]">
-        <ReactMarkdown components={markdownComponents}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
           {preprocessContent(cell.content) || '*No content*'}
         </ReactMarkdown>
       </div>
@@ -108,7 +109,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
     title={strings.markdownEditTitle}
   >
       {cell.content.trim() ? (
-        <ReactMarkdown components={markdownComponents}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
           {preprocessContent(cell.content)}
         </ReactMarkdown>
       ) : (
