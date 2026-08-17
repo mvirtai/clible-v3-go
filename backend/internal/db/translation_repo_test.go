@@ -206,3 +206,42 @@ func TestTranslationRepository_LinkNonExistentTranslation(t *testing.T) {
 		t.Error("Expected error when linking a non-existent translation, got nil")
 	}
 }
+
+func TestTranslationRepository_Delete(t *testing.T) {
+	db, err := InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to set up database connection: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	repo := NewTranslationRepository(db)
+
+	mockTrans := models.Translation{
+		ID:       "to-delete",
+		Name:     "To Delete Translation",
+		Language: "en",
+		Format:   "USFX",
+	}
+
+	if err := repo.Create(mockTrans); err != nil {
+		t.Fatalf("failed to create translation: %v", err)
+	}
+
+	exists, err := repo.Exists("to-delete")
+	if err != nil || !exists {
+		t.Fatalf("expected translation to exist before delete")
+	}
+
+	if err := repo.Delete("to-delete"); err != nil {
+		t.Fatalf("failed to delete translation: %v", err)
+	}
+
+	existsAfter, err := repo.Exists("to-delete")
+	if err != nil {
+		t.Fatalf("unexpected error checking existence: %v", err)
+	}
+	if existsAfter {
+		t.Errorf("expected translation to no longer exist after delete")
+	}
+}
+

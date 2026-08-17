@@ -32,22 +32,22 @@ func Load() *Config {
 
 	modelInsight := cleanEnv(os.Getenv("GEMINI_MODEL_INSIGHT"))
 	if modelInsight == "" {
-		modelInsight = "gemini-3.5-flash-lite"
+		modelInsight = "gemini-3.7-flash"
 	}
 
 	modelTone := cleanEnv(os.Getenv("GEMINI_MODEL_TONE"))
 	if modelTone == "" {
-		modelTone = "gemini-3.5-flash-lite"
+		modelTone = "gemini-3.7-flash"
 	}
 
 	modelOriginal := cleanEnv(os.Getenv("GEMINI_MODEL_ORIGINAL"))
 	if modelOriginal == "" {
-		modelOriginal = "gemini-3.1-flash-lite"
+		modelOriginal = "gemini-3.7-flash"
 	}
 
 	modelSearch := cleanEnv(os.Getenv("GEMINI_MODEL_SEARCH"))
 	if modelSearch == "" {
-		modelSearch = "gemini-3.1-flash-lite"
+		modelSearch = "gemini-3.7-flash"
 	}
 
 	port := cleanEnv(os.Getenv("PORT"))

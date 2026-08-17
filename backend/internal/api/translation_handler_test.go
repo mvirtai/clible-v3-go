@@ -196,4 +196,69 @@ func TestTranslationHandler_Endpoints(t *testing.T) {
 			t.Errorf("expected HTTP 400 Bad Request, got %d", rec.Code)
 		}
 	})
+
+	t.Run("GET /api/translations returns 401 when unauthorized", func(t *testing.T) {
+		conn, _ := db.InitializeDB(":memory:")
+		defer func() { _ = conn.Close() }()
+		repo := db.NewTranslationRepository(conn)
+		handler := api.NewTranslationHandler(repo)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/translations", nil)
+		rec := httptest.NewRecorder()
+		handler.GetTranslations(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401, got %d", rec.Code)
+		}
+	})
+
+	t.Run("POST /api/translations/link returns 401 when unauthorized", func(t *testing.T) {
+		conn, _ := db.InitializeDB(":memory:")
+		defer func() { _ = conn.Close() }()
+		repo := db.NewTranslationRepository(conn)
+		handler := api.NewTranslationHandler(repo)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/translations/link", nil)
+		rec := httptest.NewRecorder()
+		handler.LinkTranslation(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401, got %d", rec.Code)
+		}
+	})
+
+	t.Run("DELETE /api/translations/link returns 401 when unauthorized", func(t *testing.T) {
+		conn, _ := db.InitializeDB(":memory:")
+		defer func() { _ = conn.Close() }()
+		repo := db.NewTranslationRepository(conn)
+		handler := api.NewTranslationHandler(repo)
+
+		req := httptest.NewRequest(http.MethodDelete, "/api/translations/link", nil)
+		rec := httptest.NewRecorder()
+		handler.UnlinkTranslation(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401, got %d", rec.Code)
+		}
+	})
+
+	t.Run("DELETE /api/translations/link returns 400 on empty translationId", func(t *testing.T) {
+		conn, _ := db.InitializeDB(":memory:")
+		defer func() { _ = conn.Close() }()
+		repo := db.NewTranslationRepository(conn)
+		handler := api.NewTranslationHandler(repo)
+
+		body, _ := json.Marshal(map[string]string{"translationId": ""})
+		req := httptest.NewRequest(http.MethodDelete, "/api/translations/link", bytes.NewReader(body))
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "test-user")
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+
+		handler.UnlinkTranslation(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
 }
+

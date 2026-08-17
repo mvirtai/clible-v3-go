@@ -201,3 +201,5 @@ func TestScopeHandler_SaveAnalysis_InvalidJSON(t *testing.T) {
 		t.Errorf("expected status code %d, got %d", http.StatusBadRequest, rr.Code)
 	}
 }
+
+

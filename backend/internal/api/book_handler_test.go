@@ -87,3 +87,17 @@ func TestBookHandler_GetBookByID_NotFound(t *testing.T) {
 		t.Errorf("expected status 404, got %d", rr.Code)
 	}
 }
+
+func TestBookHandler_GetBookByID_MissingID(t *testing.T) {
+	handler := newTestBookHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/books/", nil)
+	rr := httptest.NewRecorder()
+
+	handler.GetBookByID(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 when path value is missing, got %d", rr.Code)
+	}
+}
+

@@ -12,6 +12,7 @@ This pull request completes the full end-to-end integration:
 * **Side-by-Side UI Matrix Cards:** Implements `CellCompareResult.tsx` displaying verse-aligned translations side-by-side with verse selection checkboxes.
 * **Freezing to GFM Markdown Tables:** Allows users to freeze comparison results directly into clean GitHub Flavored Markdown (GFM) tables in markdown cells.
 * **Multi-Layer Translation Normalization:** Connects canonical alias resolution (`translation_aliases.go`) across the DSL engine, API endpoints, and database repositories.
+* **Backend Test Coverage Hardening (>80%):** Substantially enhanced Go backend test coverage from 73.2% to **82.1%** across middleware, database, services, and API layers with comprehensive unit and integration suites.
 
 ---
 
@@ -146,7 +147,14 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 
 ## 📈 Improvement Metrics & Key Figures
 
-* **Backend Statement Coverage:** 73.2% total coverage maintained across all Go packages.
+* **Backend Statement Coverage:** Elevated from **73.2% to 82.1%** total statements (`.cov/backend/coverage.txt`), exceeding the target threshold (>80%).
+  * `internal/middleware`: **97.2%** (+47.7%)
+  * `internal/services`: **83.9%** (+6.4%)
+  * `internal/config`: **90.6%**
+  * `internal/parsers`: **93.8%**
+  * `internal/dsl`: **90.1%**
+  * `internal/api`: **77.0%** (+13.9%)
+  * `internal/db`: **76.3%** (+7.0%)
 * **Frontend Test Suite:** 16 test files passing with 77 comprehensive unit and component tests.
 * **Zero Runtime Overhead:** Dual verse retrieval executes in O(V) time using standard parameterized database queries.
 * **Full Translation Normalization:** Canonical ID mapping for Finnish (`fin-1992`, `fin-biblia-33-38`, `fin-1776`), English (`web`, `kjv`), Greek (`grc-tisch`), and Hebrew (`heb-leningrad`).
@@ -158,6 +166,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 * **Access Control & Permissions:** `VerseService.GetVerses` verifies that each requested translation in the comparison is active and accessible for the authenticated user (`user_translations` check).
 * **Injection-Proof Parameterization:** All verse queries use parameterized SQL statements through `VerseRepository`.
 * **Safe Markdown Transformation:** Special characters (such as pipe `|` characters) are escaped when formatting GFM tables to prevent markdown injection.
+* **Authentication & Rate Limiting Security Hardening:** Verified JWT auth middleware cookie parsing, header extraction, context injection, and IP-level token bucket rate limiting.
 
 ---
 
@@ -176,7 +185,22 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 | `backend/internal/parsers/translation_aliases_test.go` | Verified translation alias mappings. |
 | `backend/internal/services/cli_service.go` | Added alias resolution for keyword search commands. |
 | `backend/internal/services/ai_service.go` | Added alias resolution in `AISearch`. |
-| `backend/internal/api/translation_handler.go` | Added alias resolution in `LinkTranslation` and `UnlinkTranslation`. |
+| `backend/internal/services/ai_service_test.go` | Added constructor unit tests for `NewAIService`. |
+| `backend/internal/services/auth_service_test.go` | Added comprehensive unit tests for `AuthService` (registration, login, JWT validation). |
+| `backend/internal/services/seed_service_test.go` | Added unit tests for `SeedTranslationFromFile` with XML payload. |
+| `backend/internal/middleware/auth_middleware_test.go` | Added unit tests for `RequireAuth` and `GetUserID`. |
+| `backend/internal/middleware/ratelimit_test.go` | Added unit tests for `IPRateLimiter` and `RateLimitMiddleware`. |
+| `backend/internal/db/user_repo_test.go` | Added unit tests for `UserRepository` (CRUD, timestamps, uniqueness). |
+| `backend/internal/db/verse_repo_test.go` | Added unit tests for `GetByChapter`, `GetByBook`, and `DB()`. |
+| `backend/internal/db/translation_repo_test.go` | Added unit tests for translation `Delete`. |
+| `backend/internal/config/config.go` | Fixed Gemini model defaults and tone model definition. |
+| `backend/internal/config/config_test.go` | Added assertions for Gemini model environment configs. |
+| `backend/internal/api/auth_handler_test.go` | Added comprehensive unit tests for `AuthHandler` endpoints. |
+| `backend/internal/api/scope_handler_test.go` | Added test cases for unauthorized context and invalid JSON payloads. |
+| `backend/internal/api/translation_handler_test.go` | Added unauthorized and validation error test cases. |
+| `backend/internal/api/history_handler_test.go` | Added unauthorized and limit fallback tests. |
+| `backend/internal/api/book_handler_test.go` | Added missing ID parameter error tests. |
+| `backend/internal/api/analytics_handler_test.go` | Added payload parse failure test cases. |
 | `frontend/src/components/notebook/CellCompareResult.tsx` | New side-by-side comparison card component. |
 | `frontend/src/components/notebook/CellCompareResult.test.tsx` | Comprehensive Vitest suite for comparison card. |
 | `frontend/src/components/notebook/CodeCell.tsx` | Integrated `CellCompareResult` and selective freezing. |
@@ -184,6 +208,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 | `frontend/src/utils/markdown.ts` | Added `formatResultToMarkdown` comparison table generator. |
 | `frontend/src/utils/markdown.test.ts` | Added tests for comparison markdown table formatting. |
 | `frontend/src/utils/i18n.ts` | Added bilingual translation keys for comparison views. |
+| `.plans/12-backend-test-coverage/01-backend-coverage-over-80.md` | Architectural coverage increase blueprint. |
 
 ---
 
@@ -193,16 +218,20 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 
 #### Backend (Go Test Suite)
 
-* **Coverage:** 73.2% total statements (`.cov/backend/coverage.txt`)
+* **Coverage:** **82.1% total statements** (`.cov/backend/coverage.txt`)
 * **Test Suite:** `task backend:check`
 
 ```text
-=== RUN   TestDSLParser_ValidExpressions
-=== RUN   TestDSLParser_ValidExpressions/Verse_Reference_Range_Ternary_Comparison
-=== RUN   TestExecute_ComparisonNode
---- PASS: TestExecute_ComparisonNode (0.00s)
-PASS
-coverage: 73.2% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/api		77.0% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/config		90.6% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/ctxkeys	100.0% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/db		76.3% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/dsl		90.1% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/middleware	97.2% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/parsers	93.8% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/services	83.9% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/version	100.0% of statements
+total:  (statements)						82.1%
 ```
 
 #### Frontend (Vitest Suite)
