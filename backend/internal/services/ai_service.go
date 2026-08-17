@@ -11,6 +11,7 @@ import (
 
 	"github.com/mvirtai/clible-v3-go/internal/config"
 	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/parsers"
 )
 
 // Theological and style stances ported from v2
@@ -575,7 +576,7 @@ func (s *aiServiceImpl) AISearch(ctx context.Context, query, translationID, uiLa
 
 	dbParams := db.SearchParams{
 		FTSQuery:      ftsQuery,
-		TranslationID: translationID,
+		TranslationID: parsers.ResolveTranslationID(translationID),
 		SearchScope:   dbScope,
 		ScopeValue:    dbScopeValue,
 	}

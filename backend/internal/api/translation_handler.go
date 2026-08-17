@@ -6,6 +6,7 @@ import (
 
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/middleware"
+	"github.com/mvirtai/clible-v3-go/internal/parsers"
 )
 
 // TranslationHandler orchestrates catalog routing and user translation activation.
@@ -65,14 +66,15 @@ func (h *TranslationHandler) LinkTranslation(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.translationRepo.LinkUser(r.Context(), userID, req.TranslationID); err != nil {
+	canonicalID := parsers.ResolveTranslationID(req.TranslationID)
+	if err := h.translationRepo.LinkUser(r.Context(), userID, canonicalID); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{"id": req.TranslationID, "status": "activated"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"id": canonicalID, "status": "activated"})
 }
 
 // UnlinkTranslation handles DELETE /api/translations/link.
@@ -94,7 +96,8 @@ func (h *TranslationHandler) UnlinkTranslation(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err := h.translationRepo.UnlinkUser(r.Context(), userID, req.TranslationID); err != nil {
+	canonicalID := parsers.ResolveTranslationID(req.TranslationID)
+	if err := h.translationRepo.UnlinkUser(r.Context(), userID, canonicalID); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to deactivate translation: " + err.Error()})
 		return

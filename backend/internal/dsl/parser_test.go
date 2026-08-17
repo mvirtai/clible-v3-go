@@ -153,6 +153,38 @@ func TestDSLParser_ValidExpressions(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:  "Ternary Numeric Translation Aliases",
+			input: "@Joh 3:16 ? 1992 : 1938",
+			validate: func(t *testing.T, node Node) {
+				comp, ok := node.(*ComparisonNode)
+				if !ok {
+					t.Fatalf("expected *ComparisonNode, got %T", node)
+				}
+				left, ok := comp.Left.(*ActionNode)
+				if !ok || left.Value != "1992" {
+					t.Errorf("expected left '1992', got %#v", comp.Left)
+				}
+				right, ok := comp.Right.(*ActionNode)
+				if !ok || right.Value != "1938" {
+					t.Errorf("expected right '1938', got %#v", comp.Right)
+				}
+			},
+		},
+		{
+			name:  "Verse Reference with Numeric Translation Pipe",
+			input: "@Joh 3:16 => 1938",
+			validate: func(t *testing.T, node Node) {
+				pipe, ok := node.(*PipeNode)
+				if !ok {
+					t.Fatalf("expected *PipeNode, got %T", node)
+				}
+				action, ok := pipe.Right.(*ActionNode)
+				if !ok || action.Kind != "translation" || action.Value != "1938" {
+					t.Errorf("expected right to be ActionNode(translation, 1938), got %#v", pipe.Right)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {

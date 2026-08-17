@@ -191,7 +191,7 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 		return &ActionNode{Kind: "style", Value: styleName}, nil
 	}
 
-	if tok.Type == TokenIdent {
+	if tok.Type == TokenIdent || tok.Type == TokenNumber {
 		val := tok.Literal
 		p.next()
 		// 1. Key-value option, e.g. limit:5
@@ -207,7 +207,7 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 			return &ActionNode{Kind: "count"}, nil
 		}
 
-		// 3. TranslationID as default. E.g. KR92 or KJV
+		// 3. TranslationID as default. E.g. KR92, KJV, 1992, 1938
 		return &ActionNode{Kind: "translation", Value: val}, nil
 	}
 
