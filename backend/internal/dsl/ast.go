@@ -22,7 +22,13 @@ type SearchNode struct {
 }
 
 func (n *SearchNode) node()          {}
-func (n *SearchNode) String() string { return "?" + n.Query }
+func (n *SearchNode) String() string {
+	res := "?" + n.Query
+	if n.ScopeBook != "" {
+		res += " @" + n.ScopeBook
+	}
+	return res
+}
 
 // ScopeNode represents a contextual scope reference to preceding cells (e.g. ^, ^3, ^all)
 type ScopeNode struct {

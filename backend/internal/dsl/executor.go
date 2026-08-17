@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/mvirtai/clible-v3-go/internal/models"
+	"github.com/mvirtai/clible-v3-go/internal/parsers"
 )
 
 // VerseFetcher defines the interface for retrieving verses by reference.
@@ -61,9 +62,9 @@ func executeVerseRef(ctx *ExecutionContext, n *VerseRefNode, transID string) (*m
 		return nil, errors.New("verse fetcher dependency is not configured")
 	}
 
-	tid := transID
+	tid := parsers.ResolveTranslationID(transID)
 	if tid == "" {
-		tid = ctx.DefaultTrans
+		tid = parsers.ResolveTranslationID(ctx.DefaultTrans)
 	}
 
 	verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.Reference, tid)
@@ -81,17 +82,33 @@ func executeVerseRef(ctx *ExecutionContext, n *VerseRefNode, transID string) (*m
 	}, nil
 }
 
+func resolveSearchScope(scopeBook string) (string, string) {
+	if scopeBook == "" {
+		return "", ""
+	}
+	norm := strings.ToUpper(strings.TrimSpace(scopeBook))
+	if norm == "VT" || norm == "OT" {
+		return "ot", ""
+	}
+	if norm == "UT" || norm == "NT" {
+		return "nt", ""
+	}
+	bookID := parsers.ResolveBookID(scopeBook)
+	return "book", bookID
+}
+
 func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit int) (*models.CLIResult, error) {
 	if ctx.VerseSearcher == nil {
 		return nil, errors.New("verse searcher dependency not configured")
 	}
 
-	tid := transID
+	tid := parsers.ResolveTranslationID(transID)
 	if tid == "" {
-		tid = ctx.DefaultTrans
+		tid = parsers.ResolveTranslationID(ctx.DefaultTrans)
 	}
 
-	verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, n.Query, n.IsRegex, tid, "", "")
+	searchScope, scopeValue := resolveSearchScope(n.ScopeBook)
+	verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, n.Query, n.IsRegex, tid, searchScope, scopeValue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute search: %w", err)
 	}
@@ -104,7 +121,8 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 		Type: "search",
 		Data: map[string]interface{}{
 			"query":       n.Query,
-			"isRegex":     n.IsRegex,
+			"is_regex":    n.IsRegex,
+			"scope_book":  n.ScopeBook,
 			"translation": tid,
 			"verses":      verses,
 			"count":       len(verses),
@@ -113,9 +131,13 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 }
 
 func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) {
-	action, ok := n.Right.(*ActionNode)
-	if !ok {
+	action, isAction := n.Right.(*ActionNode)
+	if !isAction {
 		return nil, fmt.Errorf("pipeline target must be an action, got %T", n.Right)
+	}
+
+	if action.Kind == "count" {
+		return executeCountPipe(ctx, n.Left)
 	}
 
 	switch src := n.Left.(type) {
@@ -134,8 +156,8 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 			return executeSearch(ctx, src, action.Value, 0)
 		}
 		if action.Kind == "limit" {
-			limit, _ := strconv.Atoi(action.Value)
-			return executeSearch(ctx, src, ctx.DefaultTrans, limit)
+			lim, _ := strconv.Atoi(action.Value)
+			return executeSearch(ctx, src, ctx.DefaultTrans, lim)
 		}
 		res, err := executeSearch(ctx, src, ctx.DefaultTrans, 0)
 		if err != nil {
@@ -144,13 +166,97 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		return applyActionToResult(ctx, res, action)
 
 	case *ScopeNode:
-		if action.Kind == "themes" {
-			return executeThemesOnText(ctx, ctx.ContextText, 10)
+		res, err := executeScope(ctx, src)
+		if err != nil {
+			return nil, err
 		}
-		return executeScope(ctx, src)
+		return applyActionToResult(ctx, res, action)
+
+	case *PipeNode:
+		res, err := executePipe(ctx, src)
+		if err != nil {
+			return nil, err
+		}
+		return applyActionToResult(ctx, res, action)
 
 	default:
 		return nil, fmt.Errorf("unsupported pipeline source type: %T", n.Left)
+	}
+}
+
+func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, error) {
+	defaultTid := parsers.ResolveTranslationID(ctx.DefaultTrans)
+	if defaultTid == "" {
+		defaultTid = "web"
+	}
+
+	switch target := left.(type) {
+	case *SearchNode:
+		if ctx.VerseSearcher == nil {
+			return nil, errors.New("verse searcher dependency not configured")
+		}
+		searchScope, scopeValue := resolveSearchScope(target.ScopeBook)
+		verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, target.Query, target.IsRegex, defaultTid, searchScope, scopeValue)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search verses for count: %w", err)
+		}
+		return &models.CLIResult{
+			Type: "count",
+			Data: map[string]interface{}{
+				"target_type": "search",
+				"query":       target.Query,
+				"is_regex":    target.IsRegex,
+				"scope_book":  target.ScopeBook,
+				"count":       len(verses),
+				"translation": defaultTid,
+			},
+		}, nil
+
+	case *VerseRefNode:
+		if ctx.VerseFetcher == nil {
+			return nil, errors.New("verse fetcher dependency not configured")
+		}
+		verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, target.Reference, defaultTid)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch verses for count: %w", err)
+		}
+		return &models.CLIResult{
+			Type: "count",
+			Data: map[string]interface{}{
+				"target_type": "reference",
+				"reference":   target.Reference,
+				"count":       len(verses),
+				"translation": defaultTid,
+			},
+		}, nil
+
+	case *PipeNode:
+		// Jos ketjutettu: ? /armo.*/ @Room => KR92 => count
+		if transAction, ok := target.Right.(*ActionNode); ok && transAction.Kind == "translation" {
+			if searchNode, isSearch := target.Left.(*SearchNode); isSearch {
+				tid := parsers.ResolveTranslationID(transAction.Value)
+				searchScope, scopeValue := resolveSearchScope(searchNode.ScopeBook)
+				verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, searchNode.Query, searchNode.IsRegex, tid, searchScope, scopeValue)
+				if err != nil {
+					return nil, fmt.Errorf("failed to search verses for count: %w", err)
+				}
+				return &models.CLIResult{
+					Type: "count",
+					Data: map[string]interface{}{
+						"target_type": "search",
+						"query":       searchNode.Query,
+						"is_regex":    searchNode.IsRegex,
+						"scope_book":  searchNode.ScopeBook,
+						"count":       len(verses),
+						"translation": tid,
+					},
+				}, nil
+			}
+		}
+		return nil, fmt.Errorf("unsupported piped count target: %T", target)
+
+	default:
+		return nil, fmt.Errorf("cannot count elements for node type %T", left)
 	}
 }
 
@@ -160,14 +266,14 @@ func executeComparison(ctx *ExecutionContext, n *ComparisonNode) (*models.CLIRes
 		return nil, fmt.Errorf("comparison target must be a verse reference, got %T", n.Target)
 	}
 
-	leftTrans := "default"
+	leftTrans := parsers.ResolveTranslationID(ctx.DefaultTrans)
 	if leftAct, ok := n.Left.(*ActionNode); ok && leftAct.Value != "" {
-		leftTrans = leftAct.Value
+		leftTrans = parsers.ResolveTranslationID(leftAct.Value)
 	}
 
-	rightTrans := "default"
+	rightTrans := parsers.ResolveTranslationID(ctx.DefaultTrans)
 	if rightAct, ok := n.Right.(*ActionNode); ok && rightAct.Value != "" {
-		rightTrans = rightAct.Value
+		rightTrans = parsers.ResolveTranslationID(rightAct.Value)
 	}
 
 	leftVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, leftTrans)

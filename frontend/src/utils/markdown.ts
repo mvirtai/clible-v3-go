@@ -4,6 +4,10 @@ export interface CLIResultData {
   source?: string;
   query?: string;
   reference?: string;
+  target_type?: string;
+  is_regex?: boolean;
+  count?: number;
+  translation?: string;
   verses?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
   references?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
   suggestions?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
@@ -63,6 +67,15 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
       md += `- **${t.word}** (${t.count})\n`;
     });
     markdown = md;
+  }
+
+  else if (type === 'count') {
+    const count = data.count ?? 0;
+    const matchLabel = count === 1 ? 'osuma' : 'osumaa';
+    const target = data.target_type === 'search'
+      ? `Hakutulokset haulle ${data.is_regex ? `/${data.query}/` : `"${data.query}"`}`
+      : `Jakeet viitteelle ${data.reference}`;
+    markdown = `> **${target} (${tr})**: ${count} ${matchLabel}\n`;
   }
 
   return markdown;

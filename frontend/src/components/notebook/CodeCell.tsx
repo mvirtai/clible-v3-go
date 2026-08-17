@@ -3,6 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import type { Cell, CellResult } from './types';
 import { bookCitationAbbrevFi } from '../../utils/bookNames';
 import { formatResultToMarkdown, type CLIResultData } from '../../utils/markdown';
+import { CellCountResult, type CountResultData } from './CellCountResult';
 
 interface ThemeItem {
   word: string;
@@ -60,13 +61,12 @@ export const CodeCell: React.FC<CodeCellProps> = ({
   };
 
   const hasFreezeOption = cell.resultJson && 
-    ['read', 'search', 'refs', 'suggest', 'themes'].includes(cell.resultJson.type);
+    ['read', 'search', 'refs', 'suggest', 'themes', 'count'].includes(cell.resultJson.type);
 
   const selectedCount = (() => {
     if (!cell.resultJson) return 0;
-    if (cell.resultJson.type === 'themes') {
-      const data = cell.resultJson.data as CLIResultData;
-      return (data.themes || []).length;
+    if (cell.resultJson.type === 'themes' || cell.resultJson.type === 'count') {
+      return 1;
     }
     const data = cell.resultJson.data as CLIResultData;
     const verses = data.verses || data.references || data.suggestions || [];
@@ -400,6 +400,10 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     );
   }
 
+  // 6. count result
+  if (result.type === 'count') {
+    return <CellCountResult data={result.data as CountResultData} />;
+  }
 
   // Fallback: raakateksti / JSON stringify
   return (

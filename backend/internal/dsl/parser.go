@@ -125,9 +125,34 @@ func (p *Parser) parsePrimary() (Node, error) {
 			return nil, errors.New("expected search query after '?'")
 		}
 		p.next()
+
+		scopeBook := ""
+		if p.current().Type == TokenAt {
+			p.next()
+			var sb strings.Builder
+			for {
+				cur := p.current()
+				if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon {
+					if cur.Type == TokenColon || (sb.Len() > 0 && sb.String()[sb.Len()-1] == ':') {
+						sb.WriteString(cur.Literal)
+					} else {
+						if sb.Len() > 0 {
+							sb.WriteString(" ")
+						}
+						sb.WriteString(cur.Literal)
+					}
+					p.next()
+				} else {
+					break
+				}
+			}
+			scopeBook = sb.String()
+		}
+
 		return &SearchNode{
-			Query:   queryTok.Literal,
-			IsRegex: queryTok.Type == TokenRegex,
+			Query:     queryTok.Literal,
+			IsRegex:   queryTok.Type == TokenRegex,
+			ScopeBook: scopeBook,
 		}, nil
 
 	case TokenCaret:
@@ -169,13 +194,20 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 	if tok.Type == TokenIdent {
 		val := tok.Literal
 		p.next()
-		// Check for specific known key-value options like limit:5
+		// 1. Key-value option, e.g. limit:5
 		if val == "limit" && p.current().Type == TokenColon {
 			p.next()
 			argVal := p.current().Literal
 			p.next()
 			return &ActionNode{Kind: val, Value: argVal}, nil
 		}
+
+		// 2. Special functions and aggregates. E.g. => count
+		if val == "count" {
+			return &ActionNode{Kind: "count"}, nil
+		}
+
+		// 3. TranslationID as default. E.g. KR92 or KJV
 		return &ActionNode{Kind: "translation", Value: val}, nil
 	}
 
