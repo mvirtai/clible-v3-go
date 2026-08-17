@@ -398,3 +398,46 @@ func TestDSLExecutor(t *testing.T) {
 		}
 	})
 }
+
+func TestExecute_ComparisonNode(t *testing.T) {
+	node, err := Parse(`@Joh 3:16 ? KR92 : KJV`)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	mockFetcher := &mockVerseFetcher{
+		verses: map[string][]models.Verse{
+			"fin-1992": {
+				{ID: "joh-3-16-kr92", BookID: "JHN", Chapter: 3, Verse: 16, Text: "Sillä niin on Jumala maailmaa rakastanut...", TranslationID: "fin-1992"},
+			},
+			"kjv": {
+				{ID: "joh-3-16-kjv", BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world...", TranslationID: "kjv"},
+			},
+		},
+	}
+
+	execCtx := &ExecutionContext{
+		Ctx:          context.Background(),
+		DefaultTrans: "KR92",
+		VerseFetcher: mockFetcher,
+	}
+
+	res, err := Execute(execCtx, node)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if res.Type != "compare" {
+		t.Fatalf("expected type 'compare', got %q", res.Type)
+	}
+
+	leftData, ok := res.Data["left"].(map[string]interface{})
+	if !ok || leftData["translation"] != "fin-1992" {
+		t.Errorf("expected left translation 'fin-1992', got %v", leftData["translation"])
+	}
+
+	rightData, ok := res.Data["right"].(map[string]interface{})
+	if !ok || rightData["translation"] != "kjv" {
+		t.Errorf("expected right translation 'kjv', got %v", rightData["translation"])
+	}
+}
