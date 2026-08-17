@@ -187,6 +187,7 @@ export interface Messages {
 
   // Drag and Drop
   dragHandleTitle: string;
+  compareSideBySideTitle: string;
 }
 
 export const strings: Record<UILanguage, Messages> = {
@@ -369,6 +370,7 @@ export const strings: Record<UILanguage, Messages> = {
     // Drag and Drop
     dragHandleTitle: 'Drag to reorder cells',
     resetNotebookSizes: 'Reset sizes',
+    compareSideBySideTitle: 'Side-by-side comparison for',
   },
   fi: {
     // App / Shell
@@ -559,6 +561,7 @@ export const strings: Record<UILanguage, Messages> = {
     // Drag and Drop
     dragHandleTitle: 'Vedä solua uudelleen järjestämiseksi',
     resetNotebookSizes: 'Palauta koot',
+    compareSideBySideTitle: 'Rinnakkaisvertailu viitteelle',
   }
 
 };
