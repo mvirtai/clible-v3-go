@@ -212,7 +212,9 @@ func (s *aiServiceImpl) callGemini(ctx context.Context, model, systemPrompt, use
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to perform Gemini http request: %w", err)
+		// Sanitize error to prevent API key leakage from URL in error messages
+		sanitized := strings.ReplaceAll(err.Error(), s.cfg.GeminiAPIKey, "[REDACTED]")
+		return "", nil, fmt.Errorf("failed to perform Gemini http request: %s", sanitized)
 	}
 	defer func() { _ = resp.Body.Close() }()
 

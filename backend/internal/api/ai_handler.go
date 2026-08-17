@@ -30,7 +30,11 @@ func (h *AIHandler) handleError(w http.ResponseWriter, err error) {
 		})
 		return
 	}
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusInternalServerError)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"error": "AI request failed",
+	})
 }
 
 // GetInsight handles POST /api/ai/insight
