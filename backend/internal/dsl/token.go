@@ -21,6 +21,7 @@ const (
 	TokenParenOpen    TokenType = "("  // Parenthesis open delimiter
 	TokenParenClose   TokenType = ")"  // Parenthesis close delimiter
 	TokenComma        TokenType = ","  // Argument delimiter
+	TokenDash         TokenType = "-"  // Range delimiter (8:1-5)
 
 	// Literals and identifiers
 	TokenIdent  TokenType = "IDENT"  // Joh, KR92, limit, cards

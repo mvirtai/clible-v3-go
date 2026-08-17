@@ -94,12 +94,13 @@ func (p *Parser) parsePrimary() (Node, error) {
 	switch tok.Type {
 	case TokenAt:
 		p.next()
-		// Parse verse citation parts (e.g. Joh 3:16 or 1. Kor 13:4-8)
+		// Parse verse citation parts (e.g. Joh 3:16, Room 8:1-5, or 1. Kor 13:4-8)
 		var sb strings.Builder
 		for {
 			cur := p.current()
-			if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon {
-				if cur.Type == TokenColon || (sb.Len() > 0 && sb.String()[sb.Len()-1] == ':') {
+			if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma {
+				if cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma ||
+					(sb.Len() > 0 && (sb.String()[sb.Len()-1] == ':' || sb.String()[sb.Len()-1] == '-' || sb.String()[sb.Len()-1] == ',')) {
 					sb.WriteString(cur.Literal)
 				} else {
 					if sb.Len() > 0 {
@@ -132,8 +133,9 @@ func (p *Parser) parsePrimary() (Node, error) {
 			var sb strings.Builder
 			for {
 				cur := p.current()
-				if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon {
-					if cur.Type == TokenColon || (sb.Len() > 0 && sb.String()[sb.Len()-1] == ':') {
+				if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma {
+					if cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma ||
+						(sb.Len() > 0 && (sb.String()[sb.Len()-1] == ':' || sb.String()[sb.Len()-1] == '-' || sb.String()[sb.Len()-1] == ',')) {
 						sb.WriteString(cur.Literal)
 					} else {
 						if sb.Len() > 0 {

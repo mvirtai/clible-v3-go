@@ -17,32 +17,51 @@ var translationAliasMap = map[string]string{
 	"kirkkoraamattu (1992)":  "fin-1992",
 
 	// Finnish 1933/38 aliases
-	"kr38":                   "fin-1938",
-	"kr-38":                  "fin-1938",
-	"kr33":                   "fin-1938",
-	"kr-33":                  "fin-1938",
-	"fin-1938":               "fin-1938",
-	"fin1938":                "fin-1938",
-	"1938":                   "fin-1938",
-	"1933":                   "fin-1938",
-	"fi-1938":                "fin-1938",
-	"kirkkoraamattu 1938":    "fin-1938",
-	"kirkkoraamattu 1933/38": "fin-1938",
+	"kr38":                   "fin-biblia-33-38",
+	"kr-38":                  "fin-biblia-33-38",
+	"kr33":                   "fin-biblia-33-38",
+	"kr-33":                  "fin-biblia-33-38",
+	"fin-1938":               "fin-biblia-33-38",
+	"fin1938":                "fin-biblia-33-38",
+	"1938":                   "fin-biblia-33-38",
+	"1933":                   "fin-biblia-33-38",
+	"fi-1938":                "fin-biblia-33-38",
+	"kirkkoraamattu 1938":    "fin-biblia-33-38",
+	"kirkkoraamattu 1933/38": "fin-biblia-33-38",
+	"fin-biblia-33-38":       "fin-biblia-33-38",
+	"biblia-33-38":           "fin-biblia-33-38",
+	"biblia 33/38":           "fin-biblia-33-38",
+
+	// Finnish 1776 (Biblia) aliases
+	"1776":        "fin-1776",
+	"fin-1776":    "fin-1776",
+	"fin1776":     "fin-1776",
+	"biblia":      "fin-1776",
+	"biblia 1776": "fin-1776",
+	"biblia-1776": "fin-1776",
 
 	// English WEB aliases
-	"web":                  "web",
-	"world english bible":  "web",
+	"web":                 "web",
+	"world english bible": "web",
 
 	// English KJV aliases
-	"kjv":                  "kjv",
-	"king james":           "kjv",
-	"king james version":   "kjv",
+	"kjv":                "kjv",
+	"king james":         "kjv",
+	"king james version": "kjv",
 
 	// Ancient Greek (Tischendorf) aliases
-	"grc":        "grc-tisch",
-	"tisch":      "grc-tisch",
-	"grc-tisch":  "grc-tisch",
+	"grc":         "grc-tisch",
+	"tisch":       "grc-tisch",
+	"grc-tisch":   "grc-tisch",
 	"tischendorf": "grc-tisch",
+	"sblgnt":      "grc-tisch",
+	"greeksblgnt": "grc-tisch",
+
+	// Hebrew Leningrad Codex aliases
+	"heb":           "heb-leningrad",
+	"hebrew":        "heb-leningrad",
+	"heb-leningrad": "heb-leningrad",
+	"leningrad":     "heb-leningrad",
 }
 
 // normalizeTranslationKey normalizes an input string by lowercasing and trimming spaces.

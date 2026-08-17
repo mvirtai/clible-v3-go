@@ -84,3 +84,36 @@ func TestLexer_UnicodeFinnish(t *testing.T) {
 		}
 	}
 }
+
+func TestLexer_RangeDash(t *testing.T) {
+	input := `@Room 8:1-5 ? KR92 : KR38`
+	lexer := NewLexer(input)
+
+	expected := []struct {
+		expectedType    TokenType
+		expectedLiteral string
+	}{
+		{TokenAt, "@"},
+		{TokenIdent, "Room"},
+		{TokenNumber, "8"},
+		{TokenColon, ":"},
+		{TokenNumber, "1"},
+		{TokenDash, "-"},
+		{TokenNumber, "5"},
+		{TokenSearch, "?"},
+		{TokenIdent, "KR92"},
+		{TokenColon, ":"},
+		{TokenIdent, "KR38"},
+		{TokenEOF, ""},
+	}
+
+	for i, tt := range expected {
+		tok := lexer.NextToken()
+		if tok.Type != tt.expectedType {
+			t.Fatalf("test[%d] - type wrong: expected=%q, got=%q", i, tt.expectedType, tok.Type)
+		}
+		if tok.Literal != tt.expectedLiteral {
+			t.Fatalf("test[%d] - literal wrong: expected=%q, got=%q", i, tt.expectedLiteral, tok.Literal)
+		}
+	}
+}

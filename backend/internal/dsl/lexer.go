@@ -61,6 +61,9 @@ func (l *Lexer) NextToken() Token {
 	case ',':
 		l.pos++
 		return Token{Type: TokenComma, Literal: ",", Pos: startPos}
+	case '-':
+		l.pos++
+		return Token{Type: TokenDash, Literal: "-", Pos: startPos}
 	case '=':
 		if l.peek() == '>' {
 			l.pos += 2
