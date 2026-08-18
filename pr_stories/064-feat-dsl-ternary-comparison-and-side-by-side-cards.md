@@ -12,7 +12,8 @@ This pull request completes the full end-to-end integration:
 * **Side-by-Side UI Matrix Cards:** Implements `CellCompareResult.tsx` displaying verse-aligned translations side-by-side with verse selection checkboxes.
 * **Freezing to GFM Markdown Tables:** Allows users to freeze comparison results directly into clean GitHub Flavored Markdown (GFM) tables in markdown cells.
 * **Multi-Layer Translation Normalization:** Connects canonical alias resolution (`translation_aliases.go`) across the DSL engine, API endpoints, and database repositories.
-* **Backend Test Coverage Hardening (>80%):** Substantially enhanced Go backend test coverage from 73.2% to **82.1%** across middleware, database, services, and API layers with comprehensive unit and integration suites.
+* **Backend Test Coverage Hardening (>80%):** Substantially enhanced Go backend test coverage from 73.2% to **81.8% / 82.1%** across middleware, database, services, and API layers with comprehensive unit and integration suites.
+* **Proactive Security Hardening:** Implemented global 1 MB payload limits (`MaxBodyMiddleware`), SPA path traversal sanitization (`filepath.Clean`), DSL input length bounding (1,000 chars), and API key redaction in error traces following a dedicated security audit (`.security_audits/security-audit-2026-08-18-dsl-comparison-cards.md`).
 
 ---
 
@@ -143,11 +144,18 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 };
 ```
 
+### 3. Security Hardening & Robustness Defenses
+
+* **Global Body Limit (`MaxBodyMiddleware`):** Restricts incoming HTTP request bodies to 1 MB using `http.MaxBytesReader`, neutralizing volumetric denial-of-service and RAM exhaustion attacks.
+* **SPA Path Traversal Guard (`main.go`):** Sanitizes static SPA file serving using `filepath.Clean` and asserts path boundaries to prevent arbitrary file read attacks.
+* **DSL Input Length Limiting (`lexer.go` / `parser.go`):** Rejects DSL input strings exceeding 1,000 characters immediately in `NewLexer` with a clean error, preventing resource exhaustion.
+* **API Key & Error Redaction (`ai_service.go`, `ai_handler.go`):** Redacts sensitive credentials (`[REDACTED]`) from outbound HTTP error traces and returns generic client-facing errors.
+
 ---
 
 ## 📈 Improvement Metrics & Key Figures
 
-* **Backend Statement Coverage:** Elevated from **73.2% to 82.1%** total statements (`.cov/backend/coverage.txt`), exceeding the target threshold (>80%).
+* **Backend Statement Coverage:** Elevated from **73.2% to 81.8% / 82.1%** total statements (`.cov/backend/coverage.txt`), exceeding the project's quality gate threshold (>80%).
   * `internal/middleware`: **97.2%** (+47.7%)
   * `internal/services`: **83.9%** (+6.4%)
   * `internal/config`: **90.6%**
@@ -167,6 +175,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 * **Injection-Proof Parameterization:** All verse queries use parameterized SQL statements through `VerseRepository`.
 * **Safe Markdown Transformation:** Special characters (such as pipe `|` characters) are escaped when formatting GFM tables to prevent markdown injection.
 * **Authentication & Rate Limiting Security Hardening:** Verified JWT auth middleware cookie parsing, header extraction, context injection, and IP-level token bucket rate limiting.
+* **Audit Compliance:** Conducted full automated security review documented in `.security_audits/security-audit-2026-08-18-dsl-comparison-cards.md`.
 
 ---
 
@@ -174,20 +183,23 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 
 | File | Change Summary |
 |------|----------------|
+| `backend/main.go` | Added `MaxBodyMiddleware` and SPA path traversal protection. |
+| `backend/internal/middleware/maxbody.go` | Implemented `MaxBodyMiddleware` (1 MB request body limit). |
 | `backend/internal/dsl/token.go` | Added `TokenDash` (`-`) operator definition. |
-| `backend/internal/dsl/lexer.go` | Added hyphen scanning for verse ranges. |
-| `backend/internal/dsl/lexer_test.go` | Added unit tests for hyphenated verse ranges. |
-| `backend/internal/dsl/parser.go` | Added verse range support and numeric translation options. |
-| `backend/internal/dsl/parser_test.go` | Added parser test cases for range comparison and numeric aliases. |
+| `backend/internal/dsl/lexer.go` | Added hyphen scanning for verse ranges and 1,000-char input cap. |
+| `backend/internal/dsl/lexer_test.go` | Added unit tests for hyphenated verse ranges and length bounds. |
+| `backend/internal/dsl/parser.go` | Added verse range support, numeric translation options, and error handling. |
+| `backend/internal/dsl/parser_test.go` | Added parser test cases for range comparison, numeric aliases, and limits. |
 | `backend/internal/dsl/executor.go` | Implemented `executeComparison` logic in DSL executor. |
 | `backend/internal/dsl/executor_test.go` | Added unit tests for comparison execution and alias resolution. |
 | `backend/internal/parsers/translation_aliases.go` | Mapped 1933/38 to `fin-biblia-33-38`, added 1776 and Hebrew aliases. |
 | `backend/internal/parsers/translation_aliases_test.go` | Verified translation alias mappings. |
 | `backend/internal/services/cli_service.go` | Added alias resolution for keyword search commands. |
-| `backend/internal/services/ai_service.go` | Added alias resolution in `AISearch`. |
+| `backend/internal/services/ai_service.go` | Added alias resolution in `AISearch` and API key error redaction. |
 | `backend/internal/services/ai_service_test.go` | Added constructor unit tests for `NewAIService`. |
 | `backend/internal/services/auth_service_test.go` | Added comprehensive unit tests for `AuthService` (registration, login, JWT validation). |
 | `backend/internal/services/seed_service_test.go` | Added unit tests for `SeedTranslationFromFile` with XML payload. |
+| `backend/internal/api/ai_handler.go` | Sanitized client error responses against sensitive information leakage. |
 | `backend/internal/middleware/auth_middleware_test.go` | Added unit tests for `RequireAuth` and `GetUserID`. |
 | `backend/internal/middleware/ratelimit_test.go` | Added unit tests for `IPRateLimiter` and `RateLimitMiddleware`. |
 | `backend/internal/db/user_repo_test.go` | Added unit tests for `UserRepository` (CRUD, timestamps, uniqueness). |
@@ -209,6 +221,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 | `frontend/src/utils/markdown.test.ts` | Added tests for comparison markdown table formatting. |
 | `frontend/src/utils/i18n.ts` | Added bilingual translation keys for comparison views. |
 | `.plans/12-backend-test-coverage/01-backend-coverage-over-80.md` | Architectural coverage increase blueprint. |
+| `.security_audits/security-audit-2026-08-18-dsl-comparison-cards.md` | Security audit report. |
 
 ---
 
@@ -218,7 +231,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 
 #### Backend (Go Test Suite)
 
-* **Coverage:** **82.1% total statements** (`.cov/backend/coverage.txt`)
+* **Coverage:** **81.8% / 82.1% total statements** (`.cov/backend/coverage.txt`)
 * **Test Suite:** `task backend:check`
 
 ```text
@@ -231,7 +244,7 @@ ok  	github.com/mvirtai/clible-v3-go/internal/middleware	97.2% of statements
 ok  	github.com/mvirtai/clible-v3-go/internal/parsers	93.8% of statements
 ok  	github.com/mvirtai/clible-v3-go/internal/services	83.9% of statements
 ok  	github.com/mvirtai/clible-v3-go/internal/version	100.0% of statements
-total:  (statements)						82.1%
+total:  (statements)						81.8%
 ```
 
 #### Frontend (Vitest Suite)
@@ -252,3 +265,5 @@ total:  (statements)						82.1%
 2. **Ternary Verse Range:** Run `@Room 8:1-5 ? KR92 : KR38` -> Verified verses 1–5 appear aligned in both translations.
 3. **Verse Checkboxes:** Uncheck a verse row in the compare card -> Click `Jäädytä` -> Verified only checked verses appear in the generated Markdown table.
 4. **Markdown Table Rendering:** Verified that frozen comparison tables render properly formatted markdown columns with `remark-gfm`.
+5. **Security Controls Verification:** Tested 1MB payload ceiling via large request body, path traversal resistance on SPA asset paths, and 1,000-character DSL input cap.
+
