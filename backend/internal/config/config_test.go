@@ -19,12 +19,20 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DatabaseURL != expectedDefault {
 		t.Errorf("expected default DB URL %s, got %s", expectedDefault, cfg.DatabaseURL)
 	}
+	if cfg.GeminiModelInsight != "gemini-3.7-flash" {
+		t.Errorf("expected default insight model gemini-3.7-flash, got %s", cfg.GeminiModelInsight)
+	}
+	if cfg.GeminiModelTone != "gemini-3.7-flash" {
+		t.Errorf("expected default tone model gemini-3.7-flash, got %s", cfg.GeminiModelTone)
+	}
 }
 
 // TestLoadCustom verifies that environment variables correctly override defaults.
 func TestLoadCustom(t *testing.T) {
 	t.Setenv("PORT", "9090")
 	t.Setenv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/custom_db?sslmode=disable")
+	t.Setenv("GEMINI_MODEL_INSIGHT", "custom-insight-model")
+	t.Setenv("GEMINI_MODEL_TONE", "custom-tone-model")
 
 	cfg := Load()
 
@@ -34,5 +42,11 @@ func TestLoadCustom(t *testing.T) {
 	expectedCustom := "postgres://postgres:postgres@localhost:5432/custom_db?sslmode=disable"
 	if cfg.DatabaseURL != expectedCustom {
 		t.Errorf("expected custom DB URL %s, got %s", expectedCustom, cfg.DatabaseURL)
+	}
+	if cfg.GeminiModelInsight != "custom-insight-model" {
+		t.Errorf("expected custom-insight-model, got %s", cfg.GeminiModelInsight)
+	}
+	if cfg.GeminiModelTone != "custom-tone-model" {
+		t.Errorf("expected custom-tone-model, got %s", cfg.GeminiModelTone)
 	}
 }

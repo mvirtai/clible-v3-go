@@ -221,3 +221,55 @@ func TestVerseRepository_SearchByKeywords(t *testing.T) {
 		t.Errorf("expected Joh 3:16, got Joh 3:%d", results[0].Verse)
 	}
 }
+
+func TestVerseRepository_GetByChapter_And_Book(t *testing.T) {
+	conn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	ctx := context.Background()
+	_, _ = conn.ExecContext(ctx, `INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
+	_, _ = conn.ExecContext(ctx, `INSERT INTO books (id, name, testament, position, chapters) VALUES ('Joh', 'John', 'NT', 4, 21)`)
+
+	repo := db.NewVerseRepository(conn)
+	verses := []models.Verse{
+		{ID: "web:Joh:1:1", TranslationID: "web", BookID: "Joh", Chapter: 1, Verse: 1, Text: "In the beginning was the Word"},
+		{ID: "web:Joh:1:2", TranslationID: "web", BookID: "Joh", Chapter: 1, Verse: 2, Text: "The same was in the beginning"},
+		{ID: "web:Joh:2:1", TranslationID: "web", BookID: "Joh", Chapter: 2, Verse: 1, Text: "On the third day"},
+	}
+	if err := repo.BulkInsert(ctx, verses); err != nil {
+		t.Fatalf("failed to seed verses: %v", err)
+	}
+
+	t.Run("GetByChapter returns chapter verses in order", func(t *testing.T) {
+		chVerses, err := repo.GetByChapter(ctx, "web", "Joh", 1)
+		if err != nil {
+			t.Fatalf("GetByChapter failed: %v", err)
+		}
+		if len(chVerses) != 2 {
+			t.Fatalf("expected 2 verses in chapter 1, got %d", len(chVerses))
+		}
+		if chVerses[0].Verse != 1 || chVerses[1].Verse != 2 {
+			t.Errorf("unexpected verse ordering: %+v", chVerses)
+		}
+	})
+
+	t.Run("GetByBook returns all book verses in order", func(t *testing.T) {
+		bookVerses, err := repo.GetByBook(ctx, "web", "Joh")
+		if err != nil {
+			t.Fatalf("GetByBook failed: %v", err)
+		}
+		if len(bookVerses) != 3 {
+			t.Fatalf("expected 3 verses in book, got %d", len(bookVerses))
+		}
+	})
+
+	t.Run("DB accessor returns connection", func(t *testing.T) {
+		if repo.DB() != conn {
+			t.Errorf("expected DB() to return underlying connection")
+		}
+	})
+}
+

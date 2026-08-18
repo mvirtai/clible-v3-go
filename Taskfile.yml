@@ -173,39 +173,52 @@ tasks:
 
   # --- Git --- #
   # --- Git & GitHub Automation ---
-  # --- Git & GitHub Automation ---
   git:pr:
-    desc: Create a GitHub PR using a permanent PR story file from ./pr_stories/
+    desc: Create a GitHub PR using a permanent PR story file from ./pr_stories/ (auto-detects newest if FILE omitted)
     vars:
       CURRENT_BRANCH:
         sh: git branch --show-current
+      STORY_FILE:
+        sh: |
+          if [ -n "{{.FILE}}" ]; then
+            F="{{.FILE}}"
+            F="${F#pr_stories/}"
+            if [[ "$F" != *.md ]]; then
+              F="${F}.md"
+            fi
+            echo "$F"
+          else
+            find pr_stories -maxdepth 1 -name '[0-9]*.md' -type f 2>/dev/null | sort -V | tail -n 1 | xargs -n 1 basename 2>/dev/null
+          fi
+      # Automatically targets the pr_stories directory
+      STORY_PATH: "pr_stories/{{.STORY_FILE}}"
       TITLE:
         sh: |
           if [ -n "{{.TITLE}}" ]; then
             echo "{{.TITLE}}"
-          elif [ -n "{{.FILE}}" ]; then
-            echo "{{.FILE}}" | sed -E -e 's/\.md$//' -e 's/^[0-9]+-//' -e 's/^([a-z]+)-/\1: /' -e 's/-/ /g'
+          elif [ -n "{{.STORY_FILE}}" ]; then
+            echo "{{.STORY_FILE}}" | sed -E -e 's/\.md$//' -e 's/^[0-9]+-//' -e 's/^([a-z]+)-/\1: /' -e 's/-/ /g'
           else
             git branch --show-current
           fi
-      # Automatically targets the pr_stories directory
-      STORY_PATH: "pr_stories/{{.FILE}}"
     preconditions:
       - sh: command -v gh >/dev/null 2>&1
         msg: "GitHub CLI (gh) is required but not installed. Run 'brew install gh' or equivalent."
-      - sh: 'test -n "{{.FILE}}"'
-        msg: "Missing FILE argument. Usage: task git:pr FILE=your-story.md"
+      - sh: 'test -n "{{.STORY_FILE}}"'
+        msg: "No PR story file found or specified. Usage: task git:pr [FILE=your-story.md]"
       - sh: 'test -f "{{.STORY_PATH}}"'
-        msg: "The file '{{.STORY_PATH}}' does not exist. Ensure it is placed in the ./pr_stories/ directory."
+        msg: "The story file '{{.STORY_PATH}}' does not exist. Ensure it is placed in the ./pr_stories/ directory."
     cmds:
       - task: check
-      - echo "Staging a temporary deployment copy of {{.STORY_PATH}}..."
+      - 'echo "Using PR story: {{.STORY_PATH}}"'
+      - 'echo "PR Title: {{.TITLE}}"'
+      - 'echo "Staging a temporary deployment copy of {{.STORY_PATH}}..."'
       - cp "{{.STORY_PATH}}" temp_pr_story.md
-      - echo "Pushing branch {{.CURRENT_BRANCH}} to origin..."
+      - 'echo "Pushing branch {{.CURRENT_BRANCH}} to origin..."'
       - git push origin {{.CURRENT_BRANCH}}
-      - echo "Creating pull request via GitHub API..."
+      - 'echo "Creating pull request via GitHub API..."'
       - gh pr create --title "{{.TITLE}}" --body-file temp_pr_story.md
-      - echo "PR created successfully! Cleaning up intermediate assets..."
+      - 'echo "PR created successfully! Cleaning up intermediate assets..."'
       - rm temp_pr_story.md
 
   git:commit:

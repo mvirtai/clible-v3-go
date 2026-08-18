@@ -153,6 +153,64 @@ func TestDSLParser_ValidExpressions(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:  "Ternary Numeric Translation Aliases",
+			input: "@Joh 3:16 ? 1992 : 1938",
+			validate: func(t *testing.T, node Node) {
+				comp, ok := node.(*ComparisonNode)
+				if !ok {
+					t.Fatalf("expected *ComparisonNode, got %T", node)
+				}
+				left, ok := comp.Left.(*ActionNode)
+				if !ok || left.Value != "1992" {
+					t.Errorf("expected left '1992', got %#v", comp.Left)
+				}
+				right, ok := comp.Right.(*ActionNode)
+				if !ok || right.Value != "1938" {
+					t.Errorf("expected right '1938', got %#v", comp.Right)
+				}
+			},
+		},
+		{
+			name:  "Verse Reference Range Ternary Comparison",
+			input: "@Room 8:1-5 ? KR92 : KR38",
+			validate: func(t *testing.T, node Node) {
+				comp, ok := node.(*ComparisonNode)
+				if !ok {
+					t.Fatalf("expected *ComparisonNode, got %T", node)
+				}
+				ref, ok := comp.Target.(*VerseRefNode)
+				if !ok || ref.Reference != "Room 8:1-5" {
+					t.Errorf("expected target 'Room 8:1-5', got %#v", comp.Target)
+				}
+				left, ok := comp.Left.(*ActionNode)
+				if !ok || left.Value != "KR92" {
+					t.Errorf("expected left 'KR92', got %#v", comp.Left)
+				}
+				right, ok := comp.Right.(*ActionNode)
+				if !ok || right.Value != "KR38" {
+					t.Errorf("expected right 'KR38', got %#v", comp.Right)
+				}
+			},
+		},
+		{
+			name:  "Multi-part Book Citation with Verse Range",
+			input: "@1. Kor 13:4-8 => KR92",
+			validate: func(t *testing.T, node Node) {
+				pipe, ok := node.(*PipeNode)
+				if !ok {
+					t.Fatalf("expected *PipeNode, got %T", node)
+				}
+				ref, ok := pipe.Left.(*VerseRefNode)
+				if !ok || ref.Reference != "1. Kor 13:4-8" {
+					t.Errorf("expected left '1. Kor 13:4-8', got %#v", pipe.Left)
+				}
+				action, ok := pipe.Right.(*ActionNode)
+				if !ok || action.Kind != "translation" || action.Value != "KR92" {
+					t.Errorf("expected right 'KR92', got %#v", pipe.Right)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -276,6 +276,10 @@ func executeComparison(ctx *ExecutionContext, n *ComparisonNode) (*models.CLIRes
 		rightTrans = parsers.ResolveTranslationID(rightAct.Value)
 	}
 
+	if ctx.VerseFetcher == nil {
+		return nil, errors.New("verse fetcher dependency not configured")
+	}
+
 	leftVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, leftTrans)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch left verses %q: %w", leftTrans, err)

@@ -1,9 +1,13 @@
 package dsl
 
 import (
+	"fmt"
 	"unicode"
 	"strings"
 )
+
+// MaxDSLInputLength is the maximum allowed length for a DSL expression (VULN-005).
+const MaxDSLInputLength = 2000
 
 // Lexer transforms a DSL expression string into a sequential token stream
 type Lexer struct {
@@ -11,12 +15,16 @@ type Lexer struct {
 	pos int
 }
 
-// NewLexer construct a new Lexer initialized with input runes.
-func NewLexer(input string) *Lexer {
+// NewLexer constructs a new Lexer initialized with input runes.
+// Returns an error if the input exceeds MaxDSLInputLength characters.
+func NewLexer(input string) (*Lexer, error) {
+	if len([]rune(input)) > MaxDSLInputLength {
+		return nil, fmt.Errorf("DSL input exceeds maximum length of %d characters", MaxDSLInputLength)
+	}
 	return &Lexer{
 		input: []rune(input),
 		pos: 0,
-	}
+	}, nil
 }
 
 // NextToken scans and returns the next lexical token from the input.
@@ -61,6 +69,9 @@ func (l *Lexer) NextToken() Token {
 	case ',':
 		l.pos++
 		return Token{Type: TokenComma, Literal: ",", Pos: startPos}
+	case '-':
+		l.pos++
+		return Token{Type: TokenDash, Literal: "-", Pos: startPos}
 	case '=':
 		if l.peek() == '>' {
 			l.pos += 2

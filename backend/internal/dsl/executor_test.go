@@ -398,3 +398,81 @@ func TestDSLExecutor(t *testing.T) {
 		}
 	})
 }
+
+func TestExecute_ComparisonNode(t *testing.T) {
+	node, err := Parse(`@Joh 3:16 ? KR92 : KJV`)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	mockFetcher := &mockVerseFetcher{
+		verses: map[string][]models.Verse{
+			"fin-1992": {
+				{ID: "joh-3-16-kr92", BookID: "JHN", Chapter: 3, Verse: 16, Text: "Sillä niin on Jumala maailmaa rakastanut...", TranslationID: "fin-1992"},
+			},
+			"kjv": {
+				{ID: "joh-3-16-kjv", BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world...", TranslationID: "kjv"},
+			},
+		},
+	}
+
+	execCtx := &ExecutionContext{
+		Ctx:          context.Background(),
+		DefaultTrans: "KR92",
+		VerseFetcher: mockFetcher,
+	}
+
+	res, err := Execute(execCtx, node)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if res.Type != "compare" {
+		t.Fatalf("expected type 'compare', got %q", res.Type)
+	}
+
+	leftData, ok := res.Data["left"].(map[string]interface{})
+	if !ok || leftData["translation"] != "fin-1992" {
+		t.Errorf("expected left translation 'fin-1992', got %v", leftData["translation"])
+	}
+
+	rightData, ok := res.Data["right"].(map[string]interface{})
+	if !ok || rightData["translation"] != "kjv" {
+		t.Errorf("expected right translation 'kjv', got %v", rightData["translation"])
+	}
+
+	// Test KR92 vs KR38 & 1992 vs 1938 aliases
+	mockFetcher.verses["fin-biblia-33-38"] = []models.Verse{
+		{ID: "joh-3-16-kr38", BookID: "JHN", Chapter: 3, Verse: 16, Text: "Sillä niin on Jumala maailmaa rakastanut...", TranslationID: "fin-biblia-33-38"},
+	}
+
+	nodeAliases, err := Parse(`@Joh 3:16 ? KR92 : KR38`)
+	if err != nil {
+		t.Fatalf("Parse KR92 : KR38 failed: %v", err)
+	}
+	resAliases, err := Execute(execCtx, nodeAliases)
+	if err != nil {
+		t.Fatalf("Execute KR92 : KR38 failed: %v", err)
+	}
+	if resAliases.Data["left"].(map[string]interface{})["translation"] != "fin-1992" {
+		t.Errorf("expected left 'fin-1992', got %v", resAliases.Data["left"].(map[string]interface{})["translation"])
+	}
+	if resAliases.Data["right"].(map[string]interface{})["translation"] != "fin-biblia-33-38" {
+		t.Errorf("expected right 'fin-biblia-33-38', got %v", resAliases.Data["right"].(map[string]interface{})["translation"])
+	}
+
+	nodeNumeric, err := Parse(`@Joh 3:16 ? 1992 : 1938`)
+	if err != nil {
+		t.Fatalf("Parse 1992 : 1938 failed: %v", err)
+	}
+	resNumeric, err := Execute(execCtx, nodeNumeric)
+	if err != nil {
+		t.Fatalf("Execute 1992 : 1938 failed: %v", err)
+	}
+	if resNumeric.Data["left"].(map[string]interface{})["translation"] != "fin-1992" {
+		t.Errorf("expected left 'fin-1992', got %v", resNumeric.Data["left"].(map[string]interface{})["translation"])
+	}
+	if resNumeric.Data["right"].(map[string]interface{})["translation"] != "fin-biblia-33-38" {
+		t.Errorf("expected right 'fin-biblia-33-38', got %v", resNumeric.Data["right"].(map[string]interface{})["translation"])
+	}
+}

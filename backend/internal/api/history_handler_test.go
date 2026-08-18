@@ -99,4 +99,45 @@ func TestHistoryHandler_Endpoints(t *testing.T) {
 			t.Errorf("expected payload queryText string reference value to match 'salvation', got %v", list[0]["queryText"])
 		}
 	})
+
+	t.Run("POST /api/history returns 401 when unauthorized", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/history", nil)
+		rec := httptest.NewRecorder()
+		handler.AddSearch(rec, req)
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401, got %d", rec.Code)
+		}
+	})
+
+	t.Run("POST /api/history rejects invalid JSON body", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/history", bytes.NewReader([]byte("{invalid-json")))
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "test-user-id")
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.AddSearch(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("GET /api/history returns 401 when unauthorized", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/history", nil)
+		rec := httptest.NewRecorder()
+		handler.GetRecentHistory(rec, req)
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401, got %d", rec.Code)
+		}
+	})
+
+	t.Run("GET /api/history with invalid limit falls back gracefully", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/history?limit=invalid", nil)
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "test-user-id")
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.GetRecentHistory(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rec.Code)
+		}
+	})
 }
+

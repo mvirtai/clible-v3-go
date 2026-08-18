@@ -20,7 +20,10 @@ func NewParser(tokens []Token) *Parser {
 
 // Parse takes a raw DSL string, tokenizes it, and returns the root AST Node.
 func Parse(input string) (Node, error) {
-	lexer := NewLexer(input)
+	lexer, err := NewLexer(input)
+	if err != nil {
+		return nil, err
+	}
 	var tokens []Token
 	for {
 		tok := lexer.NextToken()
@@ -94,12 +97,13 @@ func (p *Parser) parsePrimary() (Node, error) {
 	switch tok.Type {
 	case TokenAt:
 		p.next()
-		// Parse verse citation parts (e.g. Joh 3:16 or 1. Kor 13:4-8)
+		// Parse verse citation parts (e.g. Joh 3:16, Room 8:1-5, or 1. Kor 13:4-8)
 		var sb strings.Builder
 		for {
 			cur := p.current()
-			if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon {
-				if cur.Type == TokenColon || (sb.Len() > 0 && sb.String()[sb.Len()-1] == ':') {
+			if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma {
+				if cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma ||
+					(sb.Len() > 0 && (sb.String()[sb.Len()-1] == ':' || sb.String()[sb.Len()-1] == '-' || sb.String()[sb.Len()-1] == ',')) {
 					sb.WriteString(cur.Literal)
 				} else {
 					if sb.Len() > 0 {
@@ -132,8 +136,9 @@ func (p *Parser) parsePrimary() (Node, error) {
 			var sb strings.Builder
 			for {
 				cur := p.current()
-				if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon {
-					if cur.Type == TokenColon || (sb.Len() > 0 && sb.String()[sb.Len()-1] == ':') {
+				if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma {
+					if cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma ||
+						(sb.Len() > 0 && (sb.String()[sb.Len()-1] == ':' || sb.String()[sb.Len()-1] == '-' || sb.String()[sb.Len()-1] == ',')) {
 						sb.WriteString(cur.Literal)
 					} else {
 						if sb.Len() > 0 {
@@ -191,7 +196,7 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 		return &ActionNode{Kind: "style", Value: styleName}, nil
 	}
 
-	if tok.Type == TokenIdent {
+	if tok.Type == TokenIdent || tok.Type == TokenNumber {
 		val := tok.Literal
 		p.next()
 		// 1. Key-value option, e.g. limit:5
@@ -207,7 +212,7 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 			return &ActionNode{Kind: "count"}, nil
 		}
 
-		// 3. TranslationID as default. E.g. KR92 or KJV
+		// 3. TranslationID as default. E.g. KR92, KJV, 1992, 1938
 		return &ActionNode{Kind: "translation", Value: val}, nil
 	}
 

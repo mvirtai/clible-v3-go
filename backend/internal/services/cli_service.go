@@ -13,6 +13,7 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/dsl"
 	"github.com/mvirtai/clible-v3-go/internal/models"
+	"github.com/mvirtai/clible-v3-go/internal/parsers"
 )
 
 // ThemeItem represents an extracted themeword and its appearance count.
@@ -312,7 +313,8 @@ func (s *CLIService) executeRefsCommand(ctx context.Context, cmd *CLICommand, tr
 		}, nil
 	}
 
-	refs, err := s.verseRepo.SearchByKeywords(ctx, keywords, translationID, 6)
+	tid := parsers.ResolveTranslationID(translationID)
+	refs, err := s.verseRepo.SearchByKeywords(ctx, keywords, tid, 6)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search cross-references: %w", err)
 	}
@@ -369,7 +371,8 @@ func (s *CLIService) executeSuggestCommand(ctx context.Context, _ *CLICommand, t
 		}, nil
 	}
 
-	suggestions, err := s.verseRepo.SearchByKeywords(ctx, keywords, translationID, 5)
+	tid := parsers.ResolveTranslationID(translationID)
+	suggestions, err := s.verseRepo.SearchByKeywords(ctx, keywords, tid, 5)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search suggestions: %w", err)
 	}

@@ -13,6 +13,8 @@ export interface CLIResultData {
   suggestions?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
   keywords?: string[];
   themes?: Array<{ word: string; count: number }>;
+  left?: { translation?: string; verses?: Array<{ id: string; translationId?: string; bookId: string; chapter: number; verse: number; text: string }> };
+  right?: { translation?: string; verses?: Array<{ id: string; translationId?: string; bookId: string; chapter: number; verse: number; text: string }> };
 }
 
 export function formatResultToMarkdown(type: string, data: CLIResultData, translation: string): string {
@@ -76,6 +78,31 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
       ? `Hakutulokset haulle ${data.is_regex ? `/${data.query}/` : `"${data.query}"`}`
       : `Jakeet viitteelle ${data.reference}`;
     markdown = `> **${target} (${tr})**: ${count} ${matchLabel}\n`;
+  }
+
+  else if (type === 'compare') {
+    const leftTrans = data.left?.translation?.toUpperCase() || 'L';
+    const rightTrans = data.right?.translation?.toUpperCase() || 'R';
+    const ref = data.reference || '';
+
+    const leftVerses = data.left?.verses || [];
+    const rightVerses = data.right?.verses || [];
+    const maxRows = Math.max(leftVerses.length, rightVerses.length);
+
+    let md = `### Käännösvertailu: ${ref} (${leftTrans} vs. ${rightTrans})\n\n`;
+    md += `| Jae | ${leftTrans} | ${rightTrans} |\n`;
+    md += `| :--- | :--- | :--- |\n`;
+
+    for (let i = 0; i < maxRows; i++) {
+      const l = leftVerses[i];
+      const r = rightVerses[i];
+      const verseNum = l?.verse || r?.verse || i + 1;
+      const lText = l?.text ? l.text.replace(/\|/g, '\\|') : '—';
+      const rText = r?.text ? r.text.replace(/\|/g, '\\|') : '—';
+      md += `| **${verseNum}** | ${lText} | ${rText} |\n`;
+    }
+
+    markdown = md;
   }
 
   return markdown;

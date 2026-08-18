@@ -189,5 +189,22 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 				t.Errorf("expected HTTP 400 Bad Request, got %d", rec.Code)
 			}
 		})
+
+		t.Run("POST /api/analytics/analyze returns 400 Bad Request when verse parsing fails", func(t *testing.T) {
+			payload := map[string]string{
+				"reference":     "InvalidReferenceFormat!!!",
+				"translationId": "web",
+			}
+			body, _ := json.Marshal(payload)
+			req := httptest.NewRequest(http.MethodPost, "/api/analytics/analyze", bytes.NewReader(body))
+			rec := httptest.NewRecorder()
+
+			handler.Analyze(rec, req)
+
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("expected HTTP 400 Bad Request, got %d", rec.Code)
+			}
+		})
 	})
 }
+

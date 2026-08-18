@@ -400,3 +400,23 @@ func TestAIService_OriginalStudy_UsesExplicitOutputLanguageAcrossScopes(t *testi
 		t.Fatalf("expected %d Gemini requests, got %d", len(tests), len(prompts))
 	}
 }
+
+func TestNewAIService(t *testing.T) {
+	conn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize db: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	verseRepo := db.NewVerseRepository(conn)
+
+	cfg := &config.Config{
+		GeminiAPIKey:       "test-api-key",
+		GeminiModelInsight: "gemini-3.7-flash",
+	}
+
+	service := NewAIService(cfg, verseRepo)
+	if service == nil {
+		t.Fatalf("expected non-nil AIService")
+	}
+}
