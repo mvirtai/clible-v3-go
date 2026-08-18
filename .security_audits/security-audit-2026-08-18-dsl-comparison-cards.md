@@ -194,6 +194,54 @@ Korvaa `err.Error()` geneerisellä "internal server error" -viestillä HTTP 500 
 | **Sijainti** | [`backend/internal/dsl/lexer.go`](file:///home/vivaldev/code/clible-v3-go/backend/internal/dsl/lexer.go), [`backend/internal/dsl/parser.go`](file:///home/vivaldev/code/clible-v3-go/backend/internal/dsl/parser.go), [`backend/internal/dsl/executor.go`](file:///home/vivaldev/code/clible-v3-go/backend/internal/dsl/executor.go) |
 | **Tila** | ℹ️ Informatiivinen |
 
+## 🟠 KORKEAN VAKAVUUDEN HAVAINNOT
+
+### VULN-001: Go 1.26.2 standardikirjaston haavoittuvuudet (13 kpl)
+
+| Kenttä | Arvo |
+| -------- | ------ |
+| **CVSS v3.1** | **7.5 (High)** |
+| **Vektori** | `AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H` |
+| **Sijainti** | Koko sovellus — [`go.mod`](file:///home/vivaldev/code/clible-v3-go/backend/go.mod#L3) (`go 1.25.0`, runtime go1.26.2) |
+| **Tila** | ⚠️ **Avoin — vaatii korjauksen ennen mergeä** |
+
+**Kuvaus:**
+`govulncheck ./...` löysi **13 tunnetttua haavoittuvuutta**, jotka koskevat Go 1.26.2 standardikirjaston paketteja. Kaikki korjaukset ovat saatavilla versiossa **go1.26.6**. Kriittisimmät:
+
+| ID | Paketti | Vaikutus | Polku sovelluksessa |
+| ---- | --------- | ---------- | --------------------- |
+| GO-2026-6218 | `net/url` | Neliöllinen kompleksisuus `resolvePath`:ssa (ReDoS) | `ai_service.go → http.Client.Do` |
+| GO-2026-6090 | `crypto/tls` | Rajoittamaton post-handshake -viestien vastaanotto | `verse_repo.go`, `main.go`, `auth_service.go` |
+| GO-2026-6089 | `net/http` | `ReadHeaderTimeout` ei sovellu salaamattomaan HTTP/2 | `main.go:240 → ListenAndServe` |
+| GO-2026-6088 | `encoding/xml` | Rekursiosyvyyden puute XML-dekoodauksessa (DoS) | `xml_parser.go:67 → xml.Decoder.Token` |
+| GO-2026-5972 | `encoding/asn1` | Rekursion syvyysrajoituksen puute | `main.go:244 → signal.Notify` |
+| GO-2026-5856 | `crypto/tls` | ECH-yksityisyysvuoto | TLS-yhteydet kauttaaltaan |
+| GO-2026-5039 | `net/textproto` | Käsittelemättömät syötteet virheissä (XSS-pinta) | `main.go → http.Server` |
+| GO-2026-5037 | `crypto/x509` | Tehoton hostname-parsinta | `ai_service.go → Certificate.Verify` |
+| GO-2026-5026 | `net/http` | Punycode-etiketin ohitus | `ai_service.go → http.Client.Do` |
+| GO-2026-4986 | `net/mail` | Neliöllinen merkkijono `consumeComment`:ssa | `auth_handler.go:57 → mail.ParseAddress` |
+| GO-2026-4977 | `net/mail` | Neliöllinen merkkijono `consumePhrase`:ssa | `auth_handler.go:57 → mail.ParseAddress` |
+| GO-2026-4971 | `net` | NUL-tavun paniikki Windows Dialissa | `verse_repo.go`, `main.go` |
+| GO-2026-4918 | `net/http` | Ääretön silmukka HTTP/2-transportissa | `ai_service.go → http.Client.Do` |
+
+**Erityishuomiot:**
+
+- **GO-2026-6088** (`encoding/xml`) on erityisen relevantti, koska sovelluksen XML-parseri (`xml_parser.go`) lukee potentiaalisesti ulkoisista lähteistä peräisin olevaa XML-dataa `SeedTranslationFromFile`-toiminnolla.
+- **GO-2026-4986/4977** (`net/mail`) koskee suoraan rekisteröinti-endpointtia (`POST /api/auth/register`), jossa sähköpostia validoidaan `mail.ParseAddress`:lla. Hyökkääjä voisi lähettää erityisesti muotoiltun sähköpostiosoitteen, joka aiheuttaa neliöllisen aikakompleksisuuden.
+
+**Suositus:**
+Päivitä Go-versio vähintään versioon **go1.26.6**:
+
+```bash
+# Asenna go1.26.6
+go install golang.org/dl/go1.26.6@latest
+go1.26.6 download
+
+# Päivitä go.mod
+go mod edit -go=1.26.6
+go mod tidy
+```
+
 **Kuvaus:**
 Uusi DSL-parseri käsittelee käyttäjän antamia merkkijonoja ilman eksplisiittistä pituusrajoitusta. Vaikka DSL-komennot kulkevat autentikoidun reitin kautta (notebook endpoint vaatii `requireAuth`), teoriassa erittäin pitkä DSL-merkkijono voisi kuormittaa parseria.
 
@@ -229,7 +277,55 @@ Tämä on **Google Gemini API:n dokumentoima tapa**, mutta API-avain voi tallent
 - CDN/proxy-välimuisteihin (ei sovellettavissa HTTPS-liikenteeseen)
 
 **Suositus:**
-Tiedostettu suunnittelupäätös — seurataan Googlen virallista API-konventiota. Varmista kuitenkin, ettei virheilmoituksissa (`fmt.Errorf`) URL:ää paljasteta end-userille (jo suojattu `handleError`-apufunktiolla, lukuun ottamatta AI-handlerin rivin 33 suoraa `err.Error()`-palautusta, joka on dokumentoitu kohdassa VULN-004).
+Tiedostettu suunnittelupäätös — seurataan Googlen virallista API-konventiota. Varmista kuitenkin, ettei virheilmoituksissa (`fmt.Errorf`) URL:ää paljasteta end-userille (jo suojattu `handleError`-apufunktiolla, lukuun ottamatta AI-handlerin rivin 33 suoraa `err.Error()`-palautusta, joka## 🟠 KORKEAN VAKAVUUDEN HAVAINNOT
+
+### VULN-001: Go 1.26.2 standardikirjaston haavoittuvuudet (13 kpl)
+
+| Kenttä | Arvo |
+| -------- | ------ |
+| **CVSS v3.1** | **7.5 (High)** |
+| **Vektori** | `AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H` |
+| **Sijainti** | Koko sovellus — [`go.mod`](file:///home/vivaldev/code/clible-v3-go/backend/go.mod#L3) (`go 1.25.0`, runtime go1.26.2) |
+| **Tila** | ⚠️ **Avoin — vaatii korjauksen ennen mergeä** |
+
+**Kuvaus:**
+`govulncheck ./...` löysi **13 tunnetttua haavoittuvuutta**, jotka koskevat Go 1.26.2 standardikirjaston paketteja. Kaikki korjaukset ovat saatavilla versiossa **go1.26.6**. Kriittisimmät:
+
+| ID | Paketti | Vaikutus | Polku sovelluksessa |
+| ---- | --------- | ---------- | --------------------- |
+| GO-2026-6218 | `net/url` | Neliöllinen kompleksisuus `resolvePath`:ssa (ReDoS) | `ai_service.go → http.Client.Do` |
+| GO-2026-6090 | `crypto/tls` | Rajoittamaton post-handshake -viestien vastaanotto | `verse_repo.go`, `main.go`, `auth_service.go` |
+| GO-2026-6089 | `net/http` | `ReadHeaderTimeout` ei sovellu salaamattomaan HTTP/2 | `main.go:240 → ListenAndServe` |
+| GO-2026-6088 | `encoding/xml` | Rekursiosyvyyden puute XML-dekoodauksessa (DoS) | `xml_parser.go:67 → xml.Decoder.Token` |
+| GO-2026-5972 | `encoding/asn1` | Rekursion syvyysrajoituksen puute | `main.go:244 → signal.Notify` |
+| GO-2026-5856 | `crypto/tls` | ECH-yksityisyysvuoto | TLS-yhteydet kauttaaltaan |
+| GO-2026-5039 | `net/textproto` | Käsittelemättömät syötteet virheissä (XSS-pinta) | `main.go → http.Server` |
+| GO-2026-5037 | `crypto/x509` | Tehoton hostname-parsinta | `ai_service.go → Certificate.Verify` |
+| GO-2026-5026 | `net/http` | Punycode-etiketin ohitus | `ai_service.go → http.Client.Do` |
+| GO-2026-4986 | `net/mail` | Neliöllinen merkkijono `consumeComment`:ssa | `auth_handler.go:57 → mail.ParseAddress` |
+| GO-2026-4977 | `net/mail` | Neliöllinen merkkijono `consumePhrase`:ssa | `auth_handler.go:57 → mail.ParseAddress` |
+| GO-2026-4971 | `net` | NUL-tavun paniikki Windows Dialissa | `verse_repo.go`, `main.go` |
+| GO-2026-4918 | `net/http` | Ääretön silmukka HTTP/2-transportissa | `ai_service.go → http.Client.Do` |
+
+**Erityishuomiot:**
+
+- **GO-2026-6088** (`encoding/xml`) on erityisen relevantti, koska sovelluksen XML-parseri (`xml_parser.go`) lukee potentiaalisesti ulkoisista lähteistä peräisin olevaa XML-dataa `SeedTranslationFromFile`-toiminnolla.
+- **GO-2026-4986/4977** (`net/mail`) koskee suoraan rekisteröinti-endpointtia (`POST /api/auth/register`), jossa sähköpostia validoidaan `mail.ParseAddress`:lla. Hyökkääjä voisi lähettää erityisesti muotoiltun sähköpostiosoitteen, joka aiheuttaa neliöllisen aikakompleksisuuden.
+
+**Suositus:**
+Päivitä Go-versio vähintään versioon **go1.26.6**:
+
+```bash
+# Asenna go1.26.6
+go install golang.org/dl/go1.26.6@latest
+go1.26.6 download
+
+# Päivitä go.mod
+go mod edit -go=1.26.6
+go mod tidy
+```
+
+ on dokumentoitu kohdassa VULN-004).
 
 ---
 
