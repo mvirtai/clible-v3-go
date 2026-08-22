@@ -43,6 +43,7 @@ export default defineConfig({
             { text: "Getting started", link: "/guide/getting-started" },
             { text: "Import & seeding", link: "/guide/import-and-seeding" },
             { text: "Notebooks & cells", link: "/guide/notebooks" },
+            { text: "ISLA Language Guide", link: "/guide/isla-guide" },
           ],
         },
       ],
@@ -52,6 +53,7 @@ export default defineConfig({
           items: [
             { text: "Overview & Layers", link: "/architecture/overview" },
             { text: "Database & FTS5", link: "/architecture/database" },
+            { text: "ISLA Language Specification", link: "/architecture/isla-specification" },
           ],
         },
       ],
