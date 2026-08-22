@@ -32,7 +32,7 @@ type ParsedReference struct {
 // Group 2: Chapter number (optional)
 // Group 3: Verse start number (optional)
 // Group 4: Verse end number (optional)
-var refRegex = regexp.MustCompile(`^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\s+[a-zA-ZÀ-ÿ]+)*)(?:\s+(\d+)(?:\s*:\s*(\d+)(?:\s*-\s*(\d+))?)?)?$`)
+var refRegex = regexp.MustCompile(`^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.|\s+[a-zA-ZÀ-ÿ.]+)*)(?:\s+(\d+)(?:\s*:\s*(\d+)(?:\s*-\s*(\d+))?)?)?$`)
 
 // reLetterDigit matches a letter immediately followed (optionally via a dot) by a digit.
 // Used to insert a space at the book-chapter boundary: "GEN1" → "GEN 1", "GEN.1" → "GEN 1".
