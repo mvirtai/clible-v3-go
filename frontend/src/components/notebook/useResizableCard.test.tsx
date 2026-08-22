@@ -207,7 +207,6 @@ describe('useResizableCard hook', () => {
   });
 
   it('handles bottom edge vertical drag resize in 24px grid increments', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let hookResult: ReturnType<typeof useResizableCard> | undefined;
     const onResizeEnd = vi.fn();
 

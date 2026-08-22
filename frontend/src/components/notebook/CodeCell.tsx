@@ -128,11 +128,11 @@ export const CodeCell: React.FC<CodeCellProps> = ({
       let direction: 'up' | 'down' = 'down';
       const content = cell.content.toLowerCase().trim();
 
-      // Tarkistetaan --dir=up / --ref=up
+      // Check for --dir=up / --ref=up
       if (content.includes('--dir=up') || content.includes('--dir=u') || content.includes('--dir=prev') || content.includes('--ref=up') || content.includes('--ref=prev')) {
         direction = 'up';
       }
-      // Tarkistetaan --n=...p tai --n=...u
+      // Check for --n=...p or --n=...u
       const nMatch = content.match(/--n=(\d+)?([a-z]+)/);
       if (nMatch && nMatch[2]) {
         const suffix = nMatch[2];
@@ -144,12 +144,13 @@ export const CodeCell: React.FC<CodeCellProps> = ({
       }
 
       onFreeze(markdown, direction);
+      setDeselectedVerseIds({});
     }
   };
 
   return (
     <div className="bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden transition-all duration-300 shadow-inner">
-      {/* CLI-Syöterivi */}
+      {/* CLI Input Row */}
       <div className="flex items-center gap-3 bg-neutral-900 px-4 py-2 border-b border-neutral-800/80">
         <span className="font-mono text-amber-500 font-bold tracking-wider select-none">$ clible</span>
         <input
@@ -185,7 +186,7 @@ export const CodeCell: React.FC<CodeCellProps> = ({
         </button>
       </div>
 
-      {/* Tuloksen renderöintialue */}
+      {/* Result rendering area */}
       {cell.resultJson && (
         <div className="p-4 bg-neutral-950/70 border-t border-neutral-900/50 font-sans text-neutral-200">
           <div className="flex justify-between items-center mb-3 border-b border-neutral-900 pb-2">
@@ -257,7 +258,7 @@ interface ResultRendererProps {
   strings: ReturnType<typeof useLanguage>['strings'];
 }
 
-/* Tulosten dynaaminen renderöijä eri komennon tyypeille */
+/* Dynamic result renderer for different command types */
 const ResultRenderer: React.FC<ResultRendererProps> = ({
   result,
   deselectedVerseIds = {},
@@ -265,7 +266,7 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
   strings,
 }) => {
   if (result.type === 'error') {
-    let errorMessage = 'Virhe komennon suorituksessa.';
+    let errorMessage = 'Error executing command.';
     if (result.data && typeof result.data === 'object' && 'message' in result.data) {
       const obj = result.data as { message?: unknown };
       if (typeof obj.message === 'string') {
@@ -304,7 +305,7 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
                 {book} {v.chapter}:{v.verse} ({v.translationId.toUpperCase()})
               </span>
             </div>
-            <p className={`leading-relaxed text-sm mt-1 transition-all ${isDeselected ? 'line-through text-neutral-600' : 'text-neutral-300'}`}>
+            <p className={`verse-text leading-relaxed text-sm mt-1 transition-all ${isDeselected ? 'line-through text-neutral-600' : 'text-neutral-300'}`}>
               {v.text}
             </p>
           </div>
@@ -313,7 +314,7 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     );
   };
 
-  // 1. /read tulos
+  // 1. /read result
   if (result.type === 'read') {
     const data = result.data as ReadResult;
     const verses = data.verses || [];
@@ -328,7 +329,7 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     );
   }
 
-  // 2. /search tulos
+  // 2. /search result
   if (result.type === 'search') {
     const data = result.data as SearchResult;
     const verses = data.verses || [];
@@ -346,7 +347,7 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     );
   }
 
-  // 3. /refs tulos
+  // 3. /refs result
   if (result.type === 'refs') {
     const data = result.data as RefsResult;
     const refs = data.references || [];
@@ -364,7 +365,7 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     );
   }
 
-  // 4. /suggest tulos
+  // 4. /suggest result
   if (result.type === 'suggest') {
     const data = result.data as SuggestResult;
     const suggestions = data.suggestions || [];
@@ -398,12 +399,12 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs text-neutral-400 font-mono border-b border-neutral-800 pb-2">
-          <span>Tunnistetut avainteemat</span>
-          <span>{data.count || 0} teemaa</span>
+          <span>Identified key themes</span>
+          <span>{data.count || 0} themes</span>
         </div>
         
         {themes.length === 0 ? (
-          <p className="text-neutral-500 text-sm italic">Ei tunnistettuja teemoja valituista soluista.</p>
+          <p className="text-neutral-500 text-sm italic">No identified themes from selected cells.</p>
         ) : (
           <div className="flex flex-wrap gap-2 pt-1">
             {themes.map((t, idx) => (
@@ -439,7 +440,7 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     );
   }
 
-  // Fallback: raakateksti / JSON stringify
+  // Fallback: raw text / JSON stringify
   return (
     <pre className="font-mono text-xs text-neutral-400 whitespace-pre-wrap leading-relaxed bg-black/30 p-2.5 rounded border border-neutral-900/30">
       {typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2)}

@@ -259,9 +259,10 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
     }
   };
 
+  // 8. Freeze code cell CLI result into a permanent Markdown cell & reset source CLI cell
   const handleFreezeCell = (index: number, markdown: string, direction: 'up' | 'down' = 'down') => {
     const insertIndex = direction === 'up' ? index : index + 1;
-    const newCell: Cell = {
+    const newMarkdownCell: Cell = {
       id: crypto.randomUUID(),
       notebookId,
       type: 'markdown',
@@ -272,7 +273,19 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
 
     setCells((prev) => {
       const next = [...prev];
-      next.splice(insertIndex, 0, newCell);
+      // Insert the new Markdown cell
+      next.splice(insertIndex, 0, newMarkdownCell);
+
+      // Clear the original CLI cell and reset it to its pristine initial state
+      const sourceIndex = direction === 'up' ? index + 1 : index;
+      if (next[sourceIndex] && next[sourceIndex].type === 'code') {
+        next[sourceIndex] = {
+          ...next[sourceIndex],
+          content: '',
+          resultJson: null,
+        };
+      }
+
       return reorderCells(next);
     });
   };
@@ -430,6 +443,7 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
                     cell={cell}
                     onChange={(content) => handleCellContentChange(cell.id, content)}
                     onSelectVerse={onSelectVerse}
+                    translation={translation}
                   />
                 ) : (
                   <CodeCell

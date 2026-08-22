@@ -39,7 +39,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
   const leftVerses = data.left?.verses || [];
   const rightVerses = data.right?.verses || [];
 
-  // Muodostetaan jaenumeroittain yhdistetty lista synkronoitua rivitystä varten
+  // Merge by verse number for synchronized side-by-side alignment
   const maxRows = Math.max(leftVerses.length, rightVerses.length);
   const rows = Array.from({ length: maxRows }, (_, idx) => {
     const l = leftVerses[idx];
@@ -55,7 +55,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
 
   return (
     <div className="space-y-3 font-sans">
-      {/* Yläotsikko ja käännösmerkit */}
+      {/* Header and translation badges */}
       <div className="flex items-center justify-between border-b border-neutral-800 pb-2.5">
         <div className="flex items-center gap-2">
           <Columns className="w-4 h-4 text-amber-500" />
@@ -75,7 +75,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
         </div>
       </div>
 
-      {/* Rinnakkaiset jakeet */}
+      {/* Parallel verses */}
       <div className="space-y-2">
         {rows.map((row, idx) => {
           const isLeftDeselected = row.left ? !!deselectedVerseIds[row.left.id] : false;
@@ -98,7 +98,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
                   : 'bg-neutral-900/50 hover:bg-neutral-900 border-neutral-800/80 hover:border-neutral-700'
               }`}
             >
-              {/* Jaenumero */}
+              {/* Verse number */}
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="flex items-center justify-center w-3.5 h-3.5 rounded border border-neutral-700 bg-neutral-950 text-amber-500">
                   {!isRowDeselected && <Check className="w-2.5 h-2.5" />}
@@ -108,14 +108,14 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
                 </span>
               </div>
 
-              {/* 2-Palstainen vertailu */}
+              {/* 2-Column comparison */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                {/* Vasen palsta */}
+                {/* Left column */}
                 <div className="border-l-2 border-amber-500/40 pl-2.5">
                   <div className="text-[10px] uppercase font-mono text-neutral-500 mb-0.5">
                     {data.left?.translation?.toUpperCase()}
                   </div>
-                  <p className={`leading-relaxed ${isRowDeselected ? 'line-through text-neutral-600' : 'text-neutral-200'}`}>
+                  <p className={`verse-text leading-relaxed ${isRowDeselected ? 'line-through text-neutral-600' : 'text-neutral-200'}`}>
                     {row.left?.text || <span className="italic text-neutral-600">—</span>}
                   </p>
                 </div>
@@ -125,7 +125,7 @@ export const CellCompareResult: React.FC<CellCompareResultProps> = ({
                   <div className="text-[10px] uppercase font-mono text-neutral-500 mb-0.5">
                     {data.right?.translation?.toUpperCase()}
                   </div>
-                  <p className={`leading-relaxed ${isRowDeselected ? 'line-through text-neutral-600' : 'text-neutral-300'}`}>
+                  <p className={`verse-text leading-relaxed ${isRowDeselected ? 'line-through text-neutral-600' : 'text-neutral-300'}`}>
                     {row.right?.text || <span className="italic text-neutral-600">—</span>}
                   </p>
                 </div>
