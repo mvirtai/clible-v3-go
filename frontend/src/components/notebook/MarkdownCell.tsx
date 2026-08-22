@@ -33,23 +33,29 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
 
   /**
    * Preprocesses raw Markdown text:
-   * 1. Transforms `[[ref]]` into clickable scripture links `[ref](#bible-link/ref)`.
-   * 2. Transforms `![[isla ...]]` or `![[@...]]` embeds into ISLA code blocks.
-   * 3. Transforms line-level `!isla ...`, `!@...`, `!?...`, or `! @...` into ISLA code blocks.
+   * 1. Transforms `![[isla ...]]` or `![[@...]]` embeds into ISLA code blocks.
+   * 2. Transforms inline backtick shortcuts `` `!isla ...` `` or `` `!@...` `` into ISLA code blocks.
+   * 3. Transforms `[[ref]]` into clickable scripture links `[ref](#bible-link/ref)`.
+   * 4. Transforms line-level `!isla ...`, `!@...`, `!?...`, or `! @...` into ISLA code blocks.
    */
   const preprocessContent = (text: string) => {
     // 1. Transform `![[isla @...]]` or `![[@...]]` embeds into ISLA blocks
     let processed = text.replace(/!\[\[(?:isla\s+|ISLA\s+)?(@.*?|\?.*?|.*?)\]\]/g, (_, g1) => {
-      return `\n\`\`\`isla\n${g1.trim()}\n\`\`\`\n`;
+      return `\n\n\`\`\`isla\n${g1.trim()}\n\`\`\`\n\n`;
     });
 
-    // 2. Transform clickable verse links `[[reference]]` -> `[reference](#bible-link/reference)`
+    // 2. Transform inline `!isla ...` or `!@...` or `!?...` into ISLA blocks (breaks out of inline <p><code>)
+    processed = processed.replace(/`!(?:isla\s+|ISLA\s+)?(@.*?|\?.*?|.*?)`/g, (_, g1) => {
+      return `\n\n\`\`\`isla\n${g1.trim()}\n\`\`\`\n\n`;
+    });
+
+    // 3. Transform clickable verse links `[[reference]]` -> `[reference](#bible-link/reference)`
     processed = processed.replace(/\[\[(.*?)\]\]/g, (_, g1) => {
       const ref = g1.trim();
       return `[${ref}](#bible-link/${encodeURIComponent(ref)})`;
     });
 
-    // 3. Transform line directives: `!isla ...`, `!@...`, `!?...`, or `! @...`
+    // 4. Transform line directives: `!isla ...`, `!@...`, `!?...`, or `! @...`
     processed = processed.replace(/^[ \t]*!(?:isla\s+|ISLA\s+|@|\?|\s+)(.*)$/gm, (fullLine) => {
       const trimmed = fullLine.trim();
       let query = '';
@@ -64,7 +70,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
         query = trimmed.substring(1).trim();
       }
 
-      return `\n\`\`\`isla\n${query}\n\`\`\`\n`;
+      return `\n\n\`\`\`isla\n${query}\n\`\`\`\n\n`;
     });
 
     return processed;
@@ -117,13 +123,6 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
         );
       }
 
-      // Inline shortcut support: `!isla @Joh 3:16` or `!@Joh 3:16`
-      const text = String(children).trim();
-      if (text.startsWith('!isla ') || text.startsWith('!ISLA ') || text.startsWith('!@') || text.startsWith('!?')) {
-        const query = text.replace(/^!(?:isla|ISLA):?\s*/, '').replace(/^!/, '');
-        return <ISLABlock code={query} translation={translation} />;
-      }
-
       return (
         <code className={className} {...props}>
           {children}
@@ -136,7 +135,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
 
   if (!isEditable) {
     return (
-      <div className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)]">
+      <div className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] whitespace-normal break-words">
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
           {preprocessContent(cell.content) || '*No content*'}
         </ReactMarkdown>
@@ -171,7 +170,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
 
   return (
     <div
-      className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] cursor-pointer rounded-lg hover:bg-[var(--surface-2)]/30 border border-transparent hover:border-[var(--border-soft)] transition-all duration-200"
+      className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] cursor-pointer rounded-lg hover:bg-[var(--surface-2)]/30 border border-transparent hover:border-[var(--border-soft)] transition-all duration-200 whitespace-normal break-words"
       onDoubleClick={() => setIsEditing(true)}
       onClick={() => {
         if (!cell.content.trim()) {

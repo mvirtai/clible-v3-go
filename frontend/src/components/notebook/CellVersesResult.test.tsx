@@ -44,7 +44,41 @@ describe('CellVersesResult', () => {
     expect(container?.textContent).toContain('John 99:1');
   });
 
-  it('renders verses with citations, verse-text class, and handles selection toggle', async () => {
+  it('renders verses cleanly without checkboxes in default read mode', async () => {
+    const data: VersesResultData = {
+      reference: 'Joh 3:16',
+      verses: [
+        {
+          id: 'web:JHN:3:16',
+          translationId: 'web',
+          bookId: 'JHN',
+          chapter: 3,
+          verse: 16,
+          text: 'For God so loved the world...',
+        },
+      ],
+    };
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CellVersesResult data={data} />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('Joh. 3:16 (WEB)');
+    expect(container?.textContent).toContain('For God so loved the world...');
+
+    const verseTextEl = container?.querySelector('.verse-text');
+    expect(verseTextEl).not.toBeNull();
+
+    // In default read mode, no selection checkbox is rendered
+    expect(container?.querySelector('svg')).toBeNull();
+  });
+
+  it('renders verses with checkboxes and handles selection toggle when selectable=true', async () => {
     const onToggle = vi.fn();
     const data: VersesResultData = {
       reference: 'Joh 3:16',
@@ -68,6 +102,7 @@ describe('CellVersesResult', () => {
             data={data}
             deselectedVerseIds={{}}
             onToggleVerse={onToggle}
+            selectable={true}
           />
         </LanguageProvider>
       );
@@ -75,9 +110,6 @@ describe('CellVersesResult', () => {
 
     expect(container?.textContent).toContain('Joh. 3:16 (WEB)');
     expect(container?.textContent).toContain('For God so loved the world...');
-
-    const verseTextEl = container?.querySelector('.verse-text');
-    expect(verseTextEl).not.toBeNull();
 
     // Click to toggle
     const item = container?.querySelector('.group');
