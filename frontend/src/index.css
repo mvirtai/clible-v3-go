@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ─── Design tokens – Light ─────────────────────────────────────────── */
 :root {
   --bg: #fdfcfb;
@@ -37,28 +39,28 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── Design tokens – Dark ──────────────────────────────────────────── */
+/* ─── Design tokens – Dark (React.dev inspired modern slate palette) ──── */
 :root.dark {
-  --bg: #0f1113;
-  --surface: #15181b;
-  --surface-2: #111417;
-  --text: #f3f4f6;
-  --text-2: #d6d8dc;
-  --muted: #a8b0b8;
-  --border: rgba(255, 255, 255, 0.10);
-  --border-soft: rgba(255, 255, 255, 0.06);
-  --accent: #e0b47f;
-  --accent-contrast: #0f1113;
-  --accent-bg: rgba(224, 180, 127, 0.12);
-  --accent-border: rgba(224, 180, 127, 0.35);
+  --bg: #16181d;
+  --surface: #23272f;
+  --surface-2: #2b313c;
+  --text: #f6f7f9;
+  --text-2: #cbd5e1;
+  --muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.12);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --accent: #f59e0b;
+  --accent-contrast: #16181d;
+  --accent-bg: rgba(245, 158, 11, 0.14);
+  --accent-border: rgba(245, 158, 11, 0.35);
 
   --error: #f87171;
-  --error-bg: rgba(239, 68, 68, 0.1);
-  --error-border: rgba(239, 68, 68, 0.25);
+  --error-bg: rgba(239, 68, 68, 0.12);
+  --error-border: rgba(239, 68, 68, 0.28);
 
   --success: #4ade80;
-  --success-bg: rgba(74, 222, 128, 0.1);
-  --success-border: rgba(74, 222, 128, 0.25);
+  --success-bg: rgba(74, 222, 128, 0.12);
+  --success-border: rgba(74, 222, 128, 0.28);
 }
 
 /* Color transition */

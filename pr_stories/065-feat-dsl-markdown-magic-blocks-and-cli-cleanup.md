@@ -184,17 +184,22 @@ export const ISLABlock: React.FC<ISLABlockProps> = ({ code, translation }) => {
 | --- | --- |
 | `backend/internal/api/dsl_handler.go` | Added stateless `/api/dsl/eval` HTTP handler invoking AST execution engine. |
 | `backend/internal/api/dsl_handler_test.go` | Unit tests verifying query evaluation, validation, and error serialization. |
+| `backend/internal/parsers/reference_parser.go` | Extended Bible reference regex to support abbreviations with trailing dots (e.g., `room. 1:1-5`, `Joh. 3:16`, `1. Kor. 13:1`). |
+| `backend/internal/parsers/reference_parser_test.go` | Added table-driven test cases for trailing dot book abbreviations. |
 | `backend/main.go` | Registered `/api/dsl/eval` under authentication middleware. |
 | `frontend/index.html` | Included Google Fonts `Lora` and `JetBrains Mono`. |
-| `frontend/src/index.css` | Defined font theme variables and `.verse-text` / `.verse-number` classes. |
+| `frontend/src/index.css` | Defined font theme variables, `@custom-variant dark`, react.dev slate dark theme tokens, and `.verse-text` classes. |
 | `frontend/src/components/notebook/islaCache.ts` | Keyed promise cache and error mapper for React 19 `use()`. |
-| `frontend/src/components/notebook/ISLABlock.tsx` | Pure functional ISLA block renderer using React 19 `use()` and `<Suspense>`. |
+| `frontend/src/components/notebook/ISLABlock.tsx` | Pure functional ISLA block renderer using React 19 `use()`, `<Suspense>`, and surface design tokens. |
 | `frontend/src/components/notebook/ISLABlock.test.tsx` | Vitest unit tests verifying loading, success, and error states. |
-| `frontend/src/components/notebook/CellVersesResult.tsx` | Modular verse list renderer with Lora typography and selection support. |
-| `frontend/src/components/notebook/CellVersesResult.test.tsx` | Unit tests for verse list presentation and interaction. |
-| `frontend/src/components/notebook/MarkdownCell.tsx` | Added `language-isla` code block handler, translation prop forwarding, and callback ref. |
-| `frontend/src/components/notebook/MarkdownCell.test.tsx` | Unit tests for Markdown rendering with embedded ISLA blocks. |
-| `frontend/src/components/notebook/CodeCell.tsx` | Added selection reset on freeze action and `.verse-text` typography. |
+| `frontend/src/components/notebook/CellVersesResult.tsx` | Modular verse list renderer with Lora typography, optional selection checkboxes, and theme-aware styling. |
+| `frontend/src/components/notebook/CellVersesResult.test.tsx` | Unit tests for verse list presentation and selectable/read-only interaction modes. |
+| `frontend/src/components/notebook/CellCompareResult.tsx` | Synchronized side-by-side translation comparison card with theme surface tokens and contrast enhancements. |
+| `frontend/src/components/notebook/CellCompareResult.test.tsx` | Unit tests for comparative verse cards. |
+| `frontend/src/components/notebook/CellCountResult.tsx` | High-contrast count result card with light and dark mode amber theme styling. |
+| `frontend/src/components/notebook/MarkdownCell.tsx` | Added fast single-line shortcuts (`!@...`, `!?...`, `!isla...`), double-click to edit, translation prop forwarding, and callback ref. |
+| `frontend/src/components/notebook/MarkdownCell.test.tsx` | Unit tests for Markdown rendering with embedded ISLA blocks and double-click editing. |
+| `frontend/src/components/notebook/CodeCell.tsx` | Interactive CLI workbench with `selectable={true}` and prompt reset upon freeze. |
 | `frontend/src/components/notebook/NotebookEditor.tsx` | Implemented CLI source cell reset upon freeze and translation prop forwarding. |
 | `frontend/src/components/notebook/NotebookEditor.test.tsx` | Unit tests verifying CLI cell prompt clearing on freeze. |
 | `docs/guide/isla-guide.md` | Comprehensive public user guide for ISLA syntax and hybrid cell workflows. |
@@ -211,26 +216,27 @@ export const ISLABlock: React.FC<ISLABlockProps> = ({ code, translation }) => {
 
 ```text
 ?   	github.com/mvirtai/clible-v3-go	[no test files]
-ok  	github.com/mvirtai/clible-v3-go/internal/api	0.185s	coverage: 73.1% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/api	2.348s	coverage: 73.1% of statements
 ok  	github.com/mvirtai/clible-v3-go/internal/db	0.210s	coverage: 88.5% of statements
-ok  	github.com/mvirtai/clible-v3-go/internal/dsl	0.012s	coverage: 86.8% of statements
-ok  	github.com/mvirtai/clible-v3-go/internal/parsers	0.018s	coverage: 85.3% of statements
-ok  	github.com/mvirtai/clible-v3-go/internal/services	0.024s	coverage: 81.2% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/dsl	0.008s	coverage: 86.8% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/parsers	0.010s	coverage: 85.3% of statements
+ok  	github.com/mvirtai/clible-v3-go/internal/services	1.650s	coverage: 81.2% of statements
 Total statement coverage: 81.9%
 ```
 
 #### Frontend Vitest Suite (`pnpm run test`)
 
 ```text
- ✓ src/components/notebook/CellCompareResult.test.tsx (3 tests) 112ms
- ✓ src/components/notebook/ISLABlock.test.tsx (3 tests) 149ms
- ✓ src/components/notebook/CellVersesResult.test.tsx (3 tests) 106ms
+ ✓ src/components/notebook/CellCompareResult.test.tsx (5 tests) 140ms
+ ✓ src/components/notebook/ISLABlock.test.tsx (3 tests) 150ms
+ ✓ src/components/notebook/CellVersesResult.test.tsx (4 tests) 115ms
+ ✓ src/components/notebook/CellCountResult.test.tsx (4 tests) 120ms
  ✓ src/components/notebook/MarkdownCell.test.tsx (2 tests) 95ms
  ✓ src/components/notebook/NotebookEditor.test.tsx (2 tests) 88ms
  ✓ src/components/notebook/CodeCell.test.tsx (4 tests) 130ms
 
  Test Files  19 passed (19)
-      Tests  86 passed (86)
+      Tests  89 passed (89)
 ```
 
 ### Manual Verification Checklist

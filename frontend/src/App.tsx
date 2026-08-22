@@ -1038,17 +1038,7 @@ function App() {
               <SearchHistory triggerRefresh={historyTrigger} />
             )}
 
-            <div className="rounded-2xl p-6 text-left" style={{
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border-soft)',
-            }}>
-              <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
-                Quick Start
-              </h3>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
-                              {strings.quickStart}
-                            </p>
-            </div>
+
           </div>
         </div>
       </main>
