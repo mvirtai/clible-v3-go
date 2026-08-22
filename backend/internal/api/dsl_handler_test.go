@@ -123,4 +123,29 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 			t.Errorf("expected 1 verse in data, got %v", res.Data["verses"])
 		}
 	})
+
+	t.Run("Success evaluation of cross-reference tilde query", func(t *testing.T) {
+		reqBody, _ := json.Marshal(api.DSLEvalRequest{
+			Query:         "~ @Joh 3:16",
+			TranslationID: "web",
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(reqBody))
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
+		rr := httptest.NewRecorder()
+
+		handler.EvalDSL(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
+		}
+
+		var res models.CLIResult
+		if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+
+		if res.Type != "refs" {
+			t.Errorf("expected result type 'refs', got %q", res.Type)
+		}
+	})
 }

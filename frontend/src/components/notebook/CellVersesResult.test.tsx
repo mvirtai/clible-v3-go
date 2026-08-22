@@ -147,5 +147,10 @@ describe('CellVersesResult', () => {
     expect(container?.textContent).toContain('#grace');
     expect(container?.textContent).toContain('#truth');
     expect(container?.textContent).toContain('Let there be light.');
+
+    // Verify mark highlight element
+    const markEl = container?.querySelector('mark');
+    expect(markEl).not.toBeNull();
+    expect(markEl?.textContent).toBe('light');
   });
 });

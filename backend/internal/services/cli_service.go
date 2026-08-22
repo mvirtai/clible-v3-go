@@ -24,10 +24,29 @@ type ThemeItem struct {
 
 var nonAlphaRegex = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
 
-// ExecuteDSL parses and executes a Clible Magic DSL expression.
 func (s *CLIService) ExecuteDSL(ctx context.Context, input string, defaultTrans string, contextText string) (*models.CLIResult, error) {
+	trimmedInput := strings.TrimSpace(input)
+
+	// Direct cross-reference prefix `~ @Joh 3:16` or `~ Joh 3:16`
+	if strings.HasPrefix(trimmedInput, "~") || strings.HasPrefix(trimmedInput, "refs ") {
+		refStr := strings.TrimPrefix(trimmedInput, "~")
+		refStr = strings.TrimPrefix(refStr, "refs")
+		refStr = strings.TrimPrefix(strings.TrimSpace(refStr), "@")
+		refStr = strings.TrimSpace(refStr)
+		if refStr == "" {
+			return nil, errors.New("missing reference after '~'")
+		}
+		return s.executeRefsCommand(ctx, &CLICommand{Name: "/refs", Args: []string{refStr}}, defaultTrans)
+	}
+
 	node, err := dsl.Parse(input)
 	if err != nil {
+		// Fallback to flexible CLI command interpreter (e.g. custom commands)
+		if cmd := ParseCLICommand(input); cmd != nil {
+			if cliRes, cliErr := s.ExecuteCommand(ctx, cmd, defaultTrans, contextText); cliErr == nil {
+				return cliRes, nil
+			}
+		}
 		return nil, fmt.Errorf("DSL parse error: %w", err)
 	}
 

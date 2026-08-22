@@ -199,4 +199,44 @@ describe('MarkdownCell', () => {
     expect(container?.textContent).toContain('Inline passage');
     expect(container?.textContent).toContain('For God so loved the world.');
   });
+
+  it('renders ISLABlock with count metric shorthand and mid-line placement', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            type: 'count',
+            data: {
+              target_type: 'search',
+              query: 'armo',
+              scope_book: 'ut',
+              count: 51,
+              translation: 'kr92',
+            },
+          }),
+      })
+    );
+
+    const cell = {
+      id: 'cell-m5',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: 'Count / Match Metric: !# "armo" @ut',
+    };
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={() => {}} />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('Count / Match Metric:');
+    expect(container?.textContent).toContain('51');
+    expect(container?.textContent).toContain('@ut');
+  });
 });

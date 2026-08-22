@@ -32,21 +32,46 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
   };
 
   /**
+   * Normalizes any shorthand or prefix ISLA query (e.g. `!# "armo" @ut` or `!@Joh 3:16`)
+   * into a valid ISLA AST expression.
+   */
+  const normalizeISLAQuery = (raw: string): string => {
+    let q = raw.trim();
+
+    // Clean leading !isla, !ISLA, !i, or !
+    q = q.replace(/^!(?:isla|ISLA|i):?\s*/i, '');
+    if (q.startsWith('!')) {
+      q = q.substring(1).trim();
+    }
+
+    // Shorthand for count queries: `# "armo" @ut` or `# @Joh 3:16` -> `? "armo" @ut => count` or `@Joh 3:16 => count`
+    if (q.startsWith('#')) {
+      const rest = q.substring(1).trim();
+      if (rest.startsWith('@') || rest.startsWith('?')) {
+        return `${rest} => count`;
+      }
+      return `? ${rest} => count`;
+    }
+
+    return q;
+  };
+
+  /**
    * Preprocesses raw Markdown text:
    * 1. Transforms `![[isla ...]]` or `![[@...]]` embeds into ISLA code blocks.
    * 2. Transforms inline backtick shortcuts `` `!isla ...` `` or `` `!@...` `` into ISLA code blocks.
    * 3. Transforms `[[ref]]` into clickable scripture links `[ref](#bible-link/ref)`.
-   * 4. Transforms line-level `!isla ...`, `!@...`, `!?...`, or `! @...` into ISLA code blocks.
+   * 4. Transforms line-level and mid-line `!isla ...`, `!@...`, `!?...`, `!#...`, `!~...` into ISLA code blocks.
    */
   const preprocessContent = (text: string) => {
     // 1. Transform `![[isla @...]]` or `![[@...]]` embeds into ISLA blocks
-    let processed = text.replace(/!\[\[(?:isla\s+|ISLA\s+)?(@.*?|\?.*?|.*?)\]\]/g, (_, g1) => {
-      return `\n\n\`\`\`isla\n${g1.trim()}\n\`\`\`\n\n`;
+    let processed = text.replace(/!\[\[(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|.*?)\]\]/g, (_, g1) => {
+      return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
     });
 
     // 2. Transform inline `!isla ...` or `!@...` or `!?...` into ISLA blocks (breaks out of inline <p><code>)
-    processed = processed.replace(/`!(?:isla\s+|ISLA\s+)?(@.*?|\?.*?|.*?)`/g, (_, g1) => {
-      return `\n\n\`\`\`isla\n${g1.trim()}\n\`\`\`\n\n`;
+    processed = processed.replace(/`!(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|.*?)`/g, (_, g1) => {
+      return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
     });
 
     // 3. Transform clickable verse links `[[reference]]` -> `[reference](#bible-link/reference)`
@@ -55,21 +80,9 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
       return `[${ref}](#bible-link/${encodeURIComponent(ref)})`;
     });
 
-    // 4. Transform line directives: `!isla ...`, `!@...`, `!?...`, or `! @...`
-    processed = processed.replace(/^[ \t]*!(?:isla\s+|ISLA\s+|@|\?|\s+)(.*)$/gm, (fullLine) => {
-      const trimmed = fullLine.trim();
-      let query = '';
-
-      if (trimmed.startsWith('!@')) {
-        query = '@' + trimmed.substring(2).trim();
-      } else if (trimmed.startsWith('!?')) {
-        query = '?' + trimmed.substring(2).trim();
-      } else if (trimmed.startsWith('!isla') || trimmed.startsWith('!ISLA')) {
-        query = trimmed.replace(/^!(?:isla|ISLA):?\s*/, '');
-      } else if (trimmed.startsWith('!')) {
-        query = trimmed.substring(1).trim();
-      }
-
+    // 4. Transform line and mid-line directives: `!isla ...`, `!@...`, `!?...`, `!#...`, `!~...`, `!i#...`
+    processed = processed.replace(/(?:^|[ \t]+)(!(?:isla\b|ISLA\b|i[@?#~]|[@?#~]|\s+@|\s+\?|\s+#|\s+~)[^\n`]*)/gm, (_, fullDirective) => {
+      const query = normalizeISLAQuery(fullDirective);
       return `\n\n\`\`\`isla\n${query}\n\`\`\`\n\n`;
     });
 

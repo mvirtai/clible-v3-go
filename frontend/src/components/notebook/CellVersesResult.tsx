@@ -29,6 +29,43 @@ interface CellVersesResultProps {
   selectable?: boolean;
 }
 
+/**
+ * Highlights matches of the searched query term within the verse text.
+ */
+function highlightMatch(text: string, query?: string): React.ReactNode {
+  if (!query || !query.trim()) return text;
+
+  // Clean query: remove surrounding quotes, slashes, or whitespace (e.g. "rakkaus" -> rakkaus)
+  const cleanQuery = query.trim().replace(/^["'/]+|["'/]+$/g, '').trim();
+  if (!cleanQuery) return text;
+
+  // Escape special regex characters
+  const escapedQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  try {
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    const parts = text.split(regex);
+
+    if (parts.length === 1) return text;
+
+    return parts.map((part, index) => {
+      if (part.toLowerCase() === cleanQuery.toLowerCase()) {
+        return (
+          <mark
+            key={index}
+            className="bg-amber-400/30 dark:bg-amber-400/25 text-inherit font-semibold px-0.5 py-0.5 rounded-[3px] border-b-2 border-amber-500/80 dark:border-amber-400/80 not-italic"
+          >
+            {part}
+          </mark>
+        );
+      }
+      return part;
+    });
+  } catch {
+    return text;
+  }
+}
+
 export const CellVersesResult: React.FC<CellVersesResultProps> = ({
   data,
   deselectedVerseIds = {},
@@ -68,7 +105,7 @@ export const CellVersesResult: React.FC<CellVersesResultProps> = ({
         <div className="flex flex-wrap gap-1.5 mb-2">
           <span className="text-[10px] text-neutral-500 self-center mr-1">{strings.identifiedThemesLabel}</span>
           {data.keywords.map((kw) => (
-            <span key={kw} className="text-[10px] font-mono bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 px-2 py-0.5 rounded">
+            <span key={kw} className="text-[10px] font-mono bg-neutral-100 dark:bg-[var(--surface-2)] border border-neutral-200 dark:border-[var(--border-soft)] text-neutral-700 dark:text-neutral-300 px-2 py-0.5 rounded">
               #{kw}
             </span>
           ))}
@@ -112,7 +149,7 @@ export const CellVersesResult: React.FC<CellVersesResultProps> = ({
                     </span>
                   </div>
                   <p className={`verse-text leading-relaxed text-[1.0625rem] text-[var(--text)] whitespace-normal break-words transition-all ${isDeselected ? 'line-through opacity-50' : ''}`}>
-                    {v.text}
+                    {highlightMatch(v.text, data.query)}
                   </p>
                 </div>
               </div>

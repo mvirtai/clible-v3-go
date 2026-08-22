@@ -1,4 +1,4 @@
-# PR Story: ISLA Language Reactive Markdown Blocks, Typography, and CLI Workflow
+# PR Story: ISLA Reactive Markdown Blocks, Typography System, and CLI Workbench
 
 ## Business Context
 
@@ -29,7 +29,7 @@ flowchart TD
     end
 
     subgraph Layer3 ["3. Dynamic Reactive Embed (ISLA Block)"]
-        EMBED["```isla\n@Joh 3:16 ? KR92 : KJV\n```"]
+        EMBED["!@Joh 3:16 ? KR92 : KJV\nor ```isla\n...```"]
         LIVE["Live, side-by-side comparative scripture card"]
         EMBED --> LIVE
     end
@@ -40,7 +40,7 @@ flowchart TD
 
 * **Layer 1: CLI Scratchpad (`CodeCell`)**: Serves as a persistent exploratory workbench. The user experiments with queries, filters verses via interactive checkboxes, and clicks **Freeze**. Freezing converts the selection into a Markdown cell and **instantly clears the CLI prompt back to `$ clible`**, ready for the next query without polluting the notebook with dozens of throwaway CLI cells.
 * **Layer 2: Permanent Narrative (`MarkdownCell`)**: The primary document layer containing markdown headers, paragraphs, lists, and biblical links (`[[Joh 3:16]]`).
-* **Layer 3: Dynamic Reactive Embed (`ISLABlock`)**: Fast single-line ISLA directives (`!@Joh 3:16 ? KR92 : KJV`, `!isla ...`, or `![[@...]]`) within Markdown that evaluate in real-time. In normal reading mode, the technical command is completely hidden, rendering pure Lora serif scripture cards with the ISLA command visible on hover.
+* **Layer 3: Dynamic Reactive Embed (`ISLABlock`)**: Fast single-line ISLA directives (`!@Joh 3:16 ? KR92 : KJV`, `!? "rakkaus" @1kor`, `!isla ...`, or `![[@...]]`) within Markdown that evaluate in real-time. In normal reading mode, the technical command is completely hidden, rendering pure Lora serif scripture cards with the ISLA command visible on hover.
 
 ---
 
@@ -61,8 +61,8 @@ sequenceDiagram
     participant Engine as AST Execution Engine
     participant DB as PostgreSQL / SQLite FTS5
 
-    User->>MD: Writes ```isla\n@Joh 3:16 ? KR92 : KJV\n```
-    MD->>ISLA: Renders <ISLABlock code="..." translation="KR92" />
+    User->>MD: Writes !@Joh 3:16 ? KR92 : KJV
+    MD->>ISLA: Renders <ISLABlock code="@Joh 3:16 ? KR92 : KJV" translation="KR92" />
     ISLA->>Cache: fetchISLAResult(code, translation)
     Note over ISLA: Suspends with <ISLASkeleton /> (✦ ISLA Shimmer)
     Cache->>API: HTTP POST /api/dsl/eval { query, translationId }
@@ -97,7 +97,6 @@ stateDiagram-v2
 ### 1. React 19.2 Pure Functional `ISLABlock` & Keyed Cache
 
 * **React 19 `use(promise)` with `<Suspense>`**: Eliminates all boilerplate `useState(isLoading)`, `useState(data)`, and `useEffect` hooks. Data fetching is expressed synchronously within pure components, allowing the React Compiler to aggressively optimize rendering.
-
 * **Deduplicated In-Flight Cache (`islaCache.ts`)**: Uses a memory-safe `Map<string, Promise<CellResult>>` keyed by `${translationId}:${query}`. Concurrent renders of identical expressions share a single HTTP flight.
 
 ```tsx
@@ -114,57 +113,36 @@ export const ISLABlock: React.FC<ISLABlockProps> = ({ code, translation }) => {
 };
 ```
 
-### 2. DOM Lifecycle Optimization in `MarkdownCell` (Callback Ref)
+### 2. Fast Direct-Line Directives & Shorthand Grammar
+
+Markdown cells seamlessly detect and render multiple lightweight formats:
+
+* **Direct Verse Shortcut**: `!@Joh 3:16 ? KR92 : KJV` or `!@room. 1:1-5`
+* **Direct Search Shortcut**: `!? "rakkaus" @1kor` or `!? armo @ut => limit:3`
+* **Direct Count Metric Shortcut**: `!# "armo" @ut`
+* **Explicit Line Command**: `!isla @Joh 3:16 => KR92`
+* **Inline Backtick Shorthand**: `` `!isla @Joh 3:16` ``
+* **Wikilink Embed Shorthand**: `![[@Joh 3:16 ? KR92 : KJV]]`
+* **Fenced Code Block**: ```` ```isla\n@Joh 3:16 ? KR92 : KJV\n``` ````
+
+### 3. DOM Lifecycle Optimization in `MarkdownCell` (Callback Ref)
 
 * Replaced `useRef` + `useEffect` auto-focus handling with a native **React 19 Callback Ref**.
-
 * Immediate DOM initialization: sets focus and cursor selection position at the exact moment of DOM attachment before browser paint, removing an extra render cycle and eliminating side-effect synchronization dependencies.
 
-```tsx
-// frontend/src/components/notebook/MarkdownCell.tsx
-<textarea
-  ref={(node) => {
-    if (node) {
-      node.focus();
-      const len = node.value.length;
-      node.setSelectionRange(len, len);
-    }
-  }}
-  className="w-full min-h-[120px] p-4 font-serif bg-[var(--surface-2)] ..."
-  value={cell.content}
-  onChange={(e) => onChange(e.target.value)}
-  onBlur={() => setIsEditing(false)}
-  onKeyDown={handleKeyDown}
-  placeholder={strings.markdownCellPlaceholder}
-/>
-```
-
-### 3. Scripture Typography System
+### 4. Scripture Typography & Dark/Light Mode Theme System
 
 * **Google Fonts Integration**: Added `Lora` (17px serif, 1.75 line-height) for biblically readable scripture passages and `JetBrains Mono` for ISLA queries and monospace prompts.
-
-* **Modular Renderer (`CellVersesResult.tsx`)**: Extracted verse list layout into a standalone reusable component shared by both CLI output and ISLA embeds.
-
-### 4. ISLA Syntax & Grammar Support Matrix
-
-| Query Pattern | Syntax Example | Rendered View | Description |
-| --- | --- | --- | --- |
-| **Verse Lookup** | `@Joh 3:16` | Verse Card | Retrieves passage in default translation |
-| **Pipeline Projection** | `@Joh 3:16 => KR92` | Verse Card | Projects passage into specified translation |
-| **Ternary Comparison** | `@Joh 3:16 ? KR92 : KJV` | 2-Column Matrix | Synchronized side-by-side comparative layout |
-| **Full-Text Search** | `? "rakkaus"` | Verse List | Full-text FTS5 database search |
-| **Scoped Search** | `? "valkeus" @Joh` | Verse List | Search restricted to specific biblical book |
-| **Testament Filter** | `? "armo" @UT` | Verse List | Search restricted to New or Old Testament |
-| **Regex Query** | `? /vanhurska.*/ @Room` | Verse List | Morphological pattern match |
-| **Count Aggregator** | `? "armo" @Room => count` | Metric Card | Match count metric card |
-| **Contextual Scope** | `^ => #themes` | Badge Cloud | Extracted thematic keywords from prior cells |
+* **React.dev-Inspired Dark Slate Palette**: Replaced pitch-black backgrounds with modern deep slate (`#16181d`), soft surface containers (`#23272f`), and elevated cards (`#2b313c`) with subtle borders (`rgba(255, 255, 255, 0.12)`).
+* **High Contrast in Light Mode**: Enhanced count metrics and badges with deep amber tones (`text-amber-950`, `text-amber-900`) for crystal clear outdoor and office legibility.
+* **Trailing Dot Support in Bible Reference Parser**: Updated regex in `reference_parser.go` to cleanly support Finnish and international abbreviations containing trailing dots before chapters (e.g., `room. 1:1-5`, `Joh. 3:16`, `1. Kor. 13:1-13`).
 
 ---
 
 ## 📈 Improvement Metrics & Key Figures
 
 * **Backend Statement Test Coverage:** **81.9%** across all Go services and handlers.
-* **Frontend Test Quality Gate:** **19/19 test files passed (86/86 unit tests)** with 0 ESLint warnings.
+* **Frontend Test Quality Gate:** **19/19 test files passed (89/89 unit tests)** with 0 ESLint warnings.
 * **Hook Reduction:** Eliminated **100%** of data-fetching `useEffect` and `useState` boilerplate in ISLA blocks via React 19 `use()`.
 * **Zero Layout Shift:** Instantaneous `<ISLASkeleton />` shimmer prevents layout jumping during asynchronous DSL evaluation.
 
@@ -188,6 +166,7 @@ export const ISLABlock: React.FC<ISLABlockProps> = ({ code, translation }) => {
 | `backend/internal/parsers/reference_parser_test.go` | Added table-driven test cases for trailing dot book abbreviations. |
 | `backend/main.go` | Registered `/api/dsl/eval` under authentication middleware. |
 | `frontend/index.html` | Included Google Fonts `Lora` and `JetBrains Mono`. |
+| `frontend/src/App.tsx` | Removed legacy quick start card from persistent workspace sidebar. |
 | `frontend/src/index.css` | Defined font theme variables, `@custom-variant dark`, react.dev slate dark theme tokens, and `.verse-text` classes. |
 | `frontend/src/components/notebook/islaCache.ts` | Keyed promise cache and error mapper for React 19 `use()`. |
 | `frontend/src/components/notebook/ISLABlock.tsx` | Pure functional ISLA block renderer using React 19 `use()`, `<Suspense>`, and surface design tokens. |
@@ -239,16 +218,136 @@ Total statement coverage: 81.9%
       Tests  89 passed (89)
 ```
 
-### Manual Verification Checklist
+---
 
-1. **Markdown ISLA Embed**:
-   * Open a Notebook and edit a Markdown cell.
-   * Insert ```` ```isla\n@Joh 3:16 ? KR92 : KJV\n``` ```` and press `Ctrl + Enter`.
-   * Verify that the cell smoothly renders a 2-column side-by-side comparison card with Lora serif typography.
-2. **CLI Scratchpad & Freeze Reset**:
-   * In a CLI cell, type `@Joh 1:1-5` and press Enter.
-   * Uncheck verse 3 and click **Freeze**.
-   * Verify a new Markdown cell appears with verses 1, 2, 4, and 5, while the CLI prompt is instantly cleared back to `$ clible`.
-3. **Invalid Query Handling**:
-   * Write ```` ```isla\n@NonExistentBook 1:1\n``` ```` in a Markdown cell.
-   * Verify a non-blocking red alert box `ISLA Virhe: unknown book` is displayed without breaking the editor.
+## 📋 Comprehensive Manual Verification Checklist
+
+Below is the complete suite of working commands across all supported syntaxes and interactive features to test manually:
+
+### 1. Direct Single-Line ISLA Shortcuts in Markdown Cells
+
+Open a **Markdown cell** and test pasting the following single-line commands:
+
+* **Single Verse**:
+
+  ```text
+  !@Joh 3:16
+  ```
+
+  *(Renders a pure Lora serif scripture card for John 3:16 without checkboxes)*
+* **Finnish Abbreviation with Trailing Dot**:
+
+  ```text
+  !@Joh. 3:16
+  ```
+
+* **Numbered Book with Multiple Dots**:
+
+  ```text
+  !@1. Kor. 13:1-5
+  ```
+
+* **Side-by-Side Translation Comparison (Ternary)**:
+
+  ```text
+  !@room. 1:1-5 ? KR92 : KR38
+  ```
+
+  *(Renders a synchronized 2-column comparative layout with Finnish 1992 and Biblia 1776/1938)*
+* **International Translation Comparison**:
+
+  ```text
+  !@Joh 3:16 ? KR92 : KJV
+  ```
+
+* **Full-Text FTS Search**:
+
+  ```text
+  !? "rakkaus" @1kor
+  ```
+
+  *(Renders matching verses in 1 Corinthians)*
+* **Scoped Search with Limit**:
+
+  ```text
+  !? armo @ut => limit:3
+  ```
+
+* **Count / Match Metric**:
+
+  ```text
+  !# "armo" @ut
+  ```
+
+  *(Renders a high-contrast amber summary card with total hit count in the New Testament)*
+* **Reference Count**:
+
+  ```text
+  !# @Joh 3:16
+  ```
+
+* **Related Biblical Cross-References**:
+
+  ```text
+  !~ @Joh 3:16
+  ```
+
+---
+
+### 2. Alternative ISLA Syntaxes in Markdown Cells
+
+* **Explicit Line Keyword**:
+
+  ```text
+  !isla @Joh 3:16 => KR92
+  ```
+
+* **Inline Backtick Shorthand**:
+
+  ```text
+  `!isla @Joh 3:16`
+  ```
+
+* **Wikilink Embed Tag**:
+
+  ```text
+  ![[@Joh 3:16 ? KR92 : KJV]]
+  ```
+
+* **Fenced Multi-Line Code Block**:
+
+  ```isla
+  @Joh 3:16 ? KR92 : KJV
+  ```
+
+---
+
+### 3. Interactive CLI Workbench (`CodeCell`) & Freeze Workflow
+
+Open a **CLI cell** and execute the following queries:
+
+* **Verse Lookup**: `@Joh 3:16`
+* **Range Lookup**: `@Room. 1:1-5`
+* **Ternary Comparison**: `@room. 1:1-5 ? KR92 : KR38`
+* **Keyword Search**: `? "valo" @joh => limit:5`
+* **Match Count**: `# "armo" @ut`
+* **Freeze (Jäädytä) Workflow**:
+  1. Run `@Room. 1:1-5 ? KR92 : KR38` in the CLI prompt.
+  2. Notice the interactive selection checkboxes next to each verse row.
+  3. Uncheck verses 2 and 4.
+  4. Click the **Freeze (Jäädytä)** button.
+  5. **Verification**: A new Markdown cell is appended containing verses 1, 3, and 5 in formatted Markdown, while the CLI cell prompt is **immediately cleared back to `$ clible`**, ready for the next research query.
+
+---
+
+### 4. Visual, Theming, and Interaction Verification
+
+* **Double-Click to Edit**: Double-click anywhere on a rendered Markdown cell containing text and ISLA embeds. Verify it instantly switches into the textarea editor.
+* **Hover Command Inspection**: Move the mouse over any rendered ISLA scripture card. Verify the floating `✦ <command>` badge appears in the top-right corner.
+* **Dark Mode Aesthetics**: Click the theme toggle button in the top navigation bar. Verify:
+  * Page background is React.dev modern deep slate (`#16181d`).
+  * ISLA cards are elevated with slate containers (`#23272f` / `#2b313c`) and crisp subtle borders.
+  * Contrast is sharp, comfortable, and easy on the eyes.
+* **Light Mode Contrast**: Toggle back to light mode. Verify:
+  * Metric cards (`!# "armo" @ut`) display dark, highly legible amber typography (`text-amber-950`, `text-amber-900`).
+* **Error Resilience**: Enter an invalid query like `!@NonExistentBook 99:99` in Markdown. Verify an inline non-fatal red alert box appears (`ISLA error: unknown book`) without crashing the notebook editor.
