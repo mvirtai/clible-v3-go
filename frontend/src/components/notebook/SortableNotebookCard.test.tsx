@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 import { SortableNotebookCard } from './SortableNotebookCard';
+import { LanguageProvider } from '../../context/LanguageContext';
 import type { Notebook } from './types';
 
 // Mock dnd-kit sortable hook
@@ -53,15 +54,17 @@ describe('SortableNotebookCard', () => {
     act(() => {
       root = createRoot(container!);
       root.render(
-        <SortableNotebookCard
-          nb={baseNotebook}
-          index={0}
-          onClick={vi.fn()}
-          onResizeEnd={vi.fn()}
-          dragHandleTitle="Vedä"
-          updatedAtLabel="Päivitetty"
-          noDateLabel="-"
-        />
+        <LanguageProvider>
+          <SortableNotebookCard
+            nb={baseNotebook}
+            index={0}
+            onClick={vi.fn()}
+            onResizeEnd={vi.fn()}
+            dragHandleTitle="Vedä"
+            updatedAtLabel="Päivitetty"
+            noDateLabel="-"
+          />
+        </LanguageProvider>
       );
     });
 
@@ -72,7 +75,7 @@ describe('SortableNotebookCard', () => {
     expect(text).toContain('📖');
   });
 
-  it('renders up to 8 cells and "+ N muuta solua..." indicator when stretched with >8 cells', () => {
+  it('renders up to 8 cells and "+ N muuta solua..." indicator with colored category preview when stretched', () => {
     const manyCellsNotebook: Notebook = {
       ...baseNotebook,
       rowSpan: 8, // Triggers hasCustomHeight preview
@@ -87,20 +90,23 @@ describe('SortableNotebookCard', () => {
     act(() => {
       root = createRoot(container!);
       root.render(
-        <SortableNotebookCard
-          nb={manyCellsNotebook}
-          index={0}
-          onClick={vi.fn()}
-          onResizeEnd={vi.fn()}
-          dragHandleTitle="Vedä"
-          updatedAtLabel="Päivitetty"
-          noDateLabel="-"
-        />
+        <LanguageProvider>
+          <SortableNotebookCard
+            nb={manyCellsNotebook}
+            index={0}
+            onClick={vi.fn()}
+            onResizeEnd={vi.fn()}
+            dragHandleTitle="Vedä"
+            updatedAtLabel="Päivitetty"
+            noDateLabel="-"
+          />
+        </LanguageProvider>
       );
     });
 
     const text = container?.textContent || '';
-    expect(text).toContain('✦ ISLA');
+    expect(text).toContain('🔍');
+    expect(text).toContain('Haku');
     expect(text).toContain('+ 3 muuta solua...');
   });
 });

@@ -2,7 +2,8 @@ import { useRef } from 'react';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { useResizableCard } from './grid/useResizableCard';
 import { NotebookContentBadges } from './cells/CellBadge';
-import { classifyCell } from '../../utils/islaClassifier';
+import { classifyCell, type ContentCategory } from '../../utils/islaClassifier';
+import { useLanguage } from '../../context/LanguageContext';
 import type { Notebook } from './types';
 
 /**
@@ -27,10 +28,57 @@ export interface SortableNotebookCardProps {
   noDateLabel: string;
 }
 
+const PREVIEW_CATEGORY_THEMES: Record<
+  ContentCategory,
+  {
+    containerClass: string;
+    badgeClass: string;
+    emoji: string;
+    label: { fi: string; en: string };
+  }
+> = {
+  search: {
+    containerClass: 'bg-amber-500/5 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25',
+    badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    emoji: '🔍',
+    label: { fi: 'Haku', en: 'Search' },
+  },
+  verse: {
+    containerClass: 'bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25',
+    badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+    emoji: '📖',
+    label: { fi: 'Jae', en: 'Verse' },
+  },
+  compare: {
+    containerClass: 'bg-indigo-500/5 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/25',
+    badgeClass: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
+    emoji: '⚖️',
+    label: { fi: 'Vertailu', en: 'Compare' },
+  },
+  count: {
+    containerClass: 'bg-purple-500/5 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/25',
+    badgeClass: 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
+    emoji: '📊',
+    label: { fi: 'Määrä', en: 'Count' },
+  },
+  ai: {
+    containerClass: 'bg-fuchsia-500/5 dark:bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/25',
+    badgeClass: 'bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300',
+    emoji: '🤖',
+    label: { fi: 'AI', en: 'AI' },
+  },
+  text: {
+    containerClass: 'bg-sky-500/5 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/25',
+    badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
+    emoji: '📝',
+    label: { fi: 'Teksti', en: 'Text' },
+  },
+};
+
 /**
  * Interactive card component representing a notebook item in the 2D canvas grid matrix.
  * Supports drag-and-drop reordering via `@dnd-kit/react/sortable` and multi-edge drag resizing.
- * Dynamically renders notebook cell previews when stretched vertically.
+ * Dynamically renders notebook cell previews when stretched vertically with category-matching colors and emojis.
  */
 export function SortableNotebookCard({
   nb,
@@ -42,6 +90,7 @@ export function SortableNotebookCard({
   updatedAtLabel,
   noDateLabel,
 }: SortableNotebookCardProps) {
+  const { lang } = useLanguage();
   const cardRef = useRef<HTMLDivElement | null>(null);
   const { ref: sortableRef, handleRef, isDragging } = useSortable({ id: nb.id, index });
 
@@ -59,7 +108,7 @@ export function SortableNotebookCard({
   const previewLimit = 8;
   const previewCellCount = Math.min(previewLimit, totalCells);
   const extraIndicatorRow = totalCells > previewLimit ? 1 : 0;
-  const maxRowSpan = previewCellCount > 0 ? (5 + previewCellCount + extraIndicatorRow) : 5;
+  const maxRowSpan = previewCellCount > 0 ? 5 + previewCellCount + extraIndicatorRow : 5;
   const effectiveRowSpan = Math.min(
     maxRowSpan,
     nb.rowSpan ?? (nb.colHeight ? Math.max(5, Math.round(nb.colHeight / 24)) : 5)
@@ -83,39 +132,49 @@ export function SortableNotebookCard({
     gridRowEnd: `span ${rowSpan || effectiveRowSpan}`,
   };
 
-  const hasCustomHeight = Boolean((rowSpan || effectiveRowSpan) > 5);
+  const currentSpan = rowSpan || effectiveRowSpan;
+  const hasCustomHeight = currentSpan > 5;
 
   return (
     <div
       ref={setCombinedRef}
       style={gridStyle}
-      onClick={() => {
-        if (!isResizing) {
-          onClick();
-        }
-      }}
-      className={`h-full relative group p-4 bg-[var(--surface-2)]/10 border border-[var(--border-soft)]
-                  hover:border-amber-500/20 rounded-xl cursor-pointer select-none
-                  hover:bg-[var(--surface-2)]/20 transition-all flex flex-col justify-between overflow-hidden
-                  ${isDragging ? 'opacity-50 ring-2 ring-amber-500/40 z-50' : ''}
-                  ${isResizing ? 'ring-2 ring-amber-400/60 shadow-lg' : ''}`}
+      onClick={onClick}
+      className={`group relative rounded-2xl p-4 sm:p-5 flex flex-col justify-between text-left
+                  transition-all duration-200 cursor-pointer overflow-hidden
+                  hover:shadow-md hover:border-amber-500/40
+                  bg-[var(--surface-2)] border border-[var(--border-soft)]
+                  ${isDragging ? 'opacity-40 shadow-2xl z-40 ring-2 ring-amber-500' : ''}
+                  ${isResizing ? 'select-none ring-2 ring-amber-400 shadow-xl' : ''}`}
     >
-      {/* Header section: Drag handle, title, and timestamp */}
-      <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
-        <div className="flex items-start gap-2 flex-shrink-0">
-          <span
+      {/* Top Header Section of Card */}
+      <div className="flex-1 min-h-0 flex flex-col justify-start">
+        <div className="flex items-start justify-between gap-2">
+          {/* Drag Handle button */}
+          <button
             ref={handleRef}
-            onClick={(e) => e.stopPropagation()}
-            className="mt-0.5 flex-shrink-0 p-1 -ml-1 text-[var(--muted)]
-                       opacity-20 group-hover:opacity-60 transition-opacity
-                       cursor-grab active:cursor-grabbing touch-none"
+            type="button"
+            aria-label={dragHandleTitle}
             title={dragHandleTitle}
+            className="cursor-grab active:cursor-grabbing p-1 -m-1 rounded-md
+                       text-[var(--muted)] hover:text-amber-500
+                       hover:bg-[var(--surface)] transition-colors shrink-0 touch-none"
+            onClick={(e) => e.stopPropagation()}
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
-                 stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6h16.5" />
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="opacity-60 group-hover:opacity-100"
+            >
+              <line x1="3" y1="5" x2="13" y2="5" />
+              <line x1="3" y1="11" x2="13" y2="11" />
             </svg>
-          </span>
+          </button>
 
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm leading-snug text-[var(--text)]
@@ -139,18 +198,31 @@ export function SortableNotebookCard({
                 {nb.cells.slice(0, previewLimit).map((cell) => {
                   const info = classifyCell(cell);
                   const cleanText = info.cleanPreview;
+                  const theme = PREVIEW_CATEGORY_THEMES[info.primaryCategory] || PREVIEW_CATEGORY_THEMES.text;
+
                   return (
                     <div key={cell.id} className="text-xs shrink-0">
                       {info.isISLA ? (
-                        <div className="font-mono text-[11px] bg-amber-500/5 dark:bg-amber-500/10 rounded-lg px-2.5 py-1.5 text-amber-600 dark:text-amber-400 border border-amber-500/25 flex items-center gap-2 shadow-2xs">
-                          <span className="text-[9px] font-bold uppercase shrink-0 px-1.5 py-0.5 bg-amber-500/15 text-amber-600 dark:text-amber-300 rounded">
-                            ✦ ISLA
+                        <div
+                          className={`font-mono text-[11px] rounded-lg px-2.5 py-1.5 border flex items-center gap-2 shadow-2xs transition-colors ${theme.containerClass}`}
+                        >
+                          <span
+                            className={`text-[9px] font-bold uppercase shrink-0 px-1.5 py-0.5 rounded flex items-center gap-1 leading-none ${theme.badgeClass}`}
+                          >
+                            <span>{theme.emoji}</span>
+                            <span>{theme.label[lang] || theme.label.fi}</span>
                           </span>
-                          <span className="truncate flex-1 font-mono text-[11px]">{cleanText || 'ISLA expression'}</span>
+                          <span className="truncate flex-1 font-mono text-[11px]">
+                            {cleanText || 'ISLA expression'}
+                          </span>
                         </div>
                       ) : (
                         <div className="text-[var(--muted)] text-[11px] line-clamp-2 leading-relaxed bg-[var(--surface-2)]/30 rounded-lg p-2 border border-[var(--border-soft)]/40 shadow-2xs">
-                          {cleanText || <em className="italic text-[var(--muted)]/60">Empty note...</em>}
+                          {cleanText || (
+                            <em className="italic text-[var(--muted)]/60">
+                              {lang === 'fi' ? 'Tyhjä muistiinpano...' : 'Empty note...'}
+                            </em>
+                          )}
                         </div>
                       )}
                     </div>
@@ -158,14 +230,14 @@ export function SortableNotebookCard({
                 })}
                 {nb.cells.length > previewLimit && (
                   <div className="text-[10px] text-center font-medium text-[var(--muted)]/80 py-1 px-2 rounded-lg bg-[var(--surface-2)]/30 border border-dashed border-[var(--border-soft)]/60 shrink-0">
-                    + {nb.cells.length - previewLimit} muuta solua...
+                    + {nb.cells.length - previewLimit} {lang === 'fi' ? 'muuta solua...' : 'more cells...'}
                   </div>
                 )}
               </>
             ) : (
               <div className="py-3 px-3 rounded-lg bg-[var(--surface-2)]/30 border border-dashed border-[var(--border-soft)] text-center hover:border-amber-500/30 transition-colors my-auto">
                 <p className="text-[11px] text-[var(--muted)] leading-tight">
-                  Click to open notebook and add cells
+                  {lang === 'fi' ? 'Klikkaa avataksesi muistikirjan' : 'Click to open notebook and add cells'}
                 </p>
               </div>
             )}
