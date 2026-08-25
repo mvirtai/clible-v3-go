@@ -11,21 +11,39 @@ export interface VerseItem {
   text: string;
 }
 
+/**
+ * Data payload returned by an ISLA verse listing, search, or cross-reference query.
+ */
 export interface VersesResultData {
+  /** Target verse reference if queried by reference. */
   reference?: string;
+  /** Search query string if queried by search. */
   query?: string;
+  /** Source reference if queried by dynamic cross-reference lookup. */
   source?: string;
+  /** Extracted thematic keywords. */
   keywords?: string[];
+  /** Translation identifier. */
   translation?: string;
+  /** List of verses returned. */
   verses?: VerseItem[];
+  /** Alternate field containing cross-referenced verses. */
   references?: VerseItem[];
+  /** Alternate field containing thematic suggestions. */
   suggestions?: VerseItem[];
 }
 
-interface CellVersesResultProps {
+/**
+ * Properties for {@link CellVersesResult}.
+ */
+export interface CellVersesResultProps {
+  /** Verses result payload returned by backend ISLA executor. */
   data: VersesResultData;
+  /** Set of verse IDs marked as deselected by the user. */
   deselectedVerseIds?: Record<string, boolean>;
+  /** Callback fired when a verse selection toggle is clicked. */
   onToggleVerse?: (id: string) => void;
+  /** Whether verses can be interactively selected/deselected. */
   selectable?: boolean;
 }
 

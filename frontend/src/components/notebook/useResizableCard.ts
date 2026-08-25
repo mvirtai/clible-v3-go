@@ -16,12 +16,12 @@ const MIN_ROW_SPAN = 5;
 const MAX_ROW_SPAN = 12;
 
 /** Resize edge positions supported by the card handle overlays */
-type ResizeEdge = 'right' | 'left' | 'bottom' | 'corner';
+export type ResizeEdge = 'right' | 'left' | 'bottom' | 'corner';
 
 /**
  * Snaps a raw floating-point column calculation to the nearest valid grid column boundary.
  * 
- * @param raw Calculated floating column span value.
+ * @param raw - Calculated floating column span value.
  * @returns Nearest valid column span number from SNAP_POINTS.
  */
 function snapToNearest(raw: number): number {
@@ -31,7 +31,7 @@ function snapToNearest(raw: number): number {
 /**
  * Options for configuring the {@link useResizableCard} hook.
  */
-interface UseResizableCardOptions {
+export interface UseResizableCardOptions {
   /** Initial grid column span (6 to 24 columns) */
   initialColSpan?: number;
   /** Initial grid column start coordinate (1 to 24) */

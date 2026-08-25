@@ -3,34 +3,62 @@ import { Columns, Check } from 'lucide-react';
 import { bookCitationAbbrevFi } from '../../utils/bookNames';
 import { useLanguage } from '../../context/LanguageContext';
 
+/**
+ * An individual verse entry in a comparison result.
+ */
 export interface VerseItem {
+  /** Unique verse record ID. */
   id: string;
+  /** Translation identifier. */
   translationId: string;
+  /** Canonical 3-letter book identifier. */
   bookId: string;
+  /** Chapter number. */
   chapter: number;
+  /** Verse number. */
   verse: number;
+  /** Verse text content. */
   text: string;
 }
 
+/**
+ * Data payload returned by an ISLA `COMPARE` operation.
+ */
 export interface CompareResultData {
+  /** Reference string comparing verses. */
   reference: string;
+  /** Left translation dataset. */
   left: {
     translation: string;
     verses: VerseItem[];
   };
+  /** Right translation dataset. */
   right: {
     translation: string;
     verses: VerseItem[];
   };
 }
 
-interface CellCompareResultProps {
+/**
+ * Properties for {@link CellCompareResult}.
+ */
+export interface CellCompareResultProps {
+  /** Comparison result payload returned by backend ISLA executor. */
   data: CompareResultData;
+  /** Set of verse IDs marked as deselected by the user. */
   deselectedVerseIds?: Record<string, boolean>;
+  /** Callback fired when a verse selection toggle is clicked. */
   onToggleVerse?: (id: string) => void;
+  /** Whether verses can be interactively selected/deselected. */
   selectable?: boolean;
 }
 
+/**
+ * Renders parallel aligned verse comparison tables with side-by-side translation columns inside a notebook cell.
+ *
+ * @param props - Component properties conforming to {@link CellCompareResultProps}.
+ * @returns Synchronized side-by-side comparison table.
+ */
 export const CellCompareResult: React.FC<CellCompareResultProps> = ({
   data,
   deselectedVerseIds = {},

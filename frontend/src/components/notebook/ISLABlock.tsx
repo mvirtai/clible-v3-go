@@ -67,11 +67,22 @@ const ISLAContent: React.FC<{ code: string; translation: string }> = ({ code, tr
   );
 };
 
-interface ISLABlockProps {
+/**
+ * Properties for {@link ISLABlock}.
+ */
+export interface ISLABlockProps {
+  /** The raw ISLA DSL code snippet to evaluate (e.g. `COUNT "light"`). */
   code: string;
+  /** Active Bible translation identifier for resolving text data. */
   translation: string;
 }
 
+/**
+ * Suspense-driven ISLA DSL block renderer utilizing React 19 `use(promise)` for zero-waterfall inline DSL embedding in Markdown.
+ *
+ * @param props - Component properties conforming to {@link ISLABlockProps}.
+ * @returns Suspended interactive ISLA query visualization.
+ */
 export const ISLABlock: React.FC<ISLABlockProps> = ({ code, translation }) => {
   const cleanQuery = code.trim();
   if (!cleanQuery) return null;
@@ -82,3 +93,4 @@ export const ISLABlock: React.FC<ISLABlockProps> = ({ code, translation }) => {
     </Suspense>
   );
 };
+

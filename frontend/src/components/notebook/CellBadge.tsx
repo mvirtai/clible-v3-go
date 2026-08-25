@@ -4,11 +4,22 @@ const CELL_STYLES = {
   code:     { bg: 'rgba(139,92,246,0.12)', dot: '#8b5cf6', label: 'CODE' },
 } as const;
 
-interface CellBadgeProps {
+/**
+ * Properties for {@link CellBadge}.
+ */
+export interface CellBadgeProps {
+  /** The cell content type. */
   type: 'markdown' | 'code';
+  /** Number of cells of this type contained within the parent card. */
   count: number;
 }
 
+/**
+ * Compact pill badge displaying the cell count for markdown and code cells on canvas cards.
+ *
+ * @param props - Component properties conforming to {@link CellBadgeProps}.
+ * @returns Pill badge or null if count is zero.
+ */
 export function CellBadge({ type, count }: CellBadgeProps) {
   if (count === 0) return null;
   const { bg, dot, label } = CELL_STYLES[type];
@@ -23,3 +34,4 @@ export function CellBadge({ type, count }: CellBadgeProps) {
     </span>
   );
 }
+

@@ -79,7 +79,7 @@ describe('CellWrapper', () => {
     expect(dragHandle).not.toBeNull();
 
     // Verify resize handle presence
-    const resizeHandle = container?.querySelector('[title*="Drag to resize"]');
+    const resizeHandle = container?.querySelector('[title*="Vedä muuttaaksesi"], [title*="Drag to resize"]');
     expect(resizeHandle).not.toBeNull();
   });
 
@@ -249,7 +249,7 @@ describe('CellWrapper', () => {
       );
     });
 
-    const resizeHandle = container?.querySelector('[title*="Drag to resize"]') as HTMLDivElement;
+    const resizeHandle = container?.querySelector('[title*="Vedä muuttaaksesi"], [title*="Drag to resize"]') as HTMLDivElement;
     expect(resizeHandle).not.toBeNull();
 
     resizeHandle.setPointerCapture = vi.fn();

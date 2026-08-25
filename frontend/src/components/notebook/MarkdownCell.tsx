@@ -5,14 +5,29 @@ import type { Cell } from './types';
 import { useLanguage } from '../../context/LanguageContext';
 import { ISLABlock } from './ISLABlock';
 
-interface MarkdownCellProps {
+/**
+ * Properties for {@link MarkdownCell}.
+ */
+export interface MarkdownCellProps {
+  /** The notebook markdown cell model instance */
   cell: Cell;
+  /** Callback fired when markdown text content changes */
   onChange: (content: string) => void;
+  /** Whether editing is enabled (defaults to true) */
   isEditable?: boolean;
+  /** Optional callback fired when clicking a scripture reference link */
   onSelectVerse?: (ref: string) => void;
+  /** Active translation identifier for embedded ISLA blocks */
   translation?: string;
 }
 
+/**
+ * Rich interactive Markdown cell supporting live previews, double-click inline editing,
+ * scripture reference links (`[[John 3:16]]`), and embedded ISLA DSL blocks (`!#`, `!@`, `!?`).
+ *
+ * @param props - Component properties conforming to {@link MarkdownCellProps}.
+ * @returns Interactive Markdown cell container.
+ */
 export const MarkdownCell: React.FC<MarkdownCellProps> = ({
   cell,
   onChange,
@@ -150,7 +165,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
     return (
       <div className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] whitespace-normal break-words">
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-          {preprocessContent(cell.content) || '*No content*'}
+          {preprocessContent(cell.content) || strings.noContentText}
         </ReactMarkdown>
       </div>
     );

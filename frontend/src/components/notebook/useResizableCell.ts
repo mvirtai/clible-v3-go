@@ -3,7 +3,7 @@ import { useState, useRef, useCallback } from 'react';
 /**
  * Options for configuring the {@link UseResizableCell} hook.
  */
-interface UseResizableCellOptions {
+export interface UseResizableCellOptions {
   /** Initial column span for the cell grid layout (1 to 12) */
   initialColSpan?: number;
   /** Initial height of the cell in pixels */
