@@ -1,11 +1,17 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { UILanguage, Messages } from '../utils/i18n';
 import { t } from '../utils/i18n';
 
+/**
+ * Language context value providing active UI language and localized dictionary.
+ */
 export interface LanguageContextValue {
+  /** Currently active UI language code ('fi' | 'en'). */
   lang: UILanguage;
+  /** Updates the active UI language and persists preference to local storage. */
   setLang: (l: UILanguage) => void;
+  /** Active localized string dictionary. */
   strings: Messages;
 }
 
@@ -19,13 +25,19 @@ const LanguageContext = createContext<LanguageContextValue>({
   strings: t(defaultLang),
 });
 
+/**
+ * Manages UI language preference, localStorage persistence, and dictionary distribution.
+ *
+ * @param props - React provider properties including children nodes.
+ * @returns Context provider element wrapping child components.
+ */
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<UILanguage>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw === 'fi' || raw === 'en') return raw as UILanguage;
     } catch {
-      // ignore
+      // ignore localStorage errors in non-browser/restricted environments
     }
     return defaultLang;
   });
@@ -34,13 +46,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.setItem(STORAGE_KEY, lang);
     } catch {
-      // ignore
+      // ignore localStorage write errors
     }
   }, [lang]);
 
   const setLang = (l: UILanguage) => setLangState(l);
 
-  const strings = useMemo(() => t(lang), [lang]);
+  // Pure derived dictionary based on active language (O(1) object lookup)
+  const strings = t(lang);
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, strings }}>
@@ -49,6 +62,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
-export function useLanguage() {
+/**
+ * Custom hook to consume the current language context and translation dictionary.
+ *
+ * @returns Active language context value containing language state and localized strings.
+ */
+export function useLanguage(): LanguageContextValue {
   return useContext(LanguageContext);
 }
+

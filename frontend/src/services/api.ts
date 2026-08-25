@@ -8,12 +8,17 @@ import type { AiSearchResponse } from "../types/aiSearch";
 import type { OriginalStudyResult } from "../types/originalStudy";
 
 
-// raw api types matching the Go backend JSON responses
+/**
+ * Raw word frequency entry returned by the backend analytics engine.
+ */
 interface RawWordCount {
     word: string;
     count: number;
 }
 
+/**
+ * Raw JSON payload for statistical metrics returned by POST /api/analytics/analyze.
+ */
 interface RawTextStats {
     token_count: number;
     unique_token_count: number;
@@ -25,6 +30,9 @@ interface RawTextStats {
     top_trigrams: RawWordCount[];
 }
 
+/**
+ * Raw verse comparison alignment item returned by POST /api/analytics/compare.
+ */
 interface RawAlignedVerse {
     book_id: string;
     chapter: number;
@@ -35,6 +43,9 @@ interface RawAlignedVerse {
     exact_match: boolean;
 }
 
+/**
+ * Raw summary metrics for a cross-translation comparison.
+ */
 interface RawComparisonSummary {
     total_verses: number;
     fully_aligned_verses: number;
@@ -45,6 +56,9 @@ interface RawComparisonSummary {
     most_similar_verse_ref?: string;
 }
 
+/**
+ * Raw response payload for cross-translation alignment and metrics.
+ */
 interface RawComparisonResult {
     reference: string;
     translation_a: string;
@@ -53,13 +67,19 @@ interface RawComparisonResult {
     summary: RawComparisonSummary;
 }
 
+/**
+ * User account response structure returned by authentication endpoints.
+ */
 interface UserResponse {
     id: string;
     email: string;
 }
 
 /**
- * Maps RawTextStats structure to the camelCase TextStats interface
+ * Transforms snake_case backend analytics payload to camelCase {@link TextStats} model.
+ *
+ * @param raw - The raw text statistics response from the Go API.
+ * @returns Normalized camelCase statistics object for frontend charting.
  */
 const mapTextStats = (raw: RawTextStats): TextStats => ({
     tokenCount: raw.token_count,
@@ -73,7 +93,10 @@ const mapTextStats = (raw: RawTextStats): TextStats => ({
 });
 
 /**
- * Maps RawComparisonResult structure to the camelCase ComparisonResult interface.
+ * Transforms snake_case backend comparison payload to camelCase {@link ComparisonResult} model.
+ *
+ * @param raw - The raw comparison result response from the Go API.
+ * @returns Normalized camelCase comparison object for UI diff tables and charts.
  */
 const mapComparisonResult = (raw: RawComparisonResult): ComparisonResult => ({
     reference: raw.reference,

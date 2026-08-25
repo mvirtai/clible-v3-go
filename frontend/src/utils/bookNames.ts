@@ -1,18 +1,26 @@
 import bibleStructure from '../data/bible_structure.json';
 import bookNamesData from '../data/book_names.json';
 
+/** Supported UI language codes */
 export type UILanguage = 'en' | 'fi';
 
-type BookMeta = {
+/**
+ * Metadata definition for localized Bible book names, abbreviations, and aliases.
+ */
+export interface BookLocaleMeta {
+  /** English canonical book name */
   en: string;
+  /** Finnish canonical book name */
   fi: string;
+  /** List of alternative Finnish aliases for robust search matching */
   aliases_fi: string[];
+  /** Short Finnish abbreviation */
   abbr_fi?: string;
-  /** If set, used for heading abbreviations instead of `abbr_fi` (e.g. Acts: `ap` → `Ap.`). */
+  /** Citation abbreviation used in heading format */
   citation_abbr_fi?: string;
-};
+}
 
-const BOOK_LOCALE = bookNamesData as Record<string, BookMeta>;
+const BOOK_LOCALE = bookNamesData as Record<string, BookLocaleMeta>;
 
 /** Finnish citation abbreviation for headings (e.g. `joh` → `Joh.`). Prefers `citation_abbr_fi` when set. */
 export function bookCitationAbbrevFi(id: string): string {

@@ -1,10 +1,24 @@
 import type { Components } from 'react-markdown';
 
-export function markdownComponents(options: {
+/**
+ * Options for configuring custom ReactMarkdown component rendering tokens.
+ */
+export interface MarkdownComponentsOptions {
+  /** Whether to invert color tokens for dark backgrounds */
   invert: boolean;
+  /** Whether to use expanded heading styles for AI insight layouts */
   insightLayout?: boolean;
+  /** Whether to use expanded heading styles for AI tone layouts */
   toneLayout?: boolean;
-}): Components {
+}
+
+/**
+ * Creates a customized map of HTML element components for ReactMarkdown with bespoke theme styling.
+ *
+ * @param options - Configuration options conforming to {@link MarkdownComponentsOptions}.
+ * @returns ReactMarkdown `Components` mapping.
+ */
+export function markdownComponents(options: MarkdownComponentsOptions): Components {
   const { invert, insightLayout, toneLayout } = options;
 
   // High-end typography class tokens
