@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Cell, CellResult } from './types';
-import { bookCitationAbbrevFi } from '../../utils/bookNames';
 import { formatResultToMarkdown, type CLIResultData } from '../../utils/markdown';
 import { CellCountResult, type CountResultData } from './CellCountResult';
 import { CellCompareResult, type CompareResultData } from './CellCompareResult';
+import { CellVersesResult, type VersesResultData } from './CellVersesResult';
 
 interface ThemeItem {
   word: string;
@@ -33,20 +33,21 @@ export const CodeCell: React.FC<CodeCellProps> = ({
   onFreeze,
 }) => {
   const [isRunning, setIsRunning] = useState(false);
+  const [direction, setDirection] = useState<'up' | 'down'>('down');
   const [deselectedVerseIds, setDeselectedVerseIds] = useState<Record<string, boolean>>({});
-
-  const [prevResultJson, setPrevResultJson] = useState<unknown>(null);
-
   const { strings } = useLanguage();
 
-  if (cell.resultJson !== prevResultJson) {
-    setPrevResultJson(cell.resultJson);
-    setDeselectedVerseIds({});
-  }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleExecute();
+    }
+  };
 
-  const handleRun = async () => {
+  const handleExecute = async () => {
     if (isRunning) return;
     setIsRunning(true);
+    // Reset deselected state on new execution
     setDeselectedVerseIds({});
     try {
       await onExecute();
@@ -55,33 +56,11 @@ export const CodeCell: React.FC<CodeCellProps> = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleRun();
-    }
-  };
+  // Check if result type is freezable
+  const freezableTypes = ['read', 'search', 'refs', 'suggest', 'compare', 'themes', 'count'];
+  const hasFreezeOption = cell.resultJson && freezableTypes.includes(cell.resultJson.type);
 
-  const hasFreezeOption = cell.resultJson && 
-    ['read', 'search', 'refs', 'suggest', 'themes', 'count', 'compare'].includes(cell.resultJson.type);
-
-  const selectedCount = (() => {
-    if (!cell.resultJson) return 0;
-    if (cell.resultJson.type === 'themes' || cell.resultJson.type === 'count') {
-      return 1;
-    }
-    if (cell.resultJson.type === 'compare') {
-      const comp = cell.resultJson.data as CompareResultData;
-      const leftVerses = comp.left?.verses || [];
-      const rightVerses = comp.right?.verses || [];
-      const allIds = new Set([...leftVerses.map(v => v.id), ...rightVerses.map(v => v.id)]);
-      const nonDeselected = Array.from(allIds).filter(id => !deselectedVerseIds[id]);
-      return nonDeselected.length;
-    }
-    const data = cell.resultJson.data as CLIResultData;
-    const verses = data.verses || data.references || data.suggestions || [];
-    return verses.filter(v => !deselectedVerseIds[v.id]).length;
-  })();
-
+  // Toggle selection state of an individual verse
   const toggleVerse = (id: string) => {
     setDeselectedVerseIds((prev) => ({
       ...prev,
@@ -89,109 +68,132 @@ export const CodeCell: React.FC<CodeCellProps> = ({
     }));
   };
 
-  const handleFreezeClick = () => {
-    if (!cell.resultJson || !onFreeze) return;
+  // Calculate count of selected verses
+  const getVerseCountInfo = () => {
+    if (!cell.resultJson || !cell.resultJson.data) return { total: 0, selected: 0 };
+    const data = cell.resultJson.data as Record<string, unknown>;
     
-    const data = cell.resultJson.data as CLIResultData;
-    const filteredData = { ...data };
-
-    if (data.verses) {
-      filteredData.verses = data.verses.filter(v => !deselectedVerseIds[v.id]);
-    }
-    if (data.references) {
-      filteredData.references = data.references.filter(v => !deselectedVerseIds[v.id]);
-    }
-    if (data.suggestions) {
-      filteredData.suggestions = data.suggestions.filter(v => !deselectedVerseIds[v.id]);
-    }
-
-    if (data.left?.verses) {
-      filteredData.left = {
-        ...data.left,
-        verses: data.left.verses.filter(v => !deselectedVerseIds[v.id]),
-      };
-    }
-
-    if (data.right?.verses) {
-      filteredData.right = {
-        ...data.right,
-        verses: data.right.verses.filter(v => !deselectedVerseIds[v.id]),
-      };
-    }
-
-    const markdown = formatResultToMarkdown(
-      cell.resultJson.type,
-      filteredData,
-      translation
-    );
-    if (markdown) {
-      let direction: 'up' | 'down' = 'down';
-      const content = cell.content.toLowerCase().trim();
-
-      // Tarkistetaan --dir=up / --ref=up
-      if (content.includes('--dir=up') || content.includes('--dir=u') || content.includes('--dir=prev') || content.includes('--ref=up') || content.includes('--ref=prev')) {
-        direction = 'up';
-      }
-      // Tarkistetaan --n=...p tai --n=...u
-      const nMatch = content.match(/--n=(\d+)?([a-z]+)/);
-      if (nMatch && nMatch[2]) {
-        const suffix = nMatch[2];
-        if (suffix.startsWith('p') || suffix.startsWith('u')) {
-          direction = 'up';
-        } else if (suffix.startsWith('n') || suffix.startsWith('d')) {
-          direction = 'down';
+    // For compare result: compare left and right verses
+    if (cell.resultJson.type === 'compare') {
+      const left = (data.left as { verses?: { id: string }[] })?.verses || [];
+      const right = (data.right as { verses?: { id: string }[] })?.verses || [];
+      const maxRows = Math.max(left.length, right.length);
+      let selected = 0;
+      for (let i = 0; i < maxRows; i++) {
+        const leftId = left[i]?.id;
+        const rightId = right[i]?.id;
+        const isLeftDeselected = leftId ? !!deselectedVerseIds[leftId] : false;
+        const isRightDeselected = rightId ? !!deselectedVerseIds[rightId] : false;
+        if (!((leftId && isLeftDeselected) || (rightId && isRightDeselected))) {
+          selected++;
         }
       }
+      return { total: maxRows, selected };
+    }
 
-      onFreeze(markdown, direction);
+    const verses = (data.verses || data.references || data.suggestions || []) as { id: string }[];
+    if (!Array.isArray(verses)) return { total: 1, selected: 1 }; // For non-array results (e.g. themes/count)
+    const total = verses.length;
+    const deselectedCount = Object.values(deselectedVerseIds).filter(Boolean).length;
+    return { total, selected: Math.max(0, total - deselectedCount) };
+  };
+
+  const { selected: selectedCount } = getVerseCountInfo();
+
+  const handleFreezeClick = () => {
+    if (!cell.resultJson || !onFreeze) return;
+    const formattedMd = formatResultToMarkdown(
+      cell.resultJson.type,
+      cell.resultJson.data as CLIResultData,
+      translation
+    );
+    if (formattedMd.trim()) {
+      onFreeze(formattedMd, direction);
+      // Reset selection state after freeze
+      setDeselectedVerseIds({});
     }
   };
 
   return (
-    <div className="bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden transition-all duration-300 shadow-inner">
-      {/* CLI-Syöterivi */}
-      <div className="flex items-center gap-3 bg-neutral-900 px-4 py-2 border-b border-neutral-800/80">
-        <span className="font-mono text-amber-500 font-bold tracking-wider select-none">$ clible</span>
+    <div className="w-full flex flex-col bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden transition-all duration-200">
+      {/* CLI Command Bar */}
+      <div className="flex items-center px-4 py-3 gap-3 bg-neutral-900/90 border-b border-neutral-800/80">
+        <span className="text-amber-500 font-mono font-bold text-sm select-none">$</span>
         <input
           type="text"
-          className="flex-1 font-mono bg-transparent text-neutral-100 border-none outline-none focus:ring-0 text-sm placeholder-neutral-600"
+          className="flex-1 bg-transparent border-none text-neutral-100 font-mono text-sm focus:outline-none placeholder-neutral-500"
           value={cell.content}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={strings.codeCellPlaceholder}
           onKeyDown={handleKeyDown}
-          disabled={isRunning}
+          placeholder={strings.codeCellPlaceholder}
         />
-        <button
-          onClick={handleRun}
-          disabled={isRunning}
-          className="flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-600 disabled:bg-neutral-800 text-neutral-950 font-bold text-xs rounded transition-all shadow-sm"
-        >
-          {isRunning ? (
-            <>
-              <svg className="animate-spin h-3.5 w-3.5 text-neutral-950" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              {strings.runningLabel}
-            </>
-          ) : (
-            <>
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
-              </svg>
-              {strings.runLabel}
-            </>
+        <div className="flex items-center gap-2">
+          {/* Freeze Direction Selector */}
+          {hasFreezeOption && onFreeze && (
+            <div className="flex items-center bg-neutral-950 border border-neutral-800 rounded p-0.5">
+              <button
+                type="button"
+                onClick={() => setDirection('up')}
+                className={`px-1.5 py-0.5 text-[10px] font-mono rounded flex items-center gap-0.5 transition-all ${
+                  direction === 'up'
+                    ? 'bg-amber-500/20 text-amber-300 font-bold'
+                    : 'text-neutral-500 hover:text-neutral-300'
+                }`}
+                title="Freeze to Markdown cell above"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                onClick={() => setDirection('down')}
+                className={`px-1.5 py-0.5 text-[10px] font-mono rounded flex items-center gap-0.5 transition-all ${
+                  direction === 'down'
+                    ? 'bg-amber-500/20 text-amber-300 font-bold'
+                    : 'text-neutral-500 hover:text-neutral-300'
+                }`}
+                title="Freeze to Markdown cell below"
+              >
+                ↓
+              </button>
+            </div>
           )}
-        </button>
+
+          <button
+            onClick={handleExecute}
+            disabled={isRunning || !cell.content.trim()}
+            className={`px-3 py-1 text-xs font-mono font-medium rounded flex items-center gap-1.5 transition-all ${
+              isRunning || !cell.content.trim()
+                ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                : 'bg-amber-500 hover:bg-amber-400 text-neutral-950 font-semibold shadow-xs'
+            }`}
+          >
+            {isRunning ? (
+              <>
+                <svg className="animate-spin h-3.5 w-3.5 text-neutral-950" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                {strings.runningLabel}
+              </>
+            ) : (
+              <>
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                </svg>
+                {strings.runLabel}
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Tuloksen renderöintialue */}
+      {/* Result rendering area */}
       {cell.resultJson && (
         <div className="p-4 bg-neutral-950/70 border-t border-neutral-900/50 font-sans text-neutral-200">
           <div className="flex justify-between items-center mb-3 border-b border-neutral-900 pb-2">
             <span className="text-[10px] uppercase font-mono tracking-wider text-amber-500/80 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10">
-            {strings.cliOutputPrefix} {cell.resultJson.type}
-          </span> 
+              {strings.cliOutputPrefix} {cell.resultJson.type}
+            </span> 
             {hasFreezeOption && onFreeze && (
               <button
                 onClick={handleFreezeClick}
@@ -211,7 +213,7 @@ export const CodeCell: React.FC<CodeCellProps> = ({
             result={cell.resultJson}
             deselectedVerseIds={deselectedVerseIds}
             onToggleVerse={toggleVerse}
-            strings={strings}
+            translation={translation}
           />
         </div>
       )}
@@ -219,53 +221,21 @@ export const CodeCell: React.FC<CodeCellProps> = ({
   );
 };
 
-interface Verse {
-  id: string;
-  translationId: string;
-  bookId: string;
-  chapter: number;
-  verse: number;
-  text: string;
-}
-
-interface ReadResult {
-  reference: string;
-  verses: Verse[];
-}
-
-interface SearchResult {
-  query: string;
-  verses: Verse[];
-}
-
-interface RefsResult {
-  source: string;
-  references: Verse[];
-}
-
-interface SuggestResult {
-  keywords: string[];
-  suggestions: Verse[];
-}
-
-
-
 interface ResultRendererProps {
   result: CellResult;
   deselectedVerseIds?: Record<string, boolean>;
   onToggleVerse?: (id: string) => void;
-  strings: ReturnType<typeof useLanguage>['strings'];
+  translation?: string;
 }
 
-/* Tulosten dynaaminen renderöijä eri komennon tyypeille */
+/* Dynamic result renderer for different command types */
 const ResultRenderer: React.FC<ResultRendererProps> = ({
   result,
   deselectedVerseIds = {},
   onToggleVerse,
-  strings,
 }) => {
   if (result.type === 'error') {
-    let errorMessage = 'Virhe komennon suorituksessa.';
+    let errorMessage = 'Error executing command.';
     if (result.data && typeof result.data === 'object' && 'message' in result.data) {
       const obj = result.data as { message?: unknown };
       if (typeof obj.message === 'string') {
@@ -279,131 +249,37 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     );
   }
 
-  // Helper component to render a clickable verse item
-  const RenderVerseItem = ({ v }: { v: Verse }) => {
-    const book = bookCitationAbbrevFi(v.bookId);
-    const isDeselected = !!deselectedVerseIds[v.id];
+  // 1. /read, /search, /refs, /suggest result (verses list with selectable checkmarks)
+  if (
+    result.type === 'read' ||
+    result.type === 'search' ||
+    result.type === 'refs' ||
+    result.type === 'suggest' ||
+    result.type === 'verses'
+  ) {
     return (
-      <div
-        onClick={() => onToggleVerse?.(v.id)}
-        className={`group cursor-pointer select-none transition-all duration-200 p-2 rounded hover:bg-neutral-900 border border-transparent ${
-          isDeselected ? 'opacity-40 text-neutral-500' : 'text-neutral-300'
-        }`}
-      >
-        <div className="flex items-start gap-2.5">
-          <div className="mt-1 flex items-center justify-center w-3.5 h-3.5 rounded border border-neutral-700 bg-neutral-950 text-amber-500 transition-colors group-hover:border-amber-500/50">
-            {!isDeselected && (
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
-                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-              </svg>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-amber-500 font-semibold text-xs select-none">
-                {book} {v.chapter}:{v.verse} ({v.translationId.toUpperCase()})
-              </span>
-            </div>
-            <p className={`leading-relaxed text-sm mt-1 transition-all ${isDeselected ? 'line-through text-neutral-600' : 'text-neutral-300'}`}>
-              {v.text}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // 1. /read tulos
-  if (result.type === 'read') {
-    const data = result.data as ReadResult;
-    const verses = data.verses || [];
-    return (
-      <div className="space-y-1">
-        {verses.length === 0 ? (
-                  <p className="text-neutral-500 text-sm italic">{strings.noVersesFound} {data.reference}.</p>
-                ) : (
-                  verses.map((v) => <RenderVerseItem key={v.id} v={v} />)
-                )}
-      </div>
+      <CellVersesResult
+        data={result.data as VersesResultData}
+        deselectedVerseIds={deselectedVerseIds}
+        onToggleVerse={onToggleVerse}
+        selectable={true}
+      />
     );
   }
 
-  // 2. /search tulos
-  if (result.type === 'search') {
-    const data = result.data as SearchResult;
-    const verses = data.verses || [];
-    return (
-      <div className="space-y-3">
-        <p className="text-xs text-neutral-400">{strings.searchResultsForQuery}: <span className="text-neutral-200 font-mono">"{data.query}"</span></p>
-        {verses.length === 0 ? (
-                  <p className="text-neutral-500 text-sm italic">{strings.noResults}</p>
-                ) : (
-          <div className="space-y-1">
-            {verses.map((v) => <RenderVerseItem key={v.id} v={v} />)}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // 3. /refs tulos
-  if (result.type === 'refs') {
-    const data = result.data as RefsResult;
-    const refs = data.references || [];
-    return (
-      <div className="space-y-3">
-        <p className="text-xs text-neutral-400">{strings.dynamicRefsFor}: <span className="text-amber-500 font-semibold">{data.source}</span></p>
-        {refs.length === 0 ? (
-                  <p className="text-neutral-500 text-sm italic">{strings.noRefsFound}</p>
-                ) : (
-          <div className="space-y-1">
-            {refs.map((v) => <RenderVerseItem key={v.id} v={v} />)}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // 4. /suggest tulos
-  if (result.type === 'suggest') {
-    const data = result.data as SuggestResult;
-    const suggestions = data.suggestions || [];
-    return (
-      <div className="space-y-3">
-        {data.keywords && data.keywords.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    <span className="text-[10px] text-neutral-500 self-center mr-1">{strings.identifiedThemesLabel}</span>
-                    {data.keywords.map((kw) => (
-              <span key={kw} className="text-[10px] font-mono bg-neutral-900 border border-neutral-800 text-neutral-300 px-2 py-0.5 rounded">
-                #{kw}
-              </span>
-            ))}
-          </div>
-        )}
-        {suggestions.length === 0 ? (
-          <p className="text-neutral-500 text-sm italic">{strings.suggestNoData}</p>
-        ) : (
-          <div className="space-y-1">
-            {suggestions.map((v) => <RenderVerseItem key={v.id} v={v} />)}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // 5. /themes result
+  // 2. /themes result
   if (result.type === 'themes') {
     const data = result.data as ThemesResult;
     const themes = data.themes || [];
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs text-neutral-400 font-mono border-b border-neutral-800 pb-2">
-          <span>Tunnistetut avainteemat</span>
-          <span>{data.count || 0} teemaa</span>
+          <span>Identified key themes</span>
+          <span>{data.count || 0} themes</span>
         </div>
         
         {themes.length === 0 ? (
-          <p className="text-neutral-500 text-sm italic">Ei tunnistettuja teemoja valituista soluista.</p>
+          <p className="text-neutral-500 text-sm italic">No identified themes from selected cells.</p>
         ) : (
           <div className="flex flex-wrap gap-2 pt-1">
             {themes.map((t, idx) => (
@@ -423,23 +299,24 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     );
   }
 
-  // 6. count result
+  // 3. count result
   if (result.type === 'count') {
     return <CellCountResult data={result.data as CountResultData} />;
   }
 
-  // 7. compare result
+  // 4. compare result
   if (result.type === 'compare') {
     return (
       <CellCompareResult
         data={result.data as CompareResultData}
         deselectedVerseIds={deselectedVerseIds}
         onToggleVerse={onToggleVerse}
+        selectable={true}
       />
     );
   }
 
-  // Fallback: raakateksti / JSON stringify
+  // Fallback: raw text / JSON stringify
   return (
     <pre className="font-mono text-xs text-neutral-400 whitespace-pre-wrap leading-relaxed bg-black/30 p-2.5 rounded border border-neutral-900/30">
       {typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2)}

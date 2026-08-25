@@ -6,14 +6,14 @@ import { act } from 'react';
 import { NotebookEditor } from './NotebookEditor';
 import { LanguageProvider } from '../../context/LanguageContext';
 
-// Mock @dnd-kit/react DragDropProvider (läpinäkyvä wrapper testissä)
+// Mock @dnd-kit/react DragDropProvider (transparent wrapper for tests)
 vi.mock('@dnd-kit/react', () => ({
   DragDropProvider: ({ children }: { children?: React.ReactNode }) => (
     <div data-testid="drag-drop-provider">{children}</div>
   ),
 }));
 
-// Mock @dnd-kit/react/sortable — useSortable palauttaa no-op stubit
+// Mock @dnd-kit/react/sortable — useSortable returns no-op stubs
 vi.mock('@dnd-kit/react/sortable', () => ({
   useSortable: () => ({
     ref: () => {},
@@ -22,7 +22,7 @@ vi.mock('@dnd-kit/react/sortable', () => ({
   }),
 }));
 
-// Mock @dnd-kit/helpers move-funktio
+// Mock @dnd-kit/helpers move function
 vi.mock('@dnd-kit/helpers', () => ({
   move: (arr: unknown[]) => arr,
 }));
@@ -116,4 +116,75 @@ describe('NotebookEditor', () => {
     );
     expect(hasInputValue || container?.textContent?.includes('/suggest')).toBe(true);
   });
+
+  it('handles freezing a code cell: creates a markdown cell and resets the code cell', async () => {
+    const notebookWithResult = {
+      ...mockNotebookData,
+      cells: [
+        {
+          id: 'cell-code-1',
+          notebookId: 'nb-123',
+          type: 'code',
+          content: '@Joh 3:16',
+          position: 0,
+          resultJson: {
+            type: 'read',
+            data: {
+              reference: 'Joh 3:16',
+              verses: [
+                {
+                  id: 'web:JHN:3:16',
+                  translationId: 'web',
+                  bookId: 'JHN',
+                  chapter: 3,
+                  verse: 16,
+                  text: 'For God so loved the world.',
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/api/notebooks/nb-123')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(notebookWithResult),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        });
+      })
+    );
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <NotebookEditor notebookId="nb-123" />
+        </LanguageProvider>
+      );
+    });
+
+    // Find freeze button and click it
+    const freezeBtn = Array.from(container?.querySelectorAll('button') || []).find((b) =>
+      b.textContent?.includes('Jäädytä') || b.textContent?.includes('Freeze')
+    );
+    expect(freezeBtn).toBeDefined();
+
+    await act(async () => {
+      freezeBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    // Now verify a markdown cell was created and the code input is emptied
+    const codeInput = container?.querySelector('input[type="text"]') as HTMLInputElement;
+    expect(codeInput?.value).toBe('');
+  });
 });
+

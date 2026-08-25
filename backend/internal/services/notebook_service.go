@@ -408,7 +408,7 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 	trimmedContent := strings.TrimSpace(targetCell.Content)
 	var cliResult *models.CLIResult
 
-	if strings.HasPrefix(trimmedContent, "@") || strings.HasPrefix(trimmedContent, "?") || strings.HasPrefix(trimmedContent, "^") {
+	if strings.HasPrefix(trimmedContent, "@") || strings.HasPrefix(trimmedContent, "?") || strings.HasPrefix(trimmedContent, "^") || strings.HasPrefix(trimmedContent, "~") || strings.HasPrefix(trimmedContent, "#") {
 		// 1. Clible Magic DSL execution
 		var contextText string
 		if strings.HasPrefix(trimmedContent, "^") {

@@ -81,6 +81,7 @@ func main() {
 	authHandler := api.NewAuthHandler(authService, userRepo)
 	aiHandler := api.NewAIHandler(aiService)
 	notebookHandler := api.NewNotebookHandler(notebookService)
+	dslHandler := api.NewDSLHandler(cliService)
 	versionHandler := api.NewVersionHandler()
 
 	mux := http.NewServeMux()
@@ -135,6 +136,7 @@ func main() {
 	mux.Handle("DELETE /api/notebooks/{id}", requireAuth(http.HandlerFunc(notebookHandler.DeleteNotebook)))
 	mux.Handle("PUT /api/notebooks/{id}/cells", requireAuth(http.HandlerFunc(notebookHandler.SaveCells)))
 	mux.Handle("POST /api/notebooks/{id}/cells/{cell_id}/execute", requireAuth(http.HandlerFunc(notebookHandler.ExecuteCommand)))
+	mux.Handle("POST /api/dsl/eval", requireAuth(http.HandlerFunc(dslHandler.EvalDSL)))
 
 	// Text Analysis Engine endpoints
 	mux.Handle("POST /api/analytics/analyze", requireAuth(http.HandlerFunc(analyticsHandler.Analyze)))

@@ -57,7 +57,7 @@ describe('CellCompareResult', () => {
     root = null;
   });
 
-  it('renders side-by-side translation comparison correctly', () => {
+  it('renders side-by-side translation comparison correctly without checkboxes in read mode', () => {
     act(() => {
       root = createRoot(container!);
       root.render(
@@ -74,6 +74,9 @@ describe('CellCompareResult', () => {
     expect(content).toContain('Joh. 3:16');
     expect(content).toContain('Sillä niin on Jumala maailmaa rakastanut...');
     expect(content).toContain('For God so loved the world...');
+
+    // In default read mode, no selection checkbox is present
+    expect(container?.querySelector('.cursor-pointer')).toBeNull();
   });
 
   it('renders asymmetrical verse rows with dash placeholder', () => {
@@ -111,14 +114,18 @@ describe('CellCompareResult', () => {
     expect(content).toContain('—');
   });
 
-  it('triggers onToggleVerse for both verses when clicking a row', () => {
+  it('triggers onToggleVerse for both verses when clicking a row with selectable=true', () => {
     const handleToggle = vi.fn();
 
     act(() => {
       root = createRoot(container!);
       root.render(
         <LanguageProvider>
-          <CellCompareResult data={mockData} onToggleVerse={handleToggle} />
+          <CellCompareResult
+            data={mockData}
+            onToggleVerse={handleToggle}
+            selectable={true}
+          />
         </LanguageProvider>
       );
     });
@@ -135,7 +142,7 @@ describe('CellCompareResult', () => {
     expect(handleToggle).toHaveBeenCalledWith('joh-3-16-kjv');
   });
 
-  it('renders deselected style when verse IDs are marked in deselectedVerseIds', () => {
+  it('renders deselected style when verse IDs are marked in deselectedVerseIds with selectable=true', () => {
     act(() => {
       root = createRoot(container!);
       root.render(
@@ -143,6 +150,7 @@ describe('CellCompareResult', () => {
           <CellCompareResult
             data={mockData}
             deselectedVerseIds={{ 'joh-3-16-kr92': true, 'joh-3-16-kjv': true }}
+            selectable={true}
           />
         </LanguageProvider>
       );

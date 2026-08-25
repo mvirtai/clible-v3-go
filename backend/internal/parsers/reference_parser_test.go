@@ -35,8 +35,30 @@ func TestParseReference_TableDriven(t *testing.T) {
 			},
 		},
 		{
-			name:  "Whole chapter with Finnish numbered abbreviation",
-			input: "1. Kor 13",
+			name:  "Finnish abbreviation with trailing dot and space: room. 1:1-5",
+			input: "room. 1:1-5",
+			expectedRef: &ParsedReference{
+				BookName:   "ROM",
+				Chapter:    1,
+				VerseStart: 1,
+				VerseEnd:   5,
+				Scope:      ScopeVerse,
+			},
+		},
+		{
+			name:  "Finnish abbreviation with trailing dot and space: Joh. 3:16",
+			input: "Joh. 3:16",
+			expectedRef: &ParsedReference{
+				BookName:   "JHN",
+				Chapter:    3,
+				VerseStart: 16,
+				VerseEnd:   16,
+				Scope:      ScopeVerse,
+			},
+		},
+		{
+			name:  "Finnish numbered abbreviation with dots and space: 1. Kor. 13",
+			input: "1. Kor. 13",
 			expectedRef: &ParsedReference{
 				BookName: "1CO",
 				Chapter:  13,

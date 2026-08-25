@@ -1,14 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react'; 
-import ReactMarkdown from 'react-markdown'; 
+import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Cell } from './types';
-import { useLanguage } from '../../context/LanguageContext'; 
+import { useLanguage } from '../../context/LanguageContext';
+import { ISLABlock } from './ISLABlock';
 
 interface MarkdownCellProps {
   cell: Cell;
   onChange: (content: string) => void;
   isEditable?: boolean;
   onSelectVerse?: (ref: string) => void;
+  translation?: string;
 }
 
 export const MarkdownCell: React.FC<MarkdownCellProps> = ({
@@ -16,18 +18,9 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
   onChange,
   isEditable = true,
   onSelectVerse,
+  translation = 'WEB',
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-      // Siirretään kursori tekstin loppuun
-      const len = textareaRef.current.value.length;
-      textareaRef.current.setSelectionRange(len, len);
-    }
-  }, [isEditing]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
@@ -38,12 +31,62 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
     }
   };
 
-  // Muutetaan [[viite]] -> [viite](#bible-link/viite) jotta markdown renderöi sen linkkinä
+  /**
+   * Normalizes any shorthand or prefix ISLA query (e.g. `!# "armo" @ut` or `!@Joh 3:16`)
+   * into a valid ISLA AST expression.
+   */
+  const normalizeISLAQuery = (raw: string): string => {
+    let q = raw.trim();
+
+    // Clean leading !isla, !ISLA, !i, or !
+    q = q.replace(/^!(?:isla|ISLA|i):?\s*/i, '');
+    if (q.startsWith('!')) {
+      q = q.substring(1).trim();
+    }
+
+    // Shorthand for count queries: `# "armo" @ut` or `# @Joh 3:16` -> `? "armo" @ut => count` or `@Joh 3:16 => count`
+    if (q.startsWith('#')) {
+      const rest = q.substring(1).trim();
+      if (rest.startsWith('@') || rest.startsWith('?')) {
+        return `${rest} => count`;
+      }
+      return `? ${rest} => count`;
+    }
+
+    return q;
+  };
+
+  /**
+   * Preprocesses raw Markdown text:
+   * 1. Transforms `![[isla ...]]` or `![[@...]]` embeds into ISLA code blocks.
+   * 2. Transforms inline backtick shortcuts `` `!isla ...` `` or `` `!@...` `` into ISLA code blocks.
+   * 3. Transforms `[[ref]]` into clickable scripture links `[ref](#bible-link/ref)`.
+   * 4. Transforms line-level and mid-line `!isla ...`, `!@...`, `!?...`, `!#...`, `!~...` into ISLA code blocks.
+   */
   const preprocessContent = (text: string) => {
-    return text.replace(/\[\[(.*?)\]\]/g, (_, g1) => {
+    // 1. Transform `![[isla @...]]` or `![[@...]]` embeds into ISLA blocks
+    let processed = text.replace(/!\[\[(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|.*?)\]\]/g, (_, g1) => {
+      return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
+    });
+
+    // 2. Transform inline `!isla ...` or `!@...` or `!?...` into ISLA blocks (breaks out of inline <p><code>)
+    processed = processed.replace(/`!(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|.*?)`/g, (_, g1) => {
+      return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
+    });
+
+    // 3. Transform clickable verse links `[[reference]]` -> `[reference](#bible-link/reference)`
+    processed = processed.replace(/\[\[(.*?)\]\]/g, (_, g1) => {
       const ref = g1.trim();
       return `[${ref}](#bible-link/${encodeURIComponent(ref)})`;
     });
+
+    // 4. Transform line and mid-line directives: `!isla ...`, `!@...`, `!?...`, `!#...`, `!~...`, `!i#...`
+    processed = processed.replace(/(?:^|[ \t]+)(!(?:isla\b|ISLA\b|i[@?#~]|[@?#~]|\s+@|\s+\?|\s+#|\s+~)[^\n`]*)/gm, (_, fullDirective) => {
+      const query = normalizeISLAQuery(fullDirective);
+      return `\n\n\`\`\`isla\n${query}\n\`\`\`\n\n`;
+    });
+
+    return processed;
   };
 
   const markdownComponents = {
@@ -55,6 +98,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
             href={`#${reference}`}
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               if (onSelectVerse) onSelectVerse(reference);
             }}
             className="text-amber-600 dark:text-amber-500 hover:text-amber-700 dark:hover:text-amber-400 font-semibold underline decoration-dotted transition-colors cursor-pointer"
@@ -64,18 +108,47 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
         );
       }
       return (
-        <a href={href} target="_blank" rel="noopener noreferrer" className="text-amber-600 dark:text-amber-500 hover:underline">
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="text-amber-600 dark:text-amber-500 hover:underline"
+        >
           {children}
         </a>
       );
-    }
+    },
+    code: ({
+      className,
+      children,
+      ...props
+    }: React.ComponentPropsWithoutRef<'code'> & { node?: unknown }) => {
+      const match = /language-(\w+)/.exec(className || '');
+      const language = match ? match[1] : '';
+
+      if (language === 'isla' || language === 'magic') {
+        return (
+          <ISLABlock
+            code={String(children).replace(/\n$/, '')}
+            translation={translation}
+          />
+        );
+      }
+
+      return (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    },
   };
 
   const { strings } = useLanguage();
 
   if (!isEditable) {
     return (
-      <div className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)]">
+      <div className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] whitespace-normal break-words">
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
           {preprocessContent(cell.content) || '*No content*'}
         </ReactMarkdown>
@@ -84,39 +157,50 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
   }
 
   if (isEditing) {
-  return (
-    <div className="w-full relative">
-      <textarea
-        ref={textareaRef}
-        className="w-full min-h-[120px] p-4 font-serif bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-y transition-all"
-        value={cell.content}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={() => setIsEditing(false)}
-        onKeyDown={handleKeyDown}
-        placeholder={strings.markdownCellPlaceholder}
-      />
-      <div className="absolute right-2 bottom-2 text-xs text-[var(--muted)] pointer-events-none select-none">
-        {strings.markdownCtrlEnterHint}
+    return (
+      <div className="w-full relative">
+        <textarea
+          ref={(node) => {
+            if (node) {
+              node.focus();
+              const len = node.value.length;
+              node.setSelectionRange(len, len);
+            }
+          }}
+          className="w-full min-h-[120px] p-4 font-serif bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-y transition-all"
+          value={cell.content}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={() => setIsEditing(false)}
+          onKeyDown={handleKeyDown}
+          placeholder={strings.markdownCellPlaceholder}
+        />
+        <div className="absolute right-2 bottom-2 text-xs text-[var(--muted)] pointer-events-none select-none">
+          {strings.markdownCtrlEnterHint}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div
-    className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] cursor-pointer rounded-lg hover:bg-[var(--surface-2)]/30 border border-transparent hover:border-[var(--border-soft)] transition-all duration-200"
-    onClick={() => setIsEditing(true)}
-    title={strings.markdownEditTitle}
-  >
+      className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] cursor-pointer rounded-lg hover:bg-[var(--surface-2)]/30 border border-transparent hover:border-[var(--border-soft)] transition-all duration-200 whitespace-normal break-words"
+      onDoubleClick={() => setIsEditing(true)}
+      onClick={() => {
+        if (!cell.content.trim()) {
+          setIsEditing(true);
+        }
+      }}
+      title={strings.markdownEditTitle}
+    >
       {cell.content.trim() ? (
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
           {preprocessContent(cell.content)}
         </ReactMarkdown>
       ) : (
-    <p className="text-[var(--muted)] italic py-2">
-      {strings.markdownEmptyText}
-    </p>
-  )}
-</div>
-);
+        <p className="text-[var(--muted)] italic py-2">
+          {strings.markdownEmptyText}
+        </p>
+      )}
+    </div>
+  );
 };
