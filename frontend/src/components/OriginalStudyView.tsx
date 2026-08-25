@@ -17,6 +17,12 @@ const HEBREW_PACK_ID = 'hebrewaleppocodex';
 const MAX_TARGETS = 3;
 const STUDY_SCOPES: StudyScope[] = ['verse', 'chapter', 'book'];
 
+/**
+ * Determines whether a given translation represents an original biblical language pack (Koine Greek or Biblical Hebrew).
+ *
+ * @param tr - Translation metadata to evaluate.
+ * @returns True if translation is Greek or Hebrew source text.
+ */
 function isOriginalLanguage(tr: InstalledTranslation): boolean {
   const l = (tr.language ?? '').toLowerCase().trim();
   if (l === 'grc' || l === 'he' || l === 'hbo' || l.startsWith('heb')) return true;
@@ -28,35 +34,65 @@ function isOriginalLanguage(tr: InstalledTranslation): boolean {
   return false;
 }
 
-
+/**
+ * Properties for {@link OriginalStudyView}.
+ */
 export interface OriginalStudyViewProps {
+  /** Complete list of installed translations available on the server. */
   installedTranslations: InstalledTranslation[];
+  /** Currently active translation identifier in the parent view. */
   activeTranslationId: string | null;
+  /** Active UI display language for string localization. */
   uiLanguage: 'fi' | 'en';
+  /** ID of language pack currently undergoing background download/linking. */
   installingTranslationId: string | null;
+  /** Optional installation error alert message. */
   installError?: string | null;
+  /** Optional installation success status message. */
   installSuccess?: string | null;
+  /** Trigger translation pack installation. */
   onInstallTranslation: (id: string) => void;
+  /** Analytical study result containing parsed interlinear breakdown and AI insights. */
   result: OriginalStudyResult | null;
+  /** True while the AI original language analysis query is in flight. */
   loading: boolean;
+  /** Error message if analysis failed. */
   error: string | null;
+  /** Initial or default Bible reference to populate the input field. */
   defaultReference: string | null;
+  /** Callback fired to execute the original language comparative study. */
   onStudy: (
     reference: string,
     originalId: string,
     translationIds: string[],
     scope: StudyScope,
   ) => void;
+  /** Optional callback when user picks an AI next-step exploration topic. */
   onNextFocusPick?: (item: NextFocusItem) => void;
+  /** Active deep-dive morphological/theological explanation markdown text. */
   deepDiveText?: string | null;
+  /** Usage metrics for the deep dive request. */
   deepDiveUsage?: GeminiUsageMetadata | null;
+  /** Callback fired when user closes the deep dive card. */
   onDeepDiveClose?: () => void;
+  /** Optional export handler for saving markdown / notes. */
   onExport?: () => void;
+  /** Whether the view is rendered in standalone full-page mode. */
   standalone?: boolean;
+  /** Active workspace (scope) ID for saving research snapshots. */
   activeScopeId?: string;
+  /** Callback to refresh workspace tree after saving analysis. */
   onWorkspaceUpdated?: () => void;
 }
 
+/**
+ * Comprehensive Greek & Hebrew original language analysis view.
+ *
+ * Provides source text alignment, multi-translation comparison, interlinear morphology, and AI theological nuance analysis.
+ *
+ * @param props - Component properties conforming to {@link OriginalStudyViewProps}.
+ * @returns Original language study view container.
+ */
 export function OriginalStudyView({
   installedTranslations,
   activeTranslationId,
