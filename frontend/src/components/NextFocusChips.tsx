@@ -1,11 +1,23 @@
 import type { NextFocusItem } from "../types/ai";
 
-interface NextFocusChipsProps {
+/**
+ * Properties for {@link NextFocusChips}.
+ */
+export interface NextFocusChipsProps {
+  /** Section header or category title displayed above chip suggestions. */
   title: string;
+  /** Collection of actionable AI-recommended focus areas. */
   items: NextFocusItem[];
+  /** Callback fired when user clicks a suggested chip item. */
   onPick: (item: NextFocusItem) => void;
 }
 
+/**
+ * Renders interactive AI follow-up recommendation chips allowing rapid one-click research pivot.
+ *
+ * @param props - Component properties conforming to {@link NextFocusChipsProps}.
+ * @returns Chip collection or null if items array is empty.
+ */
 export function NextFocusChips({ title, items, onPick }: NextFocusChipsProps) {
   if (!items || items.length === 0) return null;
 
@@ -30,3 +42,4 @@ export function NextFocusChips({ title, items, onPick }: NextFocusChipsProps) {
     </div>
   );
 }
+

@@ -1,15 +1,27 @@
-// src/components/TranslationManager.tsx
 import React, { useState } from 'react';
 import { apiService } from '../services/api';
 import { CheckCircle, PlusCircle, Loader2, MinusCircle } from 'lucide-react';
 import type { InstalledTranslation } from '../types/bible';
+import { useLanguage } from '../context/LanguageContext';
 
-interface Props {
+/**
+ * Properties for {@link TranslationManager}.
+ */
+export interface TranslationManagerProps {
+  /** Complete catalogue of Bible translations with active installation state flags. */
   translations: InstalledTranslation[];
+  /** Optional callback fired when a translation is activated or deactivated. */
   onTranslationChanged?: () => void;
 }
 
-export const TranslationManager: React.FC<Props> = ({ translations, onTranslationChanged }) => {
+/**
+ * Translation catalogue manager allowing users to link or unlink Bible translations for their user profile.
+ *
+ * @param props - Component properties conforming to {@link TranslationManagerProps}.
+ * @returns Translation catalogue management modal/card.
+ */
+export const TranslationManager: React.FC<TranslationManagerProps> = ({ translations, onTranslationChanged }) => {
+  const { strings } = useLanguage();
   const [loading, setLoading] = useState<string | null>(null); // stores the translationId being processed
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -18,11 +30,11 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
     setStatus(null);
     try {
       await apiService.linkTranslation(translationId);
-      setStatus({ type: 'success', message: `"${name}" activated successfully!` });
+      setStatus({ type: 'success', message: `"${name}" ${strings.translationActivatedMsg}` });
       if (onTranslationChanged) onTranslationChanged();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setStatus({ type: 'error', message: msg || 'Activation failed. Please try again.' });
+      setStatus({ type: 'error', message: msg || strings.translationActivationFailed });
     } finally {
       setLoading(null);
     }
@@ -33,11 +45,11 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
     setStatus(null);
     try {
       await apiService.unlinkTranslation(translationId);
-      setStatus({ type: 'success', message: `"${name}" deactivated.` });
+      setStatus({ type: 'success', message: `"${name}" ${strings.translationDeactivatedMsg}` });
       if (onTranslationChanged) onTranslationChanged();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setStatus({ type: 'error', message: msg || 'Deactivation failed. Please try again.' });
+      setStatus({ type: 'error', message: msg || strings.translationDeactivationFailed });
     } finally {
       setLoading(null);
     }
@@ -52,7 +64,7 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
       border: '1px solid var(--border)',
     }}>
       <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-        Translation Management
+        {strings.translationManagementTitle}
       </h2>
 
       {status && (
@@ -69,7 +81,7 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
       {installed.length > 0 && (
         <div className="space-y-3">
           <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
-            Active Translations
+            {strings.activeTranslationsTitle}
           </p>
           <div className="space-y-2">
             {installed.map(tr => (
@@ -86,6 +98,7 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleDeactivate(tr.id, tr.name)}
                   disabled={loading !== null}
                   className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
@@ -95,7 +108,7 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
                   {loading === tr.id
                     ? <Loader2 size={12} className="animate-spin" />
                     : <MinusCircle size={12} />}
-                  Remove
+                  {strings.removeTranslationLabel}
                 </button>
               </div>
             ))}
@@ -107,12 +120,13 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
       {available.length > 0 && (
         <div className="space-y-3" style={{ borderTop: installed.length > 0 ? '1px solid var(--border-soft)' : 'none', paddingTop: installed.length > 0 ? '1.5rem' : '0' }}>
           <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
-            Available Translations
+            {strings.availableTranslationsTitle}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {available.map(tr => (
               <button
                 key={tr.id}
+                type="button"
                 onClick={() => handleActivate(tr.id, tr.name)}
                 disabled={loading !== null}
                 className="rounded-2xl p-4 text-left flex items-center gap-3 transition-opacity hover:opacity-80 disabled:opacity-40"
@@ -139,7 +153,7 @@ export const TranslationManager: React.FC<Props> = ({ translations, onTranslatio
 
       {translations.length === 0 && (
         <p className="text-sm text-center py-4" style={{ color: 'var(--muted)' }}>
-          No translations available. Please contact an administrator.
+          {strings.noTranslationsAdminHint}
         </p>
       )}
     </div>

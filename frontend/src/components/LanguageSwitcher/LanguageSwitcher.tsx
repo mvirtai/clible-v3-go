@@ -1,43 +1,41 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { Globe } from 'lucide-react';
 
+/**
+ * Dropdown language selector providing seamless toggling between Finnish and English.
+ *
+ * Implements declarative focus/blur dismissal, smooth hover/focus transitions, and accessible ARIA attributes.
+ *
+ * @returns Accessible language toggle component.
+ */
 export const LanguageSwitcher: React.FC = () => {
   const { lang, setLang, strings } = useLanguage();
   const [open, setOpen] = useState(false);
   const [hovering, setHovering] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
   const visible = open || hovering;
-
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('click', onDocClick);
-    return () => document.removeEventListener('click', onDocClick);
-  }, []);
 
   const handleChoose = (l: 'en' | 'fi') => {
     setLang(l);
-    // animate out
     setOpen(false);
   };
 
   return (
     <div
-      ref={rootRef}
       className="relative inline-flex items-center"
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          setOpen(false);
+        }
+      }}
     >
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
         aria-expanded={visible}
-        aria-label="Change language"
+        aria-label={strings.changeLanguage}
         className="flex items-center gap-2 px-2 py-1 rounded-full transition-all duration-300 btn-tactile hover:border-[var(--accent)] cursor-pointer"
         style={{
           border: '1px solid var(--border)',
@@ -84,3 +82,4 @@ export const LanguageSwitcher: React.FC = () => {
     </div>
   );
 };
+
