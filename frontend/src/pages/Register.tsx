@@ -1,11 +1,16 @@
-// frontend/src/pages/Register.tsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
-const Register: React.FC = () => {
+/**
+ * Authentication user registration page component.
+ * Validates password complexity client-side, creates the new user account, and navigates to the workspace.
+ *
+ * @returns Rendered registration view.
+ */
+export const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,12 +31,12 @@ const Register: React.FC = () => {
     setError('');
 
     if (!isPasswordValid) {
-      setError('Salasana ei täytä kaikkia turvavaatimuksia.');
+      setError(strings.passwordReqInvalid);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Salasanat eivät täsmää.');
+      setError(strings.passwordsDoNotMatch);
       return;
     }
 
@@ -41,7 +46,7 @@ const Register: React.FC = () => {
       await register(email, password);
       navigate('/');
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Rekisteröityminen epäonnistui. Sähköposti saattaa olla jo käytössä.';
+      const errorMsg = err instanceof Error ? err.message : strings.registerFailedMessage;
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -59,20 +64,22 @@ const Register: React.FC = () => {
         }}
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="p-4 rounded-full mb-4 transition-transform hover:scale-110 duration-300 flex items-center justify-center"
+          <div
+            className="p-4 rounded-full mb-4 transition-transform hover:scale-110 duration-300 flex items-center justify-center"
             style={{ 
               background: 'var(--accent-bg)', 
               color: 'var(--accent)',
               border: '1px solid var(--accent-border)',
               boxShadow: '0 4px 12px var(--accent-bg)',
-            }}>
+            }}
+          >
             <BookOpen size={28} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
             {strings.registerTitle}
           </h1>
           <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
-            Rekisteröidy käyttääksesi Clible Workspacea
+            {strings.registerSubtitle}
           </p>
         </div>
 
@@ -85,7 +92,7 @@ const Register: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--muted)' }}>
-              Sähköposti
+              {strings.emailLabel}
             </label>
             <input
               type="email"
@@ -103,7 +110,7 @@ const Register: React.FC = () => {
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--muted)' }}>
-              Salasana
+              {strings.passwordLabel}
             </label>
             <input
               type="password"
@@ -128,7 +135,7 @@ const Register: React.FC = () => {
               }}
             >
               <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>
-                Salasanan vaatimukset:
+                {strings.passwordRequirementsTitle}
               </p>
               <div className="flex items-center gap-2">
                 <span
@@ -137,7 +144,7 @@ const Register: React.FC = () => {
                   }`}
                 />
                 <span style={{ color: hasMinLength ? 'var(--text)' : 'var(--muted)' }}>
-                  Vähintään 8 merkkiä
+                  {strings.passwordReqMinLength}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -147,7 +154,7 @@ const Register: React.FC = () => {
                   }`}
                 />
                 <span style={{ color: hasUppercase ? 'var(--text)' : 'var(--muted)' }}>
-                  Vähintään yksi iso kirjain (A-Z)
+                  {strings.passwordReqUppercase}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -157,7 +164,7 @@ const Register: React.FC = () => {
                   }`}
                 />
                 <span style={{ color: hasNumber ? 'var(--text)' : 'var(--muted)' }}>
-                  Vähintään yksi numero (0-9)
+                  {strings.passwordReqNumber}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -167,7 +174,7 @@ const Register: React.FC = () => {
                   }`}
                 />
                 <span style={{ color: hasSpecial ? 'var(--text)' : 'var(--muted)' }}>
-                  Vähintään yksi erikoismerkki
+                  {strings.passwordReqSpecial}
                 </span>
               </div>
             </div>
@@ -175,7 +182,7 @@ const Register: React.FC = () => {
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--muted)' }}>
-              Vahvista salasana
+              {strings.confirmPasswordLabel}
             </label>
             <input
               type="password"
@@ -201,9 +208,9 @@ const Register: React.FC = () => {
         </form>
 
         <p className="text-sm text-center mt-6" style={{ color: 'var(--muted)' }}>
-          Onko sinulla jo tili?{' '}
+          {strings.alreadyHaveAccountPrompt}{' '}
           <Link to="/login" style={{ color: 'var(--accent)' }} className="hover:underline font-medium">
-            Kirjaudu sisään
+            {strings.loginLink}
           </Link>
         </p>
       </div>
@@ -212,3 +219,4 @@ const Register: React.FC = () => {
 };
 
 export default Register;
+
