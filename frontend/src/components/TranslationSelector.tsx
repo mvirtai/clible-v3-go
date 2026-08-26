@@ -58,16 +58,16 @@ export const TranslationSelector: React.FC<TranslationSelectorProps> = ({
         aria-label={strings.chooseTranslation}
         value={selectedTranslation}
         onChange={(e) => onSelectTranslation(e.target.value)}
-        className="text-xs sm:text-sm font-medium outline-none cursor-pointer truncate w-full"
+        className="text-xs sm:text-sm font-medium outline-none cursor-pointer truncate w-full bg-transparent text-[var(--text)]"
         style={{ background: 'transparent', border: 'none', color: 'var(--text)' }}
       >
         {showPlaceholder && (
-          <option value="" disabled>
+          <option value="" disabled style={{ background: 'var(--surface)', color: 'var(--text)' }}>
             {strings.translationPlaceholder}
           </option>
         )}
         {list.map((t) => (
-          <option key={t.id} value={t.id}>
+          <option key={t.id} value={t.id} style={{ background: 'var(--surface)', color: 'var(--text)' }}>
             {t.name} ({t.id.toUpperCase()})
           </option>
         ))}
