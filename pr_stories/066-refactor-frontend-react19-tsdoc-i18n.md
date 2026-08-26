@@ -79,7 +79,9 @@ if (defaultReference !== prevDefaultReference) {
 
 ## Security & Compliance
 
-- **Input Sanitization:** Kept robust regex and HTML stripping in `stripMarkdown()` and `formatResultToMarkdown()` to prevent XSS injection in dynamic notebook card previews.
+- **Security Audit (`SECOPS-2026-08-25-001`):** Conducted a dedicated frontend security review documented in [security-audit-2026-08-25-frontend-react19-tsdoc-i18n.md](file:///home/vivaldev/code/clible-v3-go/.security_audits/security-audit-2026-08-25-frontend-react19-tsdoc-i18n.md). Result: **PASSED (0 critical, 0 high, 0 medium)**.
+- **Zero `dangerouslySetInnerHTML`:** Verified that zero instances of unsafe DOM HTML injections exist across the entire frontend repository.
+- **Input Sanitization & Safe Markdown Rendering:** Ensured all Markdown, code cells, and ISLA DSL executions render via safe React AST tokens (`react-markdown`, `remark-gfm`) with `rel="noopener noreferrer"` on external hyperlinks and sanitized URL parameter encoding.
 - **Client-Side Auth Validation:** Localized real-time password complexity validation indicators and match confirmations in `Login.tsx` and `Register.tsx` without exposing backend stack details.
 
 ---

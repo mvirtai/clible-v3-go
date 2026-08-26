@@ -23,7 +23,7 @@ export interface MarkdownCellProps {
 
 /**
  * Rich interactive Markdown cell supporting live previews, double-click inline editing,
- * scripture reference links (`[[John 3:16]]`), and embedded ISLA DSL blocks (`!#`, `!@`, `!?`).
+ * scripture reference links (`[John 3:16]`), and embedded ISLA DSL blocks (`!#`, `!@`, `!?`).
  *
  * @param props - Component properties conforming to {@link MarkdownCellProps}.
  * @returns Interactive Markdown cell container.
@@ -47,16 +47,32 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
   };
 
   /**
-   * Normalizes any shorthand or prefix ISLA query (e.g. `!# "armo" @ut` or `!@Joh 3:16`)
-   * into a valid ISLA AST expression.
+   * Normalizes fast ISLA directives into valid executable ISLA DSL strings.
    */
-  const normalizeISLAQuery = (raw: string): string => {
-    let q = raw.trim();
-
-    // Clean leading !isla, !ISLA, !i, or !
-    q = q.replace(/^!(?:isla|ISLA|i):?\s*/i, '');
+  const normalizeISLAQuery = (rawQuery: string): string => {
+    let q = rawQuery.trim();
+    // Strip leading `!`
     if (q.startsWith('!')) {
       q = q.substring(1).trim();
+    }
+    // Strip leading `isla ` or `ISLA `
+    if (/^isla\s+/i.test(q)) {
+      q = q.replace(/^isla\s+/i, '').trim();
+    }
+
+    // Shorthand for simple scripture references: `!@Joh 3:16` -> `@Joh 3:16`
+    if (q.startsWith('@')) {
+      return q;
+    }
+
+    // Shorthand for keyword search: `!? "armo" @ut` or `!i? "valkeus"` -> `? "armo" @ut`
+    if (q.startsWith('?')) {
+      return q;
+    }
+
+    // Shorthand for compare / analyze queries: `~ "armo" @room` -> `~ "armo" @room`
+    if (q.startsWith('~')) {
+      return q;
     }
 
     // Shorthand for count queries: `# "armo" @ut` or `# @Joh 3:16` -> `? "armo" @ut => count` or `@Joh 3:16 => count`
@@ -75,7 +91,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
    * Preprocesses raw Markdown text:
    * 1. Transforms `![[isla ...]]` or `![[@...]]` embeds into ISLA code blocks.
    * 2. Transforms inline backtick shortcuts `` `!isla ...` `` or `` `!@...` `` into ISLA code blocks.
-   * 3. Transforms `[[ref]]` into clickable scripture links `[ref](#bible-link/ref)`.
+   * 3. Transforms `[ref]` (or `[[ref]]`) into clickable scripture links `[ref](#bible-link/ref)`.
    * 4. Transforms line-level and mid-line `!isla ...`, `!@...`, `!?...`, `!#...`, `!~...` into ISLA code blocks.
    */
   const preprocessContent = (text: string) => {
@@ -89,9 +105,11 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
       return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
     });
 
-    // 3. Transform clickable verse links `[[reference]]` -> `[reference](#bible-link/reference)`
-    processed = processed.replace(/\[\[(.*?)\]\]/g, (_, g1) => {
-      const ref = g1.trim();
+    // 3. Transform clickable verse links `[reference]` or `[[reference]]` -> `[reference](#bible-link/reference)`
+    // Matches [ref] or [[ref]] while avoiding images (![...]) and standard markdown links ([...](url))
+    processed = processed.replace(/(?<![!])\[(?:\[([^\]]+)\]|([^\]]+))\](?!\s*[([])/g, (_, doubleRef, singleRef) => {
+      const ref = (doubleRef || singleRef || '').trim();
+      if (!ref) return '';
       return `[${ref}](#bible-link/${encodeURIComponent(ref)})`;
     });
 

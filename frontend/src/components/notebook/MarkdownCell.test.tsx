@@ -29,12 +29,12 @@ describe('MarkdownCell', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders standard markdown text and handles edit mode', async () => {
+  it('renders standard markdown text with single bracket [ref] and handles edit mode', async () => {
     const cell = {
       id: 'cell-m1',
       notebookId: 'nb-1',
       type: 'markdown' as const,
-      content: '# Title\n\nSome text with [[Joh 3:16]] link.',
+      content: '# Title\n\nSome text with [Joh 3:16] and [[Room 8:28]] links, plus [External Link](https://example.com).',
     };
     const onChange = vi.fn();
     const onSelectVerse = vi.fn();
@@ -54,6 +54,25 @@ describe('MarkdownCell', () => {
 
     expect(container?.textContent).toContain('Title');
     expect(container?.textContent).toContain('Joh 3:16');
+    expect(container?.textContent).toContain('Room 8:28');
+    expect(container?.textContent).toContain('External Link');
+
+    // Verse link click triggers onSelectVerse
+    const verseLink = Array.from(container?.querySelectorAll('a') ?? []).find(
+      (a) => a.textContent === 'Joh 3:16'
+    );
+    expect(verseLink).toBeDefined();
+    await act(async () => {
+      verseLink?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+    expect(onSelectVerse).toHaveBeenCalledWith('Joh 3:16');
+
+    // External link has target="_blank"
+    const externalLink = Array.from(container?.querySelectorAll('a') ?? []).find(
+      (a) => a.textContent === 'External Link'
+    );
+    expect(externalLink?.getAttribute('href')).toBe('https://example.com');
+    expect(externalLink?.getAttribute('target')).toBe('_blank');
 
     // Double clicking markdown opens edit mode
     const markdownDiv = container?.querySelector('div.prose');
