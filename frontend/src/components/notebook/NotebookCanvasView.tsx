@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DragDropProvider } from '@dnd-kit/react';
 import { move } from '@dnd-kit/helpers';
 import { RotateCcw } from 'lucide-react';
-import { GridOverlay } from './GridOverlay';
+import { GridOverlay } from './grid/GridOverlay';
 import { SortableNotebookCard } from './SortableNotebookCard';
 import { NotebookEditor } from './NotebookEditor';
 import { useLanguage } from '../../context/LanguageContext';
