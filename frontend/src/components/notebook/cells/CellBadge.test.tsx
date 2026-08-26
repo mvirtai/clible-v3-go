@@ -4,8 +4,8 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { act } from 'react';
 import { CellBadge, NotebookContentBadges } from './CellBadge';
-import { LanguageProvider } from '../../context/LanguageContext';
-import type { Cell } from './types';
+import { LanguageProvider } from '../../../context/LanguageContext';
+import type { Cell } from '../types';
 
 describe('CellBadge', () => {
   let container: HTMLDivElement | null = null;
