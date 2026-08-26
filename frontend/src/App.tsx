@@ -577,8 +577,21 @@ export function App() {
         className="mt-16 py-6 text-center text-xs border-t"
         style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}
       >
-        <p>
-          Clible v{APP_VERSION} &bull; {strings.quickStart} &bull; SQLite FTS5 / Vector Engine
+        <p className="flex flex-wrap items-center justify-center gap-2">
+          <span>Clible v{APP_VERSION}</span>
+          <span>&bull;</span>
+          <a
+            href="https://mvirtai.github.io/clible-v3-go/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline inline-flex items-center gap-1.5 transition-colors cursor-pointer font-medium"
+            style={{ color: 'var(--accent)' }}
+          >
+            <BookOpen className="w-3.5 h-3.5 inline-block opacity-80" />
+            {strings.documentationLabel}
+          </a>
+          <span>&bull;</span>
+          <span>SQLite FTS5 / Vector Engine</span>
         </p>
       </footer>
     </div>
