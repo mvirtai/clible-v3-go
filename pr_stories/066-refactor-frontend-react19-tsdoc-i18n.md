@@ -110,6 +110,9 @@ if (defaultReference !== prevDefaultReference) {
 | `frontend/src/utils/markdownComponents.tsx` | Exported `MarkdownComponentsOptions` with TSDoc. |
 | `frontend/src/utils/readerNavigation.ts` | Exported `BookMeta` and `ChapterRef` with TSDoc. |
 | `frontend/src/utils/version.ts` | Added TSDoc to `VersionInfo`. |
+| `frontend/src/index.css` | Configured `color-scheme` tokens for `:root` and `.dark`, and added global dark mode styling for `select` and `option` dropdowns. |
+| `frontend/src/components/TranslationSelector.tsx` | Added explicit dark mode styling to `<option>` items for seamless readability. |
+| `docs/guide/isla-guide.md` | Updated scripture linking documentation to single bracket format `[Joh 3:16]`. |
 | `frontend/src/components/notebook/CellWrapper.test.tsx` | Updated test selectors to support bilingual titles. |
 | `frontend/src/components/TranslationManager.test.tsx` | Updated test assertions for localized strings. |
 | `frontend/src/components/VerseReader.test.tsx` | Updated token count assertions. |
