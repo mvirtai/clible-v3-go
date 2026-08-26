@@ -35,20 +35,20 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    A[Raw Line Input] --> B{isISLALine?}
-    B -->|No| C[Render as Regular Markdown Text]
-    B -->|Yes| D[tokenizeISLALine Loop]
-    D --> E{Token Matcher}
-    E -->|Prefix ! / !@ / !? / !#| F[Token: directive]
-    E -->|@Book / @NT / @OT| G[Token: reference]
-    E -->|&quot;query&quot; / 'query'| H[Token: string]
-    E -->|/regex/| I[Token: regex]
-    E -->|=> / ? / : / ^| J[Token: operator]
-    E -->|KR92 / KJV / WEB / GRC| K[Token: translation]
-    E -->|#themes / count / refs| L[Token: function]
-    E -->|limit:5| M[Token: param]
-    E -->|Whitespace / Identifiers| N[Token: plain]
-    F & G & H & I & J & K & L & M & N --> O[ISLAToken Stream]
+    A["Raw Line Input"] --> B{"isISLALine?"}
+    B -->|"No"| C["Render as Regular Markdown Text"]
+    B -->|"Yes"| D["tokenizeISLALine Loop"]
+    D --> E{"Token Matcher"}
+    E -->|"Prefix: !, !@, !?, !#"| F["Token: directive"]
+    E -->|"Reference: @Book, @NT"| G["Token: reference"]
+    E -->|"String: text"| H["Token: string"]
+    E -->|"Regex: /pattern/"| I["Token: regex"]
+    E -->|"Operators: =>, ?, :, ^"| J["Token: operator"]
+    E -->|"Translation: KR92, KJV"| K["Token: translation"]
+    E -->|"Function: #themes, count"| L["Token: function"]
+    E -->|"Param: limit:5"| M["Token: param"]
+    E -->|"Plain / Whitespace"| N["Token: plain"]
+    F & G & H & I & J & K & L & M & N --> O["ISLAToken Stream"]
 ```
 
 ---
