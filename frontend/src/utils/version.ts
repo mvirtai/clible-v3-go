@@ -3,10 +3,17 @@
  */
 export const APP_VERSION = '3.0.0';
 
+/**
+ * Runtime version and build metadata returned by the backend.
+ */
 export interface VersionInfo {
+  /** SemVer application version */
   version: string;
+  /** Git commit SHA hash */
   gitCommit: string;
+  /** Binary build timestamp */
   buildDate: string;
+  /** Go runtime compiler version */
   goVersion: string;
 }
 

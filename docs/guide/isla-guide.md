@@ -93,7 +93,7 @@ The cornerstone verse `!@Joh 3:16 ? KR92 : KJV` anchors the entire chapter.
 ### Method 4: Markdown Embed Tag `![[@...]]`
 
 ```markdown
-Clickable link: [[Joh 3:16]]
+Clickable link: [Joh 3:16]
 Live embedded card: ![[@Joh 3:16 ? KR92 : KJV]]
 ```
 

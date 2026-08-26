@@ -61,7 +61,7 @@ function stripMarkdown(raw: string): string {
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
     .replace(/>+\s*/g, '')
-    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/(?<![!])\[(?:\[([^\]]+)\]|([^\]]+))\](?!\s*[([])/g, '$1$2')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -177,7 +177,7 @@ function SortableNotebookCard({
                   <div key={cell.id} className="text-xs shrink-0">
                     {cell.type === 'markdown' ? (
                       <div className="text-[var(--muted)] text-[11px] line-clamp-3 leading-relaxed bg-[var(--surface-2)]/30 rounded-lg p-2 border border-[var(--border-soft)]/40 shadow-2xs">
-                        {cleanText || <em className="italic text-[var(--muted)]/60">Empty note...</em>}
+                        {cleanText || <em className="italic text-[var(--muted)]/60">...</em>}
                       </div>
                     ) : (
                       <div className="font-mono text-[11px] bg-[var(--surface-2)]/60 rounded-lg px-2.5 py-1 text-amber-500/90 truncate border border-[var(--border-soft)]/50 flex items-center gap-2 shadow-2xs">
@@ -191,7 +191,7 @@ function SortableNotebookCard({
             ) : (
               <div className="py-3 px-3 rounded-lg bg-[var(--surface-2)]/30 border border-dashed border-[var(--border-soft)] text-center hover:border-amber-500/30 transition-colors my-auto">
                 <p className="text-[11px] text-[var(--muted)] leading-tight">
-                  Click to open notebook and add cells
+                  {noDateLabel === '-' ? 'Klikkaa avataksesi muistikirjan ja lisätäksesi soluja' : 'Click to open notebook and add cells'}
                 </p>
               </div>
             )}
@@ -211,7 +211,7 @@ function SortableNotebookCard({
           )}
           {(!nb.cellCounts ||
             (nb.cellCounts.markdown === 0 && nb.cellCounts.code === 0)) && (
-            <span className="text-[9px] text-[var(--muted)] italic">Empty</span>
+            <span className="text-[9px] text-[var(--muted)] italic">-</span>
           )}
         </div>
 
@@ -930,10 +930,11 @@ function App() {
                 {selectedNotebookId ? (
                   <div>
                     <button
+                      type="button"
                       onClick={() => setSelectedNotebookId(null)}
-                      className="mb-4 px-3 py-1.5 bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 border border-[var(--border-soft)] text-[var(--muted)] hover:text-[var(--text)] text-xs rounded transition-all flex items-center gap-1"
+                      className="mb-4 px-3 py-1.5 bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 border border-[var(--border-soft)] text-[var(--muted)] hover:text-[var(--text)] text-xs rounded transition-all flex items-center gap-1 cursor-pointer"
                     >
-                      ← Takaisin listaukseen
+                      {strings.backToList}
                     </button>
                     <NotebookEditor
                       notebookId={selectedNotebookId}
@@ -1006,7 +1007,7 @@ function App() {
                             }
                           }}
                           dragHandleTitle={strings.dragHandleTitle || 'Vedä järjestääksesi'}
-                          updatedAtLabel="Päivitetty"
+                          updatedAtLabel={strings.updatedAtLabel}
                           noDateLabel="-"
                         />
                       ))}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { GitCompareArrows, Loader2, Save, Brain } from 'lucide-react';
 import { apiService } from '../services/api';
 import type { InstalledTranslation, ComparisonResult } from '../types/bible';
@@ -12,26 +12,46 @@ import { GeminiUsage } from './GeminiUsage';
 import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../types/ai';
 import { useLanguage } from '../context/LanguageContext';
 
-interface CompareViewProps {
-    /** All translations currently installed in the workspace. */
+/**
+ * Properties for {@link CompareView}.
+ */
+export interface CompareViewProps {
+    /** All translations currently installed and available in the workspace. */
     installedTranslations: InstalledTranslation[];
+    /** Active workspace (scope) identifier for persisting comparison snapshots. */
     activeScopeId?: string;
+    /** Callback fired after saving a comparison to the workspace tree. */
     onWorkspaceUpdated?: () => void;
+    /** Pre-loaded comparison payload for restoring a saved workspace snapshot. */
     loadedSavedComparison?: {
         result: ComparisonResult;
         reference: string;
         translationA: string;
         translationB: string;
     } | null;
+    /** Pre-loaded AI comparison commentary. */
     loadedSavedAi?: AiTextResponse | null;
+    /** Pre-loaded deep dive breakdown. */
     loadedSavedDeepDive?: string | null;
 }
 
+/**
+ * Calculates a dynamic HSL color gradient based on text similarity ratio (0.0 to 1.0).
+ *
+ * @param ratio01 - Normalized similarity percentage between 0 and 1.
+ * @returns CSS HSL color string ranging from red (0%) to emerald green (100%).
+ */
 function similarityBarHue(ratio01: number): string {
     const t = Math.max(0, Math.min(1, ratio01));
     return `hsl(${Math.round(t * 120)}, 55%, 42%)`;
 }
 
+/**
+ * Dual translation alignment and comparison workbench with side-by-side text diff, token similarity, and Gemini theological analysis.
+ *
+ * @param props - Component properties conforming to {@link CompareViewProps}.
+ * @returns Interactive comparison view component.
+ */
 export function CompareView({
     installedTranslations,
     activeScopeId,
@@ -70,7 +90,7 @@ export function CompareView({
         setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
     }
 
-    // Tallennuksen tilat
+    // Save form states
     const [saveName, setSaveName] = useState('');
     const [showSaveForm, setShowSaveForm] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -78,49 +98,25 @@ export function CompareView({
 
     const { strings } = useLanguage();
 
-    // Käsittele ladattu vertailu sivupalkista
-    useEffect(() => {
-        if (!loadedSavedComparison) return;
-
-        const loadData = async () => {
-            setReference(loadedSavedComparison.reference);
-            setLeftTr(loadedSavedComparison.translationA);
-            setRightTr(loadedSavedComparison.translationB);
-            setError(null);
-            if (!loadedSavedAi) {
-                setAiResult(null);
-            }
-            if (!loadedSavedDeepDive) {
-                setDeepDiveText(null);
-                setDeepDiveUsage(null);
-            }
-
-            if (loadedSavedComparison.result) {
-                setResult(loadedSavedComparison.result);
-            } else {
-                // Suoritetaan vertailu backendistä, jos välimuistitulos puuttuu
-                setLoading(true);
-                try {
-                    const normalized = loadedSavedComparison.reference.replace(
-                        /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
-                        (match) => resolveBookId(match) ?? match,
-                    );
-                    const data = await apiService.compare(
-                        normalized,
-                        loadedSavedComparison.translationA,
-                        loadedSavedComparison.translationB
-                    );
-                    setResult(data);
-                } catch {
-                    setError('Tallennetun käännösvertailun lataaminen epäonnistui');
-                } finally {
-                    setLoading(false);
-                }
-            }
-        };
-
-        loadData();
-    }, [loadedSavedComparison, loadedSavedAi, loadedSavedDeepDive]);
+    // Restore saved comparison from workspace during render phase
+    const [prevSavedComparison, setPrevSavedComparison] = useState(loadedSavedComparison);
+    if (loadedSavedComparison && loadedSavedComparison !== prevSavedComparison) {
+        setPrevSavedComparison(loadedSavedComparison);
+        setReference(loadedSavedComparison.reference);
+        setLeftTr(loadedSavedComparison.translationA);
+        setRightTr(loadedSavedComparison.translationB);
+        setError(null);
+        if (!loadedSavedAi) {
+            setAiResult(null);
+        }
+        if (!loadedSavedDeepDive) {
+            setDeepDiveText(null);
+            setDeepDiveUsage(null);
+        }
+        if (loadedSavedComparison.result) {
+            setResult(loadedSavedComparison.result);
+        }
+    }
 
 
     // Filter right translation options to avoid comparing a translation with itself
@@ -143,7 +139,7 @@ export function CompareView({
             const data = await apiService.compare(normalized, leftTr, rightTr);
             setResult(data);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Comparison failed');
+            setError(err instanceof Error ? err.message : strings.errSearchFailed);
         } finally {
             setLoading(false);
         }
@@ -159,7 +155,6 @@ export function CompareView({
                 /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
                 (match) => resolveBookId(match) ?? match,
             );
-            // Combine all left and right texts
             const leftText = result.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n');
             const rightText = result.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n');
             const res = await apiService.getAiComparison({
@@ -173,9 +168,9 @@ export function CompareView({
         } catch (err) {
             const errorObj = err as Error;
             if (errorObj.message && errorObj.message.includes('503')) {
-                setAiError('Tekoäly ei ole käytettävissä (GEMINI_API_KEY puuttuu tai rate limit täynnä).');
+                setAiError(strings.aiUnavailable);
             } else {
-                setAiError(errorObj.message || 'Sävyanalyysi epäonnistui.');
+                setAiError(errorObj.message || strings.aiInsightFailed);
             }
         } finally {
             setAiLoading(false);
@@ -188,7 +183,7 @@ export function CompareView({
         try {
             await apiService.saveAnalysis({
                 scopeId: activeScopeId,
-                name: `AI-vertailu: ${reference} (${leftTr}/${rightTr})`,
+                name: `${strings.aiCompareTitle}: ${reference} (${leftTr}/${rightTr})`,
                 reference: reference,
                 analysisType: 'comparison',
                 translationId: leftTr,
@@ -216,7 +211,6 @@ export function CompareView({
                     /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
                     (match) => resolveBookId(match) ?? match,
                 );
-                // Combine all left and right texts for context
                 const leftText = result?.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n') || '';
                 const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
                 const res = await apiService.getAiDeepDive(
@@ -227,7 +221,7 @@ export function CompareView({
                 setDeepDiveText(res.text);
                 setDeepDiveUsage(res.geminiUsageMetadata || null);
             } catch (err) {
-                setAiError(err instanceof Error ? err.message : 'Deep dive failed');
+                setAiError(err instanceof Error ? err.message : strings.deepDiveFailed);
             } finally {
                 setAiLoading(false);
             }
@@ -247,7 +241,7 @@ export function CompareView({
                 <div className="space-y-3">
                     <div className="space-y-1">
                         <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                            Jaeviite (Reference)
+                            {strings.compareReferenceLabel}
                         </label>
                         <input
                             type="text"
@@ -262,7 +256,7 @@ export function CompareView({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label htmlFor="left-translation" className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                                Vasen käännös (Left Translation)
+                                {strings.compareLeftTranslation}
                             </label>
                             <select
                                 id="left-translation"
@@ -271,7 +265,7 @@ export function CompareView({
                                     setLeftTr(e.target.value);
                                     if (e.target.value === rightTr) setRightTr('');
                                 }}
-                                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm uppercase"
+                                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm uppercase cursor-pointer"
                                 disabled={installedTranslations.length === 0}
                             >
                                 <option value="">{strings.translationPlaceholder}</option>
@@ -285,13 +279,13 @@ export function CompareView({
 
                         <div className="space-y-1">
                             <label htmlFor="right-translation" className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                                Oikea käännös (Right Translation)
+                                {strings.compareRightTranslation}
                             </label>
                             <select
                                 id="right-translation"
                                 value={rightTr}
                                 onChange={(e) => setRightTr(e.target.value)}
-                                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm uppercase"
+                                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm uppercase cursor-pointer"
                                 disabled={!leftTr || rightOptions.length === 0}
                             >
                                 <option value="">{strings.translationPlaceholder}</option>
@@ -306,17 +300,18 @@ export function CompareView({
                 </div>
 
                 {installedTranslations.length < 2 && (
-                                    <p className="text-sm text-amber-600">{strings.needTwoTranslations}</p>
-                                )}
+                    <p className="text-sm text-amber-600">{strings.needTwoTranslations}</p>
+                )}
 
                 <button
-                onClick={runCompare}
-                disabled={loading || !leftTr || !rightTr || !reference.trim()}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 text-sm font-medium btn-tactile disabled:opacity-40"
-            >
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <GitCompareArrows size={18} />}
-                {strings.compareButtonLabel}
-            </button>
+                    type="button"
+                    onClick={runCompare}
+                    disabled={loading || !leftTr || !rightTr || !reference.trim()}
+                    className="inline-flex items-center gap-2 rounded-full bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 text-sm font-medium btn-tactile disabled:opacity-40 cursor-pointer"
+                >
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <GitCompareArrows size={18} />}
+                    {strings.compareButtonLabel}
+                </button>
             </div>
 
             {error && (
@@ -326,11 +321,11 @@ export function CompareView({
             )}
 
             {loading && (
-            <div className="flex items-center justify-center py-12 gap-2 text-[var(--muted)] text-sm">
-                <Loader2 size={20} className="animate-spin text-[var(--accent)]" />
-                {strings.aiComparing}
-            </div>
-        )}
+                <div className="flex items-center justify-center py-12 gap-2 text-[var(--muted)] text-sm">
+                    <Loader2 size={20} className="animate-spin text-[var(--accent)]" />
+                    {strings.aiComparing}
+                </div>
+            )}
 
             {result && !loading && (
                 <>
@@ -338,22 +333,23 @@ export function CompareView({
                         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-6 text-left space-y-3 mb-6">
                             <div className="flex justify-between items-center">
                                 <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
-                                                                    {strings.saveLabel} {strings.tabCompare}
-                                                                </span>
+                                    {strings.saveAnalysisWorkspacePrompt}
+                                </span>
                                 {!showSaveForm && (
                                     <div className="flex items-center gap-3">
                                         <button
-                                                                                    onClick={() => setShowSaveForm(true)}
-                                                                                    className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
-                                                                                >
-                                                                                    <Save size={12} /> {strings.saveLabel}
-                                                                                </button>
-                                                                                {saveStatus === 'success' && (
-                                                                                    <span className="text-xs font-semibold text-emerald-500">{strings.saveSuccess}</span>
-                                                                                )}
-                                                                                {saveStatus === 'error' && (
-                                                                                    <span className="text-xs font-semibold text-red-500">{strings.saveFail}</span>
-                                                                                )}
+                                            type="button"
+                                            onClick={() => setShowSaveForm(true)}
+                                            className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
+                                        >
+                                            <Save size={12} /> {strings.saveLabel}
+                                        </button>
+                                        {saveStatus === 'success' && (
+                                            <span className="text-xs font-semibold text-emerald-500">{strings.saveSuccess}</span>
+                                        )}
+                                        {saveStatus === 'error' && (
+                                            <span className="text-xs font-semibold text-red-500">{strings.saveFail}</span>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -369,6 +365,7 @@ export function CompareView({
                                         style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
                                     />
                                     <button
+                                        type="button"
                                         onClick={async () => {
                                             if (!saveName.trim()) return;
                                             setSaving(true);
@@ -380,7 +377,7 @@ export function CompareView({
                                                     analysisType: 'comparison',
                                                     translationId: leftTr,
                                                     paramsJson: JSON.stringify({ translationB: rightTr }),
-                                                    resultJson: JSON.stringify(aiResult ? { result, ai: aiResult, deepDive: deepDiveText } : { result }) // Välimuistitetaan vertailutulos!
+                                                    resultJson: JSON.stringify(aiResult ? { result, ai: aiResult, deepDive: deepDiveText } : { result })
                                                 });
                                                 setSaveName('');
                                                 setShowSaveForm(false);
@@ -395,11 +392,12 @@ export function CompareView({
                                             }
                                         }}
                                         disabled={saving || !saveName.trim()}
-                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile"
+                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                                     >
                                         {saving ? strings.savingLabel : strings.saveLabel}
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={() => setShowSaveForm(false)}
                                         className="px-3 py-1.5 rounded-lg text-xs font-medium border text-[var(--muted)] border-[var(--border)] bg-transparent cursor-pointer"
                                     >
@@ -413,8 +411,8 @@ export function CompareView({
                     {/* Summary stats */}
                     <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4">
                         <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                                                    {strings.tabCompare}: {result.reference}
-                                                </h3>
+                            {strings.tabCompare}: {result.reference}
+                        </h3>
 
                         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                             <div className="flex justify-between py-1 border-b border-[var(--border-soft)]">
@@ -445,7 +443,7 @@ export function CompareView({
                         {result.summary.topSharedWords.length > 0 && (
                             <div className="pt-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] block mb-2">
-                                    Jaetut sanat (Shared tokens)
+                                    {strings.compareSharedTokens}
                                 </span>
                                 <div className="flex flex-wrap gap-2">
                                     {result.summary.topSharedWords.slice(0, 10).map((w, idx) => (
@@ -462,20 +460,20 @@ export function CompareView({
                     {/* AI Translation Comparison Card */}
                     <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4">
                         <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
-                            <Brain size={15} className="text-[var(--accent)]" /> AI-Käännösvertailu (Gemini)
+                            <Brain size={15} className="text-[var(--accent)]" /> {strings.aiCompareTitle}
                         </h3>
 
                         {!aiResult && !aiLoading && (
                             <div className="space-y-3">
                                 <p className="text-sm text-[var(--muted)] leading-relaxed">
-                                    Vertaa valittujen käännösten kielellisiä, opillisia ja teologisia painotuseroja tekoälyn avulla.
+                                    {strings.aiCompareHint}
                                 </p>
                                 <button
                                     type="button"
                                     onClick={handleRunAiComparison}
                                     className="rounded-full px-4 py-2 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                                 >
-                                    Suorita tekoälyvertailu
+                                    {strings.runAiCompare}
                                 </button>
                             </div>
                         )}
@@ -483,7 +481,7 @@ export function CompareView({
                         {aiLoading && (
                             <div className="flex items-center gap-2 text-sm text-[var(--muted)] py-4">
                                 <Loader2 size={16} className="animate-spin" />
-                                <span>Tekoäly analysoi ja vertailee käännöksiä...</span>
+                                <span>{strings.aiComparingTranslations}</span>
                             </div>
                         )}
 
@@ -512,9 +510,9 @@ export function CompareView({
                                             className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                                         >
                                             {aiSaveStatus === 'saving' && strings.savingLabel}
-                                                                                        {aiSaveStatus === 'success' && strings.saveSuccess}
-                                                                                        {aiSaveStatus === 'error' && strings.saveFail}
-                                                                                        {aiSaveStatus === 'idle' && `${strings.saveLabel} AI-vertailu työtilaan` }
+                                            {aiSaveStatus === 'success' && strings.saveSuccess}
+                                            {aiSaveStatus === 'error' && strings.saveFail}
+                                            {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabCompare}`}
                                         </button>
                                     </div>
                                 )}

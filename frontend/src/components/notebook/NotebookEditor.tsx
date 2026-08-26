@@ -10,7 +10,7 @@ import { move } from '@dnd-kit/helpers';
 /**
  * Props for the {@link NotebookEditor} component.
  */
-interface NotebookEditorProps {
+export interface NotebookEditorProps {
   /** Unique identifier of the target notebook */
   notebookId: string;
   /** Active Bible translation identifier (defaults to 'WEB') */
@@ -23,6 +23,9 @@ interface NotebookEditorProps {
  * Main interactive editor component for a single notebook.
  * Renders an editable title, drag-and-drop sortable cell grid, cell creation controls,
  * and auto-saving logic synced with the backend REST API.
+ *
+ * @param props - Component properties conforming to {@link NotebookEditorProps}.
+ * @returns Interactive notebook editor workspace.
  */
 export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse }: NotebookEditorProps) {
   const [notebook, setNotebook] = useState<Notebook | null>(null);
@@ -310,8 +313,9 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
         <h3 className="font-bold text-lg mb-1">{strings.errorHeading}</h3>
         <p className="text-sm text-red-300/80 mb-4">{error}</p>
         <button
+          type="button"
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-500/30 text-white rounded text-sm transition-all"
+          className="px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-500/30 text-white rounded text-sm transition-all cursor-pointer"
         >
           {strings.retryButtonLabel}
         </button>
@@ -343,15 +347,16 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
           ) : (
             <div className="flex items-center gap-2 group">
               <h1 
-              onClick={() => setIsEditingTitle(true)}
-              className="text-2xl font-bold text-[var(--text)] tracking-tight cursor-pointer hover:text-[var(--text)]/85 transition-colors"
-              title={strings.markdownEditTitle}
-            >
-              {notebook?.title || strings.unnamedNotebook}
-            </h1>
-              <button
                 onClick={() => setIsEditingTitle(true)}
-                className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted)] hover:text-amber-500 transition-all"
+                className="text-2xl font-bold text-[var(--text)] tracking-tight cursor-pointer hover:text-[var(--text)]/85 transition-colors"
+                title={strings.markdownEditTitle}
+              >
+                {notebook?.title || strings.unnamedNotebook}
+              </h1>
+              <button
+                type="button"
+                onClick={() => setIsEditingTitle(true)}
+                className="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted)] hover:text-amber-500 transition-all cursor-pointer"
                 title={strings.editTitleLabel}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
@@ -364,11 +369,11 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
         <div className="flex items-center gap-2">
           {isSaving ? (
             <span className="text-[10px] font-mono text-amber-500 animate-pulse bg-amber-500/5 px-2 py-1 rounded border border-amber-500/10">
-              Saving...
+              {strings.savingLabel}
             </span>
           ) : (
             <span className="text-[10px] font-mono text-[var(--muted)] bg-[var(--surface-2)] px-2 py-1 rounded border border-[var(--border-soft)]">
-              Saved
+              {strings.savedLabel}
             </span>
           )}
         </div>
@@ -381,16 +386,18 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
           <p className="text-[var(--muted)] text-sm">{strings.emptyNotebookText}</p>
           <div className="flex justify-center gap-3">
             <button
+              type="button"
               onClick={() => handleInsertCell(0, 'markdown')}
-              className="px-3.5 py-1.5 bg-[var(--surface-2)] border border-[var(--border-soft)] hover:border-amber-500/30 text-amber-600 dark:text-amber-500 hover:text-amber-500 font-bold text-xs rounded transition-all"
+              className="px-3.5 py-1.5 bg-[var(--surface-2)] border border-[var(--border-soft)] hover:border-amber-500/30 text-amber-600 dark:text-amber-500 hover:text-amber-500 font-bold text-xs rounded transition-all cursor-pointer"
             >
               {strings.addMarkdownCellLabel}
             </button>
             <button
+              type="button"
               onClick={() => handleInsertCell(0, 'code')}
-              className="px-3.5 py-1.5 bg-[var(--surface-2)] border border-[var(--border-soft)] hover:border-amber-500/30 text-amber-600 dark:text-amber-500 hover:text-amber-500 font-bold text-xs rounded transition-all"
+              className="px-3.5 py-1.5 bg-[var(--surface-2)] border border-[var(--border-soft)] hover:border-amber-500/30 text-amber-600 dark:text-amber-500 hover:text-amber-500 font-bold text-xs rounded transition-all cursor-pointer"
             >
-              + Lisää CLI-koodisolu
+              {strings.addCodeCellLabel}
             </button>
           </div>
         </div>
@@ -410,15 +417,17 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
                 <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55 opacity-0 group-hover/divider:opacity-100 transition-opacity duration-200" />
                 <div className="absolute opacity-0 group-hover/divider:opacity-100 transition-all duration-200 flex gap-2 scale-90 group-hover/divider:scale-100 bg-[var(--surface)] px-2 py-1 rounded-full border border-[var(--border-soft)] shadow-lg z-20">
                   <button
+                    type="button"
                     onClick={() => handleInsertCell(index, 'markdown')}
-                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
                   >
                     + Markdown
                   </button>
                   <span className="w-px h-3 bg-[var(--border-soft)] self-center" />
                   <button
+                    type="button"
                     onClick={() => handleInsertCell(index, 'code')}
-                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
                   >
                     + Command
                   </button>
@@ -464,17 +473,19 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
               <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55" />
               <div className="absolute flex gap-2 bg-[var(--surface)] px-3 py-1 rounded-full border border-[var(--border-soft)] shadow-md">
                 <button
+                  type="button"
                   onClick={() => handleInsertCell(cells.length, 'markdown')}
-                  className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors"
+                  className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors cursor-pointer"
                 >
-                  + Markdown loppuun
+                  {strings.appendMarkdownCellLabel}
                 </button>
                 <span className="w-px h-3 bg-[var(--border-soft)] self-center" />
                 <button
+                  type="button"
                   onClick={() => handleInsertCell(cells.length, 'code')}
-                  className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors"
+                  className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors cursor-pointer"
                 >
-                  + Command loppuun
+                  {strings.appendCodeCellLabel}
                 </button>
               </div>
             </div>
@@ -483,4 +494,4 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
       </DragDropProvider>
     </div>
   );
-};
+}

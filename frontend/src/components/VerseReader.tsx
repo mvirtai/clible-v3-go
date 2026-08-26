@@ -17,24 +17,45 @@ import { getBookGenre } from '../utils/bookGenre';
 
 
 
-interface Props {
+/**
+ * Properties for {@link VerseReader}.
+ */
+export interface VerseReaderProps {
+  /** The translation ID selected globally (e.g. "kjv" or "fin-1992"). */
   translation: string;
+  /** Active reference being read or navigated to. */
   activeReference?: string;
+  /** Active workspace (scope) identifier for persisting reading snapshots. */
   activeScopeId?: string;
+  /** Callback fired after saving a reading view to the active workspace. */
   onWorkspaceUpdated?: () => void;
+  /** Pre-loaded saved AI insight response payload. */
   loadedSavedInsight?: AiTextResponse | null;
+  /** Pre-loaded saved AI deep-dive explanation payload. */
   loadedSavedDeepDive?: string | null;
 }
 
 const CURRENT_CHAPTER_MATCH = /^((?:\d[A-Z]{2}|[A-Z]{3}))\s+(\d+)/;
 
+/**
+ * Extracts the canonical book ID and integer chapter index from a Bible passage reference.
+ *
+ * @param reference - Reference string (e.g. "JHN 3:16" or "GEN 1").
+ * @returns Object with book ID and chapter, or null if unparseable.
+ */
 const parseCurrentChapter = (reference: string): { bookId: string, chapter: number } | null => {
   const m = reference.trim().match(CURRENT_CHAPTER_MATCH);
   if (!m) return null;
   return { bookId: m[1], chapter: parseInt(m[2], 10) };
-}
+};
 
-export const VerseReader: React.FC<Props> = ({
+/**
+ * Passage reader providing chapter pagination, poetry/prose verse rendering, and Gemini AI exegetical insight commentary.
+ *
+ * @param props - Component properties conforming to {@link VerseReaderProps}.
+ * @returns Scripture reading pane.
+ */
+export const VerseReader: React.FC<VerseReaderProps> = ({
   translation,
   activeReference,
   activeScopeId,
@@ -42,8 +63,8 @@ export const VerseReader: React.FC<Props> = ({
   loadedSavedInsight,
   loadedSavedDeepDive
 }) => {
-  const [reference, setReference] = useState('');
-  const [prevActiveReference, setPrevActiveReference] = useState(activeReference);
+  const [reference, setReference] = useState(activeReference || '');
+  const [prevActiveReference, setPrevActiveReference] = useState('');
   const [data, setData] = useState<BibleResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,10 +74,10 @@ export const VerseReader: React.FC<Props> = ({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   // AI states
-  const [aiInsight, setAiInsight] = useState<AiTextResponse | null>(null);
+  const [aiInsight, setAiInsight] = useState<AiTextResponse | null>(() => loadedSavedInsight || null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
+  const [deepDiveText, setDeepDiveText] = useState<string | null>(() => loadedSavedDeepDive || null);
   const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
   const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
@@ -81,31 +102,41 @@ export const VerseReader: React.FC<Props> = ({
   const genre = currentChapterInfo
     ? getBookGenre(currentChapterInfo.bookId)
     : null;
-  // Sync state during render instead of in useEffect to avoid cascading renders warning
-  const [prevLoadedSavedInsight, setPrevLoadedSavedInsight] = useState<AiTextResponse | null>(null);
-  const normalizedSavedInsight = loadedSavedInsight || null;
-  if (normalizedSavedInsight !== prevLoadedSavedInsight) {
-    setAiInsight(normalizedSavedInsight);
-    setPrevLoadedSavedInsight(normalizedSavedInsight);
-  }
 
-  const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
-  const normalizedSavedDeepDive = loadedSavedDeepDive || null;
-  if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
-    setDeepDiveText(normalizedSavedDeepDive);
-    setDeepDiveUsage(null);
-    setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
-  }
-
-  if (activeReference !== prevActiveReference) {
-    setReference(activeReference || '');
-    setBackReference(null);
+  if (activeReference && activeReference !== prevActiveReference) {
     setPrevActiveReference(activeReference);
+    setReference(activeReference);
+    setBackReference(null);
     if (!loadedSavedInsight) {
       setAiInsight(null);
       setDeepDiveText(null);
       setDeepDiveUsage(null);
     }
+    const trimmed = activeReference.trim();
+    if (trimmed && translation) {
+      const normalized = trimmed.replace(
+        /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+        (match) => resolveBookId(match) ?? match,
+      );
+      apiService.getVerses(normalized, translation)
+        .then(setData)
+        .catch(() => setError(strings.errSearchFailed));
+    }
+  }
+
+  // Sync saved insight during render
+  const [prevSavedInsight, setPrevSavedInsight] = useState(loadedSavedInsight);
+  if (loadedSavedInsight && loadedSavedInsight !== prevSavedInsight) {
+    setPrevSavedInsight(loadedSavedInsight);
+    setAiInsight(loadedSavedInsight);
+  }
+
+  // Sync saved deep dive during render
+  const [prevSavedDeepDive, setPrevSavedDeepDive] = useState(loadedSavedDeepDive);
+  if (loadedSavedDeepDive && loadedSavedDeepDive !== prevSavedDeepDive) {
+    setPrevSavedDeepDive(loadedSavedDeepDive);
+    setDeepDiveText(loadedSavedDeepDive);
+    setDeepDiveUsage(null);
   }
 
   const fetchVerses = React.useCallback(async (ref: string) => {
@@ -243,14 +274,6 @@ export const VerseReader: React.FC<Props> = ({
     fetchVerses(ref);
   };
 
-  // React to activeReference changes (e.g. clicked from search results)
-  React.useEffect(() => {
-    if (activeReference) {
-      Promise.resolve().then(() => {
-        fetchVerses(activeReference);
-      });
-    }
-  }, [activeReference, fetchVerses]);
 
   return (
     <div className="rounded-3xl p-4 sm:p-8 space-y-4 sm:space-y-6" style={{

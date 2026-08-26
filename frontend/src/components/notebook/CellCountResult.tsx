@@ -2,21 +2,41 @@ import React from 'react';
 import { Hash } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
+/**
+ * Data payload returned by an ISLA `COUNT` operation.
+ */
 export interface CountResultData {
+  /** Target classification (e.g. 'search' or 'verse_list'). */
   target_type?: string;
+  /** Search query string if target_type is 'search'. */
   query?: string;
+  /** Verse passage reference if target_type is 'verses'. */
   reference?: string;
+  /** Whether regex matching was enabled. */
   is_regex?: boolean;
+  /** Optional book identifier scope filter (e.g. 'GEN'). */
   scope_book?: string;
+  /** Total matching count. */
   count: number;
+  /** Translation identifier used for the calculation. */
   translation?: string;
 }
 
-interface CountResultProps {
+/**
+ * Properties for {@link CellCountResult}.
+ */
+export interface CellCountResultProps {
+  /** Count result payload returned by backend ISLA executor. */
   data: CountResultData;
 }
 
-export const CellCountResult: React.FC<CountResultProps> = ({ data }) => {
+/**
+ * Visual statistic card rendering the output of an ISLA `COUNT` command.
+ *
+ * @param props - Component properties conforming to {@link CellCountResultProps}.
+ * @returns Count summary card.
+ */
+export const CellCountResult: React.FC<CellCountResultProps> = ({ data }) => {
   const { strings } = useLanguage();
 
   return (

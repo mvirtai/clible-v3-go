@@ -29,6 +29,15 @@ export interface Messages {
   noTranslationSelected: string;
   noTranslationHint: string;
   installTranslation: string;
+  translationManagementTitle: string;
+  activeTranslationsTitle: string;
+  availableTranslationsTitle: string;
+  removeTranslationLabel: string;
+  noTranslationsAdminHint: string;
+  translationActivatedMsg: string;
+  translationDeactivatedMsg: string;
+  translationActivationFailed: string;
+  translationDeactivationFailed: string;
   quickStart: string;
   notebookTitle: string;
   createNotebook: string;
@@ -66,8 +75,20 @@ export interface Messages {
   searchClear: string;
   searchResultsTitle: string;
   searchNoResults: string;
+  selectBookAria: string;
+  foundMatches: string;
+  matchesSuffix: string;
   needTwoTranslations: string;
   compareButtonLabel: string;
+  compareReferenceLabel: string;
+  compareReferencePlaceholder: string;
+  compareLeftTranslation: string;
+  compareRightTranslation: string;
+  compareSharedTokens: string;
+  aiCompareTitle: string;
+  aiCompareHint: string;
+  runAiCompare: string;
+  aiComparingTranslations: string;
   averageSimilarity: string;
   rowsCompared: string;
   mostSimilarVerse: string;
@@ -100,19 +121,23 @@ export interface Messages {
   originalBookScopeHint: string;
   originalSaveToWorkspace: string;
   saveNamePlaceholder: string;
-  compareReferencePlaceholder: string;
   newScopePlaceholder: string;
   codeCellPlaceholder: string;
   markdownCellPlaceholder: string;
   markdownEditTitle: string;
   markdownEmptyText: string;
   markdownCtrlEnterHint: string;
+  noContentText: string;
   runLabel: string;
   runningLabel: string;
   cliOutputPrefix: string;
   freezeLabel: string;
   freezeDisabledTitle: string;
   freezeEnabledTitle: string;
+  freezeUpTitle: string;
+  freezeDownTitle: string;
+  themesSuffix: string;
+  noIdentifiedThemes: string;
   // Additional labels
   searchResultsForQuery: string;
   countResultsForSearch: string;
@@ -126,6 +151,9 @@ export interface Messages {
   suggestNoData: string;
   identifiedThemesLabel: string;
   geminiEngine: string;
+  geminiPromptLabel: string;
+  geminiOutputLabel: string;
+  geminiTotalLabel: string;
   loadingLabel: string;
   workspaceLabel: string;
   newScopeTitle: string;
@@ -143,18 +171,63 @@ export interface Messages {
   emptyNotebookText: string;
   addMarkdownCellLabel: string;
   addCodeCellLabel: string;
+  appendMarkdownCellLabel: string;
+  appendCodeCellLabel: string;
+  savedLabel: string;
   lastReadVerseLabel: string;
+  saveAnalysisWorkspacePrompt: string;
+  statTotalTokens: string;
+  statUniqueTokens: string;
+  statTtr: string;
+  statAvgWordLength: string;
+  wordFrequencyTitle: string;
+  aiToneTitle: string;
+  aiToneHint: string;
+  analyticsFetchFailed: string;
+  toneAnalysisFailed: string;
   createScopeFailed: string;
   deleteScopeFailed: string;
   deleteSearchFailed: string;
   deleteAnalysisFailed: string;
+  renameScopeFailed: string;
+  renameSearchFailed: string;
+  renameAnalysisFailed: string;
+  promptRenameScope: string;
+  promptRenameSearch: string;
+  promptRenameAnalysis: string;
   noNotebooksText: string;
   moveUpTitle: string;
   moveDownTitle: string;
   deleteCellTitle: string;
   registerTitle: string;
+  registerSubtitle: string;
   registerButton: string;
   registeringLabel: string;
+  loginTitle: string;
+  loginSubtitle: string;
+  loginButton: string;
+  loggingIn: string;
+  loginFailedMessage: string;
+  registerFailedMessage: string;
+  emailLabel: string;
+  passwordLabel: string;
+  confirmPasswordLabel: string;
+  noAccountPrompt: string;
+  alreadyHaveAccountPrompt: string;
+  registerLink: string;
+  loginLink: string;
+  passwordRequirementsTitle: string;
+  passwordReqMinLength: string;
+  passwordReqUppercase: string;
+  passwordReqNumber: string;
+  passwordReqSpecial: string;
+  passwordReqInvalid: string;
+  passwordsDoNotMatch: string;
+  cardEmptyNote: string;
+  cardClickToAddCells: string;
+  cardEmptyBadge: string;
+  updatedAtLabel: string;
+  backToList: string;
   chartBarTitle: string;
   chartCloudTitle: string;
   nextFocusTitle: string;
@@ -174,11 +247,13 @@ export interface Messages {
   errorHeading?: string;
   retryButtonLabel?: string;
   unnamedNotebook?: string;
-  // Notebook Cell Width
   cellWidthFull: string;
   cellWidthHalf: string;
   cellWidthThird: string;
   cellWidthTwoThirds: string;
+  cellWidthSelectAria: string;
+  cellTypeSelectAria: string;
+  dragResizeTitle: string;
 
   resetNotebookSizes?: string;
 
@@ -188,10 +263,14 @@ export interface Messages {
   // Drag and Drop
   dragHandleTitle: string;
   compareSideBySideTitle: string;
+
+  // Language selection
+  changeLanguage: string;
 }
 
 export const strings: Record<UILanguage, Messages> = {
   en: {
+    changeLanguage: 'Change language',
     // App / Shell
         chooseTranslation: 'Choose translation',
         translationsLabel: 'Translations',
@@ -226,6 +305,15 @@ export const strings: Record<UILanguage, Messages> = {
     noTranslationSelected: 'No translation selected',
     noTranslationHint: 'Open Translations in the header and install one.',
     installTranslation: 'Install a Translation',
+    translationManagementTitle: 'Translation Management',
+    activeTranslationsTitle: 'Active Translations',
+    availableTranslationsTitle: 'Available Translations',
+    removeTranslationLabel: 'Remove',
+    noTranslationsAdminHint: 'No translations available. Please contact an administrator.',
+    translationActivatedMsg: 'activated successfully!',
+    translationDeactivatedMsg: 'deactivated.',
+    translationActivationFailed: 'Activation failed. Please try again.',
+    translationDeactivationFailed: 'Deactivation failed. Please try again.',
     quickStart: 'Install a translation, then try reading John 3:16 or search for "light" in the text search below.',
     readByReference: 'Read by Reference',
     versePlaceholder: 'John 3:16 · Joh. 3:16 · 1 Moos 1:1',
@@ -260,11 +348,22 @@ export const strings: Record<UILanguage, Messages> = {
     searchRecentHeader: 'Recent searches',
     searchClear: 'Clear',
 
-    // SearchView
     searchResultsTitle: 'Search Results',
     searchNoResults: 'No verses found for this search.',
+    selectBookAria: 'Select book',
+    foundMatches: 'Found',
+    matchesSuffix: 'matches',
     needTwoTranslations: 'Install at least two translations to use the compare tool.',
     compareButtonLabel: 'Compare translations',
+    compareReferenceLabel: 'Verse Reference',
+    compareReferencePlaceholder: 'e.g. John 3:16 or Rom 8',
+    compareLeftTranslation: 'Left Translation',
+    compareRightTranslation: 'Right Translation',
+    compareSharedTokens: 'Shared Words (Tokens)',
+    aiCompareTitle: 'AI Translation Comparison (Gemini)',
+    aiCompareHint: 'Compare linguistic, doctrinal, and theological differences with AI.',
+    runAiCompare: 'Run AI Comparison',
+    aiComparingTranslations: 'AI is analyzing and comparing translations...',
     averageSimilarity: 'Average similarity',
     rowsCompared: 'Rows compared',
     mostSimilarVerse: 'Most similar verse',
@@ -297,19 +396,23 @@ export const strings: Record<UILanguage, Messages> = {
     originalBookScopeHint: 'Book scope: use only a book name (e.g. "ROM", "GEN" or "John").',
     originalSaveToWorkspace: 'Save original language study to workspace',
     saveNamePlaceholder: 'Name for this saved item (e.g. John 3 glossary)...',
-    compareReferencePlaceholder: 'e.g. John 3:16 or John 3:16-20',
     newScopePlaceholder: 'Workspace name...',
     codeCellPlaceholder: '/read Joh 3:16 or /suggest or /refs Joh 3:16',
-    markdownCellPlaceholder: 'Write notes here... You can reference verses using [[John 3:16]] or [[Joh. 3:16]]',
+    markdownCellPlaceholder: 'Write notes here... You can reference verses using [John 3:16] or [Joh. 3:16]',
     markdownEditTitle: 'Double-click to edit',
-    markdownEmptyText: 'Empty markdown cell. Double-click to add notes. You can reference verses with [[John 3:16]]',
+    markdownEmptyText: 'Empty markdown cell. Double-click to add notes. You can reference verses with [John 3:16]',
     markdownCtrlEnterHint: 'Ctrl+Enter to finish',
+    noContentText: '*No content*',
     runLabel: 'Run',
     runningLabel: 'Running...',
     cliOutputPrefix: 'CLI Output —',
     freezeLabel: 'Freeze',
     freezeDisabledTitle: 'Select at least one verse to freeze',
-    freezeEnabledTitle: 'Convert selected verses to a Markdown cell below',
+    freezeEnabledTitle: 'Convert selected verses to a Markdown cell',
+    freezeUpTitle: 'Freeze to Markdown cell above',
+    freezeDownTitle: 'Freeze to Markdown cell below',
+    themesSuffix: 'themes',
+    noIdentifiedThemes: 'No identified themes from selected cells.',
     searchResultsForQuery: 'Search results for',
     countResultsForSearch: 'Search results for query',
     countVersesForRef: 'Verses for reference',
@@ -322,6 +425,9 @@ export const strings: Record<UILanguage, Messages> = {
     suggestNoData: 'Write more into Markdown cells first to get theme-specific suggestions.',
     identifiedThemesLabel: 'Identified themes:',
     geminiEngine: 'Gemini Engine',
+    geminiPromptLabel: 'Prompt:',
+    geminiOutputLabel: 'Output:',
+    geminiTotalLabel: 'Total:',
     loadingLabel: 'Loading...',
     workspaceLabel: 'Workspace (Scope)',
     newScopeTitle: 'New workspace',
@@ -339,19 +445,64 @@ export const strings: Record<UILanguage, Messages> = {
     emptyNotebookText: 'This notebook has no cells yet.',
     addMarkdownCellLabel: '+ Add Markdown cell',
     addCodeCellLabel: '+ Add Code cell',
+    appendMarkdownCellLabel: '+ Add Markdown to end',
+    appendCodeCellLabel: '+ Add Command to end',
+    savedLabel: 'Saved',
     lastReadVerseLabel: 'Last read verse:',
+    saveAnalysisWorkspacePrompt: 'Save this analysis to workspace?',
+    statTotalTokens: 'Total Tokens',
+    statUniqueTokens: 'Unique Words',
+    statTtr: 'Type-Token Ratio (TTR %)',
+    statAvgWordLength: 'Avg Word Length (Chars)',
+    wordFrequencyTitle: 'Word Frequency',
+    aiToneTitle: 'Tone & Style Analysis (Gemini)',
+    aiToneHint: 'Analyze linguistic tone, themes, and theological nuance with AI.',
+    analyticsFetchFailed: 'Failed to perform text analysis.',
+    toneAnalysisFailed: 'Tone analysis failed.',
     // Workspace operation failure messages
     createScopeFailed: 'Workspace creation failed',
     deleteScopeFailed: 'Failed deleting workspace',
     deleteSearchFailed: 'Failed deleting saved search',
     deleteAnalysisFailed: 'Failed deleting analysis',
+    renameScopeFailed: 'Failed to rename workspace',
+    renameSearchFailed: 'Failed to rename search',
+    renameAnalysisFailed: 'Failed to rename analysis',
+    promptRenameScope: 'Enter a new name for the workspace:',
+    promptRenameSearch: 'Enter a new name for the search:',
+    promptRenameAnalysis: 'Enter a new name for the analysis:',
     noNotebooksText: 'No notebooks yet. Create one to get started!',
     moveUpTitle: 'Move up',
     moveDownTitle: 'Move down',
     deleteCellTitle: 'Delete cell',
     registerTitle: 'Create a new account',
+    registerSubtitle: 'Sign up to start using Clible Workspace',
     registerButton: 'Register',
     registeringLabel: 'Registering...',
+    loginTitle: 'Clible Workspace',
+    loginSubtitle: 'Sign in to continue to your workspace',
+    loginButton: 'Sign in',
+    loggingIn: 'Signing in...',
+    loginFailedMessage: 'Login failed. Please check your email and password.',
+    registerFailedMessage: 'Registration failed. The email may already be in use.',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    confirmPasswordLabel: 'Confirm Password',
+    noAccountPrompt: "Don't have an account?",
+    alreadyHaveAccountPrompt: 'Already have an account?',
+    registerLink: 'Register here',
+    loginLink: 'Sign in',
+    passwordRequirementsTitle: 'Password requirements:',
+    passwordReqMinLength: 'At least 8 characters',
+    passwordReqUppercase: 'At least one uppercase letter (A-Z)',
+    passwordReqNumber: 'At least one number (0-9)',
+    passwordReqSpecial: 'At least one special character',
+    passwordReqInvalid: 'Password does not meet all security requirements.',
+    passwordsDoNotMatch: 'Passwords do not match.',
+    cardEmptyNote: 'Empty note...',
+    cardClickToAddCells: 'Click to open notebook and add cells',
+    cardEmptyBadge: 'Empty',
+    updatedAtLabel: 'Updated',
+    backToList: '← Back to list',
     chartBarTitle: 'Bar chart',
     chartCloudTitle: 'Word cloud',
     nextFocusTitle: 'Next focus',
@@ -361,11 +512,13 @@ export const strings: Record<UILanguage, Messages> = {
     finnishLabel: 'Finnish',
     renameScopeTitle: 'Rename workspace',
     editTitleLabel: 'Click to edit',
-    // Notebook Cell Width
     cellWidthFull: 'Full (100%)',
     cellWidthHalf: 'Half (50%)',
     cellWidthThird: 'Third (33%)',
     cellWidthTwoThirds: 'Two Thirds (66%)',
+    cellWidthSelectAria: 'Select cell width',
+    cellTypeSelectAria: 'Select cell type',
+    dragResizeTitle: 'Drag to resize cell width and height',
 
     // Drag and Drop
     dragHandleTitle: 'Drag to reorder cells',
@@ -373,6 +526,7 @@ export const strings: Record<UILanguage, Messages> = {
     compareSideBySideTitle: 'Side-by-side comparison for',
   },
   fi: {
+    changeLanguage: 'Vaihda kieli',
     // App / Shell
     chooseTranslation: 'Valitse käännös',
     translationsLabel: 'Käännökset',
@@ -405,6 +559,15 @@ export const strings: Record<UILanguage, Messages> = {
     noTranslationSelected: 'Ei valittua käännöstä',
     noTranslationHint: 'Avaa ylävalikon Käännökset ja asenna yksi.',
     installTranslation: 'Asenna käännös',
+    translationManagementTitle: 'Käännösten hallinta',
+    activeTranslationsTitle: 'Käytössä olevat käännökset',
+    availableTranslationsTitle: 'Saatavilla olevat käännökset',
+    removeTranslationLabel: 'Poista käytöstä',
+    noTranslationsAdminHint: 'Ei saatavilla olevia käännöksiä. Ota yhteyttä ylläpitoon.',
+    translationActivatedMsg: 'aktivoitu onnistuneesti!',
+    translationDeactivatedMsg: 'poistettu käytöstä.',
+    translationActivationFailed: 'Aktivointi epäonnistui. Yritä uudelleen.',
+    translationDeactivationFailed: 'Käytöstä poisto epäonnistui. Yritä uudelleen.',
     quickStart: 'Asenna käännös, ja kokeile lukea esim. Joh. 3:16 tai hae sanaa "valo" tekstihakutoiminnolla.',
     readByReference: 'Lue viitteellä',
     versePlaceholder: 'Joh. 3:16 · John 3:16 · 1 Moos 1:1',
@@ -439,11 +602,22 @@ export const strings: Record<UILanguage, Messages> = {
     searchRecentHeader: 'Viimeisimmät haut',
     searchClear: 'Tyhjennä',
 
-    // SearchView
     searchResultsTitle: 'Hakutulokset',
     searchNoResults: 'Hakuun täsmääviä jakeita ei löytynyt.',
+    selectBookAria: 'Valitse kirja',
+    foundMatches: 'Löytyi',
+    matchesSuffix: 'osumaa',
     needTwoTranslations: 'Asenna vähintään kaksi käännöstä vertailutyökalun käyttämiseksi.',
     compareButtonLabel: 'Vertaa käännöksiä',
+    compareReferenceLabel: 'Jaeviite',
+    compareReferencePlaceholder: 'esim. Joh. 3:16 tai Room. 8',
+    compareLeftTranslation: 'Vasen käännös',
+    compareRightTranslation: 'Oikea käännös',
+    compareSharedTokens: 'Jaetut sanat (Tokens)',
+    aiCompareTitle: 'AI-käännösvertailu (Gemini)',
+    aiCompareHint: 'Vertaa valittujen käännösten kielellisiä, opillisia ja teologisia painotuseroja tekoälyn avulla.',
+    runAiCompare: 'Suorita tekoälyvertailu',
+    aiComparingTranslations: 'Tekoäly analysoi ja vertailee käännöksiä...',
     averageSimilarity: 'Keskimääräinen samankaltaisuus',
     rowsCompared: 'Rivejä vertailtu',
     mostSimilarVerse: 'Samankaltaisin jae',
@@ -476,19 +650,23 @@ export const strings: Record<UILanguage, Messages> = {
     originalBookScopeHint: 'Kirjavertailu: käytä pelkkää kirjan nimeä (esim. "ROM", "GEN" tai "Joh").',
     originalSaveToWorkspace: 'Tallenna alkukielitutkimus työtilaan',
     saveNamePlaceholder: 'Nimi tälle tallennukselle (esim. Joh 3 sanasto)...',
-    compareReferencePlaceholder: 'esim. Joh 3:16 tai Joh 3:16-20',
     newScopePlaceholder: 'Työtilan nimi...',
     codeCellPlaceholder: '/read Joh 3:16 tai /suggest tai /refs Joh 3:16',
-    markdownCellPlaceholder: 'Kirjoita muistiinpanoja tähän... Voit viitata jakeisiin muodolla [[Joh. 3:16]] tai [[John 3:16]]',
+    markdownCellPlaceholder: 'Kirjoita muistiinpanoja tähän... Voit viitata jakeisiin muodolla [Joh. 3:16] tai [John 3:16]',
     markdownEditTitle: 'Kaksoisklikkaa muokataksesi',
-    markdownEmptyText: 'Tyhjä markdown-solu. Kaksoisklikkaa lisätäksesi muistiinpanoja. Voit viitata jakeisiin esim. [[Joh. 3:16]]',
+    markdownEmptyText: 'Tyhjä markdown-solu. Kaksoisklikkaa lisätäksesi muistiinpanoja. Voit viitata jakeisiin esim. [Joh. 3:16]',
     markdownCtrlEnterHint: 'Ctrl+Enter valmis',
+    noContentText: '*Ei sisältöä*',
     runLabel: 'Suorita',
     runningLabel: 'Suoritetaan...',
     cliOutputPrefix: 'CLI Output —',
     freezeLabel: 'Jäädytä',
     freezeDisabledTitle: 'Valitse vähintään yksi jae jäädyttääksesi',
-    freezeEnabledTitle: 'Muunna valitut jaet Markdown-soluksi alla',
+    freezeEnabledTitle: 'Muunna valitut jakeet Markdown-soluksi',
+    freezeUpTitle: 'Jäädytä Markdown-soluksi yläpuolelle',
+    freezeDownTitle: 'Jäädytä Markdown-soluksi alapuolelle',
+    themesSuffix: 'teemaa',
+    noIdentifiedThemes: 'Ei tunnistettuja teemoja valituista soluista.',
     searchResultsForQuery: 'Hakutulokset haulle',
     countResultsForSearch: 'Hakutulokset kyselylle',
     countVersesForRef: 'Jakeet viitteelle',
@@ -501,6 +679,9 @@ export const strings: Record<UILanguage, Messages> = {
     suggestNoData: 'Kirjoita ensin enemmän Markdown-soluihin saadaksesi teemakohtaisia ehdotuksia.',
     identifiedThemesLabel: 'Tunnistetut teemat:',
     geminiEngine: 'Gemini Engine',
+    geminiPromptLabel: 'Kehote:',
+    geminiOutputLabel: 'Vastaus:',
+    geminiTotalLabel: 'Yhteensä:',
     loadingLabel: 'Ladataan...',
     workspaceLabel: 'Työtila (Scope)',
     newScopeTitle: 'Uusi työtila',
@@ -528,19 +709,64 @@ export const strings: Record<UILanguage, Messages> = {
     emptyNotebookText: 'Tässä muistikirjassa ei ole vielä soluja.',
     addMarkdownCellLabel: '+ Lisää Markdown-solu',
     addCodeCellLabel: '+ Lisää CLI-solu',
+    appendMarkdownCellLabel: '+ Lisää Markdown loppuun',
+    appendCodeCellLabel: '+ Lisää CLI-solu loppuun',
+    savedLabel: 'Tallennettu',
     lastReadVerseLabel: 'Viimeksi luettu jae:',
+    saveAnalysisWorkspacePrompt: 'Haluatko tallentaa tämän analyysin työtilaan?',
+    statTotalTokens: 'Sanoja yhteensä (Tokens)',
+    statUniqueTokens: 'Uniikit sanat (Unique)',
+    statTtr: 'Tyypin suhde (TTR %)',
+    statAvgWordLength: 'Keskipituus (Merkkiä/sana)',
+    wordFrequencyTitle: 'Sanatiheys',
+    aiToneTitle: 'Sävy- ja tyylianalyysi (Gemini)',
+    aiToneHint: 'Analysoi tekstijakson kielellistä sävyä, teemoja ja teologista tyyliä tekoälyn avulla.',
+    analyticsFetchFailed: 'Tekstianalyysin suorittaminen epäonnistui.',
+    toneAnalysisFailed: 'Sävyanalyysi epäonnistui.',
     // Workspace operation failure messages
     createScopeFailed: 'Työtilan luominen epäonnistui',
     deleteScopeFailed: 'Työtilan poistaminen epäonnistui',
     deleteSearchFailed: 'Haun poistaminen epäonnistui',
     deleteAnalysisFailed: 'Analyysin poistaminen epäonnistui',
+    renameScopeFailed: 'Työtilan uudelleennimeäminen epäonnistui',
+    renameSearchFailed: 'Haun nimeäminen uudelleen epäonnistui',
+    renameAnalysisFailed: 'Analyysin nimeäminen uudelleen epäonnistui',
+    promptRenameScope: 'Anna työtilalle uusi nimi:',
+    promptRenameSearch: 'Anna haulle uusi nimi:',
+    promptRenameAnalysis: 'Anna analyysille uusi nimi:',
     noNotebooksText: 'Ei vielä muistikirjoja. Luo uusi aloittaaksesi!',
     moveUpTitle: 'Siirrä ylös',
     moveDownTitle: 'Siirrä alas',
     deleteCellTitle: 'Poista solu',
     registerTitle: 'Luo uusi tili',
+    registerSubtitle: 'Rekisteröidy käyttääksesi Clible Workspacea',
     registerButton: 'Rekisteröidy',
     registeringLabel: 'Rekisteröidytään...',
+    loginTitle: 'Clible Workspace',
+    loginSubtitle: 'Kirjaudu sisään jatkaaksesi työtilaasi',
+    loginButton: 'Kirjaudu sisään',
+    loggingIn: 'Kirjaudutaan...',
+    loginFailedMessage: 'Kirjautuminen epäonnistui. Tarkista sähköposti ja salasana.',
+    registerFailedMessage: 'Rekisteröityminen epäonnistui. Sähköposti saattaa olla jo käytössä.',
+    emailLabel: 'Sähköposti',
+    passwordLabel: 'Salasana',
+    confirmPasswordLabel: 'Vahvista salasana',
+    noAccountPrompt: 'Eikö sinulla ole tiliä?',
+    alreadyHaveAccountPrompt: 'Onko sinulla jo tili?',
+    registerLink: 'Rekisteröidy tästä',
+    loginLink: 'Kirjaudu sisään',
+    passwordRequirementsTitle: 'Salasanan vaatimukset:',
+    passwordReqMinLength: 'Vähintään 8 merkkiä',
+    passwordReqUppercase: 'Vähintään yksi iso kirjain (A-Z)',
+    passwordReqNumber: 'Vähintään yksi numero (0-9)',
+    passwordReqSpecial: 'Vähintään yksi erikoismerkki',
+    passwordReqInvalid: 'Salasana ei täytä kaikkia turvavaatimuksia.',
+    passwordsDoNotMatch: 'Salasanat eivät täsmää.',
+    cardEmptyNote: 'Tyhjä muistiinpano...',
+    cardClickToAddCells: 'Klikkaa avataksesi muistikirjan ja lisätäksesi soluja',
+    cardEmptyBadge: 'Tyhjä',
+    updatedAtLabel: 'Päivitetty',
+    backToList: '← Takaisin listaukseen',
     noTranslations: 'Ei käännöksiä',
     translationPlaceholder: 'Valitse käännös...',
     chartBarTitle: 'Pylväskaavio',
@@ -552,11 +778,13 @@ export const strings: Record<UILanguage, Messages> = {
     finnishLabel: 'Suomi',
     renameScopeTitle: 'Nimeä työtila uudelleen',
     editTitleLabel: 'Klikkaa muokataksesi',
-    // Notebook Cell Width
     cellWidthFull: 'Täysi (100%)',
     cellWidthHalf: 'Puolikas (50%)',
     cellWidthThird: 'Kolmannes (33%)',
     cellWidthTwoThirds: 'Kaksi kolmannesta (66%)',
+    cellWidthSelectAria: 'Valitse solun leveys',
+    cellTypeSelectAria: 'Valitse solun tyyppi',
+    dragResizeTitle: 'Vedä muuttaaksesi solun leveyttä ja korkeutta',
 
     // Drag and Drop
     dragHandleTitle: 'Vedä solua uudelleen järjestämiseksi',

@@ -1,22 +1,47 @@
 import { bookCitationAbbrevFi } from './bookNames';
 
+/**
+ * Result data payload structure returned by backend CLI commands and ISLA queries.
+ */
 export interface CLIResultData {
+  /** Source reference string */
   source?: string;
+  /** Search query string */
   query?: string;
+  /** Bible reference */
   reference?: string;
+  /** Target query type (e.g. 'search', 'reference') */
   target_type?: string;
+  /** Whether the query was a regular expression */
   is_regex?: boolean;
+  /** Total count metric */
   count?: number;
+  /** Translation identifier */
   translation?: string;
+  /** Verses list */
   verses?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
+  /** Cross-references list */
   references?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
+  /** Suggestion items */
   suggestions?: Array<{ id: string; translationId: string; bookId: string; chapter: number; verse: number; text: string }>;
+  /** Search keywords */
   keywords?: string[];
+  /** Themes list */
   themes?: Array<{ word: string; count: number }>;
+  /** Left translation dataset for comparison */
   left?: { translation?: string; verses?: Array<{ id: string; translationId?: string; bookId: string; chapter: number; verse: number; text: string }> };
+  /** Right translation dataset for comparison */
   right?: { translation?: string; verses?: Array<{ id: string; translationId?: string; bookId: string; chapter: number; verse: number; text: string }> };
 }
 
+/**
+ * Converts raw CLI / ISLA execution result data into formatted Markdown text for freezing into notebook cells.
+ *
+ * @param type - Result type identifier ('read', 'search', 'refs', 'suggest', 'themes', 'count', 'compare').
+ * @param data - The structured result payload conforming to {@link CLIResultData}.
+ * @param translation - Translation identifier string.
+ * @returns Formatted Markdown string.
+ */
 export function formatResultToMarkdown(type: string, data: CLIResultData, translation: string): string {
   let markdown = "";
   const tr = translation.toUpperCase();

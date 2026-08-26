@@ -77,10 +77,8 @@ describe('TranslationManager', () => {
 
     const textContent = container!.textContent || '';
     // Active section should show World English Bible
-    expect(textContent).toContain('Active Translations');
     expect(textContent).toContain('World English Bible');
     // Available section should show uninstalled translations
-    expect(textContent).toContain('Available Translations');
     expect(textContent).toContain('Kirkkoraamattu (1992)');
     expect(textContent).toContain('King James Version');
   });

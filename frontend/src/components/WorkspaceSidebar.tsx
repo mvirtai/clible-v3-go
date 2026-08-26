@@ -4,15 +4,29 @@ import type { Scope, ScopeWorkspace, SavedSearch, SavedAnalysis } from '../types
 import { Folder, Plus, Trash2, Edit2, Search, BarChart3 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
-interface Props {
+/**
+ * Properties for {@link WorkspaceSidebar}.
+ */
+export interface WorkspaceSidebarProps {
+  /** Identifier of the currently active study workspace/scope. */
   activeScopeId: string;
+  /** Callback fired when user selects or navigates to another workspace. */
   onScopeChanged: (scopeId: string) => void;
+  /** Callback to restore and execute a previously saved search query. */
   onLoadSavedSearch: (search: SavedSearch) => void;
+  /** Callback to restore and display a previously saved statistical analysis. */
   onLoadSavedAnalysis: (analysis: SavedAnalysis) => void;
+  /** Boolean toggle to trigger reload of scopes and workspace items. */
   refreshTrigger: boolean;
 }
 
-export const WorkspaceSidebar: React.FC<Props> = ({
+/**
+ * Sidebar drawer for managing user workspaces (scopes), saved searches, and text analyses.
+ *
+ * @param props - Component properties conforming to {@link WorkspaceSidebarProps}.
+ * @returns Accessible sidebar navigation component.
+ */
+export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   activeScopeId,
   onScopeChanged,
   onLoadSavedSearch,
@@ -104,13 +118,13 @@ export const WorkspaceSidebar: React.FC<Props> = ({
     if (!activeScopeId) return;
     const current = scopes.find(s => s.id === activeScopeId);
     if (!current) return;
-    const newName = window.prompt('Anna työtilalle uusi nimi:', current.name);
+    const newName = window.prompt(strings.promptRenameScope, current.name);
     if (!newName || !newName.trim() || newName.trim() === current.name) return;
     try {
       await apiService.renameScope(activeScopeId, newName.trim());
       setScopes(prev => prev.map(s => s.id === activeScopeId ? { ...s, name: newName.trim() } : s));
     } catch {
-      alert('Työtilan uudelleennimeäminen epäonnistui');
+      alert(strings.renameScopeFailed);
     }
   };
 
@@ -130,7 +144,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
   };
 
   const handleRenameSearch = async (searchId: string, oldName: string) => {
-    const newName = window.prompt('Anna haulle uusi nimi:', oldName);
+    const newName = window.prompt(strings.promptRenameSearch, oldName);
     if (!newName || !newName.trim() || newName.trim() === oldName) return;
     try {
       await apiService.renameSearch(searchId, newName.trim());
@@ -141,7 +155,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
         });
       }
     } catch {
-      alert('Haun nimeäminen uudelleen epäonnistui');
+      alert(strings.renameSearchFailed);
     }
   };
 
@@ -161,7 +175,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
   };
 
   const handleRenameAnalysis = async (analysisId: string, oldName: string) => {
-    const newName = window.prompt('Anna analyysille uusi nimi:', oldName);
+    const newName = window.prompt(strings.promptRenameAnalysis, oldName);
     if (!newName || !newName.trim() || newName.trim() === oldName) return;
     try {
       await apiService.renameAnalysis(analysisId, newName.trim());
@@ -172,7 +186,7 @@ export const WorkspaceSidebar: React.FC<Props> = ({
         });
       }
     } catch {
-      alert('Analyysin nimeäminen uudelleen epäonnistui');
+      alert(strings.renameAnalysisFailed);
     }
   };
 

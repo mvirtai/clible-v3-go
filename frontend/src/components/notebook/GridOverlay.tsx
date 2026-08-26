@@ -1,10 +1,20 @@
 const SNAP_POINTS = [6, 8, 12, 16, 24];
 const TOTAL_COLS = 24;
 
-interface GridOverlayProps {
+/**
+ * Properties for {@link GridOverlay}.
+ */
+export interface GridOverlayProps {
+    /** Whether the resize snapping grid overlay is currently visible. */
     visible: boolean;
 }
 
+/**
+ * Visual 24-column grid overlay with snap point percentage indicators shown during card and cell resizing.
+ *
+ * @param props - Component properties conforming to {@link GridOverlayProps}.
+ * @returns 24-column grid guide overlay.
+ */
 export const GridOverlay = ({ visible }: GridOverlayProps) => {
     if (!visible) return null;
 

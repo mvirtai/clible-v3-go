@@ -5,17 +5,34 @@ import remarkGfm from "remark-gfm";
 import { markdownComponents } from "../utils/markdownComponents";
 import type { GeminiUsageMetadata } from "../types/ai";
 import { GeminiUsage } from "./GeminiUsage";
+import { useLanguage } from "../context/LanguageContext";
 
-interface DeepDiveCardProps {
+/**
+ * Properties for {@link DeepDiveCard}.
+ */
+export interface DeepDiveCardProps {
+  /** Header title or category label for the analysis card. */
   title: string;
+  /** Markdown-formatted insight or analysis text content. */
   text: string;
+  /** When true, renders an inverted high-contrast dark card style. */
   invert?: boolean;
+  /** Callback fired when user dismisses the card. */
   onClose: () => void;
+  /** Optional token usage and latency metadata from the Gemini API. */
   geminiUsageMetadata?: GeminiUsageMetadata;
 }
 
+/**
+ * Renders an interactive markdown insight card with AI usage statistics and dismiss button.
+ *
+ * @param props - Component properties conforming to {@link DeepDiveCardProps}.
+ * @returns Formatted insight card or null if text is empty.
+ */
 export function DeepDiveCard({ title, text, invert = false, onClose, geminiUsageMetadata }: DeepDiveCardProps) {
+  const { strings } = useLanguage();
   if (!text.trim()) return null;
+
   return (
     <div
       className={`mt-4 rounded-3xl border p-5 shadow-sm transition-all animate-in fade-in slide-in-from-top-4 duration-300 ${
@@ -32,7 +49,7 @@ export function DeepDiveCard({ title, text, invert = false, onClose, geminiUsage
           type="button"
           onClick={onClose}
           className={invert ? "text-gray-400 hover:text-white cursor-pointer" : "text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"}
-          aria-label="Close"
+          aria-label={strings.hideLabel}
          >
           <X size={16} />
         </button>
@@ -53,3 +70,4 @@ export function DeepDiveCard({ title, text, invert = false, onClose, geminiUsage
     </div>
   );
 }
+

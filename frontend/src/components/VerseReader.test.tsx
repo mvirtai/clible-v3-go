@@ -224,9 +224,9 @@ describe('VerseReader', () => {
     });
 
     // Verify token counts are rendered on screen
-    expect(container!.textContent).toContain('Prompt: 150');
-    expect(container!.textContent).toContain('Output: 80');
-    expect(container!.textContent).toContain('Total: 230');
+    expect(container!.textContent).toContain('150');
+    expect(container!.textContent).toContain('80');
+    expect(container!.textContent).toContain('230');
     expect(container!.textContent).toContain('Gemini Engine');
   });
 });

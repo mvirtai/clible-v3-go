@@ -3,10 +3,20 @@ import { Cpu } from 'lucide-react';
 import type { GeminiUsageMetadata } from '../types/ai';
 import { useLanguage } from '../context/LanguageContext';
 
-interface GeminiUsageProps {
+/**
+ * Properties for {@link GeminiUsage}.
+ */
+export interface GeminiUsageProps {
+  /** Token usage statistics returned by the Google Gemini backend API. */
   usage?: GeminiUsageMetadata;
 }
 
+/**
+ * Renders a compact, real-time token telemetry badge displaying prompt, completion, and total tokens.
+ *
+ * @param props - Component properties conforming to {@link GeminiUsageProps}.
+ * @returns Accessible usage telemetry bar or null if no tokens were consumed.
+ */
 export const GeminiUsage: React.FC<GeminiUsageProps> = ({ usage }) => {
   const { strings } = useLanguage();
   if (!usage || (usage.promptTokenCount === 0 && usage.candidatesTokenCount === 0)) {
@@ -22,16 +32,17 @@ export const GeminiUsage: React.FC<GeminiUsageProps> = ({ usage }) => {
       <div className="flex items-center gap-3 font-mono text-[10px]">
         <span className="flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-400/60" />
-          Prompt: <strong className="font-semibold text-[var(--text-2)]">{usage.promptTokenCount}</strong>
+          {strings.geminiPromptLabel} <strong className="font-semibold text-[var(--text-2)]">{usage.promptTokenCount}</strong>
         </span>
         <span className="flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" />
-          Output: <strong className="font-semibold text-[var(--text-2)]">{usage.candidatesTokenCount}</strong>
+          {strings.geminiOutputLabel} <strong className="font-semibold text-[var(--text-2)]">{usage.candidatesTokenCount}</strong>
         </span>
         <span className="flex items-center gap-1 border-l border-[var(--border)] pl-3">
-          Total: <strong className="font-bold text-[var(--accent)]">{usage.totalTokenCount}</strong>
+          {strings.geminiTotalLabel} <strong className="font-bold text-[var(--accent)]">{usage.totalTokenCount}</strong>
         </span>
       </div>
     </div>
   );
 };
+

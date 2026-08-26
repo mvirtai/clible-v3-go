@@ -1,15 +1,22 @@
-// frontend/src/pages/Login.tsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { BookOpen } from 'lucide-react';
 
-const Login: React.FC = () => {
+/**
+ * Authentication login page component.
+ * Allows registered users to authenticate with email and password to access their workspaces.
+ *
+ * @returns Rendered login view.
+ */
+export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { strings } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,7 +28,7 @@ const Login: React.FC = () => {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Kirjautuminen epäonnistui. Tarkista sähköposti ja salasana.';
+      const errorMsg = err instanceof Error ? err.message : strings.loginFailedMessage;
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -39,20 +46,22 @@ const Login: React.FC = () => {
         }}
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="p-4 rounded-full mb-4 transition-transform hover:scale-110 duration-300 flex items-center justify-center"
+          <div
+            className="p-4 rounded-full mb-4 transition-transform hover:scale-110 duration-300 flex items-center justify-center"
             style={{
               background: 'var(--accent-bg)',
               color: 'var(--accent)',
               border: '1px solid var(--accent-border)',
               boxShadow: '0 4px 12px var(--accent-bg)',
-            }}>
+            }}
+          >
             <BookOpen size={28} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
-            Clible Workspace
+            {strings.loginTitle}
           </h1>
           <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
-            Kirjaudu sisään jatkaaksesi työtilaasi
+            {strings.loginSubtitle}
           </p>
         </div>
 
@@ -65,7 +74,7 @@ const Login: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--muted)' }}>
-              Sähköposti
+              {strings.emailLabel}
             </label>
             <input
               type="email"
@@ -83,7 +92,7 @@ const Login: React.FC = () => {
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--muted)' }}>
-              Salasana
+              {strings.passwordLabel}
             </label>
             <input
               type="password"
@@ -102,16 +111,16 @@ const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 mt-2 mb-2 rounded-xl font-medium tracking-wide btn-tactile btn-accent focus:outline-none cursor-pointer"
+            className="w-full py-3.5 mt-2 mb-2 rounded-xl font-medium tracking-wide btn-tactile btn-accent focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Kirjaudutaan...' : 'Kirjaudu sisään'}
+            {loading ? strings.loggingIn : strings.loginButton}
           </button>
         </form>
 
         <p className="text-sm text-center mt-6" style={{ color: 'var(--muted)' }}>
-          Eikö sinulla ole tiliä?{' '}
+          {strings.noAccountPrompt}{' '}
           <Link to="/register" style={{ color: 'var(--accent)' }} className="hover:underline font-medium">
-            Rekisteröidy tästä
+            {strings.registerLink}
           </Link>
         </p>
       </div>
@@ -120,3 +129,4 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+

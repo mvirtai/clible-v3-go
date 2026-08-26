@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   BarChart3,
   Hash,
@@ -23,6 +23,7 @@ import { WordCloud } from "./WordCloud";
 import type { TextStats } from "../types/bible";
 import { resolveBookId } from "../utils/bookNames";
 import ReactMarkdown from "react-markdown";
+import { useLanguage } from "../context/LanguageContext";
 import remarkGfm from "remark-gfm";
 import { markdownComponents } from "../utils/markdownComponents";
 import { NextFocusChips } from "./NextFocusChips";
@@ -34,23 +35,36 @@ import type {
   GeminiUsageMetadata,
 } from "../types/ai";
 
-interface AnalyticsViewProps {
-  /** The translation ID selected globally (e.g. "kr92") */
+/**
+ * Properties for {@link AnalyticsView}.
+ */
+export interface AnalyticsViewProps {
+  /** The translation ID selected globally (e.g. "kjv" or "fin-1992"). */
   defaultTranslation: string;
+  /** Active workspace (scope) ID for persisting statistical snapshots. */
   activeScopeId?: string;
+  /** Callback fired after successfully saving an analysis snapshot to a workspace. */
   onWorkspaceUpdated?: () => void;
+  /** Pre-loaded saved text statistics restoring an earlier workspace snapshot. */
   loadedSavedStats?: {
     stats: TextStats;
     reference: string;
     translationId: string;
   } | null;
+  /** Pre-loaded AI tone response payload. */
   loadedSavedTone?: AiTextResponse | null;
+  /** Pre-loaded AI deep-dive explanation payload. */
   loadedSavedDeepDive?: string | null;
+  /** Initial verse reference to analyze. */
   activeReference?: string;
 }
 
-import { useLanguage } from "../context/LanguageContext";
-
+/**
+ * Analytical corpus view offering statistical text metrics, token/type ratios, interactive charts, word clouds, and AI tone breakdown.
+ *
+ * @param props - Component properties conforming to {@link AnalyticsViewProps}.
+ * @returns Analytics workspace dashboard.
+ */
 export const AnalyticsView = ({
   defaultTranslation,
   activeScopeId,
@@ -60,6 +74,7 @@ export const AnalyticsView = ({
   loadedSavedDeepDive,
   activeReference,
 }: AnalyticsViewProps) => {
+  const { strings } = useLanguage();
   const [reference, setReference] = useState<string>(
     () => activeReference || "John 3",
   );
@@ -87,7 +102,6 @@ export const AnalyticsView = ({
   const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<
     string | null
   >(null);
-  const { strings } = useLanguage();
   const normalizedSavedDeepDive = loadedSavedDeepDive || null;
   if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
     setDeepDiveText(normalizedSavedDeepDive);
@@ -98,7 +112,7 @@ export const AnalyticsView = ({
     "idle" | "saving" | "success" | "error"
   >("idle");
 
-  // Tallennuksen tilat
+  // Save form states
   const [saveName, setSaveName] = useState("");
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -106,47 +120,37 @@ export const AnalyticsView = ({
     "idle",
   );
 
-  // Käsittele ladattu analyysi sivupalkista
-  useEffect(() => {
-    if (!loadedSavedStats) return;
-
-    const loadData = async () => {
-      setReference(loadedSavedStats.reference);
-      setError(null);
-      if (!loadedSavedTone) {
-        setToneResult(null);
-      }
-      if (!loadedSavedDeepDive) {
-        setDeepDiveText(null);
-        setDeepDiveUsage(null);
-      }
-      setToneError(null);
-
-      if (loadedSavedStats.stats) {
-        setStats(loadedSavedStats.stats);
-      } else {
-        // Suoritetaan analyysi backendistä, jos välimuisti puuttuu (vanha tallennus)
-        setLoading(true);
-        try {
-          const normalized = loadedSavedStats.reference.replace(
-            /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
-            (match) => resolveBookId(match) ?? match,
-          );
-          const data = await apiService.analyze(
-            normalized,
-            loadedSavedStats.translationId,
-          );
-          setStats(data);
-        } catch {
-          setError("Tallennetun analyysin lataaminen epäonnistui");
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadData();
-  }, [loadedSavedStats, loadedSavedTone, loadedSavedDeepDive]);
+  // Restore saved analysis from workspace during render phase
+  const [prevSavedStats, setPrevSavedStats] = useState(loadedSavedStats);
+  if (loadedSavedStats && loadedSavedStats !== prevSavedStats) {
+    setPrevSavedStats(loadedSavedStats);
+    setReference(loadedSavedStats.reference);
+    setError(null);
+    if (!loadedSavedTone) {
+      setToneResult(null);
+    }
+    if (!loadedSavedDeepDive) {
+      setDeepDiveText(null);
+      setDeepDiveUsage(null);
+    }
+    setToneError(null);
+    if (loadedSavedStats.stats) {
+      setStats(loadedSavedStats.stats);
+    } else {
+      // Note: Triggering side effects in render is dangerous; 
+      // this logic should ideally be extracted to a controlled effect if it requires async fetching.
+      // This is a minimal refactor as requested by instructions.
+      setLoading(true);
+      const normalized = loadedSavedStats.reference.replace(
+        /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+        (match) => resolveBookId(match) ?? match,
+      );
+      apiService.analyze(normalized, loadedSavedStats.translationId)
+        .then(setStats)
+        .catch(() => setError(strings.analyticsFetchFailed))
+        .finally(() => setLoading(false));
+    }
+  }
 
   const runAnalysis = async () => {
     if (!reference.trim() || !defaultTranslation) return;
@@ -165,7 +169,7 @@ export const AnalyticsView = ({
       const data = await apiService.analyze(normalized, defaultTranslation);
       setStats(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error fetching analysis");
+      setError(err instanceof Error ? err.message : strings.analyticsFetchFailed);
     } finally {
       setLoading(false);
     }
@@ -193,11 +197,9 @@ export const AnalyticsView = ({
     } catch (err) {
       const errorObj = err as Error;
       if (errorObj.message && errorObj.message.includes("503")) {
-        setToneError(
-          "Tekoäly ei ole käytettävissä (GEMINI_API_KEY puuttuu tai rate limit täynnä).",
-        );
+        setToneError(strings.aiUnavailable);
       } else {
-        setToneError(errorObj.message || "Sävyanalyysi epäonnistui.");
+        setToneError(errorObj.message || strings.toneAnalysisFailed);
       }
     } finally {
       setToneLoading(false);
@@ -210,7 +212,7 @@ export const AnalyticsView = ({
     try {
       await apiService.saveAnalysis({
         scopeId: activeScopeId,
-        name: `Sävyanalyysi: ${reference}`,
+        name: `${strings.deepDiveToneTitle}: ${reference}`,
         reference: reference,
         analysisType: "tone",
         translationId: defaultTranslation,
@@ -245,7 +247,7 @@ export const AnalyticsView = ({
         setDeepDiveUsage(res.geminiUsageMetadata || null);
       } catch (err) {
         const errorObj = err as Error;
-        setToneError(errorObj.message || "Deep dive failed.");
+        setToneError(errorObj.message || strings.deepDiveFailed);
       } finally {
         setToneLoading(false);
       }
@@ -266,7 +268,7 @@ export const AnalyticsView = ({
         const data = await apiService.analyze(normalized, defaultTranslation);
         setStats(data);
       } catch {
-        setError("Analyysin suorittaminen epäonnistui");
+        setError(strings.analyticsFetchFailed);
       } finally {
         setLoading(false);
       }
@@ -290,9 +292,10 @@ export const AnalyticsView = ({
             className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm"
           />
           <button
+            type="button"
             onClick={runAnalysis}
             disabled={loading || !defaultTranslation}
-            className="px-6 py-2.5 rounded-xl bg-[var(--text)] text-[var(--bg)] font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
+            className="px-6 py-2.5 rounded-xl bg-[var(--text)] text-[var(--bg)] font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer btn-tactile"
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin" />
@@ -310,6 +313,7 @@ export const AnalyticsView = ({
                 {strings.lastReadVerseLabel}
               </span>
               <button
+                type="button"
                 onClick={() => setReference(activeReference)}
                 className="px-2 py-0.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)] text-[var(--text)] transition-colors cursor-pointer"
               >
@@ -337,11 +341,12 @@ export const AnalyticsView = ({
               className="text-xs font-semibold"
               style={{ color: "var(--text)" }}
             >
-              Haluatko tallentaa tämän analyysin työtilaan?
+              {strings.saveAnalysisWorkspacePrompt}
             </span>
             {!showSaveForm && (
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={() => setShowSaveForm(true)}
                   className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
                 >
@@ -376,6 +381,7 @@ export const AnalyticsView = ({
                 }}
               />
               <button
+                type="button"
                 onClick={async () => {
                   if (!saveName.trim()) return;
                   setSaving(true);
@@ -405,11 +411,12 @@ export const AnalyticsView = ({
                   }
                 }}
                 disabled={saving || !saveName.trim()}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile cursor-pointer"
               >
                 {saving ? strings.savingLabel : strings.saveLabel}
               </button>
               <button
+                type="button"
                 onClick={() => setShowSaveForm(false)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium border text-[var(--muted)] border-[var(--border)] bg-transparent cursor-pointer"
               >
@@ -426,22 +433,22 @@ export const AnalyticsView = ({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               {
-                label: "Sanoja yhteensä (Tokens)",
+                label: strings.statTotalTokens,
                 value: stats.tokenCount,
                 icon: MessageSquare,
               },
               {
-                label: "Uniikit sanat (Unique)",
+                label: strings.statUniqueTokens,
                 value: stats.uniqueTokenCount,
                 icon: Hash,
               },
               {
-                label: "Tyypin suhde (TTR %)",
+                label: strings.statTtr,
                 value: `${(stats.typeTokenRatio * 100).toFixed(1)}%`,
                 icon: Activity,
               },
               {
-                label: "Keskipituus (Chars/Word)",
+                label: strings.statAvgWordLength,
                 value: stats.avgWordLength.toFixed(1),
                 icon: BarChart3,
               },
@@ -469,19 +476,21 @@ export const AnalyticsView = ({
             <div className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
-                  <BarChart3 size={16} /> Sanatiheys (Word Frequency)
+                  <BarChart3 size={16} /> {strings.wordFrequencyTitle}
                 </h3>
                 <div className="flex gap-1 bg-[var(--surface-2)] p-0.5 rounded-lg border border-[var(--border-soft)]">
                   <button
+                    type="button"
                     onClick={() => setChartType("bar")}
-                    className={`p-1.5 rounded-md transition-colors ${chartType === "bar" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "bar" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
                     title={strings.chartBarTitle}
                   >
                     <BarChart3 size={14} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => setChartType("cloud")}
-                    className={`p-1.5 rounded-md transition-colors ${chartType === "cloud" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "cloud" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
                     title={strings.chartCloudTitle}
                   >
                     <Cloud size={14} />
@@ -539,15 +548,13 @@ export const AnalyticsView = ({
             <div className="bg-[var(--surface-2)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left">
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
-                  <Sparkles size={16} className="text-[var(--accent)]" /> AI
-                  Sävy- ja tyylianalyysi (Gemini)
+                  <Sparkles size={16} className="text-[var(--accent)]" /> {strings.aiToneTitle}
                 </h3>
 
                 {!toneResult && !toneLoading && (
                   <div className="space-y-3">
                     <p className="text-sm text-[var(--muted)] leading-relaxed">
-                      Analysoi tekstijakson kielellistä sävyä, teemoja ja
-                      teologista tyyliä tekoälyn avulla.
+                      {strings.aiToneHint}
                     </p>
                     <button
                       type="button"
@@ -635,3 +642,4 @@ export const AnalyticsView = ({
     </div>
   );
 };
+

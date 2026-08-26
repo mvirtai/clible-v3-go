@@ -6,25 +6,50 @@ import { CellCountResult, type CountResultData } from './CellCountResult';
 import { CellCompareResult, type CompareResultData } from './CellCompareResult';
 import { CellVersesResult, type VersesResultData } from './CellVersesResult';
 
-interface ThemeItem {
+/**
+ * An individual extracted keyword theme item.
+ */
+export interface ThemeItem {
+  /** The thematic keyword or phrase */
   word: string;
+  /** Occurrence count */
   count: number;
 }
 
-interface ThemesResult {
+/**
+ * Result payload returned from a `/themes` analysis query.
+ */
+export interface ThemesResult {
+  /** List of extracted themes */
   themes: ThemeItem[];
+  /** Maximum limit requested */
   limit?: number;
+  /** Total count of themes */
   count: number;
 }
 
-interface CodeCellProps {
+/**
+ * Properties for {@link CodeCell}.
+ */
+export interface CodeCellProps {
+  /** The notebook code cell model instance */
   cell: Cell;
+  /** Callback fired when code/command content changes */
   onChange: (content: string) => void;
+  /** Callback fired to execute the command on the backend */
   onExecute: () => Promise<void>;
+  /** Active translation identifier */
   translation?: string;
+  /** Optional callback to freeze execution results to a Markdown cell */
   onFreeze?: (markdown: string, direction?: 'up' | 'down') => void;
 }
 
+/**
+ * Interactive CLI code cell with execution controls, freeze-to-markdown workflow, and dynamic result renderers.
+ *
+ * @param props - Component properties conforming to {@link CodeCellProps}.
+ * @returns Executable code cell container.
+ */
 export const CodeCell: React.FC<CodeCellProps> = ({
   cell,
   onChange,
@@ -134,24 +159,24 @@ export const CodeCell: React.FC<CodeCellProps> = ({
               <button
                 type="button"
                 onClick={() => setDirection('up')}
-                className={`px-1.5 py-0.5 text-[10px] font-mono rounded flex items-center gap-0.5 transition-all ${
+                className={`px-1.5 py-0.5 text-[10px] font-mono rounded flex items-center gap-0.5 transition-all cursor-pointer ${
                   direction === 'up'
                     ? 'bg-amber-500/20 text-amber-300 font-bold'
                     : 'text-neutral-500 hover:text-neutral-300'
                 }`}
-                title="Freeze to Markdown cell above"
+                title={strings.freezeUpTitle}
               >
                 ↑
               </button>
               <button
                 type="button"
                 onClick={() => setDirection('down')}
-                className={`px-1.5 py-0.5 text-[10px] font-mono rounded flex items-center gap-0.5 transition-all ${
+                className={`px-1.5 py-0.5 text-[10px] font-mono rounded flex items-center gap-0.5 transition-all cursor-pointer ${
                   direction === 'down'
                     ? 'bg-amber-500/20 text-amber-300 font-bold'
                     : 'text-neutral-500 hover:text-neutral-300'
                 }`}
-                title="Freeze to Markdown cell below"
+                title={strings.freezeDownTitle}
               >
                 ↓
               </button>
@@ -159,9 +184,10 @@ export const CodeCell: React.FC<CodeCellProps> = ({
           )}
 
           <button
+            type="button"
             onClick={handleExecute}
             disabled={isRunning || !cell.content.trim()}
-            className={`px-3 py-1 text-xs font-mono font-medium rounded flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1 text-xs font-mono font-medium rounded flex items-center gap-1.5 transition-all cursor-pointer ${
               isRunning || !cell.content.trim()
                 ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
                 : 'bg-amber-500 hover:bg-amber-400 text-neutral-950 font-semibold shadow-xs'
@@ -196,9 +222,10 @@ export const CodeCell: React.FC<CodeCellProps> = ({
             </span> 
             {hasFreezeOption && onFreeze && (
               <button
+                type="button"
                 onClick={handleFreezeClick}
                 disabled={selectedCount === 0}
-                className={`text-[10px] font-bold flex items-center gap-1 px-2 py-1 rounded border transition-all ${
+                className={`text-[10px] font-bold flex items-center gap-1 px-2 py-1 rounded border transition-all cursor-pointer ${
                   selectedCount === 0
                     ? 'text-neutral-600 bg-neutral-950 border-neutral-900 cursor-not-allowed'
                     : 'text-neutral-400 hover:text-amber-500 bg-neutral-900 hover:bg-neutral-800 border-neutral-800'
@@ -234,6 +261,8 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
   deselectedVerseIds = {},
   onToggleVerse,
 }) => {
+  const { strings } = useLanguage();
+
   if (result.type === 'error') {
     let errorMessage = 'Error executing command.';
     if (result.data && typeof result.data === 'object' && 'message' in result.data) {
@@ -274,12 +303,12 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs text-neutral-400 font-mono border-b border-neutral-800 pb-2">
-          <span>Identified key themes</span>
-          <span>{data.count || 0} themes</span>
+          <span>{strings.identifiedThemesLabel}</span>
+          <span>{data.count || 0} {strings.themesSuffix}</span>
         </div>
         
         {themes.length === 0 ? (
-          <p className="text-neutral-500 text-sm italic">No identified themes from selected cells.</p>
+          <p className="text-neutral-500 text-sm italic">{strings.noIdentifiedThemes}</p>
         ) : (
           <div className="flex flex-wrap gap-2 pt-1">
             {themes.map((t, idx) => (
@@ -323,3 +352,4 @@ const ResultRenderer: React.FC<ResultRendererProps> = ({
     </pre>
   );
 };
+
