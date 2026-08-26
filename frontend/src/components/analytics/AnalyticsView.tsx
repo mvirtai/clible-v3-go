@@ -1,0 +1,645 @@
+import { useState } from "react";
+import {
+  BarChart3,
+  Hash,
+  Activity,
+  MessageSquare,
+  Loader2,
+  Sparkles,
+  Cloud,
+  Save,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+import { apiService } from "../../services/api";
+import { WordCloud } from "./WordCloud";
+import type { TextStats } from "../../types/bible";
+import { resolveBookId } from "../../utils/bookNames";
+import ReactMarkdown from "react-markdown";
+import { useLanguage } from "../../context/LanguageContext";
+import remarkGfm from "remark-gfm";
+import { markdownComponents } from "../../utils/markdownComponents";
+import { NextFocusChips } from "../search/NextFocusChips";
+import { DeepDiveCard } from "../layout/DeepDiveCard";
+import { GeminiUsage } from "../layout/GeminiUsage";
+import type {
+  AiTextResponse,
+  NextFocusItem,
+  GeminiUsageMetadata,
+} from "../../types/ai";
+
+/**
+ * Properties for {@link AnalyticsView}.
+ */
+export interface AnalyticsViewProps {
+  /** The translation ID selected globally (e.g. "kjv" or "fin-1992"). */
+  defaultTranslation: string;
+  /** Active workspace (scope) ID for persisting statistical snapshots. */
+  activeScopeId?: string;
+  /** Callback fired after successfully saving an analysis snapshot to a workspace. */
+  onWorkspaceUpdated?: () => void;
+  /** Pre-loaded saved text statistics restoring an earlier workspace snapshot. */
+  loadedSavedStats?: {
+    stats: TextStats;
+    reference: string;
+    translationId: string;
+  } | null;
+  /** Pre-loaded AI tone response payload. */
+  loadedSavedTone?: AiTextResponse | null;
+  /** Pre-loaded AI deep-dive explanation payload. */
+  loadedSavedDeepDive?: string | null;
+  /** Initial verse reference to analyze. */
+  activeReference?: string;
+}
+
+/**
+ * Analytical corpus view offering statistical text metrics, token/type ratios, interactive charts, word clouds, and AI tone breakdown.
+ *
+ * @param props - Component properties conforming to {@link AnalyticsViewProps}.
+ * @returns Analytics workspace dashboard.
+ */
+export const AnalyticsView = ({
+  defaultTranslation,
+  activeScopeId,
+  onWorkspaceUpdated,
+  loadedSavedStats,
+  loadedSavedTone,
+  loadedSavedDeepDive,
+  activeReference,
+}: AnalyticsViewProps) => {
+  const { strings } = useLanguage();
+  const [reference, setReference] = useState<string>(
+    () => activeReference || "John 3",
+  );
+  const [stats, setStats] = useState<TextStats | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [chartType, setChartType] = useState<"bar" | "cloud">("bar");
+
+  // AI states
+  const [toneResult, setToneResult] = useState<AiTextResponse | null>(null);
+  const [toneLoading, setToneLoading] = useState(false);
+  const [toneError, setToneError] = useState<string | null>(null);
+  const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
+  const [deepDiveUsage, setDeepDiveUsage] =
+    useState<GeminiUsageMetadata | null>(null);
+
+  const [prevLoadedSavedTone, setPrevLoadedSavedTone] =
+    useState<AiTextResponse | null>(null);
+  const normalizedSavedTone = loadedSavedTone || null;
+  if (normalizedSavedTone !== prevLoadedSavedTone) {
+    setToneResult(normalizedSavedTone);
+    setPrevLoadedSavedTone(normalizedSavedTone);
+  }
+
+  const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<
+    string | null
+  >(null);
+  const normalizedSavedDeepDive = loadedSavedDeepDive || null;
+  if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
+    setDeepDiveText(normalizedSavedDeepDive);
+    setDeepDiveUsage(null);
+    setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
+  }
+  const [toneSaveStatus, setToneSaveStatus] = useState<
+    "idle" | "saving" | "success" | "error"
+  >("idle");
+
+  // Save form states
+  const [saveName, setSaveName] = useState("");
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">(
+    "idle",
+  );
+
+  // Restore saved analysis from workspace during render phase
+  const [prevSavedStats, setPrevSavedStats] = useState(loadedSavedStats);
+  if (loadedSavedStats && loadedSavedStats !== prevSavedStats) {
+    setPrevSavedStats(loadedSavedStats);
+    setReference(loadedSavedStats.reference);
+    setError(null);
+    if (!loadedSavedTone) {
+      setToneResult(null);
+    }
+    if (!loadedSavedDeepDive) {
+      setDeepDiveText(null);
+      setDeepDiveUsage(null);
+    }
+    setToneError(null);
+    if (loadedSavedStats.stats) {
+      setStats(loadedSavedStats.stats);
+    } else {
+      // Note: Triggering side effects in render is dangerous; 
+      // this logic should ideally be extracted to a controlled effect if it requires async fetching.
+      // This is a minimal refactor as requested by instructions.
+      setLoading(true);
+      const normalized = loadedSavedStats.reference.replace(
+        /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+        (match) => resolveBookId(match) ?? match,
+      );
+      apiService.analyze(normalized, loadedSavedStats.translationId)
+        .then(setStats)
+        .catch(() => setError(strings.analyticsFetchFailed))
+        .finally(() => setLoading(false));
+    }
+  }
+
+  const runAnalysis = async () => {
+    if (!reference.trim() || !defaultTranslation) return;
+    setToneResult(null);
+    setDeepDiveText(null);
+    setToneError(null);
+    const normalized = reference
+      .trim()
+      .replace(
+        /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+        (match) => resolveBookId(match) ?? match,
+      );
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiService.analyze(normalized, defaultTranslation);
+      setStats(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : strings.analyticsFetchFailed);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRunToneAnalysis = async () => {
+    if (!reference || !stats) return;
+    setToneLoading(true);
+    setToneError(null);
+    setToneResult(null);
+    try {
+      const normalized = reference
+        .trim()
+        .replace(
+          /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+          (match) => resolveBookId(match) ?? match,
+        );
+      const resData = await apiService.getVerses(
+        normalized,
+        defaultTranslation,
+      );
+      const text = resData.verses.map((v) => v.text).join("\n");
+      const res = await apiService.getAiTone(text);
+      setToneResult(res);
+    } catch (err) {
+      const errorObj = err as Error;
+      if (errorObj.message && errorObj.message.includes("503")) {
+        setToneError(strings.aiUnavailable);
+      } else {
+        setToneError(errorObj.message || strings.toneAnalysisFailed);
+      }
+    } finally {
+      setToneLoading(false);
+    }
+  };
+
+  const handleSaveToneAnalysis = async () => {
+    if (!activeScopeId || !toneResult || !reference) return;
+    setToneSaveStatus("saving");
+    try {
+      await apiService.saveAnalysis({
+        scopeId: activeScopeId,
+        name: `${strings.deepDiveToneTitle}: ${reference}`,
+        reference: reference,
+        analysisType: "tone",
+        translationId: defaultTranslation,
+        paramsJson: JSON.stringify({}),
+        resultJson: JSON.stringify({
+          stats,
+          tone: toneResult,
+          deepDive: deepDiveText,
+        }),
+      });
+      setToneSaveStatus("success");
+      if (onWorkspaceUpdated) {
+        onWorkspaceUpdated();
+      }
+      setTimeout(() => setToneSaveStatus("idle"), 3000);
+    } catch (err) {
+      console.error("Failed to save tone analysis", err);
+      setToneSaveStatus("error");
+      setTimeout(() => setToneSaveStatus("idle"), 4000);
+    }
+  };
+
+  const handleNextFocusPick = async (it: NextFocusItem) => {
+    if (it.kind === "word" || it.kind === "theme") {
+      setToneLoading(true);
+      setToneError(null);
+      try {
+        const res = await apiService.getAiDeepDive(it.label, "fi", {
+          reference,
+        });
+        setDeepDiveText(res.text);
+        setDeepDiveUsage(res.geminiUsageMetadata || null);
+      } catch (err) {
+        const errorObj = err as Error;
+        setToneError(errorObj.message || strings.deepDiveFailed);
+      } finally {
+        setToneLoading(false);
+      }
+    } else {
+      setReference(it.label);
+      const normalized = it.label
+        .trim()
+        .replace(
+          /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+          (match) => resolveBookId(match) ?? match,
+        );
+      setLoading(true);
+      setError(null);
+      setToneResult(null);
+      setDeepDiveText(null);
+      setDeepDiveUsage(null);
+      try {
+        const data = await apiService.analyze(normalized, defaultTranslation);
+        setStats(data);
+      } catch {
+        setError(strings.analyticsFetchFailed);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      {/* Search Header */}
+      <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <Activity size={20} className="text-[var(--accent)]" />
+          <span>{strings.tabAnalytics}</span>
+        </h2>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder={strings.versePlaceholder}
+            className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm"
+          />
+          <button
+            type="button"
+            onClick={runAnalysis}
+            disabled={loading || !defaultTranslation}
+            className="px-6 py-2.5 rounded-xl bg-[var(--text)] text-[var(--bg)] font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer btn-tactile"
+          >
+            {loading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Activity size={16} />
+            )}
+            {strings.analyzePassage}
+          </button>
+        </div>
+        {activeReference &&
+          reference.trim().toLowerCase() !==
+            activeReference.trim().toLowerCase() && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-[var(--muted)]">
+                {strings.lastReadVerseLabel}
+              </span>
+              <button
+                type="button"
+                onClick={() => setReference(activeReference)}
+                className="px-2 py-0.5 rounded-md text-xs font-semibold border border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)] text-[var(--text)] transition-colors cursor-pointer"
+              >
+                {activeReference}
+              </button>
+            </div>
+          )}
+        {!defaultTranslation && (
+          <p className="text-xs text-red-500">
+            {strings.errSelectTranslationFirst}
+          </p>
+        )}
+      </div>
+
+      {error && (
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+          {error}
+        </div>
+      )}
+
+      {activeScopeId && stats && (
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-6 text-left space-y-3">
+          <div className="flex justify-between items-center">
+            <span
+              className="text-xs font-semibold"
+              style={{ color: "var(--text)" }}
+            >
+              {strings.saveAnalysisWorkspacePrompt}
+            </span>
+            {!showSaveForm && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSaveForm(true)}
+                  className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 btn-tactile hover:border-[var(--accent)] border border-[var(--border)] bg-transparent text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
+                >
+                  <Save size={12} /> {strings.saveLabel}
+                </button>
+                {saveStatus === "success" && (
+                  <span className="text-xs font-semibold text-emerald-500">
+                    {strings.saveSuccess}
+                  </span>
+                )}
+                {saveStatus === "error" && (
+                  <span className="text-xs font-semibold text-red-500">
+                    {strings.saveFail}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {showSaveForm && (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder={strings.saveNamePlaceholder}
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
+                style={{
+                  background: "var(--surface)",
+                  borderColor: "var(--border)",
+                  color: "var(--text)",
+                }}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!saveName.trim()) return;
+                  setSaving(true);
+                  try {
+                    const resultPayload = toneResult
+                      ? { stats, tone: toneResult, deepDive: deepDiveText }
+                      : { stats };
+                    await apiService.saveAnalysis({
+                      scopeId: activeScopeId,
+                      name: saveName.trim(),
+                      reference: reference,
+                      analysisType: toneResult ? "tone" : "single_stats",
+                      translationId: defaultTranslation,
+                      paramsJson: "{}",
+                      resultJson: JSON.stringify(resultPayload),
+                    });
+                    setSaveName("");
+                    setShowSaveForm(false);
+                    setSaveStatus("success");
+                    setTimeout(() => setSaveStatus("idle"), 3000);
+                    if (onWorkspaceUpdated) onWorkspaceUpdated();
+                  } catch {
+                    setSaveStatus("error");
+                    setTimeout(() => setSaveStatus("idle"), 3000);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving || !saveName.trim()}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+              >
+                {saving ? strings.savingLabel : strings.saveLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSaveForm(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border text-[var(--muted)] border-[var(--border)] bg-transparent cursor-pointer"
+              >
+                {strings.cancelLabel}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {stats && (
+        <>
+          {/* Key Metrics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              {
+                label: strings.statTotalTokens,
+                value: stats.tokenCount,
+                icon: MessageSquare,
+              },
+              {
+                label: strings.statUniqueTokens,
+                value: stats.uniqueTokenCount,
+                icon: Hash,
+              },
+              {
+                label: strings.statTtr,
+                value: `${(stats.typeTokenRatio * 100).toFixed(1)}%`,
+                icon: Activity,
+              },
+              {
+                label: strings.statAvgWordLength,
+                value: stats.avgWordLength.toFixed(1),
+                icon: BarChart3,
+              },
+            ].map((card, i) => (
+              <div
+                key={i}
+                className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm"
+              >
+                <div className="flex items-center gap-2 text-[var(--muted)] mb-2">
+                  <card.icon size={15} />
+                  <span className="text-[10px] uppercase tracking-wider font-semibold">
+                    {card.label}
+                  </span>
+                </div>
+                <div className="text-2xl font-mono font-bold text-[var(--text)]">
+                  {card.value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Visualizations and AI Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Word Frequency Card */}
+            <div className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
+                  <BarChart3 size={16} /> {strings.wordFrequencyTitle}
+                </h3>
+                <div className="flex gap-1 bg-[var(--surface-2)] p-0.5 rounded-lg border border-[var(--border-soft)]">
+                  <button
+                    type="button"
+                    onClick={() => setChartType("bar")}
+                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "bar" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                    title={strings.chartBarTitle}
+                  >
+                    <BarChart3 size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartType("cloud")}
+                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "cloud" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                    title={strings.chartCloudTitle}
+                  >
+                    <Cloud size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="h-64 min-h-[16rem] w-full flex items-center justify-center overflow-hidden">
+                {chartType === "bar" ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={stats.topWords}
+                      layout="vertical"
+                      margin={{ left: 10, right: 10 }}
+                    >
+                      <XAxis type="number" hide />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        width={80}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: "currentColor" }}
+                        className="text-[var(--muted)]"
+                        interval={0}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "var(--surface-2)" }}
+                        contentStyle={{
+                          borderRadius: "12px",
+                          border: "1px solid var(--border)",
+                          background: "var(--surface)",
+                        }}
+                        itemStyle={{ color: "var(--text)" }}
+                        labelStyle={{ color: "var(--text-2)" }}
+                      />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                        {stats.topWords.map((_, i) => (
+                          <Cell
+                            key={i}
+                            fill="var(--accent)"
+                            fillOpacity={1 - i * 0.08}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <WordCloud words={stats.topWords} />
+                )}
+              </div>
+            </div>
+
+            {/* AI Tone Analysis Live Panel */}
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left">
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
+                  <Sparkles size={16} className="text-[var(--accent)]" /> {strings.aiToneTitle}
+                </h3>
+
+                {!toneResult && !toneLoading && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-[var(--muted)] leading-relaxed">
+                      {strings.aiToneHint}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleRunToneAnalysis}
+                      className="rounded-full px-4 py-2 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                    >
+                      {strings.analyzePassage}
+                    </button>
+                  </div>
+                )}
+
+                {toneLoading && (
+                  <div className="flex items-center gap-2 text-sm text-[var(--muted)] py-4">
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>{strings.aiReading}</span>
+                  </div>
+                )}
+
+                {toneError && (
+                  <p className="text-xs text-red-500 font-semibold">
+                    {toneError}
+                  </p>
+                )}
+
+                {toneResult && (
+                  <div className="space-y-4 mt-2">
+                    <div className="font-sans text-[var(--text-2)]">
+                      <ReactMarkdown
+                        components={markdownComponents({
+                          invert: false,
+                          insightLayout: false,
+                          toneLayout: true,
+                        })}
+                        remarkPlugins={[remarkGfm]}
+                      >
+                        {toneResult.text}
+                      </ReactMarkdown>
+                      <GeminiUsage usage={toneResult.geminiUsageMetadata} />
+                    </div>
+
+                    {activeScopeId && (
+                      <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
+                        <button
+                          type="button"
+                          onClick={handleSaveToneAnalysis}
+                          disabled={toneSaveStatus === "saving"}
+                          className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                        >
+                          {(toneSaveStatus === "saving" &&
+                            strings.savingLabel) ||
+                            (toneSaveStatus === "success" &&
+                              strings.saveSuccess) ||
+                            (toneSaveStatus === "error" && strings.saveFail) ||
+                            `${strings.saveLabel} ${strings.tabAnalytics}`}
+                        </button>
+                      </div>
+                    )}
+
+                    <NextFocusChips
+                      title={strings.nextFocusTitle}
+                      items={toneResult.nextFocus ?? []}
+                      onPick={handleNextFocusPick}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {deepDiveText && (
+            <div className="mt-8 w-full">
+              <DeepDiveCard
+                title={strings.deepDiveToneTitle}
+                text={deepDiveText}
+                onClose={() => {
+                  setDeepDiveText(null);
+                  setDeepDiveUsage(null);
+                }}
+                geminiUsageMetadata={deepDiveUsage || undefined}
+              />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+

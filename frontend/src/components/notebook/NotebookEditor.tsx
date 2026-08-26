@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { Cell, CellType, CellWidth, Notebook } from './types';
-import { CellWrapper } from './CellWrapper';
-import { MarkdownCell } from './MarkdownCell';
-import { CodeCell } from './CodeCell';
+import { CellWrapper } from './cells/CellWrapper';
+import { MarkdownCell } from './cells/MarkdownCell';
+import { CodeCell } from './cells/CodeCell';
 import { useLanguage } from '../../context/LanguageContext';
 import { DragDropProvider } from '@dnd-kit/react';
 import { move } from '@dnd-kit/helpers';
