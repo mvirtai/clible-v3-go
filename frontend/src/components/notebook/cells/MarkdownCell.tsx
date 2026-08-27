@@ -95,13 +95,13 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
    * 4. Transforms line-level and mid-line `!isla ...`, `!@...`, `!?...`, `!#...`, `!~...` into ISLA code blocks.
    */
   const preprocessContent = (text: string) => {
-    // 1. Transform `![[isla @...]]` or `![[@...]]` embeds into ISLA blocks
-    let processed = text.replace(/!\[\[(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|.*?)\]\]/g, (_, g1) => {
+    // 1. Transform `![@...]` or `![[...]]` embeds into ISLA code blocks
+    let processed = text.replace(/!\[(?:\[)?(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|search\(.*?\)|read\(.*?\)|.*?)\](?:\])?/g, (_, g1) => {
       return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
     });
 
     // 2. Transform inline `!isla ...` or `!@...` or `!?...` into ISLA blocks (breaks out of inline <p><code>)
-    processed = processed.replace(/`!(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|.*?)`/g, (_, g1) => {
+    processed = processed.replace(/`!(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|search\(.*?\)|read\(.*?\)|.*?)`/g, (_, g1) => {
       return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
     });
 
@@ -113,8 +113,8 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
       return `[${ref}](#bible-link/${encodeURIComponent(ref)})`;
     });
 
-    // 4. Transform line and mid-line directives: `!isla ...`, `!@...`, `!?...`, `!#...`, `!~...`, `!i#...`
-    processed = processed.replace(/(?:^|[ \t]+)(!(?:isla\b|ISLA\b|i[@?#~]|[@?#~]|\s+@|\s+\?|\s+#|\s+~)[^\n`]*)/gm, (_, fullDirective) => {
+    // 4. Transform line and mid-line directives: `! @...`, `! ?...`, `! search(...)`, `! ^...`
+    processed = processed.replace(/(?:^|[ \t]+)(!(?:isla\b|ISLA\b|search\(|read\(|i[@?#~]|[@?#~]|\s+@|\s+\?|\s+#|\s+~|\s+\^)[^\n`]*)/gm, (_, fullDirective) => {
       const query = normalizeISLAQuery(fullDirective);
       return `\n\n\`\`\`isla\n${query}\n\`\`\`\n\n`;
     });
