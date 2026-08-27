@@ -2,6 +2,7 @@ import { Terminal, Settings, Sun, Moon, LogOut } from 'lucide-react';
 import { LanguageSwitcher } from '../LanguageSwitcher/LanguageSwitcher';
 import { TranslationSelector } from '../translations/TranslationSelector';
 import { useLanguage } from '../../context/LanguageContext';
+import { APP_VERSION } from '@/utils/version';
 import type { InstalledTranslation } from '../../types/bible';
 
 export type ViewMode = 'reader' | 'analytics' | 'compare' | 'original' | 'notebooks';
@@ -73,7 +74,7 @@ export function AppHeader({
             style={{ color: 'var(--text)' }}
           >
             Clible <span className="hidden sm:inline" style={{ color: 'var(--muted)', fontWeight: 400 }}>Workspace</span>
-            <span className="ml-1 sm:ml-2 text-xs font-mono" style={{ color: 'var(--accent)' }}>v3</span>
+            <span className="ml-1 sm:ml-2 text-xs font-mono" style={{ color: 'var(--accent)' }}>v{APP_VERSION}</span>
           </h1>
         </div>
 

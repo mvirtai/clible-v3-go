@@ -1,10 +1,10 @@
-# PR Story: ISLA IntelliSense Engine and Autocompletion Suite
+# PR Story: ISLA IntelliSense Engine, Cross-Reference Classification, and Single Source of Truth Versioning
 
 ## Business Context
 
 As part of the ISLA (Interactive Scripture Language Architecture) IDE experience in Clible-v3 notebooks, users require real-time interactive autocompletion and contextual syntax suggestions. Without intelligent autocompletion, composing DSL directives (such as ternary comparisons, scoped FTS searches, metric pipelines, book references, cross-references, and regex searches) requires manual syntax memorization, increasing cognitive load and error rates.
 
-This PR introduces the in-browser **ISLA IntelliSense Engine** ([`islaIntellisense.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.ts)) and supporting metadata module ([`islaUtils.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaUtils.ts)). The engine performs zero-latency lexical and cursor analysis on active lines, serving rich contextual suggestions for verified working commands: template snippets, quick prefix triggers (`!?`, `!~`, `!^`), all 66 canonical Bible books, testament scopes (`VT`, `UT`, `OT`, `NT`), pipeline transformers (`count`, `#themes`, `limit:3`, `limit:5`, `limit:10`), and comparative translation targets (`KR92`, `KR38`, `1776`, `WEB`, `KJV`).
+Furthermore, this PR resolves semantic classification ambiguities in the notebook ecosystem by cleanly designating `!~` and `~` as deterministic **Cross-Reference** (`refs`) queries rather than external AI calls, aligning UI badges with actual system behavior. In addition, it establishes a **Single Source of Truth (SSOT)** versioning architecture where the application version (`v3.1.1`) is extracted directly from the root [`VERSION`](file:///home/vivaldev/code/clible-v3-go/VERSION) file at compile-time and dynamically rendered in the application header.
 
 ---
 
@@ -43,7 +43,7 @@ sequenceDiagram
     UI-->>User: Render Interactive Completion Popup with Fi/En Docs
 ```
 
-### 2. Suggestion Classification Pipeline
+### 2. Suggestion Classification & SSOT Architecture
 
 ```mermaid
 graph TD
@@ -61,6 +61,12 @@ graph TD
     E --> H
     F --> H
     G --> H
+
+    subgraph SSOT Versioning
+        V[root /VERSION '3.1.1'] -->|fs.readFileSync| VC[frontend/vite.config.ts]
+        VC -->|define __APP_VERSION__| VT[frontend/src/utils/version.ts]
+        VT -->|APP_VERSION| AH[frontend/src/components/layout/AppHeader.tsx]
+    end
 ```
 
 ---
@@ -78,26 +84,10 @@ graph TD
   - `eng-web` → `WEB` (World English Bible)
   - `kjv` → `KJV` (King James Version)
 
-```typescript
-export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
-  {
-    id: 'fin-1992',
-    code: 'KR92',
-    name: 'Kirkkoraamattu (1992)',
-    language: 'fi',
-    description: {
-      fi: 'Suomen evankelis-luterilaisen kirkon virallinen kirkkoraamattu 1992.',
-      en: 'Official Finnish Church Bible translation from 1992.',
-    },
-  },
-  // ...
-];
-```
-
 ### 2. Contextual Autocompletion Engine ([`islaIntellisense.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.ts))
 
 - **Rich Dual-Language Documentation:** Each suggestion provides bilingual descriptions (`fi` and `en`) and syntax usage examples.
-- **Strictly Active Feature Set:** Autocompletes all 100% supported backend executor directives:
+- **Strictly Active Feature Set:** Autocompletes all 100% verified backend executor directives:
   - Verse lookups (`!@Joh 3:16 => KR92`)
   - Ternary comparisons (`!@Joh 3:16 ? KR92 : KR38`)
   - Cross-references (`!~ @Joh 3:16`)
@@ -108,7 +98,18 @@ export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
 - **Quick Prefix Recognition:** Typing `!?`, `!~`, or `!^` instantly presents the corresponding categorized template suggestions.
 - **Dynamic Translation Scoping:** Accepts an optional `availableTranslations` parameter to constrain suggestions to active user translations while providing safe fallbacks.
 
-### 3. Project Configuration & Path Alias Alignment
+### 3. Cross-Reference Classification & Badge Normalization
+
+- **Semantic Realignment:** Replaced misleading `ai` category labels in [`islaClassifier.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/utils/islaClassifier.ts) with `refs` for `~`, `!~`, and `refs` commands.
+- **UI Consistency:** Updated [`CellBadge.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/cells/CellBadge.tsx) and [`SortableNotebookCard.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/SortableNotebookCard.tsx) to render link icons (`🔗`) and localized badges (**Viitteet** / **Refs**).
+
+### 4. Single Source of Truth Application Versioning (`v3.1.1`)
+
+- **Vite Build-time Injection:** Configured [`vite.config.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/vite.config.ts) to read the root [`VERSION`](file:///home/vivaldev/code/clible-v3-go/VERSION) file (`3.1.1`) and define `__APP_VERSION__` for runtime consumption.
+- **Dynamic Header Binding:** Replaced the hardcoded `v3` string in [`AppHeader.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/layout/AppHeader.tsx) with dynamic `v{APP_VERSION}`.
+- **Automated Bump Safety:** Hardened `version:bump` task in [`Taskfile.yml`](file:///home/vivaldev/code/clible-v3-go/Taskfile.yml) with exact-match regular expressions to maintain syntactic validity.
+
+### 5. Project Configuration & Path Alias Alignment
 
 - Configured `@/*` path alias in [`tsconfig.app.json`](file:///home/vivaldev/code/clible-v3-go/frontend/tsconfig.app.json) and [`vite.config.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/vite.config.ts) using `node:path`, eliminating brittle relative import depths (`../../../`).
 
@@ -119,7 +120,7 @@ export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
 * **Test Coverage:** `islaIntellisense.ts` achieved **100% statements, 100% branches, 100% functions, 100% lines**.
 * **Metadata Coverage:** `islaUtils.ts` achieved **100% statements, 100% branches, 100% functions, 100% lines**.
 * **Engine Execution Speed:** Sub-millisecond synchronous evaluation ($O(N)$ with $N \le 70$), ensuring zero typing stutter or frame drops.
-* **Test Suite Expansion:** 19 comprehensive unit tests added, bringing frontend test count to 135 passing tests across 25 suites.
+* **Test Suite Status:** All 25 test suites and 135 unit/integration tests passing cleanly.
 
 ---
 
@@ -135,11 +136,24 @@ export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
 
 | File | Change Summary |
 |------|----------------|
+| [`VERSION`](file:///home/vivaldev/code/clible-v3-go/VERSION) | Bumps application version to `3.1.1`. |
+| [`Taskfile.yml`](file:///home/vivaldev/code/clible-v3-go/Taskfile.yml) | Hardens `version:bump` task replacement patterns. |
+| [`backend/internal/version/version.go`](file:///home/vivaldev/code/clible-v3-go/backend/internal/version/version.go) | Updates Go backend version constant to `3.1.1`. |
+| [`frontend/package.json`](file:///home/vivaldev/code/clible-v3-go/frontend/package.json) | Updates frontend package version to `3.1.1`. |
+| [`frontend/vite.config.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/vite.config.ts) | Extracts `VERSION` file and defines compile-time `__APP_VERSION__`; configures `@/*` alias. |
+| [`frontend/src/vite-env.d.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/vite-env.d.ts) | Declares global `__APP_VERSION__` constant for TypeScript. |
+| [`frontend/src/utils/version.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/utils/version.ts) | Exports `APP_VERSION` sourced from compile-time `__APP_VERSION__`. |
+| [`frontend/src/components/layout/AppHeader.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/layout/AppHeader.tsx) | Binds header logo version badge to dynamic `APP_VERSION` instead of hardcoded `v3`. |
+| [`frontend/src/components/layout/AppHeader.test.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/layout/AppHeader.test.tsx) | Asserts dynamic `v3.1.1` rendering in header unit tests. |
 | [`frontend/src/components/notebook/isla/islaIntellisense.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.ts) | Implements `ISLASuggestion` data model, `ISLA_MAIN_SNIPPETS` with cross-references, and `getISLASuggestions` engine with prefix filtering. |
 | [`frontend/src/components/notebook/isla/islaUtils.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaUtils.ts) | Defines `BIBLE_BOOKS` registry and `APP_TRANSLATIONS` catalog with bilingual metadata. |
 | [`frontend/src/components/notebook/isla/islaIntellisense.test.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.test.ts) | Comprehensive test suite covering snippets, prefixes (`!?`, `!~`, `!^`), book references, pipeline operators, comparisons, and fallbacks. |
+| [`frontend/src/utils/islaClassifier.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/utils/islaClassifier.ts) | Replaces legacy `ai` category with accurate `refs` cross-reference classification. |
+| [`frontend/src/utils/islaClassifier.test.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/utils/islaClassifier.test.ts) | Unit tests verifying `refs` classification across queries, cells, and notebook summaries. |
+| [`frontend/src/components/notebook/cells/CellBadge.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/cells/CellBadge.tsx) | Updates category badges and labels to render `Refs` / `Viitteet` 🔗. |
+| [`frontend/src/components/notebook/cells/MarkdownCell.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/cells/MarkdownCell.tsx) | Aligns cross-reference shorthand documentation and processing. |
+| [`frontend/src/components/notebook/SortableNotebookCard.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/SortableNotebookCard.tsx) | Aligns 2D matrix canvas card previews to `refs` theme styling. |
 | [`frontend/tsconfig.app.json`](file:///home/vivaldev/code/clible-v3-go/frontend/tsconfig.app.json) | Configures `baseUrl` and `@/*` path mapping. |
-| [`frontend/vite.config.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/vite.config.ts) | Configures `@` path resolution via `path.resolve(__dirname, './src')`. |
 
 ---
 
@@ -152,7 +166,7 @@ export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
 ```text
 Test Files  25 passed (25)
      Tests  135 passed (135)
-  Duration  13.05s
+  Duration  8.52s
 
 % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------
@@ -185,3 +199,5 @@ ok  	github.com/mvirtai/clible-v3-go/internal/services	(cached)
 3. **Book Completion:** Verified typing `@joh`, `@1m`, `@room`, `@VT`, `@UT` suggests corresponding books with localized names and descriptions.
 4. **Pipeline Completion:** Verified typing `=> ` suggests `count`, `#themes`, `limit:3`, `limit:5`, `limit:10`, and translations (`KR92`, `KR38`, `1776`, `WEB`, `KJV`).
 5. **Comparison Targets:** Verified typing `? ` or `: ` suggests comparative translations.
+6. **Cross-Reference Badges:** Verified cells containing `!~` or `~` render `Viitteet` / `Refs` 🔗 badge pill.
+7. **Dynamic Version Header:** Verified the header logo displays `v3.1.1` dynamically from `VERSION`.
