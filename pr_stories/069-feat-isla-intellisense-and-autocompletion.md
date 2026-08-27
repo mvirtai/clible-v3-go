@@ -154,6 +154,7 @@ graph TD
 | [`frontend/src/components/notebook/cells/MarkdownCell.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/cells/MarkdownCell.tsx) | Aligns cross-reference shorthand documentation and processing. |
 | [`frontend/src/components/notebook/SortableNotebookCard.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/SortableNotebookCard.tsx) | Aligns 2D matrix canvas card previews to `refs` theme styling. |
 | [`frontend/tsconfig.app.json`](file:///home/vivaldev/code/clible-v3-go/frontend/tsconfig.app.json) | Configures `"@/*": ["./src/*"]` without deprecated `baseUrl`. |
+| [`Dockerfile`](file:///home/vivaldev/code/clible-v3-go/Dockerfile) | Copies root `VERSION` into frontend build stage for reproducible multi-stage Docker builds. |
 
 ---
 
