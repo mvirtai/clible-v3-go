@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from 'react';
 import { useSortable } from '@dnd-kit/react/sortable';
-import type { CellType, CellWidth, Cell } from '../types';
+import type { CellWidth, Cell } from '../types';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useResizableCell } from '../grid/useResizableCell';
 
@@ -20,11 +20,9 @@ export interface CellWrapperProps {
   onMoveUp: () => void;
   /** Callback triggered when moving the cell down in order */
   onMoveDown: () => void;
-  /** Callback triggered when changing the cell type */
-  onChangeType: (newType: CellType) => void;
   /** Callback triggered when changing the cell width, column span, or height */
   onChangeWidth: (newWidth: CellWidth, colSpan?: number, customHeight?: number) => void;
-  /** Renderable inner cell content (MarkdownCell or CodeCell) */
+  /** Renderable inner cell content (MarkdownCell) */
   children: React.ReactNode;
 }
 
@@ -66,7 +64,6 @@ export function CellWrapper({
   onDelete,
   onMoveUp,
   onMoveDown,
-  onChangeType,
   onChangeWidth,
   children,
 }: CellWrapperProps) {
@@ -146,19 +143,6 @@ export function CellWrapper({
           <option value="half" className="bg-[var(--surface)] text-[var(--text)]">{strings.cellWidthHalf}</option>
           <option value="third" className="bg-[var(--surface)] text-[var(--text)]">{strings.cellWidthThird}</option>
           <option value="twothirds" className="bg-[var(--surface)] text-[var(--text)]">{strings.cellWidthTwoThirds}</option>
-        </select>
-
-        <span className="w-px h-3 bg-[var(--border-soft)]" />
-
-        {/* Cell type selector */}
-        <select
-          aria-label={strings.cellTypeSelectAria}
-          value={cell.type}
-          onChange={(e) => onChangeType(e.target.value as CellType)}
-          className="bg-transparent text-[var(--muted)] text-[10px] font-medium focus:outline-none border-none cursor-pointer hover:text-amber-500"
-        >
-          <option value="markdown" className="bg-[var(--surface)] text-[var(--text)]">{strings.markdownOptionLabel}</option>
-          <option value="code" className="bg-[var(--surface)] text-[var(--text)]">{strings.codeOptionLabel}</option>
         </select>
 
         <span className="w-px h-3 bg-[var(--border-soft)]" />

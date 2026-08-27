@@ -99,12 +99,12 @@ describe('islaClassifier', () => {
       expect(result.categories).toContain('compare');
     });
 
-    it('classifies legacy code CLI cell', () => {
+    it('classifies ISLA line directive with search quotes', () => {
       const cell: Cell = {
         id: '5',
         notebookId: 'nb-1',
-        type: 'code',
-        content: '/search "valo"',
+        type: 'markdown',
+        content: '! ?"valo"',
       };
 
       const result = classifyCell(cell);

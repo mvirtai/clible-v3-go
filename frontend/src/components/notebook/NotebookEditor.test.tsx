@@ -36,14 +36,14 @@ const mockNotebookData = {
       id: 'cell-1',
       notebookId: 'nb-123',
       type: 'markdown',
-      content: '# Heading 1',
+      content: '# Heading 1\nPelkkä muistiinpano',
       position: 0,
     },
     {
       id: 'cell-2',
       notebookId: 'nb-123',
-      type: 'code',
-      content: '/suggest --limit 3',
+      type: 'markdown',
+      content: '! @Joh 3:16 => in(KR92)',
       position: 1,
     },
   ],
@@ -110,59 +110,10 @@ describe('NotebookEditor', () => {
 
     // Verify cells rendered
     expect(container?.textContent).toContain('Heading 1');
-    const inputs = container?.querySelectorAll('input, textarea');
-    const hasInputValue = Array.from(inputs || []).some(
-      (input) => (input as HTMLInputElement).value?.includes('/suggest --limit 3')
-    );
-    expect(hasInputValue || container?.textContent?.includes('/suggest')).toBe(true);
+    expect(container?.textContent).toContain('Pelkkä muistiinpano');
   });
 
-  it('handles freezing a code cell: creates a markdown cell and resets the code cell', async () => {
-    const notebookWithResult = {
-      ...mockNotebookData,
-      cells: [
-        {
-          id: 'cell-code-1',
-          notebookId: 'nb-123',
-          type: 'code',
-          content: '@Joh 3:16',
-          position: 0,
-          resultJson: {
-            type: 'read',
-            data: {
-              reference: 'Joh 3:16',
-              verses: [
-                {
-                  id: 'web:JHN:3:16',
-                  translationId: 'web',
-                  bookId: 'JHN',
-                  chapter: 3,
-                  verse: 16,
-                  text: 'For God so loved the world.',
-                },
-              ],
-            },
-          },
-        },
-      ],
-    };
-
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/api/notebooks/nb-123')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(notebookWithResult),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({}),
-        });
-      })
-    );
-
+  it('allows inserting a new markdown cell', async () => {
     await act(async () => {
       root = createRoot(container!);
       root.render(
@@ -172,19 +123,13 @@ describe('NotebookEditor', () => {
       );
     });
 
-    // Find freeze button and click it
-    const freezeBtn = Array.from(container?.querySelectorAll('button') || []).find((b) =>
-      b.textContent?.includes('Jäädytä') || b.textContent?.includes('Freeze')
+    const addBtn = Array.from(container?.querySelectorAll('button') || []).find((b) =>
+      b.textContent?.includes('+ Lisää solu') || b.textContent?.includes('+ Solu') || b.textContent?.includes('+ Add cell')
     );
-    expect(freezeBtn).toBeDefined();
+    expect(addBtn).toBeDefined();
 
     await act(async () => {
-      freezeBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      addBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-
-    // Now verify a markdown cell was created and the code input is emptied
-    const codeInput = container?.querySelector('input[type="text"]') as HTMLInputElement;
-    expect(codeInput?.value).toBe('');
   });
 });
-
