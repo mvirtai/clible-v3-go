@@ -19,26 +19,26 @@ sequenceDiagram
     participant Catalog as Metadata Catalog (islaUtils)
     participant UI as Autocomplete Overlay Dropdown
 
-    User->>Engine: Input Change / Cursor Move (lineText, cursorOffset)
+    User->>Engine: Input Change or Cursor Move (lineText, cursorOffset)
     Engine->>Engine: Slice Text (textBeforeCursor = lineText[0..cursorOffset])
-    alt Line starts with '!' or empty
+    alt Line starts with ! or empty
         Engine-->>UI: Return ISLA_MAIN_SNIPPETS (Template cards)
-    else Line starts with quick directive ('!?', '!~', '!^')
+    else Line starts with quick directive (!?, !~, !^)
         Engine-->>UI: Return Filtered Templates (Search / Cross-refs / Scope)
-    else Preceding token is '@' (e.g. '@Joh', '@1Moos', '@VT')
+    else Preceding token is @ (e.g. @Joh, @1Moos, @VT)
         Engine->>Catalog: Filter BIBLE_BOOKS by prefix (abbr, nameFi, nameEn, id)
         Catalog-->>Engine: Matching BibleBookSuggestionItems
-        Engine-->>UI: Map to ISLASuggestion[] (kind: 'reference')
-    else Preceding token is '=>' (e.g. '=> count', '=> #themes', '=> KR92')
+        Engine-->>UI: Map to ISLASuggestion array (kind: reference)
+    else Preceding token is => (e.g. => count, => #themes, => KR92)
         Engine->>Catalog: Filter APP_TRANSLATIONS + Pipeline Operations
         Catalog-->>Engine: Matching TranslationSuggestionItems
         Engine-->>UI: Return Functions, Keywords & Translation Targets
-    else Preceding token is '?' or ':' (e.g. '? KR92 : KJV')
+    else Preceding token is ? or : (e.g. ? KR92 : KJV)
         Engine->>Catalog: Filter APP_TRANSLATIONS by prefix
         Catalog-->>Engine: Matching TranslationSuggestionItems
-        Engine-->>UI: Return Translation Targets (kind: 'translation')
+        Engine-->>UI: Return Translation Targets (kind: translation)
     else No trigger pattern matches
-        Engine-->>UI: Return [] (Fallback silent state)
+        Engine-->>UI: Return empty array (Fallback silent state)
     end
     UI-->>User: Render Interactive Completion Popup with Fi/En Docs
 ```
@@ -47,25 +47,25 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    A[Input Cursor Position] --> B{Trigger Token Pattern}
-    B -->|Empty or '! / !isla'| C[ISLA_MAIN_SNIPPETS]
-    B -->|'!? / !~ / !^' Quick Directives| C2[Filtered Specific Snippets]
-    B -->|'@' Book Reference| D[BIBLE_BOOKS Catalog]
-    B -->|'=>' Pipeline Operator| E[Pipeline Aggregators & Limits]
-    B -->|'=>' & '?:' Comparison| F[APP_TRANSLATIONS Catalog]
-    B -->|No Match| G[Empty Array Fallback]
+    A["Input Cursor Position"] --> B{"Trigger Token Pattern"}
+    B -->|"Empty or ! / !isla"| C["ISLA_MAIN_SNIPPETS"]
+    B -->|"!? / !~ / !^ Quick Directives"| C2["Filtered Specific Snippets"]
+    B -->|"@ Book Reference"| D["BIBLE_BOOKS Catalog"]
+    B -->|"=> Pipeline Operator"| E["Pipeline Aggregators & Limits"]
+    B -->|"?: Comparison"| F["APP_TRANSLATIONS Catalog"]
+    B -->|"No Match"| G["Empty Array Fallback"]
     
-    C --> H[Unified ISLASuggestion[] Array]
+    C --> H["Unified ISLASuggestion Array"]
     C2 --> H
     D --> H
     E --> H
     F --> H
     G --> H
 
-    subgraph SSOT Versioning
-        V[root /VERSION '3.1.1'] -->|fs.readFileSync| VC[frontend/vite.config.ts]
-        VC -->|define __APP_VERSION__| VT[frontend/src/utils/version.ts]
-        VT -->|APP_VERSION| AH[frontend/src/components/layout/AppHeader.tsx]
+    subgraph SSOT_Versioning ["SSOT Versioning"]
+        V["root /VERSION 3.1.1"] -->|"fs.readFileSync"| VC["frontend/vite.config.ts"]
+        VC -->|"define __APP_VERSION__"| VT["frontend/src/utils/version.ts"]
+        VT -->|"APP_VERSION"| AH["frontend/src/components/layout/AppHeader.tsx"]
     end
 ```
 
@@ -109,9 +109,9 @@ graph TD
 - **Dynamic Header Binding:** Replaced the hardcoded `v3` string in [`AppHeader.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/layout/AppHeader.tsx) with dynamic `v{APP_VERSION}`.
 - **Automated Bump Safety:** Hardened `version:bump` task in [`Taskfile.yml`](file:///home/vivaldev/code/clible-v3-go/Taskfile.yml) with exact-match regular expressions to maintain syntactic validity.
 
-### 5. Project Configuration & Path Alias Alignment
+### 5. Project Configuration & TypeScript 7.0 Readiness
 
-- Configured `@/*` path alias in [`tsconfig.app.json`](file:///home/vivaldev/code/clible-v3-go/frontend/tsconfig.app.json) and [`vite.config.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/vite.config.ts) using `node:path`, eliminating brittle relative import depths (`../../../`).
+- Configured `@/*` path alias in [`tsconfig.app.json`](file:///home/vivaldev/code/clible-v3-go/frontend/tsconfig.app.json) using standard `"@/*": ["./src/*"]` without deprecated `baseUrl`, and [`vite.config.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/vite.config.ts) using `node:path`.
 
 ---
 
@@ -153,7 +153,7 @@ graph TD
 | [`frontend/src/components/notebook/cells/CellBadge.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/cells/CellBadge.tsx) | Updates category badges and labels to render `Refs` / `Viitteet` 🔗. |
 | [`frontend/src/components/notebook/cells/MarkdownCell.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/cells/MarkdownCell.tsx) | Aligns cross-reference shorthand documentation and processing. |
 | [`frontend/src/components/notebook/SortableNotebookCard.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/SortableNotebookCard.tsx) | Aligns 2D matrix canvas card previews to `refs` theme styling. |
-| [`frontend/tsconfig.app.json`](file:///home/vivaldev/code/clible-v3-go/frontend/tsconfig.app.json) | Configures `baseUrl` and `@/*` path mapping. |
+| [`frontend/tsconfig.app.json`](file:///home/vivaldev/code/clible-v3-go/frontend/tsconfig.app.json) | Configures `"@/*": ["./src/*"]` without deprecated `baseUrl`. |
 
 ---
 
