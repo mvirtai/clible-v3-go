@@ -34,10 +34,11 @@ describe('islaClassifier', () => {
       expect(classifyISLAQuery('!# "armo"')).toBe('count');
     });
 
-    it('classifies AI / theme suggestions', () => {
-      expect(classifyISLAQuery('~ "rakkaus ja toivo"')).toBe('ai');
-      expect(classifyISLAQuery('ai: analysoi jae')).toBe('ai');
-      expect(classifyISLAQuery('/ai sävyanalyysi')).toBe('ai');
+    it('classifies cross-references', () => {
+      expect(classifyISLAQuery('~ @Joh 3:16')).toBe('refs');
+      expect(classifyISLAQuery('!~ @Room 8:28')).toBe('refs');
+      expect(classifyISLAQuery('/refs Joh 3:16')).toBe('refs');
+      expect(classifyISLAQuery('refs @Matt 5:1')).toBe('refs');
     });
   });
 
@@ -121,7 +122,7 @@ describe('islaClassifier', () => {
         { id: '3', notebookId: 'nb', type: 'markdown', content: '!@Joh 3:16' },
         { id: '4', notebookId: 'nb', type: 'markdown', content: '!isla @Joh 3:16 ? KR92 : KJV' },
         { id: '5', notebookId: 'nb', type: 'markdown', content: '# "valo" @ut' },
-        { id: '6', notebookId: 'nb', type: 'markdown', content: '~ "ilo"' },
+        { id: '6', notebookId: 'nb', type: 'markdown', content: '~ @Joh 3:16' },
       ];
 
       const counts = classifyNotebookContent(cells);
@@ -130,7 +131,7 @@ describe('islaClassifier', () => {
       expect(counts.verse).toBe(1);
       expect(counts.compare).toBe(1);
       expect(counts.count).toBe(1);
-      expect(counts.ai).toBe(1);
+      expect(counts.refs).toBe(1);
     });
 
     it('falls back to cellCounts when cells array is not provided', () => {

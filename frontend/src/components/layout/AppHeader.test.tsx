@@ -48,6 +48,7 @@ describe('AppHeader', () => {
 
     const text = container?.textContent || '';
     expect(text).toContain('Clible');
+    expect(text).toContain('v3.1.1');
     expect(text).toContain('test@clible.com');
   });
 });

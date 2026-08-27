@@ -61,11 +61,11 @@ const PREVIEW_CATEGORY_THEMES: Record<
     emoji: '📊',
     label: { fi: 'Määrä', en: 'Count' },
   },
-  ai: {
+  refs: {
     containerClass: 'bg-fuchsia-500/5 dark:bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-500/25',
     badgeClass: 'bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300',
-    emoji: '🤖',
-    label: { fi: 'AI', en: 'AI' },
+    emoji: '🔗',
+    label: { fi: 'Viitteet', en: 'Refs' },
   },
   text: {
     containerClass: 'bg-sky-500/5 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/25',

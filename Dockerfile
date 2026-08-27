@@ -12,7 +12,8 @@ COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
-# Copy source code and build production bundle utilizing BuildKit cache
+# Copy VERSION file and frontend source code
+COPY VERSION /app/VERSION
 COPY frontend/ ./
 RUN --mount=type=cache,target=/root/.cache/turbo \
     pnpm run build

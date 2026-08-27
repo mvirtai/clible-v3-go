@@ -1,6 +1,6 @@
 import type { Cell, CellCounts } from '../components/notebook/types';
 
-export type ContentCategory = 'text' | 'search' | 'verse' | 'compare' | 'count' | 'ai';
+export type ContentCategory = 'text' | 'search' | 'verse' | 'compare' | 'count' | 'refs';
 
 export interface ContentCounts {
   text: number;
@@ -8,18 +8,18 @@ export interface ContentCounts {
   verse: number;
   compare: number;
   count: number;
-  ai: number;
+  refs: number;
 }
 
 /**
  * Classifies an isolated ISLA query string into its primary functional category.
  */
-export function classifyISLAQuery(rawQuery: string): 'search' | 'verse' | 'compare' | 'count' | 'ai' {
+export function classifyISLAQuery(rawQuery: string): 'search' | 'verse' | 'compare' | 'count' | 'refs' {
   const q = rawQuery.trim();
 
-  // 1. AI / Theme suggestions
-  if (q.startsWith('~') || q.startsWith('!~') || q.toLowerCase().startsWith('ai:') || q.toLowerCase().startsWith('/ai') || q.toLowerCase().startsWith('/suggest')) {
-    return 'ai';
+  // 1. Cross-references (~ @Joh 3:16 or refs @Joh 3:16)
+  if (q.startsWith('~') || q.startsWith('!~') || q.toLowerCase().startsWith('/refs') || q.toLowerCase().startsWith('refs ')) {
+    return 'refs';
   }
 
   // 2. Count metrics
@@ -160,25 +160,23 @@ export function classifyNotebookContent(
     verse: 0,
     compare: 0,
     count: 0,
-    ai: 0,
+    refs: 0,
   };
 
   if (!cells || cells.length === 0) {
     if (fallbackCellCounts) {
-      counts.text = fallbackCellCounts.markdown || 0;
-      if (fallbackCellCounts.code > 0) {
-        counts.search = fallbackCellCounts.code;
-      }
+      counts.text = fallbackCellCounts.markdown;
+      counts.search = fallbackCellCounts.code;
     }
     return counts;
   }
 
-  cells.forEach((cell) => {
-    const result = classifyCell(cell);
-    result.categories.forEach((cat) => {
+  for (const cell of cells) {
+    const { categories } = classifyCell(cell);
+    for (const cat of categories) {
       counts[cat]++;
-    });
-  });
+    }
+  }
 
   return counts;
 }

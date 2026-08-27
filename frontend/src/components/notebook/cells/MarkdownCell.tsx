@@ -70,7 +70,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
       return q;
     }
 
-    // Shorthand for compare / analyze queries: `~ "armo" @room` -> `~ "armo" @room`
+    // Shorthand for cross-reference queries: `!~ @Joh 3:16` -> `~ @Joh 3:16`
     if (q.startsWith('~')) {
       return q;
     }

@@ -496,9 +496,9 @@ tasks:
           # Update frontend/package.json
           cd frontend && pnpm version "$NEW_VERSION" --no-git-tag-version && cd ..
           # Update frontend utils/version.ts
-          sed -i "s/APP_VERSION = '.*'/APP_VERSION = '$NEW_VERSION'/" frontend/src/utils/version.ts 2>/dev/null || true
+          sed -i "s/APP_VERSION = '[^']*';/APP_VERSION = '$NEW_VERSION';/" frontend/src/utils/version.ts 2>/dev/null || true
           # Update backend version.go
-          sed -i "s/Version = \".*\"/Version = \"$NEW_VERSION\"/" backend/internal/version/version.go 2>/dev/null || true
+          sed -i "s/Version = \"[^\"]*\"/Version = \"$NEW_VERSION\"/" backend/internal/version/version.go 2>/dev/null || true
           echo "✅ Version bumped from $CURRENT to $NEW_VERSION"
         '
 
