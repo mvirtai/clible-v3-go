@@ -241,6 +241,19 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		} else if params.SearchScope == "book" && params.ScopeValue != "" {
 			whereClauses = append(whereClauses, fmt.Sprintf("book_id = $%d", len(args)+1))
 			args = append(args, params.ScopeValue)
+		} else if (params.SearchScope == "books" || params.SearchScope == "group") && params.ScopeValue != "" {
+			books := strings.Split(params.ScopeValue, ",")
+			var placeholders []string
+			for _, b := range books {
+				trimmed := strings.TrimSpace(b)
+				if trimmed != "" {
+					placeholders = append(placeholders, fmt.Sprintf("$%d", len(args)+1))
+					args = append(args, trimmed)
+				}
+			}
+			if len(placeholders) > 0 {
+				whereClauses = append(whereClauses, fmt.Sprintf("book_id IN (%s)", strings.Join(placeholders, ", ")))
+			}
 		}
 
 		if len(whereClauses) > 0 {
@@ -289,6 +302,19 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		} else if params.SearchScope == "book" && params.ScopeValue != "" {
 			ftsQuery += fmt.Sprintf(" AND book_id = $%d", len(args)+1)
 			args = append(args, params.ScopeValue)
+		} else if (params.SearchScope == "books" || params.SearchScope == "group") && params.ScopeValue != "" {
+			books := strings.Split(params.ScopeValue, ",")
+			var placeholders []string
+			for _, b := range books {
+				trimmed := strings.TrimSpace(b)
+				if trimmed != "" {
+					placeholders = append(placeholders, fmt.Sprintf("$%d", len(args)+1))
+					args = append(args, trimmed)
+				}
+			}
+			if len(placeholders) > 0 {
+				ftsQuery += fmt.Sprintf(" AND book_id IN (%s)", strings.Join(placeholders, ", "))
+			}
 		}
 
 		ftsQuery += " ORDER BY book_id ASC, chapter ASC, verse ASC"
@@ -311,6 +337,19 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		} else if params.SearchScope == "book" && params.ScopeValue != "" {
 			ftsQuery += fmt.Sprintf(" AND v.book_id = $%d", len(args)+1)
 			args = append(args, params.ScopeValue)
+		} else if (params.SearchScope == "books" || params.SearchScope == "group") && params.ScopeValue != "" {
+			books := strings.Split(params.ScopeValue, ",")
+			var placeholders []string
+			for _, b := range books {
+				trimmed := strings.TrimSpace(b)
+				if trimmed != "" {
+					placeholders = append(placeholders, fmt.Sprintf("$%d", len(args)+1))
+					args = append(args, trimmed)
+				}
+			}
+			if len(placeholders) > 0 {
+				ftsQuery += fmt.Sprintf(" AND v.book_id IN (%s)", strings.Join(placeholders, ", "))
+			}
 		}
 
 		ftsQuery += " ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC"
