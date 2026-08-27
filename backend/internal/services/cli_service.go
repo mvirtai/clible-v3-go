@@ -64,6 +64,56 @@ func (s *CLIService) ExecuteDSL(ctx context.Context, input string, defaultTrans 
 			}
 			return res
 		},
+		RefsFinder: func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error) {
+			if limit <= 0 {
+				limit = 5
+			}
+			verses, err := s.verseService.GetVerses(ctx, ref, translationID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch source verse: %w", err)
+			}
+			if len(verses) == 0 {
+				return nil, fmt.Errorf("source verse not found for reference: %s", ref)
+			}
+			keywords := ExtractKeywords(verses[0].Text)
+			if len(keywords) == 0 {
+				return []models.Verse{}, nil
+			}
+			tid := parsers.ResolveTranslationID(translationID)
+			refs, err := s.verseRepo.SearchByKeywords(ctx, keywords, tid, limit+2)
+			if err != nil {
+				return nil, fmt.Errorf("failed to search cross-references: %w", err)
+			}
+			var filtered []models.Verse
+			for _, r := range refs {
+				if r.BookID != verses[0].BookID || r.Chapter != verses[0].Chapter || r.Verse != verses[0].Verse {
+					filtered = append(filtered, r)
+				}
+			}
+			if len(filtered) > limit {
+				filtered = filtered[:limit]
+			}
+			return filtered, nil
+		},
+		SuggestFinder: func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error) {
+			if limit <= 0 {
+				limit = 5
+			}
+			trimmed := strings.TrimSpace(contextText)
+			if trimmed == "" {
+				return []models.Verse{}, []string{}, nil
+			}
+			keywords := ExtractKeywords(trimmed)
+			if len(keywords) == 0 {
+				return []models.Verse{}, []string{}, nil
+			}
+			tid := parsers.ResolveTranslationID(translationID)
+			suggestions, err := s.verseRepo.SearchByKeywords(ctx, keywords, tid, limit)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to search suggestions: %w", err)
+			}
+			return suggestions, keywords, nil
+		},
 	}
 
 	return dsl.Execute(execCtx, node)

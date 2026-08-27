@@ -476,3 +476,126 @@ func TestExecute_ComparisonNode(t *testing.T) {
 		t.Errorf("expected right 'fin-biblia-33-38', got %v", resNumeric.Data["right"].(map[string]interface{})["translation"])
 	}
 }
+
+func TestDSLExecutor_FunctionalPipelines(t *testing.T) {
+	fetcher := &mockVerseFetcher{
+		verses: map[string][]models.Verse{
+			"Joh 3:16@fin-1992": {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "Sillä niin on Jumala maailmaa rakastanut"}},
+			"Joh 3:16@kjv":      {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world"}},
+		},
+	}
+	searcher := &mockVerseSearcher{
+		results: []models.Verse{
+			{BookID: "MAT", Chapter: 5, Verse: 3, Text: "Autuaita ovat hengessään köyhät"},
+			{BookID: "LUK", Chapter: 6, Verse: 20, Text: "Autuaita olette te, köyhät"},
+		},
+	}
+
+	ctx := &ExecutionContext{
+		Ctx:           context.Background(),
+		DefaultTrans:  "KR92",
+		ContextText:   "Jumala on rakkaus ja armo ja laupeus",
+		VerseFetcher:  fetcher,
+		VerseSearcher: searcher,
+		ThemeExtractor: func(text string, limit int) []models.ThemeItem {
+			return []models.ThemeItem{{Word: "rakkaus", Count: 3}, {Word: "armo", Count: 2}}
+		},
+		RefsFinder: func(_ context.Context, ref, translationID string, limit int) ([]models.Verse, error) {
+			return []models.Verse{
+				{BookID: "1JN", Chapter: 4, Verse: 9, Text: "Siinä ilmestyi meille Jumalan rakkaus", TranslationID: translationID},
+			}, nil
+		},
+		SuggestFinder: func(_ context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error) {
+			return []models.Verse{
+				{BookID: "PSA", Chapter: 23, Verse: 1, Text: "Herra on minun paimeneni", TranslationID: translationID},
+			}, []string{"paimen", "herra"}, nil
+		},
+	}
+
+	t.Run("Pipeline in(KR92)", func(t *testing.T) {
+		node, err := Parse(`@Joh 3:16 => in(KR92)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "read" || res.Data["translation"] != "fin-1992" {
+			t.Errorf("unexpected result: %+v", res)
+		}
+	})
+
+	t.Run("Pipeline vs(KR92, KJV)", func(t *testing.T) {
+		node, err := Parse(`@Joh 3:16 => vs(KR92, KJV)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "compare" {
+			t.Errorf("expected compare type, got %s", res.Type)
+		}
+	})
+
+	t.Run("Pipeline refs(3)", func(t *testing.T) {
+		node, err := Parse(`@Joh 3:16 => refs(3)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "refs" || res.Data["count"] != 1 {
+			t.Errorf("unexpected refs result: %+v", res)
+		}
+	})
+
+	t.Run("Pipeline themes(5)", func(t *testing.T) {
+		node, err := Parse(`^ => themes(5)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "themes" || res.Data["limit"] != 5 {
+			t.Errorf("unexpected themes result: %+v", res)
+		}
+	})
+
+	t.Run("Pipeline suggest(3)", func(t *testing.T) {
+		node, err := Parse(`^ => suggest(3)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "suggest" || res.Data["count"] != 1 {
+			t.Errorf("unexpected suggest result: %+v", res)
+		}
+	})
+
+	t.Run("Smart bilingual search scope @evankeliumit => count()", func(t *testing.T) {
+		node, err := Parse(`search("autuaita") => @evankeliumit => count()`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "count" || res.Data["count"] != 2 {
+			t.Errorf("unexpected count result: %+v", res)
+		}
+		if searcher.lastScope != "group" || searcher.lastValue != "MAT,MRK,LUK,JHN" {
+			t.Errorf("expected group MAT,MRK,LUK,JHN, got scope=%q value=%q", searcher.lastScope, searcher.lastValue)
+		}
+	})
+}

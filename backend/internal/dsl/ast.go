@@ -1,5 +1,7 @@
 package dsl
 
+import "strings"
+
 // Node represents the base interface for all AST nodes.
 type Node interface {
 	node()
@@ -21,7 +23,7 @@ type SearchNode struct {
 	ScopeBook string // Optional book filter, e.g. "Joh"
 }
 
-func (n *SearchNode) node()          {}
+func (n *SearchNode) node() {}
 func (n *SearchNode) String() string {
 	res := "?" + n.Query
 	if n.ScopeBook != "" {
@@ -60,12 +62,22 @@ func (n *ComparisonNode) String() string {
 	return n.Target.String() + " ? " + n.Left.String() + " : " + n.Right.String()
 }
 
-// ActionNode represents a function modifier or formatting option (#themes, #refs, #suggest, :card, limit:5).
+// ActionNode represents a function modifier, pipeline action or formatting option
+// (e.g. in(KR92), vs(KR92, KR38), refs(3), themes(5), suggest(3), count(), limit(5), :card)
 type ActionNode struct {
-	Kind  string            // #themes, #refs, #suggest, :card, limit
-	Value string            // "card", "5", "KR92", etc.
-	Args  map[string]string // Optional key-value parameters
+	Kind   string            // "in", "vs", "refs", "themes", "suggest", "count", "limit", "style", "scope", "translation"
+	Value  string            // Single value e.g. "KR92", "5", "cards"
+	Args   []string          // Positional arguments (e.g. ["KR92", "KR38"] for vs)
+	Params map[string]string // Optional key-value parameters
 }
 
-func (n *ActionNode) node()          {}
-func (n *ActionNode) String() string { return "#" + n.Kind }
+func (n *ActionNode) node() {}
+func (n *ActionNode) String() string {
+	if len(n.Args) > 0 {
+		return n.Kind + "(" + strings.Join(n.Args, ", ") + ")"
+	}
+	if n.Value != "" {
+		return n.Kind + "(" + n.Value + ")"
+	}
+	return n.Kind + "()"
+}

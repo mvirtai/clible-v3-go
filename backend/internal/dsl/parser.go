@@ -174,6 +174,66 @@ func (p *Parser) parsePrimary() (Node, error) {
 		}
 		return &ScopeNode{Count: count, All: all}, nil
 
+	case TokenIdent:
+		if tok.Literal == "search" {
+			p.next()
+			if p.current().Type != TokenParenOpen {
+				return nil, errors.New("expected '(' after 'search'")
+			}
+			p.next()
+			queryTok := p.current()
+			if queryTok.Type != TokenString && queryTok.Type != TokenRegex && queryTok.Type != TokenIdent {
+				return nil, fmt.Errorf("expected search query string inside search(...) at pos %d", queryTok.Pos)
+			}
+			p.next()
+
+			scopeBook := ""
+			if p.current().Type == TokenComma {
+				p.next()
+				if p.current().Type == TokenAt {
+					p.next()
+				}
+				scopeBook = p.current().Literal
+				p.next()
+			}
+
+			if p.current().Type != TokenParenClose {
+				return nil, errors.New("expected ')' after search arguments")
+			}
+			p.next()
+
+			// Valinnainen @scope heti sulkevan sulun jälkeen: search("armo") @Joh
+			if scopeBook == "" && p.current().Type == TokenAt {
+				p.next()
+				scopeBook = p.current().Literal
+				p.next()
+			}
+
+			return &SearchNode{
+				Query:     queryTok.Literal,
+				IsRegex:   queryTok.Type == TokenRegex,
+				ScopeBook: scopeBook,
+			}, nil
+		}
+
+		if tok.Literal == "read" {
+			p.next()
+			if p.current().Type != TokenParenOpen {
+				return nil, errors.New("expected '(' after 'read'")
+			}
+			p.next()
+			refTok := p.current()
+			p.next()
+			if p.current().Type != TokenParenClose {
+				return nil, errors.New("expected ')' after read reference")
+			}
+			p.next()
+
+			return &VerseRefNode{Reference: refTok.Literal}, nil
+		}
+
+		return nil, fmt.Errorf("unexpected identifier %q at pos %d", tok.Literal, tok.Pos)
+
 	default:
 		return nil, fmt.Errorf("unexpected token %s (%q) at pos %d", tok.Type, tok.Literal, tok.Pos)
 	}
@@ -189,6 +249,13 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 		return &ActionNode{Kind: actionName}, nil
 	}
 
+	if tok.Type == TokenAt {
+		p.next()
+		scopeVal := p.current().Literal
+		p.next()
+		return &ActionNode{Kind: "scope", Value: scopeVal}, nil
+	}
+
 	if tok.Type == TokenColon {
 		p.next()
 		styleName := p.current().Literal
@@ -199,20 +266,125 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 	if tok.Type == TokenIdent || tok.Type == TokenNumber {
 		val := tok.Literal
 		p.next()
-		// 1. Key-value option, e.g. limit:5
-		if val == "limit" && p.current().Type == TokenColon {
-			p.next()
-			argVal := p.current().Literal
-			p.next()
-			return &ActionNode{Kind: val, Value: argVal}, nil
+
+		// 1. in(KR92) or in:KR92
+		if val == "in" {
+			if p.current().Type == TokenParenOpen {
+				p.next()
+				arg := p.current().Literal
+				p.next()
+				if p.current().Type == TokenParenClose {
+					p.next()
+				}
+				return &ActionNode{Kind: "in", Value: arg}, nil
+			}
+			if p.current().Type == TokenColon {
+				p.next()
+				arg := p.current().Literal
+				p.next()
+				return &ActionNode{Kind: "in", Value: arg}, nil
+			}
 		}
 
-		// 2. Special functions and aggregates. E.g. => count
+		// 2. vs(KR92, KR38) or compare(KR92, KR38)
+		if val == "vs" || val == "compare" {
+			if p.current().Type == TokenParenOpen {
+				p.next()
+				arg1 := p.current().Literal
+				p.next()
+				var arg2 string
+				if p.current().Type == TokenComma {
+					p.next()
+					arg2 = p.current().Literal
+					p.next()
+				}
+				if p.current().Type == TokenParenClose {
+					p.next()
+				}
+				return &ActionNode{Kind: "vs", Args: []string{arg1, arg2}}, nil
+			}
+		}
+
+		// 3. refs(3), refs() or refs
+		if val == "refs" {
+			limStr := ""
+			if p.current().Type == TokenParenOpen {
+				p.next()
+				if p.current().Type == TokenNumber {
+					limStr = p.current().Literal
+					p.next()
+				}
+				if p.current().Type == TokenParenClose {
+					p.next()
+				}
+			}
+			return &ActionNode{Kind: "refs", Value: limStr}, nil
+		}
+
+		// 4. themes(5), themes() or themes
+		if val == "themes" {
+			limStr := ""
+			if p.current().Type == TokenParenOpen {
+				p.next()
+				if p.current().Type == TokenNumber {
+					limStr = p.current().Literal
+					p.next()
+				}
+				if p.current().Type == TokenParenClose {
+					p.next()
+				}
+			}
+			return &ActionNode{Kind: "themes", Value: limStr}, nil
+		}
+
+		// 5. suggest(3), suggest() or suggest
+		if val == "suggest" {
+			limStr := ""
+			if p.current().Type == TokenParenOpen {
+				p.next()
+				if p.current().Type == TokenNumber {
+					limStr = p.current().Literal
+					p.next()
+				}
+				if p.current().Type == TokenParenClose {
+					p.next()
+				}
+			}
+			return &ActionNode{Kind: "suggest", Value: limStr}, nil
+		}
+
+		// 6. count() or count
 		if val == "count" {
+			if p.current().Type == TokenParenOpen {
+				p.next()
+				if p.current().Type == TokenParenClose {
+					p.next()
+				}
+			}
 			return &ActionNode{Kind: "count"}, nil
 		}
 
-		// 3. TranslationID as default. E.g. KR92, KJV, 1992, 1938
+		// 7. limit(5) or limit:5
+		if val == "limit" {
+			limStr := ""
+			if p.current().Type == TokenParenOpen {
+				p.next()
+				limStr = p.current().Literal
+				p.next()
+				if p.current().Type == TokenParenClose {
+					p.next()
+				}
+				return &ActionNode{Kind: "limit", Value: limStr}, nil
+			}
+			if p.current().Type == TokenColon {
+				p.next()
+				limStr = p.current().Literal
+				p.next()
+				return &ActionNode{Kind: "limit", Value: limStr}, nil
+			}
+		}
+
+		// 8. Oletuksena käännöstunniste (KR92, KJV...)
 		return &ActionNode{Kind: "translation", Value: val}, nil
 	}
 
