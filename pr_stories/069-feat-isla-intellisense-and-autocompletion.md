@@ -2,9 +2,9 @@
 
 ## Business Context
 
-As part of the ISLA (Interactive Scripture Language Architecture) IDE experience in Clible-v3 notebooks, users require real-time interactive autocompletion and contextual syntax suggestions. Without intelligent autocompletion, composing DSL directives (such as ternary comparisons, scoped FTS searches, metric pipelines, and book references) requires manual syntax memorization, increasing cognitive load and error rates.
+As part of the ISLA (Interactive Scripture Language Architecture) IDE experience in Clible-v3 notebooks, users require real-time interactive autocompletion and contextual syntax suggestions. Without intelligent autocompletion, composing DSL directives (such as ternary comparisons, scoped FTS searches, metric pipelines, book references, cross-references, and regex searches) requires manual syntax memorization, increasing cognitive load and error rates.
 
-This PR introduces the in-browser **ISLA IntelliSense Engine** ([`islaIntellisense.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.ts)) and supporting metadata module ([`islaUtils.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaUtils.ts)). The engine performs zero-latency lexical and cursor analysis on active lines, serving rich contextual suggestions for templates, all 66 canonical Bible books, testament scopes (`VT`, `UT`, `OT`, `NT`), pipeline transformers (`count`, `#themes`, `limit:5`, `limit:10`), and comparative translation targets (`KR92`, `KR38`, `1776`, `WEB`, `KJV`).
+This PR introduces the in-browser **ISLA IntelliSense Engine** ([`islaIntellisense.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.ts)) and supporting metadata module ([`islaUtils.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaUtils.ts)). The engine performs zero-latency lexical and cursor analysis on active lines, serving rich contextual suggestions for verified working commands: template snippets, quick prefix triggers (`!?`, `!~`, `!^`), all 66 canonical Bible books, testament scopes (`VT`, `UT`, `OT`, `NT`), pipeline transformers (`count`, `#themes`, `limit:3`, `limit:5`, `limit:10`), and comparative translation targets (`KR92`, `KR38`, `1776`, `WEB`, `KJV`).
 
 ---
 
@@ -23,11 +23,13 @@ sequenceDiagram
     Engine->>Engine: Slice Text (textBeforeCursor = lineText[0..cursorOffset])
     alt Line starts with '!' or empty
         Engine-->>UI: Return ISLA_MAIN_SNIPPETS (Template cards)
+    else Line starts with quick directive ('!?', '!~', '!^')
+        Engine-->>UI: Return Filtered Templates (Search / Cross-refs / Scope)
     else Preceding token is '@' (e.g. '@Joh', '@1Moos', '@VT')
         Engine->>Catalog: Filter BIBLE_BOOKS by prefix (abbr, nameFi, nameEn, id)
         Catalog-->>Engine: Matching BibleBookSuggestionItems
         Engine-->>UI: Map to ISLASuggestion[] (kind: 'reference')
-    else Preceding token is '=>' (e.g. '=> count', '=> KR92')
+    else Preceding token is '=>' (e.g. '=> count', '=> #themes', '=> KR92')
         Engine->>Catalog: Filter APP_TRANSLATIONS + Pipeline Operations
         Catalog-->>Engine: Matching TranslationSuggestionItems
         Engine-->>UI: Return Functions, Keywords & Translation Targets
@@ -47,12 +49,14 @@ sequenceDiagram
 graph TD
     A[Input Cursor Position] --> B{Trigger Token Pattern}
     B -->|Empty or '! / !isla'| C[ISLA_MAIN_SNIPPETS]
+    B -->|'!? / !~ / !^' Quick Directives| C2[Filtered Specific Snippets]
     B -->|'@' Book Reference| D[BIBLE_BOOKS Catalog]
     B -->|'=>' Pipeline Operator| E[Pipeline Aggregators & Limits]
     B -->|'=>' & '?:' Comparison| F[APP_TRANSLATIONS Catalog]
     B -->|No Match| G[Empty Array Fallback]
     
     C --> H[Unified ISLASuggestion[] Array]
+    C2 --> H
     D --> H
     E --> H
     F --> H
@@ -93,8 +97,16 @@ export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
 ### 2. Contextual Autocompletion Engine ([`islaIntellisense.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.ts))
 
 - **Rich Dual-Language Documentation:** Each suggestion provides bilingual descriptions (`fi` and `en`) and syntax usage examples.
+- **Strictly Active Feature Set:** Autocompletes all 100% supported backend executor directives:
+  - Verse lookups (`!@Joh 3:16 => KR92`)
+  - Ternary comparisons (`!@Joh 3:16 ? KR92 : KR38`)
+  - Cross-references (`!~ @Joh 3:16`)
+  - Scoped full-text search (`!? "valkeus" @Joh => limit:5`)
+  - Regex morphology queries (`!? /righteous.*/ @Rom => limit:5`)
+  - Contextual themes & tag clouds (`!^ => #themes`)
+  - Dynamic limit parameters (`limit:3`, `limit:5`, `limit:10`)
+- **Quick Prefix Recognition:** Typing `!?`, `!~`, or `!^` instantly presents the corresponding categorized template suggestions.
 - **Dynamic Translation Scoping:** Accepts an optional `availableTranslations` parameter to constrain suggestions to active user translations while providing safe fallbacks.
-- **Instant Filtering:** Evaluates prefix matching across multiple attributes (abbreviations, localized names, English names, and canonical IDs).
 
 ### 3. Project Configuration & Path Alias Alignment
 
@@ -107,7 +119,7 @@ export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
 * **Test Coverage:** `islaIntellisense.ts` achieved **100% statements, 100% branches, 100% functions, 100% lines**.
 * **Metadata Coverage:** `islaUtils.ts` achieved **100% statements, 100% branches, 100% functions, 100% lines**.
 * **Engine Execution Speed:** Sub-millisecond synchronous evaluation ($O(N)$ with $N \le 70$), ensuring zero typing stutter or frame drops.
-* **Test Suite Expansion:** 16 new comprehensive unit tests added, bringing frontend test count to 132 passing tests across 25 suites.
+* **Test Suite Expansion:** 19 comprehensive unit tests added, bringing frontend test count to 135 passing tests across 25 suites.
 
 ---
 
@@ -123,9 +135,9 @@ export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
 
 | File | Change Summary |
 |------|----------------|
-| [`frontend/src/components/notebook/isla/islaIntellisense.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.ts) | Implements `ISLASuggestion` data model, `ISLA_MAIN_SNIPPETS`, and `getISLASuggestions` engine. |
+| [`frontend/src/components/notebook/isla/islaIntellisense.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.ts) | Implements `ISLASuggestion` data model, `ISLA_MAIN_SNIPPETS` with cross-references, and `getISLASuggestions` engine with prefix filtering. |
 | [`frontend/src/components/notebook/isla/islaUtils.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaUtils.ts) | Defines `BIBLE_BOOKS` registry and `APP_TRANSLATIONS` catalog with bilingual metadata. |
-| [`frontend/src/components/notebook/isla/islaIntellisense.test.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.test.ts) | Comprehensive test suite covering snippets, book references, pipeline operators, comparisons, and fallbacks. |
+| [`frontend/src/components/notebook/isla/islaIntellisense.test.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/islaIntellisense.test.ts) | Comprehensive test suite covering snippets, prefixes (`!?`, `!~`, `!^`), book references, pipeline operators, comparisons, and fallbacks. |
 | [`frontend/tsconfig.app.json`](file:///home/vivaldev/code/clible-v3-go/frontend/tsconfig.app.json) | Configures `baseUrl` and `@/*` path mapping. |
 | [`frontend/vite.config.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/vite.config.ts) | Configures `@` path resolution via `path.resolve(__dirname, './src')`. |
 
@@ -139,14 +151,14 @@ export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
 
 ```text
 Test Files  25 passed (25)
-     Tests  132 passed (132)
-  Duration  8.45s
+     Tests  135 passed (135)
+  Duration  13.05s
 
 % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------
 File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
 -------------------|---------|----------|---------|---------|-------------------
-.../notebook/isla  |   91.57 |    86.84 |   90.47 |   92.44 |                   
+.../notebook/isla  |   91.97 |    87.34 |   91.66 |   92.69 |                   
  islaIntellisense  |     100 |      100 |     100 |     100 |                   
  islaUtils.ts      |     100 |      100 |     100 |     100 |                   
  islaLexer.ts      |   89.09 |    84.04 |     100 |   88.99 | ...               
@@ -168,7 +180,8 @@ ok  	github.com/mvirtai/clible-v3-go/internal/services	(cached)
 
 ## Manual Verification Checklist
 
-1. **Snippet Triggers:** Verified that typing `!`, `!isla`, or starting a new line suggests template cards (`!@Joh 3:16 ? KR92 : KR38`, `!? "armo" @ut => count`).
-2. **Book Completion:** Verified typing `@joh`, `@1m`, `@room`, `@VT`, `@UT` suggests corresponding books with localized names and descriptions.
-3. **Pipeline Completion:** Verified typing `=> ` suggests `count`, `#themes`, `limit:5`, `limit:10`, and translations (`KR92`, `KR38`, `1776`, `WEB`, `KJV`).
-4. **Comparison Targets:** Verified typing `? ` or `: ` suggests comparative translations.
+1. **Snippet Triggers:** Verified typing `!`, `!isla`, or starting a new line suggests template cards (`!@Joh 3:16 ? KR92 : KR38`, `!@Joh 3:16 => KR92`, `!~ @Joh 3:16`, `!? "armo" @ut => count`, `!? /righteous.*/ @Rom => limit:5`, `!^ => #themes`).
+2. **Quick Prefix Triggers:** Verified typing `!?` triggers search templates, `!~` triggers cross-reference templates, and `!^` triggers context theme templates.
+3. **Book Completion:** Verified typing `@joh`, `@1m`, `@room`, `@VT`, `@UT` suggests corresponding books with localized names and descriptions.
+4. **Pipeline Completion:** Verified typing `=> ` suggests `count`, `#themes`, `limit:3`, `limit:5`, `limit:10`, and translations (`KR92`, `KR38`, `1776`, `WEB`, `KJV`).
+5. **Comparison Targets:** Verified typing `? ` or `: ` suggests comparative translations.

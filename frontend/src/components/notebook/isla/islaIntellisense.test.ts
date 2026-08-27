@@ -21,6 +21,27 @@ describe('islaIntellisense', () => {
       expect(getISLASuggestions('!ISLA', 5)).toEqual(ISLA_MAIN_SNIPPETS);
       expect(getISLASuggestions('  !isla', 7)).toEqual(ISLA_MAIN_SNIPPETS);
     });
+
+    it('returns search templates when line starts with "!?"', () => {
+      const suggestions = getISLASuggestions('!?', 2);
+      expect(suggestions.length).toBeGreaterThanOrEqual(3);
+      expect(suggestions.every((s) => s.label.startsWith('!?'))).toBe(true);
+      expect(suggestions.some((s) => s.label.includes('righteous'))).toBe(true);
+    });
+
+    it('returns cross-reference templates when line starts with "!~"', () => {
+      const suggestions = getISLASuggestions('!~', 2);
+      expect(suggestions.length).toBeGreaterThanOrEqual(1);
+      expect(suggestions[0].label).toBe('!~ @Joh 3:16');
+      expect(suggestions[0].detail).toBe('Cross References');
+      expect(suggestions[0].documentation.fi).toContain('Ristiinviitehaku');
+    });
+
+    it('returns contextual scope templates when line starts with "!^"', () => {
+      const suggestions = getISLASuggestions('!^', 2);
+      expect(suggestions.length).toBeGreaterThanOrEqual(1);
+      expect(suggestions[0].label).toBe('!^ => #themes');
+    });
   });
 
   describe('Book reference suggestions (@)', () => {
@@ -68,6 +89,7 @@ describe('islaIntellisense', () => {
       expect(suggestions.some((s) => s.label === '1776' && s.kind === 'translation')).toBe(true);
       expect(suggestions.some((s) => s.label === 'WEB' && s.kind === 'translation')).toBe(true);
       expect(suggestions.some((s) => s.label === 'KJV' && s.kind === 'translation')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'limit:3' && s.kind === 'keyword')).toBe(true);
       expect(suggestions.some((s) => s.label === 'limit:5' && s.kind === 'keyword')).toBe(true);
       expect(suggestions.some((s) => s.label === 'limit:10' && s.kind === 'keyword')).toBe(true);
     });

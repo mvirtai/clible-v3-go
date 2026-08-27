@@ -53,6 +53,17 @@ export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
     kind: 'snippet',
   },
   {
+    label: '!~ @Joh 3:16',
+    insertText: '!~ @Joh 3:16',
+    detail: 'Cross References',
+    documentation: {
+      fi: 'Ristiinviitehaku: etsii jakeen avainsanojen perusteella rinnakkaiset raamatunjakeet.',
+      en: 'Cross-reference lookup: discovers parallel scriptures and thematic cross-references.',
+    },
+    example: '!~ @Joh 3:16',
+    kind: 'snippet',
+  },
+  {
     label: '!? "armo" @ut => count',
     insertText: '!? "armo" @ut => count',
     detail: 'Count Metric',
@@ -72,6 +83,17 @@ export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
       en: 'Full-text search restricted to a specific book with a maximum result limit.',
     },
     example: '!? "valkeus" @Joh => limit:5',
+    kind: 'snippet',
+  },
+  {
+    label: '!? /righteous.*/ @Rom => limit:5',
+    insertText: '!? /righteous.*/ @Rom => limit:5',
+    detail: 'Regex Query',
+    documentation: {
+      fi: 'Säännöllisen lausekkeen (Regex) haku rajattuna kirjaan.',
+      en: 'Regular expression pattern search restricted to a book.',
+    },
+    example: '!? /righteous.*/ @Rom => limit:5',
     kind: 'snippet',
   },
   {
@@ -140,9 +162,20 @@ export function getISLASuggestions(
   const textBeforeCursor = lineText.slice(0, cursorOffset);
   const trimmed = textBeforeCursor.trimStart();
 
-  // 1. Line start or empty: offer primary ISLA templates
+  // 1. Line start or primary trigger aliases: offer matching ISLA templates
   if (trimmed === '!' || trimmed === '' || trimmed === '!isla' || trimmed === '!ISLA') {
     return ISLA_MAIN_SNIPPETS;
+  }
+
+  // Quick prefix templates for '!?', '!~', and '!^'
+  if (trimmed === '!?') {
+    return ISLA_MAIN_SNIPPETS.filter((s) => s.label.startsWith('!?'));
+  }
+  if (trimmed === '!~') {
+    return ISLA_MAIN_SNIPPETS.filter((s) => s.label.startsWith('!~'));
+  }
+  if (trimmed === '!^') {
+    return ISLA_MAIN_SNIPPETS.filter((s) => s.label.startsWith('!^'));
   }
 
   // 2. Typing book reference after `@` (e.g. `@`, `@Joh`, `@1Moos`, `@VT`)
@@ -200,6 +233,17 @@ export function getISLASuggestions(
         },
         example: '!^ => #themes',
         kind: 'function',
+      },
+      {
+        label: 'limit:3',
+        insertText: 'limit:3',
+        detail: 'Result Limit',
+        documentation: {
+          fi: 'Rajoittaa näytettävien jakeiden määrän kolmeen.',
+          en: 'Limits the number of rendered verses to 3.',
+        },
+        example: '!? "valo" @Joh => limit:3',
+        kind: 'keyword',
       },
       {
         label: 'limit:5',

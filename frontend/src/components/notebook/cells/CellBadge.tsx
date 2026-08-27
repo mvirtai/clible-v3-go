@@ -48,12 +48,12 @@ const BADGE_VISUALS: Record<CellBadgeType, BadgeVisual> = {
     dot: '#a855f7',
     emoji: '📊',
   },
-  ai: {
+  refs: {
     bg: 'rgba(217, 70, 239, 0.12)',
     border: 'rgba(217, 70, 239, 0.28)',
     text: '#c026d3',
     dot: '#d946ef',
-    emoji: '🤖',
+    emoji: '🔗',
   },
   markdown: {
     bg: 'rgba(59, 130, 246, 0.12)',
@@ -78,7 +78,7 @@ const BADGE_LABELS: Record<'fi' | 'en', Record<CellBadgeType, string>> = {
     verse: 'Jae',
     compare: 'Vertailu',
     count: 'Määrä',
-    ai: 'AI',
+    refs: 'Viitteet',
     markdown: 'MD',
     code: 'CLI',
   },
@@ -88,7 +88,7 @@ const BADGE_LABELS: Record<'fi' | 'en', Record<CellBadgeType, string>> = {
     verse: 'Verse',
     compare: 'Compare',
     count: 'Count',
-    ai: 'AI',
+    refs: 'Refs',
     markdown: 'MD',
     code: 'CLI',
   },
@@ -137,7 +137,7 @@ export function NotebookContentBadges({ cells, fallbackCellCounts }: NotebookCon
     return <span className="text-[9px] text-[var(--muted)] italic">{lang === 'fi' ? 'Tyhjä' : 'Empty'}</span>;
   }
 
-  const order: (keyof typeof counts)[] = ['text', 'search', 'verse', 'compare', 'count', 'ai'];
+  const order: (keyof typeof counts)[] = ['text', 'search', 'verse', 'compare', 'count', 'refs'];
 
   return (
     <div className="flex gap-1.5 flex-wrap items-center">
