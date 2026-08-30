@@ -479,13 +479,7 @@ func (p *Parser) parseSearchCall() (*SearchNode, error) {
 	}
 
 	node.ScopeBook = scopeBook
-	if len(params) > 0 {
-		// Store remaining named params in ActionNode.Params — they are
-		// threaded through to the executor via the SearchNode's future Params field.
-		// For now we honour "limit" via SearchNode itself (executor handles it).
-		node.Terms = node.Terms // keep as-is; params handled by executor
-		_ = params
-	}
+	_ = params
 
 	return node, nil
 }
