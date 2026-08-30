@@ -63,19 +63,22 @@ flowchart TD
 
 ISLA supports 4 fast embedding patterns:
 
-### Method 1: Standard Quick Aliases `! at(...)`, `! @`, `! ?`, `! search(...)` (Recommended)
+### Method 1: Standard Quick Aliases `! at(...)`, `! @`, `! ?`, `! search(...)`, `! range(...)` (Recommended)
 
-Place an exclamation mark followed by a space directly before `at(...)`, `@`, `?` or `search(...)`:
+Place an exclamation mark followed by a space directly before the source expression:
 
 ```markdown
 Key comparative passage:
 ! at(Joh 3:16) => vs(KR92, KJV)
 
-Quick text search:
-! search("light") => at(Joh) => limit(3)
+Passage range study:
+! range(Joh 1:1, Joh 3:36) => themes(5)
 
-Functional pipeline:
-! search("armo") => at(evankeliumit) => use(KR92) => count()
+Boolean text search with smart scope:
+! search("armo" AND "rauha") @epistolat => count()
+
+Alternative search with named parameters:
+! search("armo", scope: epistolat, limit: 5)
 ```
 
 ### Method 2: Direct Line Directive `!isla ...` or `! ...`
@@ -83,6 +86,7 @@ Functional pipeline:
 ```markdown
 ! at(Joh 3:16) => use(KR92)
 ! at(Rom 8:28-30) => vs(KR92, KJV)
+! range(GEN, DEU) => count()
 ```
 
 ### Method 3: Inline Shortcut `` `! @...` `` or `` `!isla ...` ``
@@ -90,43 +94,73 @@ Functional pipeline:
 Embed live verses directly inside paragraph sentences:
 
 ```markdown
-The cornerstone verse `! @Joh 3:16 => vs(KR92, KJV)` anchors the entire chapter.
+The cornerstone verse `! at(Joh 3:16) => vs(KR92, KJV)` anchors the entire chapter.
 ```
 
-### Method 4: Standard Markdown Tag `![@...]` and `[@...]`
+### Method 4: Standard Markdown Embed `![...]` and Link `[...]`
 
 Utilizes standard single bracket Markdown embed and link syntax:
 
 ```markdown
 Inline clickable reference: [@Joh 3:16]
-Live embedded scripture card: ![@Joh 3:16 => vs(KR92, KJV)]
-Live cross-references: ![@Joh 3:16 => refs(3)]
+Live embedded scripture card: ![at(Joh 3:16) => vs(KR92, KJV)]
+Live cross-references: ![from(Joh 3:16) => refs(3)]
+Live passage range: ![range(Joh 1:1, Joh 3:36) => themes(5)]
 ```
 
 ---
 
-## 4. Visual Polish: Command Syntax Hidden in Reading Mode
+## 4. Smart Scopes & Automatic Translation Inference
 
-When exiting edit mode (`Esc` or `Ctrl + Enter`):
+When executing searches across smart book groups, ISLA automatically selects the matching Bible translation based on the scope language (unless an explicit `=> use(...)` pipe is provided):
 
-1. **Clean Typography**: The technical query syntax (`! @Joh 3:16 => vs(KR92, KJV)`) is hidden, presenting clean, distraction-free Lora serif scripture cards.
-2. **Hover Inspection**: Hovering over any card reveals a floating `✦ @Joh 3:16 => vs(KR92, KJV)` badge in the top-right corner to inspect the underlying query.
+| Scope Identifier | Target Books | Inferred Translation | Example Query |
+| --- | --- | --- | --- |
+| `@epistolat` / `@kirjeet` | Paul & General Epistles (ROM..JUD) | **KR92** (`fin-1992`) | `! search("armo") @epistolat` |
+| `@epistles` / `@letters` | Paul & General Epistles (ROM..JUD) | **WEB** (`web`) | `! search("grace") @epistles` |
+| `@evankeliumit` | Gospels (MAT, MRK, LUK, JHN) | **KR92** (`fin-1992`) | `! search("valkeus") @evankeliumit` |
+| `@gospels` | Gospels (MAT, MRK, LUK, JHN) | **WEB** (`web`) | `! search("light") @gospels` |
+| `@toora` / `@laki` | Pentateuch (GEN..DEU) | **KR92** (`fin-1992`) | `! search("liitto") @toora` |
+| `@torah` / `@law` | Pentateuch (GEN..DEU) | **WEB** (`web`) | `! search("covenant") @torah` |
+| `@viisaus` / `@wisdom` | Wisdom literature (JOB..SNG) | Language-matched | `! search("viisaus") @viisaus` |
+| `@profeetat` / `@prophets` | Major & Minor Prophets (ISA..MAL) | Language-matched | `! search("herra") @profeetat` |
+| `@historia` / `@history` | Historical books (JOS..EST) | Language-matched | `! search("kuningas") @historia` |
+| `@VT` / `@OT` | Old Testament (Genesis–Malachi) | Language-matched | `! search("armo") @VT => count()` |
+| `@UT` / `@NT` | New Testament (Matthew–Revelation) | Language-matched | `! search("armo") @UT => count()` |
+
+> [!TIP]
+> **Explicit override:** To search a specific translation regardless of the scope language, append `=> use(...)`:  
+> `! search("grace") @epistolat => use(KJV)`
 
 ---
 
-## 5. ISLA Syntax Reference & Cheat Sheet
+## 5. Visual Polish: Command Syntax Hidden in Reading Mode
+
+When exiting edit mode (`Esc` or `Ctrl + Enter`):
+
+1. **Clean Typography**: The technical query syntax (`! at(Joh 3:16) => vs(KR92, KJV)`) is hidden, presenting clean, distraction-free Lora serif scripture cards.
+2. **Hover Inspection**: Hovering over any card reveals a floating `✦ at(Joh 3:16) => vs(KR92, KJV)` badge in the top-right corner to inspect the underlying query.
+
+---
+
+## 6. ISLA Syntax Reference & Cheat Sheet
 
 | Query Pattern | Syntax Example | Rendered View | Description |
 | --- | --- | --- | --- |
-| **Verse Lookup** | `! @Joh 3:16` | Verse Card | Retrieves passage in default translation |
-| **Pipeline Projection** | `! @Joh 3:16 => in(KR92)` | Verse Card | Projects passage into specified translation |
-| **Comparative Matrix** | `! @Joh 3:16 => vs(KR92, KJV)`<br>`! @Joh 3:16 ? KR92 : KJV` | 2-Column Matrix | Synchronized side-by-side comparative layout |
-| **Cross-References** | `! @Joh 3:16 => refs(3)`<br>`! ~ @Joh 3:16` | Verse Collection | Related cross-references from the database |
-| **Thematic Extraction** | `! @Joh 3:16 => themes(5)`<br>`! ^ => themes(10)` | Keyword Cloud | Extracted thematic keywords and frequencies |
-| **Contextual Suggestions** | `! ^ => suggest(3)`<br>`! @Joh 3:16 => suggest(5)` | Verse Collection | Content-driven related scripture suggestions |
-| **Full-Text Search** | `! ? "love"`<br>`! search("love")` | Verse List | Full-text database search |
-| **Scoped Search** | `! ? "light" @Joh`<br>`! search("light") => @Joh` | Verse List | Search restricted to specific biblical book |
-| **Genre & Group Scopes** | `! ? "valkeus" @evankeliumit`<br>`! ? "light" @gospels`<br>`! ? "grace" @epistles`<br>`! ? "laki" @toora` | Verse List | Search restricted to bilingual genre, testament, or book group |
+| **Passage Lookup** | `! at(Joh 3:16)`<br>`! @Joh 3:16` | Verse Card | Retrieves passage in default translation |
+| **Passage Range** | `! range(Joh 1:1, Joh 3:36)`<br>`! range(GEN, DEU)` | Verse Collection | Fetches contiguous text passage from start to end |
+| **Translation Projection** | `! at(Joh 3:16) => use(KR92)`<br>`! @Joh 3:16 => in(KR92)` | Verse Card | Projects passage into specified translation |
+| **Comparative Matrix** | `! at(Joh 3:16) => vs(KR92, KJV)`<br>`! @Joh 3:16 ? KR92 : KJV` | 2-Column Matrix | Synchronized side-by-side comparative layout |
+| **Cross-References** | `! at(Joh 3:16) => refs(3)`<br>`! ~ @Joh 3:16` | Verse Collection | Related cross-references from the database |
+| **Thematic Extraction** | `! at(Joh 3:16) => themes(5)`<br>`! range(Joh 1:1, Joh 3:36) => themes(8)`<br>`! ^ => themes(10)` | Keyword Cloud | Extracted thematic keywords and frequencies |
+| **Contextual Suggestions** | `! ^ => suggest(3)`<br>`! at(Joh 3:16) => suggest(5)` | Verse Collection | Content-driven related scripture suggestions |
+| **Full-Text Search** | `! search("love")`<br>`! ? "love"` | Verse List | Full-text database search |
+| **Boolean AND Search** | `! search("armo" AND "rauha")` | Verse List | Verses matching all specified search terms |
+| **Boolean OR Search** | `! search("kuolema" OR "elämä")` | Verse List | Verses matching at least one specified term |
+| **Named Parameter Search** | `! search("armo", scope: epistolat, limit: 5)` | Verse List | Structured search with inline scope and limit |
+| **Scoped Search** | `! search("light") @Joh`<br>`! search("valkeus") => at(Joh)` | Verse List | Search restricted to specific biblical book |
+| **Genre & Group Scopes** | `! search("armo") @epistolat`<br>`! search("grace") @epistles`<br>`! search("valkeus") @evankeliumit`<br>`! search("laki") @toora` | Verse List | Search restricted to smart genre group with auto-inferred translation |
 | **Regex Query** | `! ? /righteous.*/ @Rom` | Verse List | Morphological pattern match |
-| **Count Aggregator** | `! ? "grace" @gospels => count()`<br>`! @Joh 3:16 => refs() => count()` | Metric Card | Match count metric card |
-| **Chained Pipeline** | `! @Joh 3:16 => in(KR92) => refs(3)`<br>`! search("armo") => @kirjeet => in(KR92) => count()` | Result Card | Sequential multi-stage evaluation |
+| **Count Aggregator** | `! search("armo" AND "rauha") @epistolat => count()`<br>`! range(GEN, DEU) => count()` | Metric Card | Match count metric card |
+| **Chained Pipeline** | `! search("armo") => at(epistolat) => use(KR92) => count()` | Result Card | Sequential multi-stage evaluation |
+

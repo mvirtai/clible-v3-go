@@ -67,69 +67,98 @@ graph LR
 ## 3. Formal Syntax & Grammar (EBNF)
 
 ```ebnf
-Statement       ::= Command [ OptionList ] [ ModifierList ] [ ViewClause ]
+Expression          ::= PipelineExpr | TernaryExpr | PrimaryExpr
 
-Command         ::= VerseCommand | SearchCommand | CompareCommand | CustomCommand
-VerseCommand    ::= "verse" StringLiteral
-SearchCommand   ::= "search" StringLiteral
-CompareCommand  ::= "compare" StringLiteral
+PipelineExpr        ::= ( PrimaryExpr | PipelineExpr ) "=>" ActionExpr
 
-OptionList      ::= Option { Option }
-Option          ::= FlagOption | KeyValueOption | TargetListOption
+TernaryExpr         ::= PrimaryExpr "?" ActionExpr ":" ActionExpr
 
-FlagOption      ::= "--" Identifier
-KeyValueOption  ::= "--" Identifier "=" ( StringLiteral | NumberLiteral | Identifier )
-TargetListOption::= "--compare" "="? "[" TargetItem { "," TargetItem } "]"
-TargetItem      ::= Identifier | StringLiteral
+PrimaryExpr         ::= VerseRef | SearchExpr | RangeExpr | ScopeExpr
 
-ModifierList    ::= Modifier { Modifier }
-Modifier        ::= "--count" [ "=" NumberLiteral ]
-                  | "--filter" "=" StringLiteral
-                  | "--range" "=" ( StringLiteral | NumberLiteral ".." NumberLiteral )
+VerseRef            ::= "@" Citation 
+                      | "at(" Citation ")" 
+                      | "from(" Citation ")" 
+                      | "read(" Citation ")"
 
-ViewClause      ::= "--view" "=" ( "side-by-side" | "matrix" | "grid" | "raw" | "card" )
-                  | "--format" "=" ( "json" | "markdown" | "table" | "text" )
+SearchExpr          ::= "?" ( StringLiteral | RegexLiteral | Ident ) [ "@" ScopeIdent ]
+                      | "search(" SearchArgs ")" [ "@" ScopeIdent ]
 
-StringLiteral   ::= '"' { Character } '"' | "'" { Character } "'"
-NumberLiteral   ::= Digit { Digit }
-Identifier      ::= Letter { Letter | Digit | "_" | "-" }
+SearchArgs          ::= SearchTerm { ( "AND" | "OR" ) SearchTerm } [ { "," SearchParam } ]
+SearchTerm          ::= StringLiteral | RegexLiteral | Ident
+SearchParam         ::= [ "@" ] ScopeIdent | Ident ":" ( StringLiteral | Ident | Number )
+
+RangeExpr           ::= "range(" Citation "," Citation ")"
+
+ScopeExpr           ::= "^" [ Number | "all" ]
+
+ActionExpr          ::= UseAction | AtAction | VsAction | RefsAction 
+                      | ThemesAction | SuggestAction | CountAction | LimitAction 
+                      | StyleAction | TranslationFallback
+
+UseAction           ::= "use(" Ident ")" | "use:" Ident | "in(" Ident ")" | "in:" Ident
+AtAction            ::= "at(" ScopeTarget ")" | "@" ScopeIdent
+VsAction            ::= "vs(" Ident "," Ident ")" | "compare(" Ident "," Ident ")"
+RefsAction          ::= "refs" [ "(" [ Number ] ")" ]
+ThemesAction        ::= "themes" [ "(" [ Number ] ")" ]
+SuggestAction       ::= "suggest" [ "(" [ Number ] ")" ]
+CountAction         ::= "count" [ "()" ]
+LimitAction         ::= "limit(" Number ")" | "limit:" Number
+StyleAction         ::= ":" Ident
+TranslationFallback ::= Ident
+
+Citation            ::= BookRef [ Chapter [ ":" VerseRange ] ]
+VerseRange          ::= Number [ "-" Number ] [ "," Number [ "-" Number ] ]
 ```
 
 ---
 
 ## 4. Query Anatomies & Examples
 
-### 4.1. Single Target Lookup
+### 4.1. Single Passage Lookup & Translation Projection
 
-Retrieves a primary text target across default or specified translations.
+Retrieves a passage in the default translation, or projects it to a target translation:
 
 ```isla
-verse "Joh 1:1"
-verse "Joh 1:1" --translation="raamattu-1938"
+! at(Joh 3:16) => use(KR92)
+! @Joh 3:16 => in(KR38)
 ```
 
-### 4.2. Multilateral Comparative Analysis
+### 4.2. Contiguous Passage Range
 
-Cross-references multiple translation layers side-by-side:
+Reads an entire contiguous section from a start reference to an end reference:
 
 ```isla
-verse "Joh 1:1" --compare=[raamattu-1938, nestle1904, kjv] --view=side-by-side
+! range(Joh 1:1, Joh 3:36) => themes(5)
+! range(GEN, DEU) => count()
 ```
 
-### 4.3. Matrix Projections & Morphology
+### 4.3. Parallel Comparative Matrix
 
-Performs an aligned word-by-word or verse-by-verse matrix layout:
+Renders a passage side-by-side across two distinct translations:
 
 ```isla
-verse "Joh 1:1-5" --compare=[nestle1904, raamattu-1938] --view=matrix --align=interlinear
+! at(Joh 3:16) => vs(KR92, KR38)
+! @Joh 3:16 ? KR92 : KJV
 ```
 
-### 4.4. Full-Text Linguistic Search & Filtering
+### 4.4. Full-Text & Boolean Linguistic Search
 
-Executes structured regex or literal searches with match limits:
+Executes single-term, Boolean AND/OR queries, or named parameter searches with automatic language translation inference:
 
 ```isla
-search "logos" --scope="NT" --count=10 --view=card
+! search("armo" AND "rauha") => at(epistolat) => count()
+! search("kuolema" OR "elämä") @Joh => limit(5)
+! search("grace", scope: epistles, limit: 10)
+```
+
+### 4.5. Thematic Intelligence & Cross-References
+
+Extracts prominent thematic keywords or fetches parallel cross-references:
+
+```isla
+! at(Joh 3:16) => refs(5)
+! ^ => themes(8)
+! ^ => suggest(3)
 ```
 
 ---

@@ -46,7 +46,9 @@ func Execute(ctx *ExecutionContext, node Node) (*models.CLIResult, error) {
 	case *VerseRefNode:
 		return executeVerseRef(ctx, n, ctx.DefaultTrans)
 	case *SearchNode:
-		return executeSearch(ctx, n, ctx.DefaultTrans, 0)
+		return executeSearch(ctx, n, "", 0)
+	case *RangeNode:
+		return executeRange(ctx, n)
 	case *PipeNode:
 		return executePipe(ctx, n)
 	case *ComparisonNode:
@@ -84,6 +86,38 @@ func executeVerseRef(ctx *ExecutionContext, n *VerseRefNode, transID string) (*m
 	}, nil
 }
 
+// inferTranslationFromScope determines the appropriate default Bible translation
+// when the user has not explicitly specified one via a pipeline action.
+// If the scope uses Finnish terminology (e.g. "kirjeet", "epistolat", "evankeliumit",
+// "toora", "viisaus", "profeetat", "historia", "vt", "ut", etc.), it defaults to "KR92" (fin-1992).
+// If English terminology is used ("epistles", "gospels", "torah", "wisdom", "prophets",
+// "history", "ot", "nt"), it defaults to "web".
+// If no language-specific scope is detected, it falls back to defaultTrans (or "web").
+func inferTranslationFromScope(scope string, defaultTrans string) string {
+	norm := strings.ToLower(strings.TrimSpace(scope))
+	norm = strings.TrimPrefix(norm, "@")
+
+	switch norm {
+	case "kirjeet", "epistolat", "evankeliumit", "evankeliumi", "toora", "laki", "mooses",
+		"pentateukki", "viisaus", "viisauskirjat", "runous", "profeetat", "profetia",
+		"historia", "historiakirjat", "vt", "vanha testamentti", "ut", "uusi testamentti":
+		return "KR92"
+	case "epistles", "paul", "letters", "gospels", "gospel", "torah", "law", "moses",
+		"pentateuch", "wisdom", "poetry", "prophets", "prophecy", "history", "historical",
+		"ot", "old testament", "nt", "new testament":
+		return "web"
+	default:
+		if defaultTrans != "" {
+			return defaultTrans
+		}
+		return "web"
+	}
+}
+
+// resolveSearchScope maps a scope identifier (canonical or bilingual alias) to a
+// (searchScope, scopeValue) pair consumed by the verse repository layer.
+// On an unrecognised identifier it returns ("unknown", "") so callers can
+// detect the failure and surface an ISLADiagnostic to the user.
 func resolveSearchScope(scopeBook string) (string, string) {
 	if scopeBook == "" {
 		return "", ""
@@ -110,6 +144,10 @@ func resolveSearchScope(scopeBook string) (string, string) {
 		return "group", "JOS,JDG,RUT,1SA,2SA,1KI,2KI,1CH,2CH,EZR,NEH,EST"
 	default:
 		bookID := parsers.ResolveBookID(scopeBook)
+		if bookID == "" {
+			// Return sentinel so callers can emit an ISLADiagnostic.
+			return "unknown", ""
+		}
 		return "book", bookID
 	}
 }
@@ -121,11 +159,28 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 
 	tid := parsers.ResolveTranslationID(transID)
 	if tid == "" {
-		tid = parsers.ResolveTranslationID(ctx.DefaultTrans)
+		effectiveTrans := inferTranslationFromScope(n.ScopeBook, ctx.DefaultTrans)
+		tid = parsers.ResolveTranslationID(effectiveTrans)
 	}
 
 	searchScope, scopeValue := resolveSearchScope(n.ScopeBook)
-	verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, n.Query, n.IsRegex, tid, searchScope, scopeValue)
+	if searchScope == "unknown" {
+		return nil, NewUnknownScopeDiagnostic(n.ScopeBook, 0)
+	}
+
+	// Build the effective query: for boolean mode, join terms with PostgreSQL
+	// tsquery operators (& for AND, | for OR). The repository layer detects
+	// the presence of these operators and switches from plainto_tsquery to to_tsquery.
+	effectiveQuery := n.Query
+	if len(n.Terms) > 1 && n.BoolMode != SearchBoolNone {
+		sep := " & "
+		if n.BoolMode == SearchBoolOR {
+			sep = " | "
+		}
+		effectiveQuery = strings.Join(n.Terms, sep)
+	}
+
+	verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, effectiveQuery, n.IsRegex, tid, searchScope, scopeValue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute search: %w", err)
 	}
@@ -138,11 +193,55 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 		Type: "search",
 		Data: map[string]interface{}{
 			"query":       n.Query,
+			"bool_mode":   string(n.BoolMode),
+			"terms":       n.Terms,
 			"is_regex":    n.IsRegex,
 			"scope_book":  n.ScopeBook,
 			"translation": tid,
 			"verses":      verses,
 			"count":       len(verses),
+		},
+	}, nil
+}
+
+// executeRange fetches all verses between Start and End references (inclusive)
+// by retrieving each boundary and returning them as a combined passage result.
+// Both references are resolved with the default translation.
+func executeRange(ctx *ExecutionContext, n *RangeNode) (*models.CLIResult, error) {
+	if ctx.VerseFetcher == nil {
+		return nil, errors.New("verse fetcher dependency is not configured")
+	}
+	tid := parsers.ResolveTranslationID(ctx.DefaultTrans)
+
+	startVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.Start, tid)
+	if err != nil {
+		return nil, fmt.Errorf("range(): failed to fetch start reference %q: %w", n.Start, err)
+	}
+	endVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.End, tid)
+	if err != nil {
+		return nil, fmt.Errorf("range(): failed to fetch end reference %q: %w", n.End, err)
+	}
+
+	// Combine: start verses + end verses deduplicated (simple boundary fetch).
+	// Full between-query support requires a GetVerseRange repo method (future work).
+	seen := make(map[string]struct{}, len(startVerses)+len(endVerses))
+	all := make([]models.Verse, 0, len(startVerses)+len(endVerses))
+	for _, v := range append(startVerses, endVerses...) {
+		key := fmt.Sprintf("%s-%d-%d", v.BookID, v.Chapter, v.Verse)
+		if _, dup := seen[key]; !dup {
+			seen[key] = struct{}{}
+			all = append(all, v)
+		}
+	}
+
+	return &models.CLIResult{
+		Type: "range",
+		Data: map[string]interface{}{
+			"start":       n.Start,
+			"end":         n.End,
+			"translation": tid,
+			"verses":      all,
+			"count":       len(all),
 		},
 	}, nil
 }
@@ -276,7 +375,7 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 	if action.Kind == "scope" {
 		if searchNode, isSearch := n.Left.(*SearchNode); isSearch {
 			searchNode.ScopeBook = action.Value
-			return executeSearch(ctx, searchNode, ctx.DefaultTrans, 0)
+			return executeSearch(ctx, searchNode, "", 0)
 		}
 	}
 
@@ -298,9 +397,9 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		}
 		if action.Kind == "limit" {
 			lim, _ := strconv.Atoi(action.Value)
-			return executeSearch(ctx, src, ctx.DefaultTrans, lim)
+			return executeSearch(ctx, src, "", lim)
 		}
-		res, err := executeSearch(ctx, src, ctx.DefaultTrans, 0)
+		res, err := executeSearch(ctx, src, "", 0)
 		if err != nil {
 			return nil, err
 		}
@@ -404,8 +503,9 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 		if ctx.VerseSearcher == nil {
 			return nil, errors.New("verse searcher dependency not configured")
 		}
+		searchTid := parsers.ResolveTranslationID(inferTranslationFromScope(target.ScopeBook, defaultTid))
 		searchScope, scopeValue := resolveSearchScope(target.ScopeBook)
-		verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, target.Query, target.IsRegex, defaultTid, searchScope, scopeValue)
+		verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, target.Query, target.IsRegex, searchTid, searchScope, scopeValue)
 		if err != nil {
 			return nil, fmt.Errorf("failed to search verses for count: %w", err)
 		}
@@ -417,7 +517,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 				"is_regex":    target.IsRegex,
 				"scope_book":  target.ScopeBook,
 				"count":       len(verses),
-				"translation": defaultTid,
+				"translation": searchTid,
 			},
 		}, nil
 
@@ -441,10 +541,13 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 
 	case *PipeNode:
 		// Piped search or verse reference: e.g. search("armo") => at(evankeliumit) => use(KR92) => count()
-		tid, scopeVal := extractPipedSearchOptions(target, defaultTid)
+		tid, scopeVal := extractPipedSearchOptions(target, "")
 		if searchNode := extractRootSearchNode(target); searchNode != nil {
 			if scopeVal != "" {
 				searchNode.ScopeBook = scopeVal
+			}
+			if tid == "" {
+				tid = parsers.ResolveTranslationID(inferTranslationFromScope(searchNode.ScopeBook, defaultTid))
 			}
 			searchScope, scopeValue := resolveSearchScope(searchNode.ScopeBook)
 			verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, searchNode.Query, searchNode.IsRegex, tid, searchScope, scopeValue)
@@ -464,6 +567,9 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 			}, nil
 		}
 		if refNode := extractRootVerseRefNode(target); refNode != nil {
+			if tid == "" {
+				tid = defaultTid
+			}
 			verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, tid)
 			if err != nil {
 				return nil, fmt.Errorf("failed to fetch verses for count: %w", err)

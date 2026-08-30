@@ -26,9 +26,11 @@ type mockVerseSearcher struct {
 	err       error
 	lastScope string
 	lastValue string
+	lastTrans string
 }
 
-func (m *mockVerseSearcher) SearchVerses(_ context.Context, _ string, _ bool, _ string, searchScope, scopeValue string) ([]models.Verse, error) {
+func (m *mockVerseSearcher) SearchVerses(_ context.Context, _ string, _ bool, translationID string, searchScope, scopeValue string) ([]models.Verse, error) {
+	m.lastTrans = translationID
 	m.lastScope = searchScope
 	m.lastValue = scopeValue
 	if m.err != nil {
@@ -598,4 +600,66 @@ func TestDSLExecutor_FunctionalPipelines(t *testing.T) {
 			t.Errorf("expected group MAT,MRK,LUK,JHN, got scope=%q value=%q", searcher.lastScope, searcher.lastValue)
 		}
 	})
+
+	t.Run("Auto-infer KR92 translation for Finnish scope @kirjeet and @epistolat", func(t *testing.T) {
+		// Context has default "web" to prove inference switches to fin-1992
+		webCtx := &ExecutionContext{
+			Ctx:           context.Background(),
+			DefaultTrans:  "web",
+			VerseSearcher: searcher,
+		}
+
+		// 1. @kirjeet -> fin-1992
+		node1, err := Parse(`search("armo") @kirjeet`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res1, err := Execute(webCtx, node1)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res1.Data["translation"] != "fin-1992" || searcher.lastTrans != "fin-1992" {
+			t.Errorf("expected translation fin-1992 for @kirjeet, got res=%v lastTrans=%v", res1.Data["translation"], searcher.lastTrans)
+		}
+
+		// 2. @epistolat -> fin-1992
+		node2, err := Parse(`search("armo") @epistolat`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res2, err := Execute(webCtx, node2)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res2.Data["translation"] != "fin-1992" || searcher.lastTrans != "fin-1992" {
+			t.Errorf("expected translation fin-1992 for @epistolat, got res=%v lastTrans=%v", res2.Data["translation"], searcher.lastTrans)
+		}
+
+		// 3. @epistles -> web (English scope stays web)
+		node3, err := Parse(`search("grace") @epistles`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res3, err := Execute(webCtx, node3)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res3.Data["translation"] != "web" || searcher.lastTrans != "web" {
+			t.Errorf("expected translation web for @epistles, got res=%v lastTrans=%v", res3.Data["translation"], searcher.lastTrans)
+		}
+
+		// 4. Explicit override in pipeline => use(KJV)
+		node4, err := Parse(`search("grace") @kirjeet => use(KJV)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res4, err := Execute(webCtx, node4)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res4.Data["translation"] != "kjv" || searcher.lastTrans != "kjv" {
+			t.Errorf("expected translation kjv for explicit override, got res=%v lastTrans=%v", res4.Data["translation"], searcher.lastTrans)
+		}
+	})
 }
+

@@ -1,6 +1,8 @@
 package dsl
 
-import "strings"
+import (
+	"strings"
+)
 
 // Node represents the base interface for all AST nodes.
 type Node interface {
@@ -16,20 +18,52 @@ type VerseRefNode struct {
 func (n *VerseRefNode) node()          {}
 func (n *VerseRefNode) String() string { return "@" + n.Reference }
 
+// SearchBoolMode defines how multiple search terms are composed.
+type SearchBoolMode string
+
+const (
+	// SearchBoolNone is plain full-text search with a single query term.
+	SearchBoolNone SearchBoolMode = ""
+	// SearchBoolAND requires all terms to be present (PostgreSQL: term1 & term2).
+	SearchBoolAND SearchBoolMode = "AND"
+	// SearchBoolOR requires at least one term to match (PostgreSQL: term1 | term2).
+	SearchBoolOR SearchBoolMode = "OR"
+)
+
 // SearchNode represents a full-text or regex search query (e.g. ? "love" in @Joh).
 type SearchNode struct {
 	Query     string
 	IsRegex   bool
-	ScopeBook string // Optional book filter, e.g. "Joh"
+	ScopeBook string         // Optional book filter, e.g. "Joh" or "evankeliumit"
+	BoolMode  SearchBoolMode // Boolean composition mode: "", "AND", "OR"
+	Terms     []string       // Individual terms for boolean mode; Query holds the raw input
 }
 
 func (n *SearchNode) node() {}
 func (n *SearchNode) String() string {
-	res := "?" + n.Query
+	res := "search("
+	if len(n.Terms) > 1 {
+		res += strings.Join(n.Terms, " "+string(n.BoolMode)+" ")
+	} else {
+		res += n.Query
+	}
+	res += ")"
 	if n.ScopeBook != "" {
 		res += " @" + n.ScopeBook
 	}
 	return res
+}
+
+// RangeNode represents a contiguous passage range, e.g. range(Joh 1:1, Joh 3:36).
+// Start and End are raw verse reference strings resolved the same way as VerseRefNode.
+type RangeNode struct {
+	Start string
+	End   string
+}
+
+func (n *RangeNode) node() {}
+func (n *RangeNode) String() string {
+	return "range(" + n.Start + ", " + n.End + ")"
 }
 
 // ScopeNode represents a contextual scope reference to preceding cells (e.g. ^, ^3, ^all)
