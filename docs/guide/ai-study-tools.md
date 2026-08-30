@@ -10,20 +10,20 @@ The AI engine is tailored specifically for theological analysis, grammatical par
 
 ```mermaid
 graph TD
-    User([Researcher / Student]) --> Query[Target Passage / Topic / Question]
+    User(["Researcher / Student"]) --> Query["Target Passage / Topic / Question"]
     
-    subgraph "AI Study Engine (Google Gemini)"
-        Query --> Insight[Verse Insights & Hermeneutics]
-        Query --> Tone[Literary Tone & Structure Analysis]
-        Query --> Deep[Theological Topic Deep-Dive]
-        Query --> Semantic[Semantic Conceptual Search]
-        Query --> Original[Greek/Hebrew Morphology Breakdown]
+    subgraph AI_Engine ["AI Study Engine (Google Gemini)"]
+        Query --> Insight["Verse Insights & Hermeneutics"]
+        Query --> Tone["Literary Tone & Structure Analysis"]
+        Query --> Deep["Theological Topic Deep-Dive"]
+        Query --> Semantic["Semantic Conceptual Search"]
+        Query --> Original["Greek/Hebrew Morphology Breakdown"]
     end
     
-    subgraph "Interactive UI Components"
-        Insight & Tone & Deep & Semantic & Original --> Cards[DeepDiveCard & Exegesis Notes]
-        Insight & Tone & Deep & Semantic & Original --> Chips[NextFocusChips Suggestions]
-        Insight & Tone & Deep & Semantic & Original --> Usage[GeminiUsage Token Tracker]
+    subgraph UI_Components ["Interactive UI Components"]
+        Insight & Tone & Deep & Semantic & Original --> Cards["DeepDiveCard & Exegesis Notes"]
+        Insight & Tone & Deep & Semantic & Original --> Chips["NextFocusChips Suggestions"]
+        Insight & Tone & Deep & Semantic & Original --> Usage["GeminiUsage Token Tracker"]
     end
 ```
 

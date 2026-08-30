@@ -47,22 +47,22 @@ clible-v3 uses Go's streaming token parser (`xml.Decoder`):
 
 ```mermaid
 graph TD
-    Stream[Raw XML Stream / HTTP Body / io.Reader] --> Dec[Go xml.Decoder]
+    Stream["Raw XML Stream / HTTP Body / io.Reader"] --> Dec["Go xml.Decoder"]
     
-    subgraph XML Parser [internal/parsers/xml_parser.go]
-        Dec --> Token[Get Next Token]
-        Token --> Filter{Footnote or Ref tag?}
-        Filter -- Yes --> Skip[Skip metadata content]
-        Filter -- No --> Process[Reconstruct Verse Text]
+    subgraph XML_Parser ["XML Parser: internal/parsers/xml_parser.go"]
+        Dec --> Token["Get Next Token"]
+        Token --> Filter{"Footnote or Ref tag?"}
+        Filter -- Yes --> Skip["Skip metadata content"]
+        Filter -- No --> Process["Reconstruct Verse Text"]
     end
 
-    subgraph Seed Service [internal/services/seed_service.go]
-        Process -- Callback(models.Verse) --> Buffer{Buffer >= 500 verses?}
-        Buffer -- Yes --> Bulk[Bulk Insert Transaction]
-        Buffer -- No --> Accumulate[Append to memory batch]
+    subgraph Seed_Service ["Seed Service: internal/services/seed_service.go"]
+        Process -->|"Emit Verse Callback"| Buffer{"Buffer >= 500 verses?"}
+        Buffer -- Yes --> Bulk["Bulk Insert Transaction"]
+        Buffer -- No --> Accumulate["Append to memory batch"]
     end
 
-    Bulk --> DB[(Database: PostgreSQL / SQLite)]
+    Bulk --> DB[("Database: PostgreSQL")]
 ```
 
 ---

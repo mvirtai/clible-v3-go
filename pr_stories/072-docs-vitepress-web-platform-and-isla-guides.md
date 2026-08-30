@@ -20,27 +20,31 @@ Key objectives achieved:
 
 ```mermaid
 graph TD
-    Root[VitePress Docs Root: docs/] --> Config[docs/.vitepress/config.ts]
-    Root --> Index[docs/index.md: Web Platform Hero & Map]
+    Root["VitePress Docs Root: docs/"] --> Config["docs/.vitepress/config.ts"]
+    Root --> Index["docs/index.md: Web Platform Hero & Map"]
     
-    subgraph Guides [User Guide & Workspaces]
-        Config --> G1[guide/getting-started.md: Platform Overview & Quick Start]
-        Config --> G2[guide/workspaces.md: Research Workspaces & Scopes]
-        Config --> G3[guide/search-and-analytics.md: Search Modes & Lexical Analytics]
-        Config --> G4[guide/notebooks.md: 2D Canvas & Hybrid Cells]
-        Config --> G5[guide/isla-guide.md: ISLA Directives & Functional Pipelines]
-        Config --> G6[guide/import-and-seeding.md: Translations Catalog & O(1) Ingestion]
-        Config --> G7[guide/self-hosting.md: Self-Hosting, Docker & Quality Gates]
+    subgraph Guides ["User Guide & Workspaces"]
+        Config --> G1["guide/getting-started.md: Platform Overview & Quick Start"]
+        Config --> G2["guide/reader.md: Scripture Reader & Canonical Navigation"]
+        Config --> G3["guide/compare-and-diff.md: Translation Comparison & Visual Diffing"]
+        Config --> G4["guide/search-and-analytics.md: Search Modes & Lexical Analytics"]
+        Config --> G5["guide/original-languages.md: Original Languages & Morphology"]
+        Config --> G6["guide/ai-study-tools.md: Theological AI Tools & Insights"]
+        Config --> G7["guide/workspaces.md: Research Workspaces & Scopes"]
+        Config --> G8["guide/notebooks.md: 2D Canvas & Hybrid Cells"]
+        Config --> G9["guide/isla-guide.md: ISLA Directives & Pipelines"]
+        Config --> G10["guide/import-and-seeding.md: Translations & O(1) Ingestion"]
+        Config --> G11["guide/self-hosting.md: Self-Hosting, Docker & Quality Gates"]
     end
     
-    subgraph Architecture [Architecture & Engine Specs]
-        Config --> A1[architecture/overview.md: Layered REST Monolith]
-        Config --> A2[architecture/database.md: Dual FTS & ERD Schemas]
-        Config --> A3[architecture/isla-specification.md: Formal EBNF Grammar]
+    subgraph Architecture ["Architecture & Engine Specs"]
+        Config --> A1["architecture/overview.md: Layered REST Monolith"]
+        Config --> A2["architecture/database.md: Dual FTS & ERD Schemas"]
+        Config --> A3["architecture/isla-specification.md: Formal EBNF Grammar"]
     end
     
-    subgraph API [API Reference]
-        Config --> API1[api/reference.md: Endpoints & Payloads]
+    subgraph API ["API Reference"]
+        Config --> API1["api/reference.md: Endpoints & Payloads"]
     end
 ```
 
@@ -52,6 +56,7 @@ graph TD
 | `docs/.vitepress/theme/index.ts` | **NEW** | Custom client-side VitePress theme integrating dynamic Mermaid ESM rendering and dark/light mode reactivity. |
 | `docs/.vitepress/theme/custom.css` | **NEW** | Styling and responsive container wrapper rules for rendered Mermaid SVG diagrams. |
 | `docs/index.md` | **MODIFY** | Replaced developer-only terminal snippet with web platform architectural diagram and comprehensive navigation matrix. |
+| `docs/architecture/overview.md` | **MODIFY** | Updated system architecture diagram and sequence diagram participants with valid quoted Mermaid syntax. |
 | `docs/guide/getting-started.md` | **MODIFY** | Rebuilt from scratch as *Platform Overview & Quick Start*, providing a 5-minute UI tour and workflow guide for web users. |
 | `docs/guide/reader.md` | **NEW** | Comprehensive guide covering scripture reading, canonical navigation, serif typography, and verse action bars. |
 | `docs/guide/compare-and-diff.md` | **NEW** | Dedicated guide for dual-translation alignment, LCS visual word diffing, dynamic similarity bars, and AI comparative exegesis. |

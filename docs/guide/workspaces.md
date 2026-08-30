@@ -17,18 +17,18 @@ Within an active workspace, you can:
 
 ```mermaid
 graph TD
-    User([Authenticated User]) --> Scope[Active Research Workspace: 'Romans 8 Exegesis']
+    User(["Authenticated User"]) --> Scope["Active Research Workspace: Romans 8 Exegesis"]
     
-    subgraph Workspace Scope
-        Scope --> Searches[Saved Searches & Boolean Queries]
-        Scope --> Analyses[Saved Lexical & Frequency Analyses]
-        Scope --> Notebooks[Linked 2D Canvas Notebooks]
+    subgraph Workspace_Scope ["Workspace Scope"]
+        Scope --> Searches["Saved Searches & Boolean Queries"]
+        Scope --> Analyses["Saved Lexical & Frequency Analyses"]
+        Scope --> Notebooks["Linked 2D Canvas Notebooks"]
     end
     
-    subgraph Data Cache
-        Searches -.-> C1[Cached Result Payloads]
-        Analyses -.-> C2[Cached Statistical Metrics]
-        Notebooks -.-> C3[Ordered Hybrid Cells]
+    subgraph Data_Cache ["Data Cache"]
+        Searches -.-> C1["Cached Result Payloads"]
+        Analyses -.-> C2["Cached Statistical Metrics"]
+        Notebooks -.-> C3["Ordered Hybrid Cells"]
     end
 ```
 

@@ -10,11 +10,11 @@ When studying critical theological passages, comparing two translations reveals 
 
 ```mermaid
 flowchart LR
-    User[User Reference: 'John 3:16'] --> Fetch[Fetch Verses for Translation A & B]
-    Fetch --> Align[Synchronized Verse Alignment]
-    Align --> LCS[LCS Text Diff Algorithm]
-    LCS --> Sim[Compute Token & Sequence Similarity]
-    Sim --> Matrix[Render Visual Diff Matrix & Similarity Bar]
+    User["User Reference: John 3:16"] --> Fetch["Fetch Verses for Translation A & B"]
+    Fetch --> Align["Synchronized Verse Alignment"]
+    Align --> LCS["LCS Text Diff Algorithm"]
+    LCS --> Sim["Compute Token & Sequence Similarity"]
+    Sim --> Matrix["Render Visual Diff Matrix & Similarity Bar"]
 ```
 
 ### Visual Diff Highlights

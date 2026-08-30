@@ -10,26 +10,26 @@ The platform supports three distinct search evaluation modes:
 
 ```mermaid
 flowchart TD
-    QUERY[User Search Query] --> MODE{Mode Selection}
+    QUERY["User Search Query"] --> MODE{"Mode Selection"}
     
-    MODE -->|Default FTS| FTS[Full-Text Search Engine]
-    MODE -->|Exact String| PHRASE[Exact Phrase Matching]
-    MODE -->|Regex Pattern| REGEX[Regular Expression Engine]
+    MODE -->|Default FTS| FTS["Full-Text Search Engine"]
+    MODE -->|Exact String| PHRASE["Exact Phrase Matching"]
+    MODE -->|Regex Pattern| REGEX["Regular Expression Engine"]
     
-    FTS --> GIN[(PostgreSQL GIN tsvector / SQLite FTS5)]
-    PHRASE --> ILIKE[(Case-Insensitive Substring Match)]
-    REGEX --> RE2[(Go RE2 POSIX Regex Engine)]
+    FTS --> GIN[("PostgreSQL GIN tsvector")]
+    PHRASE --> ILIKE[("Case-Insensitive Substring Match")]
+    REGEX --> RE2[("Go RE2 POSIX Regex Engine")]
     
-    GIN --> SCOPE{Apply Scope Filter}
+    GIN --> SCOPE{"Apply Scope Filter"}
     ILIKE --> SCOPE
     RE2 --> SCOPE
     
-    SCOPE -->|All Canon| R1[Search Entire Bible]
-    SCOPE -->|Old Testament| R2[Limit to OT Books]
-    SCOPE -->|New Testament| R3[Limit to NT Books]
-    SCOPE -->|Specific Book| R4[Limit to Target Book e.g. ROM]
+    SCOPE -->|All Canon| R1["Search Entire Bible"]
+    SCOPE -->|Old Testament| R2["Limit to OT Books"]
+    SCOPE -->|New Testament| R3["Limit to NT Books"]
+    SCOPE -->|Specific Book| R4["Limit to Target Book e.g. ROM"]
     
-    R1 --> OUT[Unified Results Payload]
+    R1 --> OUT["Unified Results Payload"]
     R2 --> OUT
     R3 --> OUT
     R4 --> OUT

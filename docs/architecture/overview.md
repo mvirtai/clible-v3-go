@@ -12,30 +12,30 @@ The Go REST API monolith manages user authentication via HTTP-only JWT sessions,
 
 ```mermaid
 graph TD
-    subgraph Frontend [Vite + React 19 Frontend]
-        UI[UI Components: NotebookEditor, Reader, etc.]
-        API_CLIENT[API Client: ApiService.ts]
+    subgraph Frontend_App ["Frontend: Vite + React 19"]
+        UI["UI Components: NotebookEditor, Reader, etc."]
+        API_CLIENT["API Client: ApiService.ts"]
     end
 
-    subgraph Backend [Go REST API Monolith]
-        MW_LAYER[Middleware: Auth, Logger, RateLimiter]
-        API_LAYER[API Layer: internal/api]
-        SVC_LAYER[Service Layer: internal/services]
-        REP_LAYER[Repository Layer: internal/db]
-        PRS_LAYER[Parser Layer: internal/parsers]
+    subgraph Backend_App ["Backend: Go REST API Monolith"]
+        MW_LAYER["Middleware: Auth, Logger, RateLimiter"]
+        API_LAYER["API Layer: internal/api"]
+        SVC_LAYER["Service Layer: internal/services"]
+        REP_LAYER["Repository Layer: internal/db"]
+        PRS_LAYER["Parser Layer: internal/parsers"]
     end
 
-    DB[(PostgreSQL: Neon)]
-    AI[Gemini AI API]
+    DB[("PostgreSQL: Neon")]
+    AI["Gemini AI API"]
 
     UI --> API_CLIENT
-    API_CLIENT -- "HTTP / REST (JSON)" --> MW_LAYER
+    API_CLIENT -->|"HTTP / REST (JSON)"| MW_LAYER
     MW_LAYER --> API_LAYER
     API_LAYER --> SVC_LAYER
     SVC_LAYER --> REP_LAYER
-    SVC_LAYER -- "Parses Streams" --> PRS_LAYER
-    SVC_LAYER -- "Integrates AI" --> AI
-    REP_LAYER -- "SQL / Context-aware" --> DB
+    SVC_LAYER -->|"Parses Streams"| PRS_LAYER
+    SVC_LAYER -->|"Integrates AI"| AI
+    REP_LAYER -->|"SQL / Context-aware"| DB
 ```
 
 ---
@@ -98,11 +98,11 @@ The sequence diagram below visualizes a verse lookup request (`GET /api/verses?r
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as User Browser
-    participant API as API Layer (bible_handler.go)
-    participant SVC as Service Layer (verse_service.go)
-    participant DB as Repository Layer (verse_repository.go)
-    participant SQL as Database
+    actor User as "User Browser"
+    participant API as "API Layer (bible_handler.go)"
+    participant SVC as "Service Layer (verse_service.go)"
+    participant DB as "Repository Layer (verse_repository.go)"
+    participant SQL as "Database (PostgreSQL)"
 
     User->>API: GET /api/verses?ref=John+3:16
     activate API

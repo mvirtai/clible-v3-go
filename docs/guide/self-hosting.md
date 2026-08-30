@@ -14,18 +14,18 @@ clible-v3 is designed as a cloud-native, stateless client-server application:
 
 ```mermaid
 flowchart LR
-    subgraph Client
-        Browser[Web Browser / Mobile Client]
+    subgraph Client ["Client"]
+        Browser["Web Browser / Mobile Client"]
     end
     
-    subgraph Server [Single Go Binary / Container]
-        API[Go HTTP Server :8080]
-        SPA[Static Asset Server /dist]
+    subgraph Server ["Single Go Binary / Container"]
+        API["Go HTTP Server :8080"]
+        SPA["Static Asset Server /dist"]
     end
     
-    subgraph Cloud
-        DB[(PostgreSQL / Neon DB)]
-        AI[Gemini AI API]
+    subgraph Cloud ["Cloud"]
+        DB[("PostgreSQL Database")]
+        AI["Gemini AI API"]
     end
     
     Browser -->|HTTP / JSON| API

@@ -49,23 +49,23 @@ clible-v3 is designed as a web-native research suite accessed directly in your b
 
 ```mermaid
 graph TD
-    User([Researcher / User]) --> UI[Web Application: React 19 + Tailwind v4]
+    User(["Researcher / User"]) --> UI["Web Application: React 19 + Tailwind v4"]
     
-    subgraph Core Features
-        UI --> R[Scripture Reader & Navigation]
-        UI --> C[Comparison Matrix & Diffing]
-        UI --> S[Dual Full-Text & Regex Search]
-        UI --> O[Original Languages & Morphology]
-        UI --> A[Text Analytics & Word Frequencies]
-        UI --> N[2D Canvas Notebooks & ISLA]
-        UI --> W[Project Workspaces & Scopes]
-        UI --> AI[Theological AI Engine]
+    subgraph Core_Features ["Core Features"]
+        UI --> R["Scripture Reader & Navigation"]
+        UI --> C["Comparison Matrix & Diffing"]
+        UI --> S["Dual Full-Text & Regex Search"]
+        UI --> O["Original Languages & Morphology"]
+        UI --> A["Text Analytics & Word Frequencies"]
+        UI --> N["2D Canvas Notebooks & ISLA"]
+        UI --> W["Project Workspaces & Scopes"]
+        UI --> AI["Theological AI Engine"]
     end
     
-    subgraph Cloud Infrastructure
-        R & C & S & O & A & N & W & AI --> API[Go REST API Monolith]
-        API --> DB[(Neon PostgreSQL)]
-        API --> AICloud[Gemini AI]
+    subgraph Cloud_Infrastructure ["Cloud Infrastructure"]
+        R & C & S & O & A & N & W & AI --> API["Go REST API Monolith"]
+        API --> DB[("Neon PostgreSQL")]
+        API --> AICloud["Gemini AI"]
     end
 ```
 

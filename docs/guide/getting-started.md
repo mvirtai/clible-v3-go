@@ -17,23 +17,23 @@ Unlike traditional desktop or CLI-only Bible software, clible-v3 is built from t
 
 ```mermaid
 flowchart TD
-    User([Researcher / User]) --> Browser[Web Browser]
+    User(["Researcher / User"]) --> Browser["Web Browser"]
     
-    subgraph "clible-v3 Web Platform"
-        Browser --> Nav[Top Navigation & Workspace Selector]
+    subgraph Web_Platform ["clible-v3 Web Platform"]
+        Browser --> Nav["Top Navigation & Workspace Selector"]
         
-        Nav --> Reader[📖 Scripture Reader]
-        Nav --> Search[🔎 Search & Filter Engine]
-        Nav --> Compare[⚖️ Translation Comparison Matrix]
-        Nav --> Analytics[📊 Text Analytics & Word Frequencies]
-        Nav --> Notebooks[📓 2D Canvas Notebooks & ISLA]
-        Nav --> AI[🤖 Theological AI Insights]
+        Nav --> Reader["📖 Scripture Reader"]
+        Nav --> Search["🔎 Search & Filter Engine"]
+        Nav --> Compare["⚖️ Translation Comparison Matrix"]
+        Nav --> Analytics["📊 Text Analytics & Word Frequencies"]
+        Nav --> Notebooks["📓 2D Canvas Notebooks & ISLA"]
+        Nav --> AI["🤖 Theological AI Insights"]
     end
     
-    subgraph "Cloud Backend"
-        Reader & Search & Compare & Analytics & Notebooks & AI --> API[Stateless Go REST API]
-        API --> DB[(Neon PostgreSQL Database)]
-        API --> AIService[Gemini AI Engine]
+    subgraph Cloud_Backend ["Cloud Backend"]
+        Reader & Search & Compare & Analytics & Notebooks & AI --> API["Stateless Go REST API"]
+        API --> DB[("Neon PostgreSQL Database")]
+        API --> AIService["Gemini AI Engine"]
     end
 ```
 

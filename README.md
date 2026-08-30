@@ -91,21 +91,21 @@ clible-v3 is engineered with clean layer boundaries and $O(1)$ streaming memory 
 
 ```mermaid
 flowchart TD
-    subgraph Frontend [React 19 + Vite SPA]
-        UI[Reader, Search, Compare, Analytics, 2D Canvas Notebooks]
-        Monaco[ISLA Monaco IntelliSense & Highlighting]
+    subgraph Frontend_App ["Frontend: React 19 + Vite SPA"]
+        UI["Reader, Search, Compare, Analytics, 2D Canvas Notebooks"]
+        Monaco["ISLA Monaco IntelliSense & Highlighting"]
     end
 
-    subgraph Backend [Stateless Go REST API Monolith]
-        API[API Layer: Go 1.22+ Standard http.ServeMux]
-        SVC[Service Layer: Text Analytics, ISLA Executor, Scopes]
-        REP[Repository Layer: PostgreSQL GIN FTS]
-        PRS[Streaming XML Parser: O(1) Memory]
+    subgraph Backend_App ["Backend: Stateless Go REST API Monolith"]
+        API["API Layer: Go 1.22+ Standard http.ServeMux"]
+        SVC["Service Layer: Text Analytics, ISLA Executor, Scopes"]
+        REP["Repository Layer: PostgreSQL GIN FTS"]
+        PRS["Streaming XML Parser: O(1) Memory"]
     end
 
-    subgraph Storage & External
-        DB[(Neon PostgreSQL Database)]
-        AI[Google Gemini AI API]
+    subgraph Storage_External ["Storage & External"]
+        DB[("Neon PostgreSQL Database")]
+        AI["Google Gemini AI API"]
     end
 
     UI --> API
