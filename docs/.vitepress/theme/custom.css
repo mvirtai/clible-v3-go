@@ -1,0 +1,40 @@
+/* Mermaid Diagram Rendering Styling */
+.mermaid-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 2rem 0;
+  padding: 2rem 1.5rem;
+  background-color: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+}
+
+.mermaid-wrapper svg {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 320px;
+  height: auto !important;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Reset code container styling when rendered as diagram */
+.language-mermaid.mermaid-rendered {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
+.language-mermaid.mermaid-rendered > pre,
+.language-mermaid.mermaid-rendered > .copy,
+.language-mermaid.mermaid-rendered > .lang,
+.language-mermaid.mermaid-rendered > .line-numbers-wrapper,
+.language-mermaid.mermaid-rendered > .line-numbers {
+  display: none !important;
+}

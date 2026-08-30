@@ -48,7 +48,9 @@ graph TD
 
 | File | Change Type | Description |
 |---|---|---|
-| `docs/.vitepress/config.ts` | **MODIFY** | Updated site description, enhanced sidebar grouping into *User Guide & Workspaces*, *Architecture & Core Engines*, and *Web REST API*. |
+| `docs/.vitepress/config.ts` | **MODIFY** | Updated site description, enhanced sidebar grouping into *Platform & Exploration*, *Workspaces & Study Notebooks*, *Architecture & Core Engines*, and *Web REST API*. |
+| `docs/.vitepress/theme/index.ts` | **NEW** | Custom client-side VitePress theme integrating dynamic Mermaid ESM rendering and dark/light mode reactivity. |
+| `docs/.vitepress/theme/custom.css` | **NEW** | Styling and responsive container wrapper rules for rendered Mermaid SVG diagrams. |
 | `docs/index.md` | **MODIFY** | Replaced developer-only terminal snippet with web platform architectural diagram and comprehensive navigation matrix. |
 | `docs/guide/getting-started.md` | **MODIFY** | Rebuilt from scratch as *Platform Overview & Quick Start*, providing a 5-minute UI tour and workflow guide for web users. |
 | `docs/guide/reader.md` | **NEW** | Comprehensive guide covering scripture reading, canonical navigation, serif typography, and verse action bars. |
@@ -63,6 +65,7 @@ graph TD
 | `docs/guide/self-hosting.md` | **NEW** | Dedicated technical guide for developers/sysadmins detailing Docker deployment, Go/React local setup, and Task quality gates. |
 | `README.md` | **MODIFY** | Overhauled root repository showcase with compelling value proposition, feature highlights, and documentation matrix. |
 | `.env.example` | **MODIFY** | Updated standard connection template to default to PostgreSQL/Neon connection string. |
+| `Taskfile.yml` | **MODIFY** | Added `task docs:dev`, `task docs:build`, `task docs:install`, and `task docs:preview` tasks for seamless docs workflow. |
 
 ---
 

@@ -139,6 +139,31 @@ tasks:
     cmds:
       - pnpm run dev
 
+  # --- Documentation (VitePress) Tasks --- #
+  docs:install:
+    desc: Install documentation dependencies
+    dir: docs
+    cmds:
+      - pnpm install
+
+  docs:dev:
+    desc: Run VitePress documentation dev server with hot-reload
+    dir: docs
+    cmds:
+      - pnpm run docs:dev
+
+  docs:build:
+    desc: Build static VitePress documentation site
+    dir: docs
+    cmds:
+      - pnpm run docs:build
+
+  docs:preview:
+    desc: Preview built static VitePress documentation site
+    dir: docs
+    cmds:
+      - pnpm run docs:preview
+
   # --- Global Development --- #
 
   dev:
