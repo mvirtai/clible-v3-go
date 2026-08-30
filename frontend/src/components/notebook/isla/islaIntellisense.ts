@@ -253,14 +253,15 @@ export function getISLASuggestions(
   if (atMatch) {
     const prefix = atMatch[1].toLowerCase();
 
-    // 2.1 Smart book groups (@evankeliumit, @gospels, @toora, @kirjeet, jne.)
+    // 2.1 Smart book groups (@evankeliumit, @gospels, @toora, @kirjeet, @epistolat jne.)
     const groupOptions: ISLASuggestion[] = SMART_BOOK_GROUPS
       .filter(
         (g) =>
           g.id.toLowerCase().startsWith(prefix) ||
           g.nameFi.toLowerCase().startsWith(prefix) ||
           g.nameEn.toLowerCase().startsWith(prefix) ||
-          g.aliasEn.toLowerCase().startsWith(prefix)
+          g.aliasEn.toLowerCase().startsWith(prefix) ||
+          ((g as { aliasFi?: string }).aliasFi && (g as { aliasFi?: string }).aliasFi!.toLowerCase().startsWith(prefix))
       )
       .map((g) => ({
         label: `@${g.id}`,
