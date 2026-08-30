@@ -189,13 +189,27 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
       continue;
     }
 
-    // 10. Identifiers / Words / Translations
+    // 10. Identifiers / Words / Translations / Functions
     const wordMatch = line.slice(index).match(/^[A-Za-zäöåÄÖÅ][A-Za-z0-9äöåÄÖÅ]*/);
     if (wordMatch) {
       const word = wordMatch[0];
+      const lower = word.toLowerCase();
       if (KNOWN_TRANSLATIONS.has(word)) {
         tokens.push({ type: 'translation', text: word });
-      } else if (word === 'count' || word === 'themes' || word === 'refs' || word === 'suggest') {
+      } else if (
+        lower === 'use' ||
+        lower === 'at' ||
+        lower === 'search' ||
+        lower === 'read' ||
+        lower === 'vs' ||
+        lower === 'compare' ||
+        lower === 'in' ||
+        lower === 'count' ||
+        lower === 'themes' ||
+        lower === 'refs' ||
+        lower === 'suggest' ||
+        lower === 'limit'
+      ) {
         tokens.push({ type: 'function', text: word });
       } else {
         tokens.push({ type: 'plain', text: word });

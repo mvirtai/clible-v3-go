@@ -32,47 +32,47 @@ export interface ISLASuggestion {
 
 export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
   {
-    label: '! @Joh 3:16 => in(KR92)',
-    insertText: '! @Joh 3:16 => in(KR92)',
+    label: '! at(Joh 3:16) => use(KR92)',
+    insertText: '! at(Joh 3:16) => use(KR92)',
     detail: 'Passage Lookup',
     documentation: {
       fi: 'Yksittäinen jaekortti valitulla käännöksellä.',
       en: 'Single scripture passage card projected into a specified translation.',
     },
-    example: '! @Joh 3:16 => in(KR92)',
+    example: '! at(Joh 3:16) => use(KR92)',
     kind: 'snippet',
   },
   {
-    label: '! @Joh 3:16 => vs(KR92, KR38)',
-    insertText: '! @Joh 3:16 => vs(KR92, KR38)',
+    label: '! at(Joh 3:16) => vs(KR92, KR38)',
+    insertText: '! at(Joh 3:16) => vs(KR92, KR38)',
     detail: 'Parallel Comparison',
     documentation: {
       fi: 'Rinnakkaisvertailu: näyttää jakeen vierekkäin kahdella eri käännöksellä.',
       en: 'Side-by-side comparative matrix: renders the scripture passage in two translations.',
     },
-    example: '! @Joh 3:16 => vs(KR92, KR38)',
+    example: '! at(Joh 3:16) => vs(KR92, KR38)',
     kind: 'snippet',
   },
   {
-    label: '! @Joh 3:16 => refs(3)',
-    insertText: '! @Joh 3:16 => refs(3)',
+    label: '! at(Joh 3:16) => refs(3)',
+    insertText: '! at(Joh 3:16) => refs(3)',
     detail: 'Cross References',
     documentation: {
       fi: 'Ristiinviitehaku: etsii jakeen avainsanojen perusteella rinnakkaiset raamatunjakeet.',
       en: 'Cross-reference lookup: discovers parallel scriptures and thematic cross-references.',
     },
-    example: '! @Joh 3:16 => refs(3)',
+    example: '! at(Joh 3:16) => refs(3)',
     kind: 'snippet',
   },
   {
-    label: '! @Joh 3:16 => themes(5)',
-    insertText: '! @Joh 3:16 => themes(5)',
+    label: '! at(Joh 3:16) => themes(5)',
+    insertText: '! at(Joh 3:16) => themes(5)',
     detail: 'Passage Themes',
     documentation: {
       fi: 'Poimii jakeesta keskeiset teemat ja avainsanat interaktiivisiksi merkeiksi.',
       en: 'Extracts prominent themes from the verse into interactive badges.',
     },
-    example: '! @Joh 3:16 => themes(5)',
+    example: '! at(Joh 3:16) => themes(5)',
     kind: 'snippet',
   },
   {
@@ -98,25 +98,25 @@ export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
     kind: 'snippet',
   },
   {
-    label: '! search("armo") => @evankeliumit => count()',
-    insertText: '! search("armo") => @evankeliumit => count()',
+    label: '! search("armo") => at(evankeliumit) => count()',
+    insertText: '! search("armo") => at(evankeliumit) => count()',
     detail: 'Scoped Count Metric',
     documentation: {
       fi: 'Laskee sanan esiintymiskertojen määrän rajatussa kirjakokonaisuudessa.',
       en: 'Counts the occurrences of a search keyword within a smart book group.',
     },
-    example: '! search("armo") => @evankeliumit => count()',
+    example: '! search("armo") => at(evankeliumit) => count()',
     kind: 'snippet',
   },
   {
-    label: '! search("valkeus") => @Joh => limit(5)',
-    insertText: '! search("valkeus") => @Joh => limit(5)',
+    label: '! search("valkeus") => at(Joh) => limit(5)',
+    insertText: '! search("valkeus") => at(Joh) => limit(5)',
     detail: 'Scoped Search',
     documentation: {
       fi: 'Tekstihaku rajattuna tiettyyn kirjaan enimmäismäärällä.',
       en: 'Full-text search restricted to a specific book with a maximum result limit.',
     },
-    example: '! search("valkeus") => @Joh => limit(5)',
+    example: '! search("valkeus") => at(Joh) => limit(5)',
     kind: 'snippet',
   },
   {
@@ -261,12 +261,34 @@ export function getISLASuggestions(
 
     const staticOptions: ISLASuggestion[] = [
       {
-        label: 'in(KR92)',
-        insertText: 'in(KR92)',
+        label: 'use(KR92)',
+        insertText: 'use(KR92)',
         detail: 'Translation Projection',
         documentation: {
           fi: 'Projisoi jakeen tai haun haluttuun raamatunkäännökseen.',
-          en: 'Projects scripture passage into a specified translation.',
+          en: 'Projects scripture passage or search into a specified translation.',
+        },
+        example: '! at(Joh 3:16) => use(KR92)',
+        kind: 'function',
+      },
+      {
+        label: 'at(Room)',
+        insertText: 'at(Room)',
+        detail: 'Scope Constraint',
+        documentation: {
+          fi: 'Rajaa hakualueen tiettyyn kirjaan tai kirjaryhmään.',
+          en: 'Restricts the search or analysis scope to a specific book or group.',
+        },
+        example: '! search("armo") => at(Room) => count()',
+        kind: 'function',
+      },
+      {
+        label: 'in(KR92)',
+        insertText: 'in(KR92)',
+        detail: 'Translation Projection (Legacy Alias)',
+        documentation: {
+          fi: 'Projisoi jakeen tai haun haluttuun raamatunkäännökseen (aliakselle use).',
+          en: 'Projects scripture passage into a specified translation (legacy alias for use).',
         },
         example: '! @Joh 3:16 => in(KR92)',
         kind: 'function',

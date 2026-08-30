@@ -258,4 +258,50 @@ describe('MarkdownCell', () => {
     expect(container?.textContent).toContain('51');
     expect(container?.textContent).toContain('@ut');
   });
+
+  it('renders ISLABlock with functional syntax: ! search("armo") => at(ROM) => use(KR92)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            type: 'search',
+            data: {
+              query: 'armo',
+              translation: 'fin-1992',
+              scope_book: 'ROM',
+              verses: [
+                {
+                  id: 'fin-1992:ROM:1:7',
+                  translationId: 'fin-1992',
+                  bookId: 'ROM',
+                  chapter: 1,
+                  verse: 7,
+                  text: 'Armoa teille ja rauhaa Jumalalta.',
+                },
+              ],
+            },
+          }),
+      })
+    );
+
+    const cell = {
+      id: 'cell-m6',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '! search("armo") => at(ROM) => use(KR92)',
+    };
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={() => {}} />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('Armoa teille ja rauhaa Jumalalta.');
+  });
 });

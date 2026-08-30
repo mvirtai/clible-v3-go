@@ -235,6 +235,7 @@ func TestParser_CountAction(t *testing.T) {
 		{`? "rakkaus" => KR92 => count`},
 		{`? armo @Room => KR92 => count`},
 		{`@Joh 3 => count`},
+		{`search("armo") => at(Room) => use(KR92) => count()`},
 	}
 
 	for _, tt := range tests {
@@ -250,6 +251,83 @@ func TestParser_CountAction(t *testing.T) {
 		if !ok || action.Kind != "count" {
 			t.Fatalf("expected Right to be count ActionNode, got %+v", pipe.Right)
 		}
+	}
+}
+
+func TestParser_FunctionalSyntaxUseAndAt(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		validate func(t *testing.T, node Node)
+	}{
+		{
+			name:  "at(Joh 1:1) => use(KR92)",
+			input: "at(Joh 1:1) => use(KR92)",
+			validate: func(t *testing.T, node Node) {
+				pipe, ok := node.(*PipeNode)
+				if !ok {
+					t.Fatalf("expected *PipeNode, got %T", node)
+				}
+				ref, ok := pipe.Left.(*VerseRefNode)
+				if !ok || ref.Reference != "Joh 1:1" {
+					t.Errorf("expected left 'Joh 1:1', got %#v", pipe.Left)
+				}
+				action, ok := pipe.Right.(*ActionNode)
+				if !ok || action.Kind != "use" || action.Value != "KR92" {
+					t.Errorf("expected right use(KR92), got %#v", pipe.Right)
+				}
+			},
+		},
+		{
+			name:  "search(\"armo\") => at(Room) => use(KR92)",
+			input: `search("armo") => at(Room) => use(KR92)`,
+			validate: func(t *testing.T, node Node) {
+				pipe, ok := node.(*PipeNode)
+				if !ok {
+					t.Fatalf("expected *PipeNode, got %T", node)
+				}
+				useAct, ok := pipe.Right.(*ActionNode)
+				if !ok || useAct.Kind != "use" || useAct.Value != "KR92" {
+					t.Fatalf("expected right use(KR92), got %#v", pipe.Right)
+				}
+				innerPipe, ok := pipe.Left.(*PipeNode)
+				if !ok {
+					t.Fatalf("expected inner *PipeNode, got %T", pipe.Left)
+				}
+				atAct, ok := innerPipe.Right.(*ActionNode)
+				if !ok || atAct.Kind != "scope" || atAct.Value != "Room" {
+					t.Fatalf("expected inner right at(Room), got %#v", innerPipe.Right)
+				}
+			},
+		},
+		{
+			name:  "at(Joh 3:16) => vs(KR92, KJV)",
+			input: "at(Joh 3:16) => vs(KR92, KJV)",
+			validate: func(t *testing.T, node Node) {
+				pipe, ok := node.(*PipeNode)
+				if !ok {
+					t.Fatalf("expected *PipeNode, got %T", node)
+				}
+				ref, ok := pipe.Left.(*VerseRefNode)
+				if !ok || ref.Reference != "Joh 3:16" {
+					t.Errorf("expected left 'Joh 3:16', got %#v", pipe.Left)
+				}
+				vsAct, ok := pipe.Right.(*ActionNode)
+				if !ok || vsAct.Kind != "vs" || len(vsAct.Args) != 2 || vsAct.Args[0] != "KR92" || vsAct.Args[1] != "KJV" {
+					t.Errorf("expected vs(KR92, KJV), got %#v", pipe.Right)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+			}
+			tt.validate(t, node)
+		})
 	}
 }
 

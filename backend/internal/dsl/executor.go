@@ -153,12 +153,12 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		return nil, fmt.Errorf("pipeline target must be an action, got %T", n.Right)
 	}
 
-	// 1. Määrälaskuri => count()
+	// 1. Count aggregator => count()
 	if action.Kind == "count" {
 		return executeCountPipe(ctx, n.Left)
 	}
 
-	// 2. vs(A, B) tai compare(A, B)
+	// 2. Parallel comparison vs(A, B) or compare(A, B)
 	if action.Kind == "vs" || action.Kind == "compare" {
 		if refNode, ok := n.Left.(*VerseRefNode); ok && len(action.Args) >= 2 {
 			return executeComparison(ctx, &ComparisonNode{
@@ -169,7 +169,7 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		}
 	}
 
-	// 3. Ristiinviitteet => refs(3)
+	// 3. Cross-references => refs(3)
 	if action.Kind == "refs" {
 		limit := 5
 		if action.Value != "" {
@@ -186,8 +186,8 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		if refNode, ok := n.Left.(*VerseRefNode); ok {
 			refStr = refNode.Reference
 		} else if pipeNode, ok := n.Left.(*PipeNode); ok {
-			// Ketjutus: @Joh 3:16 => in(KR92) => refs(3)
-			if innerAct, isAct := pipeNode.Right.(*ActionNode); isAct && (innerAct.Kind == "in" || innerAct.Kind == "translation") {
+			// Pipeline chaining: @Joh 3:16 => use(KR92) => refs(3)
+			if innerAct, isAct := pipeNode.Right.(*ActionNode); isAct && (innerAct.Kind == "use" || innerAct.Kind == "in" || innerAct.Kind == "translation") {
 				transID = innerAct.Value
 			}
 			if innerRef, isRef := pipeNode.Left.(*VerseRefNode); isRef {
@@ -212,7 +212,7 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		}
 	}
 
-	// 4. Teemat => themes(5)
+	// 4. Themes analysis => themes(5)
 	if action.Kind == "themes" {
 		limit := 10
 		if action.Value != "" {
@@ -238,7 +238,7 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		}
 	}
 
-	// 5. Suositukset => suggest(3)
+	// 5. Suggestions => suggest(3)
 	if action.Kind == "suggest" {
 		limit := 5
 		if action.Value != "" {
@@ -272,7 +272,7 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		}, nil
 	}
 
-	// 6. Laajuus putkessa (search("armo") => @Joh)
+	// 6. Scope in pipeline (search("armo") => @Joh or => at(Room))
 	if action.Kind == "scope" {
 		if searchNode, isSearch := n.Left.(*SearchNode); isSearch {
 			searchNode.ScopeBook = action.Value
@@ -280,10 +280,10 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		}
 	}
 
-	// 7. Muut perusohjaukset (in, translation, limit)
+	// 7. Other pipeline actions (use, in, translation, limit)
 	switch src := n.Left.(type) {
 	case *VerseRefNode:
-		if action.Kind == "in" || action.Kind == "translation" {
+		if action.Kind == "use" || action.Kind == "in" || action.Kind == "translation" {
 			return executeVerseRef(ctx, src, action.Value)
 		}
 		res, err := executeVerseRef(ctx, src, ctx.DefaultTrans)
@@ -293,7 +293,7 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		return applyActionToResult(ctx, res, action)
 
 	case *SearchNode:
-		if action.Kind == "in" || action.Kind == "translation" {
+		if action.Kind == "use" || action.Kind == "in" || action.Kind == "translation" {
 			return executeSearch(ctx, src, action.Value, 0)
 		}
 		if action.Kind == "limit" {
@@ -314,6 +314,18 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		return applyActionToResult(ctx, res, action)
 
 	case *PipeNode:
+		if action.Kind == "use" || action.Kind == "in" || action.Kind == "translation" {
+			if refNode := extractRootVerseRefNode(src); refNode != nil {
+				return executeVerseRef(ctx, refNode, action.Value)
+			}
+			if searchNode := extractRootSearchNode(src); searchNode != nil {
+				_, scopeVal := extractPipedSearchOptions(src, "")
+				if scopeVal != "" {
+					searchNode.ScopeBook = scopeVal
+				}
+				return executeSearch(ctx, searchNode, action.Value, 0)
+			}
+		}
 		res, err := executePipe(ctx, src)
 		if err != nil {
 			return nil, err
@@ -329,16 +341,56 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 				res.Data["count"] = lim
 			}
 		}
-		if action.Kind == "in" || action.Kind == "translation" {
-			if refNode, isRef := src.Left.(*VerseRefNode); isRef {
-				return executeVerseRef(ctx, refNode, action.Value)
-			}
-		}
 		return applyActionToResult(ctx, res, action)
 
 	default:
 		return nil, fmt.Errorf("unsupported pipeline source type: %T", n.Left)
 	}
+}
+
+func extractRootSearchNode(n Node) *SearchNode {
+	switch t := n.(type) {
+	case *SearchNode:
+		return t
+	case *PipeNode:
+		return extractRootSearchNode(t.Left)
+	default:
+		return nil
+	}
+}
+
+func extractRootVerseRefNode(n Node) *VerseRefNode {
+	switch t := n.(type) {
+	case *VerseRefNode:
+		return t
+	case *PipeNode:
+		return extractRootVerseRefNode(t.Left)
+	default:
+		return nil
+	}
+}
+
+func extractPipedSearchOptions(n Node, defaultTid string) (string, string) {
+	tid := defaultTid
+	scopeVal := ""
+
+	var walk func(node Node)
+	walk = func(node Node) {
+		if p, ok := node.(*PipeNode); ok {
+			if act, isAct := p.Right.(*ActionNode); isAct {
+				switch act.Kind {
+				case "use", "in", "translation":
+					tid = parsers.ResolveTranslationID(act.Value)
+				case "scope":
+					scopeVal = act.Value
+				}
+			}
+			walk(p.Left)
+		}
+	}
+	walk(n)
+
+	return tid, scopeVal
 }
 
 func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, error) {
@@ -388,19 +440,12 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 		}, nil
 
 	case *PipeNode:
-		// Jos ketjutettu: ? /armo.*/ @Room => KR92 => count tai search("armo") => @evankeliumit => count()
-		tid := defaultTid
-		if rightAction, ok := target.Right.(*ActionNode); ok {
-			switch rightAction.Kind {
-			case "translation", "in":
-				tid = parsers.ResolveTranslationID(rightAction.Value)
-			case "scope":
-				if searchNode, isSearch := target.Left.(*SearchNode); isSearch {
-					searchNode.ScopeBook = rightAction.Value
-				}
+		// Piped search or verse reference: e.g. search("armo") => at(evankeliumit) => use(KR92) => count()
+		tid, scopeVal := extractPipedSearchOptions(target, defaultTid)
+		if searchNode := extractRootSearchNode(target); searchNode != nil {
+			if scopeVal != "" {
+				searchNode.ScopeBook = scopeVal
 			}
-		}
-		if searchNode, isSearch := target.Left.(*SearchNode); isSearch {
 			searchScope, scopeValue := resolveSearchScope(searchNode.ScopeBook)
 			verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, searchNode.Query, searchNode.IsRegex, tid, searchScope, scopeValue)
 			if err != nil {
@@ -418,7 +463,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 				},
 			}, nil
 		}
-		if refNode, isRef := target.Left.(*VerseRefNode); isRef {
+		if refNode := extractRootVerseRefNode(target); refNode != nil {
 			verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, tid)
 			if err != nil {
 				return nil, fmt.Errorf("failed to fetch verses for count: %w", err)

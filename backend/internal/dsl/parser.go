@@ -102,15 +102,7 @@ func (p *Parser) parsePrimary() (Node, error) {
 		for {
 			cur := p.current()
 			if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma {
-				if cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma ||
-					(sb.Len() > 0 && (sb.String()[sb.Len()-1] == ':' || sb.String()[sb.Len()-1] == '-' || sb.String()[sb.Len()-1] == ',')) {
-					sb.WriteString(cur.Literal)
-				} else {
-					if sb.Len() > 0 {
-						sb.WriteString(" ")
-					}
-					sb.WriteString(cur.Literal)
-				}
+				appendCitationToken(&sb, cur)
 				p.next()
 			} else {
 				break
@@ -202,7 +194,7 @@ func (p *Parser) parsePrimary() (Node, error) {
 			}
 			p.next()
 
-			// Valinnainen @scope heti sulkevan sulun jälkeen: search("armo") @Joh
+			// Optional trailing @scope immediately following search: search("armo") @Joh
 			if scopeBook == "" && p.current().Type == TokenAt {
 				p.next()
 				scopeBook = p.current().Literal
@@ -216,20 +208,25 @@ func (p *Parser) parsePrimary() (Node, error) {
 			}, nil
 		}
 
-		if tok.Literal == "read" {
+		if tok.Literal == "read" || tok.Literal == "at" {
+			fnName := tok.Literal
 			p.next()
 			if p.current().Type != TokenParenOpen {
-				return nil, errors.New("expected '(' after 'read'")
+				return nil, fmt.Errorf("expected '(' after %q", fnName)
 			}
 			p.next()
-			refTok := p.current()
-			p.next()
+			var sb strings.Builder
+			for p.current().Type != TokenParenClose && p.current().Type != TokenEOF {
+				cur := p.current()
+				appendCitationToken(&sb, cur)
+				p.next()
+			}
 			if p.current().Type != TokenParenClose {
-				return nil, errors.New("expected ')' after read reference")
+				return nil, fmt.Errorf("expected ')' after %s reference", fnName)
 			}
 			p.next()
 
-			return &VerseRefNode{Reference: refTok.Literal}, nil
+			return &VerseRefNode{Reference: sb.String()}, nil
 		}
 
 		return nil, fmt.Errorf("unexpected identifier %q at pos %d", tok.Literal, tok.Pos)
@@ -267,8 +264,8 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 		val := tok.Literal
 		p.next()
 
-		// 1. in(KR92) or in:KR92
-		if val == "in" {
+		// 1. use(KR92), use:KR92, in(KR92) or in:KR92
+		if val == "use" || val == "in" {
 			if p.current().Type == TokenParenOpen {
 				p.next()
 				arg := p.current().Literal
@@ -276,13 +273,30 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 				if p.current().Type == TokenParenClose {
 					p.next()
 				}
-				return &ActionNode{Kind: "in", Value: arg}, nil
+				return &ActionNode{Kind: "use", Value: arg}, nil
 			}
 			if p.current().Type == TokenColon {
 				p.next()
 				arg := p.current().Literal
 				p.next()
-				return &ActionNode{Kind: "in", Value: arg}, nil
+				return &ActionNode{Kind: "use", Value: arg}, nil
+			}
+		}
+
+		// 1b. at(Room), at(evankeliumit) or at(Joh 1:1)
+		if val == "at" {
+			if p.current().Type == TokenParenOpen {
+				p.next()
+				var sb strings.Builder
+				for p.current().Type != TokenParenClose && p.current().Type != TokenEOF {
+					cur := p.current()
+					appendCitationToken(&sb, cur)
+					p.next()
+				}
+				if p.current().Type == TokenParenClose {
+					p.next()
+				}
+				return &ActionNode{Kind: "scope", Value: sb.String()}, nil
 			}
 		}
 
@@ -384,9 +398,21 @@ func (p *Parser) parseActionOrOption() (Node, error) {
 			}
 		}
 
-		// 8. Oletuksena käännöstunniste (KR92, KJV...)
+		// 8. Default fallback translation identifier (KR92, KJV...)
 		return &ActionNode{Kind: "translation", Value: val}, nil
 	}
 
 	return nil, fmt.Errorf("expected action or option, got %s at pos %d", tok.Type, tok.Pos)
+}
+
+func appendCitationToken(sb *strings.Builder, cur Token) {
+	if cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma ||
+		(sb.Len() > 0 && (sb.String()[sb.Len()-1] == ':' || sb.String()[sb.Len()-1] == '-' || sb.String()[sb.Len()-1] == ',')) {
+		sb.WriteString(cur.Literal)
+	} else {
+		if sb.Len() > 0 {
+			sb.WriteString(" ")
+		}
+		sb.WriteString(cur.Literal)
+	}
 }

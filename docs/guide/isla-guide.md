@@ -14,7 +14,7 @@ In traditional computational notebooks and study environments, researchers are o
 2. **Command Cells (CLI / REPL)**: Powerful for querying, but produce fragmented, cell-heavy documents that cannot be read smoothly as continuous articles, commentaries, or sermon manuscripts.
 
 **ISLA bridges this gap with a unified hybrid architecture:**
-You write clean, standard Markdown text and seamlessly embed fast **ISLA quick directives** (such as `! @Joh 3:16 => vs(KR92, KJV)` or `! search("armo") => @evankeliumit => in(KR92) => count()`). The execution engine parses them into deterministic ASTs and renders responsive, live scripture comparison cards directly within your narrative flow.
+You write clean, standard Markdown text and seamlessly embed fast **ISLA quick directives** (such as `! at(Joh 3:16) => vs(KR92, KJV)` or `! search("armo") => at(evankeliumit) => use(KR92) => count()`). The execution engine parses them into deterministic ASTs and renders responsive, live scripture comparison cards directly within your narrative flow.
 
 ---
 
@@ -36,7 +36,7 @@ flowchart TD
     end
 
     subgraph Layer3 ["3. Dynamic Reactive Embed (ISLA Directives)"]
-        EMBED["! @Joh 3:16 => vs(KR92, KJV) or ! search(...)"]
+        EMBED["! at(Joh 3:16) => vs(KR92, KJV) or ! search(...)"]
         LIVE["Live, side-by-side comparative scripture card (hidden command, visible on hover)"]
         EMBED --> LIVE
     end
@@ -51,7 +51,7 @@ flowchart TD
 | --- | --- | --- | --- |
 | **CLI Scratchpad** | `CodeCell` (`$ clible`) | Fast exploration, ad-hoc queries, filtering verses via checkboxes | When searching and discovering material before committing to text. |
 | **Static Narrative** | `MarkdownCell` | Main reading text, headings, commentary, and permanent references | When authoring the final document or notes. |
-| **Reactive Embed** | `ISLABlock` (`!isla`, `! @`, `! ?`) | Live, dynamic queries and side-by-side translation matrices | When you want a permanent live card that reacts to translation changes. |
+| **Reactive Embed** | `ISLABlock` (`!isla`, `! at(...)`, `! @`, `! ?`) | Live, dynamic queries and side-by-side translation matrices | When you want a permanent live card that reacts to translation changes. |
 
 > [!TIP]
 > **Why do CLI cells persist after freezing?**  
@@ -63,26 +63,26 @@ flowchart TD
 
 ISLA supports 4 fast embedding patterns:
 
-### Method 1: Standard Quick Aliases `! @`, `! ?`, `! search(...)` (Recommended)
+### Method 1: Standard Quick Aliases `! at(...)`, `! @`, `! ?`, `! search(...)` (Recommended)
 
-Place an exclamation mark followed by a space directly before `@`, `?` or `search(...)`:
+Place an exclamation mark followed by a space directly before `at(...)`, `@`, `?` or `search(...)`:
 
 ```markdown
 Key comparative passage:
-! @Joh 3:16 => vs(KR92, KJV)
+! at(Joh 3:16) => vs(KR92, KJV)
 
 Quick text search:
-! ? "light" @Joh => limit(3)
+! search("light") => at(Joh) => limit(3)
 
 Functional pipeline:
-! search("armo") => @evankeliumit => in(KR92) => count()
+! search("armo") => at(evankeliumit) => use(KR92) => count()
 ```
 
 ### Method 2: Direct Line Directive `!isla ...` or `! ...`
 
 ```markdown
-!isla @Joh 3:16 => in(KR92)
-! @Rom 8:28-30 => vs(KR92, KJV)
+! at(Joh 3:16) => use(KR92)
+! at(Rom 8:28-30) => vs(KR92, KJV)
 ```
 
 ### Method 3: Inline Shortcut `` `! @...` `` or `` `!isla ...` ``

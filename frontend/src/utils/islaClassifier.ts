@@ -153,8 +153,8 @@ export function classifyNotebookContent(
 
   if (!cells || cells.length === 0) {
     if (fallbackCellCounts) {
-      counts.text = fallbackCellCounts.markdown;
-      counts.search = fallbackCellCounts.code;
+      counts.text = fallbackCellCounts.markdown ?? 0;
+      counts.search = fallbackCellCounts.code ?? 0;
     }
     return counts;
   }
