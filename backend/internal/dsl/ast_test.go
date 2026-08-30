@@ -12,9 +12,9 @@ func TestASTNodes_StringAndNode(t *testing.T) {
 		t.Errorf("unexpected verseNode string: %s", verseNode.String())
 	}
 
-	searchNode := &SearchNode{Query: "love"}
+	searchNode := &SearchNode{Query: "love", Terms: []string{"love"}}
 	searchNode.node()
-	if searchNode.String() != "?love" {
+	if searchNode.String() != "search(love)" {
 		t.Errorf("unexpected searchNode string: %s", searchNode.String())
 	}
 
@@ -44,5 +44,11 @@ func TestASTNodes_StringAndNode(t *testing.T) {
 	compNode.node()
 	if !strings.Contains(compNode.String(), "?") || !strings.Contains(compNode.String(), ":") {
 		t.Errorf("unexpected compNode string: %s", compNode.String())
+	}
+
+	rangeNode := &RangeNode{Start: "Joh 1:1", End: "Joh 3:36"}
+	rangeNode.node()
+	if rangeNode.String() != "range(Joh 1:1, Joh 3:36)" {
+		t.Errorf("unexpected rangeNode string: %s", rangeNode.String())
 	}
 }
