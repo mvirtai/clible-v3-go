@@ -160,3 +160,181 @@ export const SMART_BOOK_GROUPS = [
   { id: 'UT', nameFi: 'Uusi testamentti', nameEn: 'New Testament', aliasEn: 'NT' },
 ] as const;
 
+/**
+ * ISLACommandMeta describes a single pipeline action keyword and its usage.
+ * Used by the IntelliSense engine, hover tooltips, and the command palette.
+ */
+export interface ISLACommandMeta {
+  /** The canonical keyword used in ISLA expressions. */
+  keyword: string;
+  /** A concise bilingual label shown in autocomplete lists. */
+  label: { fi: string; en: string };
+  /** Full bilingual description for hover tooltips and documentation panels. */
+  description: { fi: string; en: string };
+  /** Canonical syntax signature, e.g. "use(TRANSLATION_ID)". */
+  syntax: string;
+  /** Concrete usage example. */
+  example: string;
+  /** Whether this command accepts arguments. */
+  hasArgs: boolean;
+  /** Whether this command can appear in source / primary position. */
+  isPrimary?: boolean;
+}
+
+/**
+ * COMMAND_REGISTRY is the single source of truth for all ISLA DSL keywords.
+ * Each entry drives autocomplete snippets, hover documentation, and
+ * future language-server style diagnostics on the frontend.
+ *
+ * @since feat/isla-dsl-extensions
+ */
+export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
+  // ── Source / Primary Commands ────────────────────────────────────────────
+  {
+    keyword: 'search',
+    label: { fi: 'Tekstihaku', en: 'Full-text Search' },
+    description: {
+      fi: 'Hakee raamatunteksteistä hakulausekkeella. Tukee boolean-operaatoreita AND ja OR sekä named param -muotoa: `search("armo", scope: evankeliumit)`.',
+      en: 'Searches scripture by query string. Supports boolean AND/OR operators and named params: `search("grace", scope: gospels)`.',
+    },
+    syntax: 'search("QUERY") | search("TERM1" AND "TERM2") | search("Q", scope: GROUP)',
+    example: '! search("armo" AND "rauha") => at(evankeliumit) => count()',
+    hasArgs: true,
+    isPrimary: true,
+  },
+  {
+    keyword: 'range',
+    label: { fi: 'Tekstijakso', en: 'Passage Range' },
+    description: {
+      fi: 'Hakee yhtenäisen tekstijakson alku- ja loppuviitteen väliltä, esim. `range(Joh 1:1, Joh 3:36)` tai kirjatasolla `range(GEN, DEU)`.',
+      en: 'Fetches a contiguous passage between a start and end reference, e.g. `range(Joh 1:1, Joh 3:36)` or book-level `range(GEN, DEU)`.',
+    },
+    syntax: 'range(START_REF, END_REF)',
+    example: '! range(Joh 1:1, Joh 3:36) => themes(5)',
+    hasArgs: true,
+    isPrimary: true,
+  },
+  {
+    keyword: 'from',
+    label: { fi: 'Jaeviittaus (alias)', en: 'Verse Reference (alias)' },
+    description: {
+      fi: '`from(viite)` on alias `@viite`-muodolle. Selkeämpi vaihtoehto markdown-upotuksissa, joissa `@` sekoittuu markdown-syntaksiin.',
+      en: '`from(ref)` is an alias for `@ref`. A cleaner alternative in markdown embeds where `@` conflicts with Markdown syntax.',
+    },
+    syntax: 'from(VERSE_REF)',
+    example: '![from(Joh 3:16) => use(KR92)]',
+    hasArgs: true,
+    isPrimary: true,
+  },
+
+  // ── Pipeline / Modifier Commands ─────────────────────────────────────────
+  {
+    keyword: 'use',
+    label: { fi: 'Käännösvalinta', en: 'Translation Selector' },
+    description: {
+      fi: 'Projisoi jakeen tai haun halutulle raamatunkäännökselle.',
+      en: 'Projects the scripture passage or search into the specified Bible translation.',
+    },
+    syntax: 'use(TRANSLATION_ID)',
+    example: '! at(Joh 3:16) => use(KR92)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'in',
+    label: { fi: 'Käännösvalinta (alias)', en: 'Translation Selector (alias)' },
+    description: {
+      fi: 'Alias komennolle `use(...)`. Säilytetty taaksepäinyhteensopivuuden vuoksi.',
+      en: 'Alias for `use(...)`. Retained for backwards compatibility.',
+    },
+    syntax: 'in(TRANSLATION_ID)',
+    example: '! at(Joh 3:16) => in(KR92)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'at',
+    label: { fi: 'Laajuusrajoitin', en: 'Scope Constraint' },
+    description: {
+      fi: 'Rajaa haun tai analyysin tiettyyn kirjaan tai bilinguaaliseen kirjaryhmään. Putkessa: `=> at(evankeliumit)`. Lähteenä: `at(Joh 3:16) => ...`.',
+      en: 'Restricts search or analysis to a specific book or smart bilingual book group. Pipeline: `=> at(gospels)`. Source: `at(Joh 3:16) => ...`.',
+    },
+    syntax: 'at(BOOK_OR_GROUP)',
+    example: '! search("armo") => at(evankeliumit) => count()',
+    hasArgs: true,
+  },
+  {
+    keyword: 'vs',
+    label: { fi: 'Rinnakkaisvertailu', en: 'Parallel Comparison' },
+    description: {
+      fi: 'Näyttää jakeen rinnakkain kahdella käännöksellä.',
+      en: 'Renders the verse side-by-side in two translations.',
+    },
+    syntax: 'vs(TRANS_A, TRANS_B)',
+    example: '! at(Joh 3:16) => vs(KR92, KR38)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'refs',
+    label: { fi: 'Ristiinviitteet', en: 'Cross References' },
+    description: {
+      fi: 'Hakee jakeen avainsanojen perusteella rinnakkaiset raamatunjakeet. Valinnainen lukumäärä: `refs(5)`.',
+      en: 'Discovers parallel scriptures based on verse keywords. Optional count: `refs(5)`.',
+    },
+    syntax: 'refs(N?)',
+    example: '! at(Joh 3:16) => refs(5)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'themes',
+    label: { fi: 'Teemat', en: 'Thematic Keywords' },
+    description: {
+      fi: 'Poimii jakeen tai muistiinpanon tärkeimmät teemat interaktiivisiksi merkeiksi. Valinnainen lukumäärä: `themes(5)`.',
+      en: 'Extracts the most prominent themes as interactive badges. Optional count: `themes(5)`.',
+    },
+    syntax: 'themes(N?)',
+    example: '! range(Joh 1:1, Joh 3:36) => themes(8)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'suggest',
+    label: { fi: 'Kontekstisuositukset', en: 'Context Suggestions' },
+    description: {
+      fi: 'Ehdottaa muistiinpanon kontekstiin sopivia jakeita. Valinnainen lukumäärä: `suggest(3)`.',
+      en: 'Recommends contextually relevant verses. Optional count: `suggest(3)`.',
+    },
+    syntax: 'suggest(N?)',
+    example: '! ^ => suggest(5)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'count',
+    label: { fi: 'Laskuri', en: 'Result Counter' },
+    description: {
+      fi: 'Laskee putken tulosten kokonaismäärän ja esittää sen mittarikortilla.',
+      en: 'Aggregates the total number of results and presents it as a metric card.',
+    },
+    syntax: 'count()',
+    example: '! search("armo") => at(kirjeet) => count()',
+    hasArgs: false,
+  },
+  {
+    keyword: 'limit',
+    label: { fi: 'Tulosrajoitin', en: 'Result Limiter' },
+    description: {
+      fi: 'Rajoittaa näytettävien jakeiden tai hakutulosten enimmäismäärän.',
+      en: 'Limits the maximum number of displayed verses or search results.',
+    },
+    syntax: 'limit(N)',
+    example: '! search("valkeus") => at(Joh) => limit(5)',
+    hasArgs: true,
+  },
+] as const;
+
+/**
+ * Look up an {@link ISLACommandMeta} entry by its keyword (case-insensitive).
+ * Returns `undefined` if the keyword is not registered.
+ */
+export function getCommandMeta(keyword: string): ISLACommandMeta | undefined {
+  return COMMAND_REGISTRY.find(
+    (c) => c.keyword.toLowerCase() === keyword.toLowerCase()
+  );
+}

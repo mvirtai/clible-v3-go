@@ -2,6 +2,8 @@ import {
   BIBLE_BOOKS,
   APP_TRANSLATIONS,
   SMART_BOOK_GROUPS,
+  COMMAND_REGISTRY,
+  getCommandMeta,
 } from '@/components/notebook/isla/islaUtils';
 
 export type SuggestionKind =
@@ -130,7 +132,52 @@ export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
     example: '!? /righteous.*/ @Rom => limit(5)',
     kind: 'snippet',
   },
+  {
+    label: '! search("armo" AND "rauha") => at(evankeliumit) => count()',
+    insertText: '! search("armo" AND "rauha") => at(evankeliumit) => count()',
+    detail: 'Boolean AND Search',
+    documentation: {
+      fi: 'Boolean AND -haku: löytää jakeet, joissa molemmat sanat esiintyvät.',
+      en: 'Boolean AND search: finds verses containing both terms simultaneously.',
+    },
+    example: '! search("armo" AND "usko") => at(UT) => count()',
+    kind: 'snippet',
+  },
+  {
+    label: '! search("kuolema" OR "elämä") => at(Joh)',
+    insertText: '! search("kuolema" OR "elämä") => at(Joh)',
+    detail: 'Boolean OR Search',
+    documentation: {
+      fi: 'Boolean OR -haku: löytää jakeet, joissa vähintään yksi termeistä esiintyy.',
+      en: 'Boolean OR search: finds verses containing at least one of the given terms.',
+    },
+    example: '! search("valo" OR "pimeys") => at(Joh) => limit(5)',
+    kind: 'snippet',
+  },
+  {
+    label: '! range(Joh 1:1, Joh 3:36) => themes(5)',
+    insertText: '! range(Joh 1:1, Joh 3:36) => themes(5)',
+    detail: 'Passage Range + Themes',
+    documentation: {
+      fi: 'Tekstijakso: hakee kaikki jakeet alusta loppuun ja poimii niiden tärkeimmät teemat.',
+      en: 'Passage range: fetches all verses from start to end reference and extracts key themes.',
+    },
+    example: '! range(Gen 1:1, Gen 2:3) => count()',
+    kind: 'snippet',
+  },
+  {
+    label: '! range(GEN, DEU) => count()',
+    insertText: '! range(GEN, DEU) => count()',
+    detail: 'Book-level Range',
+    documentation: {
+      fi: 'Kirjatason tekstijakso: hakee kaikki jakeet Genesiksen alusta Deuteronomiumin loppuun.',
+      en: 'Book-level range: fetches all verses from Genesis through Deuteronomy.',
+    },
+    example: '! range(MAT, JHN) => count()',
+    kind: 'snippet',
+  },
 ];
+
 
 /**
  * Builds translation suggestions based on actual application translations or optional active IDs.
@@ -252,120 +299,30 @@ export function getISLASuggestions(
     return [...groupOptions, ...bookOptions];
   }
 
-  // 3. Pipeline operators after `=>` (e.g. `=> count()`, `=> refs(3)`, `=> themes(5)`, `=> in(KR92)`)
+  // 3. Pipeline operators after `=>` — driven by COMMAND_REGISTRY for maintainability
   const pipeMatch = textBeforeCursor.match(/=>\s*([A-Za-z0-9_#()-]*)$/);
   if (pipeMatch) {
     const prefix = pipeMatch[1].toLowerCase();
 
     const translationOptions = buildTranslationSuggestions(prefix, availableTranslations);
 
-    const staticOptions: ISLASuggestion[] = [
-      {
-        label: 'use(KR92)',
-        insertText: 'use(KR92)',
-        detail: 'Translation Projection',
-        documentation: {
-          fi: 'Projisoi jakeen tai haun haluttuun raamatunkäännökseen.',
-          en: 'Projects scripture passage or search into a specified translation.',
-        },
-        example: '! at(Joh 3:16) => use(KR92)',
-        kind: 'function',
-      },
-      {
-        label: 'at(Room)',
-        insertText: 'at(Room)',
-        detail: 'Scope Constraint',
-        documentation: {
-          fi: 'Rajaa hakualueen tiettyyn kirjaan tai kirjaryhmään.',
-          en: 'Restricts the search or analysis scope to a specific book or group.',
-        },
-        example: '! search("armo") => at(Room) => count()',
-        kind: 'function',
-      },
-      {
-        label: 'in(KR92)',
-        insertText: 'in(KR92)',
-        detail: 'Translation Projection (Legacy Alias)',
-        documentation: {
-          fi: 'Projisoi jakeen tai haun haluttuun raamatunkäännökseen (aliakselle use).',
-          en: 'Projects scripture passage into a specified translation (legacy alias for use).',
-        },
-        example: '! @Joh 3:16 => in(KR92)',
-        kind: 'function',
-      },
-      {
-        label: 'vs(KR92, KR38)',
-        insertText: 'vs(KR92, KR38)',
-        detail: 'Parallel Comparison',
-        documentation: {
-          fi: 'Asettaa jakeen rinnakkain kahdelle eri käännökselle.',
-          en: 'Sets scripture side-by-side across two translations.',
-        },
-        example: '! @Joh 3:16 => vs(KR92, KR38)',
-        kind: 'function',
-      },
-      {
-        label: 'refs(3)',
-        insertText: 'refs(3)',
-        detail: 'Cross References',
-        documentation: {
-          fi: 'Hakee jakeeseen liittyvät ristiinviitteet.',
-          en: 'Fetches relevant cross-references and thematic parallels.',
-        },
-        example: '! @Joh 3:16 => refs(3)',
-        kind: 'function',
-      },
-      {
-        label: 'themes(5)',
-        insertText: 'themes(5)',
-        detail: 'Thematic Keywords',
-        documentation: {
-          fi: 'Poimii keskeiset teemat ja näyttää ne avainsanapilvenä.',
-          en: 'Extracts prominent themes as interactive badges.',
-        },
-        example: '! @Joh 3:16 => themes(5)',
-        kind: 'function',
-      },
-      {
-        label: 'suggest(3)',
-        insertText: 'suggest(3)',
-        detail: 'Context Suggestions',
-        documentation: {
-          fi: 'Ehdottaa kontekstiin sopivia jakeita.',
-          en: 'Recommends verses matching contextual themes.',
-        },
-        example: '! ^ => suggest(3)',
-        kind: 'function',
-      },
-      {
-        label: 'count()',
-        insertText: 'count()',
-        detail: 'Metric Aggregator',
-        documentation: {
-          fi: 'Laskee tulosten kokonaismäärän tyylikkäänä mittarikorttina.',
-          en: 'Aggregates total result count into a dedicated metric card.',
-        },
-        example: '! search("armo") => @UT => count()',
-        kind: 'function',
-      },
-      {
-        label: 'limit(5)',
-        insertText: 'limit(5)',
-        detail: 'Result Limit',
-        documentation: {
-          fi: 'Rajoittaa näytettävien jakeiden määrän viiteen.',
-          en: 'Limits the number of rendered verses to 5.',
-        },
-        example: '! search("valo") => @Joh => limit(5)',
-        kind: 'keyword',
-      },
-    ];
+    // Build pipe suggestions from COMMAND_REGISTRY (pipeline commands only, not primary-only)
+    const registryOptions: ISLASuggestion[] = COMMAND_REGISTRY
+      .filter((cmd) => !cmd.isPrimary || cmd.keyword === 'search') // search can appear after pipe via at()
+      .filter((cmd) => {
+        const kw = cmd.keyword.toLowerCase();
+        return !prefix || kw.startsWith(prefix);
+      })
+      .map((cmd) => ({
+        label: cmd.hasArgs ? `${cmd.keyword}(...)` : `${cmd.keyword}()`,
+        insertText: cmd.hasArgs ? `${cmd.keyword}(` : `${cmd.keyword}()`,
+        detail: cmd.label.fi,
+        documentation: cmd.description,
+        example: cmd.example,
+        kind: 'function' as const,
+      }));
 
-    const filteredStatic = staticOptions.filter((opt) =>
-      opt.label.toLowerCase().startsWith(prefix)
-    );
-
-    return [...filteredStatic, ...translationOptions];
+    return [...registryOptions, ...translationOptions];
   }
 
   // 4. Comparative translation after `?` or `:` (e.g. `! @Joh 3:16 ? KR92 : KJV`)
@@ -376,4 +333,28 @@ export function getISLASuggestions(
   }
 
   return [];
+}
+
+/**
+ * Returns bilingual hover documentation for a given ISLA keyword or command name.
+ * Used by the ISLA cell editor to render inline documentation when the user
+ * hovers over a known command token.
+ *
+ * @param keyword - The ISLA command keyword to look up (e.g. 'search', 'range', 'count').
+ * @param lang - Preferred display language ('fi' | 'en'). Defaults to 'fi'.
+ * @returns A formatted documentation string, or undefined if the keyword is unknown.
+ */
+export function getHoverDocumentation(
+  keyword: string,
+  lang: 'fi' | 'en' = 'fi'
+): { label: string; syntax: string; description: string; example: string } | undefined {
+  const meta = getCommandMeta(keyword);
+  if (!meta) return undefined;
+
+  return {
+    label: meta.label[lang],
+    syntax: meta.syntax,
+    description: meta.description[lang],
+    example: meta.example,
+  };
 }
