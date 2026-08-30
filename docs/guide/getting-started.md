@@ -1,161 +1,120 @@
-# Getting Started
+# Platform Overview & Quick Start
 
-This guide walks you through setting up, configuring, and running the clible-v3-go workspace on your local machine for development and testing.
+Welcome to **clible-v3**, a modern, web-native Bible study and textual research platform.
 
----
-
-## Prerequisites
-
-Ensure you have the following tools installed:
-
-- **Go**: 1.22+ ([Download](https://go.dev/dl/))
-- **Node.js**: 18+ ([Download](https://nodejs.org/))
-- **pnpm**: Fast, disk space efficient package manager ([Install](https://pnpm.io/installation))
-- **Task**: Simple task runner automation ([Install](https://taskfile.dev/))
-- **golangci-lint**: Go linter (required for quality checks, [Install](https://golangci-lint.run/usage/install/))
+clible-v3 brings together high-speed scripture exploration, multi-translation comparative exegesis, quantitative linguistic analytics, and an interactive **2D Canvas Notebook** workspace powered by the **ISLA DSL query engine**.
 
 ---
 
-## Project Structure Overview
+## 1. Web Application Architecture
 
-The repository is structured as a monorepo containing the backend and frontend components:
+Unlike traditional desktop or CLI-only Bible software, clible-v3 is built from the ground up as a **cloud-native web application**:
 
-```
-clible-v3-go/
-├── backend/            # Go REST API project
-│   ├── main.go         # Application entrypoint
-│   ├── internal/       # Core packages (api, services, db, parsers, models)
-│   └── migrations/     # Embedded SQL schema migrations
-├── frontend/           # React 19 + TypeScript + Tailwind v4 project
-│   ├── src/            # Components, styles, API service layers
-│   └── package.json    # Frontend dependencies
-├── docs/               # VitePress documentation project
-└── Taskfile.yml        # Development task automation config
-```
+- **Zero Client Installation**: Access your research, notes, and study workspaces from any modern web browser on desktop, tablet, or mobile devices.
+- **Secure Cloud Persistence**: Workspaces, pinned searches, lexical analyses, and 2D canvas notebooks are saved securely to a high-performance PostgreSQL backend.
+- **Instant Search & Exegesis**: Sub-millisecond full-text queries, linguistic regex pattern matching, and parallel translation matrices render smoothly without client lag.
+- **Bilingual Experience**: Complete user interface localization in both Finnish (`fi`) and English (`en`) with fluid dark and light themes.
 
----
-
-## Step-by-Step Installation
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/mvirtai/clible-v3-go.git
-cd clible-v3-go
-```
-
-### 2. Install Dependencies
-
-Install the package manager dependencies for both the frontend client and the documentation project:
-
-```bash
-# Install frontend packages
-task frontend:install
-
-# Install docs packages (optional, for running docs)
-cd docs && pnpm install && cd ..
+```mermaid
+flowchart TD
+    User([Researcher / User]) --> Browser[Web Browser]
+    
+    subgraph "clible-v3 Web Platform"
+        Browser --> Nav[Top Navigation & Workspace Selector]
+        
+        Nav --> Reader[📖 Scripture Reader]
+        Nav --> Search[🔎 Search & Filter Engine]
+        Nav --> Compare[⚖️ Translation Comparison Matrix]
+        Nav --> Analytics[📊 Text Analytics & Word Frequencies]
+        Nav --> Notebooks[📓 2D Canvas Notebooks & ISLA]
+        Nav --> AI[🤖 Theological AI Insights]
+    end
+    
+    subgraph "Cloud Backend"
+        Reader & Search & Compare & Analytics & Notebooks & AI --> API[Stateless Go REST API]
+        API --> DB[(Neon PostgreSQL Database)]
+        API --> AIService[Gemini AI Engine]
+    end
 ```
 
 ---
 
-## Running the Application Locally
+## 2. Navigating the Web Interface
 
-We use the `Task` runner to orchestrate the dev servers concurrently.
+The navigation bar at the top of the screen gives you one-click access to all primary research tools:
 
-### Option A: Run Both Concurrently (Recommended)
-
-You can boot both the Go REST API and the React/Vite development server in a single terminal:
-
-```bash
-task dev
-```
-
-### Option B: Run Services Separately
-
-If you prefer separate terminal windows to monitor logs individually:
-
-1. **Start the Backend REST API:**
-
-   ```bash
-   task backend:dev
-   ```
-
-    *The Go server starts on `http://localhost:8080`. Database migrations run automatically on startup, establishing schemas and seeding canonical books.*
-
-2. **Start the Frontend client:**
-
-   ```bash
-   task frontend:dev
-   ```
-
-   *The React development server launches on `http://localhost:5173`. It includes a built-in proxy in `vite.config.ts` that redirects any requests targeting `/api/*` to the Go backend.*
-
----
-
-## Configuration & Environment Variables
-
-The backend is configured using standard environment variables, which can optionally be placed inside a `.env` file in the root directory. A template is provided at [`.env.example`](file:///home/vivaldev/code/clible-v3-go/.env.example).
-
-| Variable | Description | Default |
+| View | Icon / Key | Primary Function |
 |---|---|---|
-| `PORT` | The port on which the Go HTTP server listens. | `8080` |
-| `ENV` | The environment mode (`development` or `production`). | `development` |
-| `DATABASE_URL` | Connection string for Neon PostgreSQL, or SQLite database path. | `clible.db` |
-| `FRONTEND_DIR` | Directory containing compiled frontend static assets. | `../frontend/dist` |
-| `JWT_SECRET` | Secret key used to sign JWT session tokens (min 32 chars). | *Required* |
-
-*Example `.env` configuration:*
-
-```env
-PORT=8080
-ENV=development
-DATABASE_URL=clible.db
-FRONTEND_DIR=../frontend/dist
-JWT_SECRET=generate_a_secure_long_secret_key_at_least_32_characters
-```
+| **Reader** | 📖 `Reader` | Chapter-by-chapter scripture reading, verse selection, and translation switching. |
+| **Search** | 🔎 `Search` | Full-text, phrase, and regular expression searches across custom book/testament scopes. |
+| **Compare** | ⚖️ `Compare` | Parallel side-by-side translation comparison with visual word difference diffing. |
+| **Analytics** | 📊 `Analytics` | Lexical diversity (TTR), total/unique word counts, and token frequency rankings. |
+| **Notebooks** | 📓 `Notebooks` | 2D resizable canvas cards, Markdown exegesis notes, and reactive ISLA query embeds. |
+| **Workspaces** | 🗂️ `Scope Selector` | Switch active research project scopes to isolate saved searches, analyses, and notes. |
+| **Translations** | 📚 `Catalog` | Manage, activate, or deactivate Bible translations in your workspace. |
+| **Theme / Lang** | ☀️/🌙 & 🇫🇮/🇬🇧 | Toggle dark/light color themes and switch UI language between Finnish and English. |
 
 ---
 
-## Running Quality Checks (Quality Gates)
+## 3. Five-Minute Quick Start Workflow
 
-Before committing code or opening a Pull Request, ensure that all linting rules and tests pass successfully.
+Follow this quick walkthrough to explore the core capabilities of the web application:
 
-### Run All Checks Concurrently
+### Step 1: Open the Scripture Reader & Select a Translation
 
-```bash
-task check
-```
+1. Click **Reader** in the top navigation bar.
+2. Select a book (e.g., *John* or *Johannes*) and chapter (*Chapter 3*).
+3. Use the translation selector to choose your active Bible translation (e.g., *KR92*, *KR38*, *World English Bible*, or *King James Version*).
+4. Verses are displayed in a clean, legible serif typography designed for distraction-free study.
 
-This task executes the following checks:
+### Step 2: Compare Multiple Translations Side-by-Side
 
-- **Go Mod**: Tidies and verifies Go module dependencies (`go mod tidy`).
-- **Go Lint**: Runs `golangci-lint` to enforce coding guidelines.
-- **Go Tests**: Runs all backend unit/integration tests with the race detector enabled (`go test -race -cover`).
-- **React Lint**: Runs ESLint and TypeScript compilation checks.
-- **React Tests**: Runs frontend unit tests via Vitest.
+1. Navigate to the **Compare** view.
+2. Enter a reference such as `John 3:16` or `Romans 5:1`.
+3. Select two translations to compare (e.g., `KR92` vs. `KR38` or `WEB` vs. `KJV`).
+4. The system renders the verses in aligned columns and highlights textual variations and vocabulary choices.
 
-### Run Backend Check Individually
+### Step 3: Run a Scoped Full-Text or Boolean Search
 
-```bash
-task backend:check
-```
+1. Navigate to the **Search** view.
+2. Enter a keyword (e.g., `armo` or `grace`).
+3. Set the **Scope** to *New Testament* or a specific book like *Romans*.
+4. Review matching verses with highlighted keywords and click any result to jump directly into context.
 
-### Run Frontend Check Individually
+### Step 4: Create a Research Workspace
 
-```bash
-task frontend:check
-```
+1. In the top navigation bar, click the **Scope Selector** and choose **Create New Scope**.
+2. Name your workspace (e.g., `Romans Exegesis`).
+3. Now, whenever you save searches or analytical reports, they will be organized neatly under this project.
+
+### Step 5: Author an Interactive 2D Canvas Notebook
+
+1. Navigate to **Notebooks** and click **New Notebook**.
+2. Add a **Markdown Cell** to write your commentary and insights.
+3. Embed a live ISLA directive inside your markdown notes:
+   ```markdown
+   Key comparative passage:
+   ! at(Joh 3:16) => vs(KR92, KJV)
+   ```
+4. Add a **CLI Scratchpad Cell** (`$ clible`) to test queries dynamically:
+   ```bash
+   $ clible search "grace" --scope=ROM
+   ```
+5. Select the relevant verses using the checkboxes and click **Freeze** to append them as permanent Markdown commentary.
+6. Resize and position the notebook cards on the 24-column grid canvas to create your custom visual study layout.
 
 ---
 
-## Writing Pull Request Stories
+## 4. Account Management & Security
 
-When you complete a task on a topic branch, write a Pull Request story file in `pr_stories/` (e.g., `019-feat-my-docs.md`) in English detailing your changes.
+- **User Accounts**: Create an account with your email and password via **Register** or **Login**.
+- **Session Security**: Sessions are authenticated using secure HTTP-only JWT cookies, protecting your research notes and account from unauthorized access.
+- **Privacy & Isolation**: All workspaces, personal notes, search histories, and custom translations are strictly isolated to your user account.
 
-Then, trigger the PR creation workflow using:
+---
 
-```bash
-task git:pr FILE=019-feat-my-docs.md
-```
+## 5. Self-Hosting & Developer Setup
 
-This helper stages all files, runs the test suite quality gates, pushes the branch to GitHub, and creates the PR via the GitHub CLI.
+Are you a software engineer, DevOps specialist, or system administrator looking to run clible-v3 on your own infrastructure or contribute code?
+
+Check out our comprehensive [Self-Hosting & Local Development Guide](/guide/self-hosting) for step-by-step instructions on Docker containers, Go backend configuration, PostgreSQL setup, Taskfile automation, and quality gates.

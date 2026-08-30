@@ -4,7 +4,7 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "clible-v3",
   description:
-    "Modern, high-performance, offline-first Bible study platform.",
+    "Modern, web-native Bible study, text analytics, and 2D canvas research platform.",
   lang: "en-US",
   cleanUrls: true,
   lastUpdated: true,
@@ -38,29 +38,41 @@ export default defineConfig({
     sidebar: {
       "/guide/": [
         {
-          text: "Guide",
+          text: "Platform & Exploration",
           items: [
-            { text: "Getting started", link: "/guide/getting-started" },
-            { text: "Import & seeding", link: "/guide/import-and-seeding" },
-            { text: "Notebooks & cells", link: "/guide/notebooks" },
+            { text: "Overview & Quick Start", link: "/guide/getting-started" },
+            { text: "Scripture Reader", link: "/guide/reader" },
+            { text: "Comparison & Diffing", link: "/guide/compare-and-diff" },
+            { text: "Search & Text Analytics", link: "/guide/search-and-analytics" },
+            { text: "Original Languages & Morphology", link: "/guide/original-languages" },
+            { text: "Theological AI Tools", link: "/guide/ai-study-tools" },
+          ],
+        },
+        {
+          text: "Workspaces & Study Notebooks",
+          items: [
+            { text: "Workspaces & Scopes", link: "/guide/workspaces" },
+            { text: "Notebooks & 2D Canvas", link: "/guide/notebooks" },
             { text: "ISLA Language Guide", link: "/guide/isla-guide" },
+            { text: "Translations & Ingestion", link: "/guide/import-and-seeding" },
+            { text: "Self-Hosting & Setup", link: "/guide/self-hosting" },
           ],
         },
       ],
       "/architecture/": [
         {
-          text: "Architecture",
+          text: "Architecture & Core Engines",
           items: [
             { text: "Overview & Layers", link: "/architecture/overview" },
-            { text: "Database & FTS5", link: "/architecture/database" },
+            { text: "Database & Dual FTS", link: "/architecture/database" },
             { text: "ISLA Language Specification", link: "/architecture/isla-specification" },
           ],
         },
       ],
       "/api/": [
         {
-          text: "Web API",
-          items: [{ text: "Reference", link: "/api/reference" }],
+          text: "Web REST API",
+          items: [{ text: "API Reference", link: "/api/reference" }],
         },
       ],
     },
