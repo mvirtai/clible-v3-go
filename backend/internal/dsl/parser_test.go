@@ -349,3 +349,221 @@ func TestDSLParser_InvalidExpressions(t *testing.T) {
 		})
 	}
 }
+
+// TestParser_RangeExpression verifies parsing of range(start, end) primary sources.
+func TestParser_RangeExpression(t *testing.T) {
+	cases := []struct {
+		name      string
+		input     string
+		wantStart string
+		wantEnd   string
+	}{
+		{
+			name:      "Verse-level range",
+			input:     `range(Joh 1:1, Joh 3:36)`,
+			wantStart: "Joh 1:1",
+			wantEnd:   "Joh 3:36",
+		},
+		{
+			name:      "Book-level range",
+			input:     `range(GEN, DEU)`,
+			wantStart: "GEN",
+			wantEnd:   "DEU",
+		},
+		{
+			name:      "Range piped to themes",
+			input:     `range(Joh 1:1, Joh 3:36) => themes(5)`,
+			wantStart: "Joh 1:1",
+			wantEnd:   "Joh 3:36",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			node, err := Parse(tc.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) returned unexpected error: %v", tc.input, err)
+			}
+
+			// Unwrap pipe if present
+			var rangeNode *RangeNode
+			switch n := node.(type) {
+			case *RangeNode:
+				rangeNode = n
+			case *PipeNode:
+				rn, ok := n.Left.(*RangeNode)
+				if !ok {
+					t.Fatalf("expected *RangeNode as pipe left, got %T", n.Left)
+				}
+				rangeNode = rn
+			default:
+				t.Fatalf("expected *RangeNode or *PipeNode, got %T", node)
+			}
+
+			if rangeNode.Start != tc.wantStart {
+				t.Errorf("Start: got %q, want %q", rangeNode.Start, tc.wantStart)
+			}
+			if rangeNode.End != tc.wantEnd {
+				t.Errorf("End: got %q, want %q", rangeNode.End, tc.wantEnd)
+			}
+		})
+	}
+}
+
+// TestParser_BooleanSearch verifies AND/OR boolean mode detection in search().
+func TestParser_BooleanSearch(t *testing.T) {
+	cases := []struct {
+		name        string
+		input       string
+		wantBool    SearchBoolMode
+		wantTermLen int
+	}{
+		{
+			name:        "AND boolean search",
+			input:       `search("armo" AND "rauha")`,
+			wantBool:    SearchBoolAND,
+			wantTermLen: 2,
+		},
+		{
+			name:        "OR boolean search",
+			input:       `search("kuolema" OR "elämä")`,
+			wantBool:    SearchBoolOR,
+			wantTermLen: 2,
+		},
+		{
+			name:        "Plain search — no boolean",
+			input:       `search("armo")`,
+			wantBool:    SearchBoolNone,
+			wantTermLen: 1,
+		},
+		{
+			name:        "AND search with scope",
+			input:       `search("armo" AND "rauha") => at(evankeliumit) => count()`,
+			wantBool:    SearchBoolAND,
+			wantTermLen: 2,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			node, err := Parse(tc.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) unexpected error: %v", tc.input, err)
+			}
+
+			// Unwrap pipes to find the SearchNode
+			var sn *SearchNode
+			var walk func(Node)
+			walk = func(n Node) {
+				switch x := n.(type) {
+				case *SearchNode:
+					sn = x
+				case *PipeNode:
+					walk(x.Left)
+				}
+			}
+			walk(node)
+
+			if sn == nil {
+				t.Fatalf("no SearchNode found in AST for %q", tc.input)
+			}
+			if sn.BoolMode != tc.wantBool {
+				t.Errorf("BoolMode: got %q, want %q", sn.BoolMode, tc.wantBool)
+			}
+			if len(sn.Terms) != tc.wantTermLen {
+				t.Errorf("Terms: got %d, want %d — %v", len(sn.Terms), tc.wantTermLen, sn.Terms)
+			}
+		})
+	}
+}
+
+// TestParser_SearchNamedParams verifies named param parsing (scope: x) inside search().
+func TestParser_SearchNamedParams(t *testing.T) {
+	cases := []struct {
+		name      string
+		input     string
+		wantScope string
+	}{
+		{
+			name:      "Named scope param",
+			input:     `search("armo", scope: evankeliumit)`,
+			wantScope: "evankeliumit",
+		},
+		{
+			name:      "Positional @scope",
+			input:     `search("armo", @evankeliumit)`,
+			wantScope: "evankeliumit",
+		},
+		{
+			name:      "Trailing @scope",
+			input:     `search("armo") @Joh`,
+			wantScope: "Joh",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			node, err := Parse(tc.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) unexpected error: %v", tc.input, err)
+			}
+			sn, ok := node.(*SearchNode)
+			if !ok {
+				t.Fatalf("expected *SearchNode, got %T", node)
+			}
+			if sn.ScopeBook != tc.wantScope {
+				t.Errorf("ScopeBook: got %q, want %q", sn.ScopeBook, tc.wantScope)
+			}
+		})
+	}
+}
+
+// TestParser_FromAlias verifies that from(ref) produces a VerseRefNode identical to @ref.
+func TestParser_FromAlias(t *testing.T) {
+	node, err := Parse(`from(Joh 3:16) => use(KR92)`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	pipe, ok := node.(*PipeNode)
+	if !ok {
+		t.Fatalf("expected *PipeNode, got %T", node)
+	}
+	ref, ok := pipe.Left.(*VerseRefNode)
+	if !ok {
+		t.Fatalf("expected *VerseRefNode as Left, got %T", pipe.Left)
+	}
+	if ref.Reference != "Joh 3:16" {
+		t.Errorf("Reference: got %q, want %q", ref.Reference, "Joh 3:16")
+	}
+}
+
+// TestParser_ISLADiagnosticErrors verifies that unknown primary identifiers with
+// call syntax return typed ISLADiagnostic errors.
+// Note: bare identifiers in pipeline position (e.g. => refss) fall through to the
+// translation-fallback by design to preserve backwards compatibility with short
+// translation aliases like KR92, KJV, etc.
+func TestParser_ISLADiagnosticErrors(t *testing.T) {
+	cases := []struct {
+		input    string
+		wantCode DiagnosticCode
+	}{
+		{`unknownfn(5)`, DiagUnknownIdent}, // Unknown primary with call syntax
+		{`notacommand(3)`, DiagUnknownIdent},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			_, err := Parse(tc.input)
+			if err == nil {
+				t.Fatalf("expected error for %q", tc.input)
+			}
+			diag, ok := err.(*ISLADiagnostic)
+			if !ok {
+				t.Fatalf("expected *ISLADiagnostic, got %T: %v", err, err)
+			}
+			if diag.Code != tc.wantCode {
+				t.Errorf("Code: got %s, want %s", diag.Code, tc.wantCode)
+			}
+		})
+	}
+}
+

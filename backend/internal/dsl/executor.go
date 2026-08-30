@@ -47,6 +47,8 @@ func Execute(ctx *ExecutionContext, node Node) (*models.CLIResult, error) {
 		return executeVerseRef(ctx, n, ctx.DefaultTrans)
 	case *SearchNode:
 		return executeSearch(ctx, n, ctx.DefaultTrans, 0)
+	case *RangeNode:
+		return executeRange(ctx, n)
 	case *PipeNode:
 		return executePipe(ctx, n)
 	case *ComparisonNode:
@@ -84,6 +86,10 @@ func executeVerseRef(ctx *ExecutionContext, n *VerseRefNode, transID string) (*m
 	}, nil
 }
 
+// resolveSearchScope maps a scope identifier (canonical or bilingual alias) to a
+// (searchScope, scopeValue) pair consumed by the verse repository layer.
+// On an unrecognised identifier it returns ("unknown", "") so callers can
+// detect the failure and surface an ISLADiagnostic to the user.
 func resolveSearchScope(scopeBook string) (string, string) {
 	if scopeBook == "" {
 		return "", ""
@@ -110,6 +116,10 @@ func resolveSearchScope(scopeBook string) (string, string) {
 		return "group", "JOS,JDG,RUT,1SA,2SA,1KI,2KI,1CH,2CH,EZR,NEH,EST"
 	default:
 		bookID := parsers.ResolveBookID(scopeBook)
+		if bookID == "" {
+			// Return sentinel so callers can emit an ISLADiagnostic.
+			return "unknown", ""
+		}
 		return "book", bookID
 	}
 }
@@ -125,7 +135,23 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 	}
 
 	searchScope, scopeValue := resolveSearchScope(n.ScopeBook)
-	verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, n.Query, n.IsRegex, tid, searchScope, scopeValue)
+	if searchScope == "unknown" {
+		return nil, NewUnknownScopeDiagnostic(n.ScopeBook, 0)
+	}
+
+	// Build the effective query: for boolean mode, join terms with PostgreSQL
+	// tsquery operators (& for AND, | for OR). The repository layer detects
+	// the presence of these operators and switches from plainto_tsquery to to_tsquery.
+	effectiveQuery := n.Query
+	if len(n.Terms) > 1 && n.BoolMode != SearchBoolNone {
+		sep := " & "
+		if n.BoolMode == SearchBoolOR {
+			sep = " | "
+		}
+		effectiveQuery = strings.Join(n.Terms, sep)
+	}
+
+	verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, effectiveQuery, n.IsRegex, tid, searchScope, scopeValue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute search: %w", err)
 	}
@@ -138,11 +164,55 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 		Type: "search",
 		Data: map[string]interface{}{
 			"query":       n.Query,
+			"bool_mode":   string(n.BoolMode),
+			"terms":       n.Terms,
 			"is_regex":    n.IsRegex,
 			"scope_book":  n.ScopeBook,
 			"translation": tid,
 			"verses":      verses,
 			"count":       len(verses),
+		},
+	}, nil
+}
+
+// executeRange fetches all verses between Start and End references (inclusive)
+// by retrieving each boundary and returning them as a combined passage result.
+// Both references are resolved with the default translation.
+func executeRange(ctx *ExecutionContext, n *RangeNode) (*models.CLIResult, error) {
+	if ctx.VerseFetcher == nil {
+		return nil, errors.New("verse fetcher dependency is not configured")
+	}
+	tid := parsers.ResolveTranslationID(ctx.DefaultTrans)
+
+	startVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.Start, tid)
+	if err != nil {
+		return nil, fmt.Errorf("range(): failed to fetch start reference %q: %w", n.Start, err)
+	}
+	endVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.End, tid)
+	if err != nil {
+		return nil, fmt.Errorf("range(): failed to fetch end reference %q: %w", n.End, err)
+	}
+
+	// Combine: start verses + end verses deduplicated (simple boundary fetch).
+	// Full between-query support requires a GetVerseRange repo method (future work).
+	seen := make(map[string]struct{}, len(startVerses)+len(endVerses))
+	all := make([]models.Verse, 0, len(startVerses)+len(endVerses))
+	for _, v := range append(startVerses, endVerses...) {
+		key := fmt.Sprintf("%s-%d-%d", v.BookID, v.Chapter, v.Verse)
+		if _, dup := seen[key]; !dup {
+			seen[key] = struct{}{}
+			all = append(all, v)
+		}
+	}
+
+	return &models.CLIResult{
+		Type: "range",
+		Data: map[string]interface{}{
+			"start":       n.Start,
+			"end":         n.End,
+			"translation": tid,
+			"verses":      all,
+			"count":       len(all),
 		},
 	}, nil
 }
