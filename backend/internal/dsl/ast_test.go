@@ -26,7 +26,7 @@ func TestASTNodes_StringAndNode(t *testing.T) {
 
 	actionNode := &ActionNode{Kind: "themes"}
 	actionNode.node()
-	if actionNode.String() != "#themes" {
+	if actionNode.String() != "themes()" {
 		t.Errorf("unexpected actionNode string: %s", actionNode.String())
 	}
 

@@ -145,3 +145,18 @@ export const APP_TRANSLATIONS: TranslationSuggestionItem[] = [
     },
   },
 ];
+
+/**
+ * Canonical smart book group identifiers and their bilingual labels.
+ */
+export const SMART_BOOK_GROUPS = [
+  { id: 'evankeliumit', nameFi: 'Evankeliumit', nameEn: 'Gospels', aliasEn: 'gospels' },
+  { id: 'toora', nameFi: 'Toora (Laki)', nameEn: 'Torah (Law)', aliasEn: 'torah' },
+  { id: 'kirjeet', nameFi: 'Kirjeet (Epistolat)', nameEn: 'Epistles (Letters)', aliasEn: 'epistles' },
+  { id: 'viisaus', nameFi: 'Viisauskirjallisuus', nameEn: 'Wisdom Literature', aliasEn: 'wisdom' },
+  { id: 'profeetat', nameFi: 'Profeetat', nameEn: 'Prophets', aliasEn: 'prophets' },
+  { id: 'historia', nameFi: 'Historiakirjat', nameEn: 'Historical Books', aliasEn: 'history' },
+  { id: 'VT', nameFi: 'Vanha testamentti', nameEn: 'Old Testament', aliasEn: 'OT' },
+  { id: 'UT', nameFi: 'Uusi testamentti', nameEn: 'New Testament', aliasEn: 'NT' },
+] as const;
+

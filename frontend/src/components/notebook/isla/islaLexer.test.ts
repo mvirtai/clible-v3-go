@@ -81,6 +81,28 @@ describe('islaLexer', () => {
         { type: 'function', text: '#themes' },
       ]);
     });
+
+    it('tokenizes functional pipeline: ! at(Joh 1:1) => use(KR92)', () => {
+      const tokens = tokenizeISLALine('! at(Joh 1:1) => use(KR92)');
+      expect(tokens).toEqual([
+        { type: 'directive', text: '! ' },
+        { type: 'function', text: 'at' },
+        { type: 'plain', text: '(' },
+        { type: 'plain', text: 'Joh' },
+        { type: 'plain', text: ' ' },
+        { type: 'plain', text: '1' },
+        { type: 'operator', text: ':' },
+        { type: 'plain', text: '1' },
+        { type: 'plain', text: ')' },
+        { type: 'plain', text: ' ' },
+        { type: 'operator', text: '=>' },
+        { type: 'plain', text: ' ' },
+        { type: 'function', text: 'use' },
+        { type: 'plain', text: '(' },
+        { type: 'translation', text: 'KR92' },
+        { type: 'plain', text: ')' },
+      ]);
+    });
   });
 
   describe('getTokenClassName', () => {

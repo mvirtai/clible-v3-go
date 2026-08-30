@@ -25,32 +25,44 @@ describe('islaIntellisense', () => {
     it('returns search templates when line starts with "!?"', () => {
       const suggestions = getISLASuggestions('!?', 2);
       expect(suggestions.length).toBeGreaterThanOrEqual(3);
-      expect(suggestions.every((s) => s.label.startsWith('!?'))).toBe(true);
       expect(suggestions.some((s) => s.label.includes('righteous'))).toBe(true);
+      expect(suggestions.some((s) => s.label.includes('search'))).toBe(true);
     });
 
     it('returns cross-reference templates when line starts with "!~"', () => {
       const suggestions = getISLASuggestions('!~', 2);
       expect(suggestions.length).toBeGreaterThanOrEqual(1);
-      expect(suggestions[0].label).toBe('!~ @Joh 3:16');
+      expect(suggestions[0].label).toContain('refs');
       expect(suggestions[0].detail).toBe('Cross References');
       expect(suggestions[0].documentation.fi).toContain('Ristiinviitehaku');
     });
 
     it('returns contextual scope templates when line starts with "!^"', () => {
       const suggestions = getISLASuggestions('!^', 2);
-      expect(suggestions.length).toBeGreaterThanOrEqual(1);
-      expect(suggestions[0].label).toBe('!^ => #themes');
+      expect(suggestions.length).toBeGreaterThanOrEqual(2);
+      expect(suggestions.some((s) => s.label.includes('suggest'))).toBe(true);
+      expect(suggestions.some((s) => s.label.includes('themes'))).toBe(true);
     });
   });
 
-  describe('Book reference suggestions (@)', () => {
-    it('suggests all books and testament scopes when typing bare "@"', () => {
+  describe('Book reference and smart group suggestions (@)', () => {
+    it('suggests all books, smart groups, and testament scopes when typing bare "@"', () => {
       const suggestions = getISLASuggestions('!@', 2);
-      expect(suggestions.length).toBeGreaterThanOrEqual(66);
+      expect(suggestions.length).toBeGreaterThanOrEqual(70);
       expect(suggestions.some((s) => s.label === '@Joh')).toBe(true);
+      expect(suggestions.some((s) => s.label === '@evankeliumit')).toBe(true);
+      expect(suggestions.some((s) => s.label === '@toora')).toBe(true);
       expect(suggestions.some((s) => s.label === '@VT')).toBe(true);
       expect(suggestions.some((s) => s.label === '@UT')).toBe(true);
+    });
+
+    it('filters smart book groups by prefix (e.g. "@evan")', () => {
+      const suggestions = getISLASuggestions('!@evan', 6);
+      expect(suggestions.length).toBeGreaterThanOrEqual(1);
+      const ev = suggestions.find((s) => s.label === '@evankeliumit');
+      expect(ev).toBeDefined();
+      expect(ev?.insertText).toBe('@evankeliumit ');
+      expect(ev?.detail).toContain('Evankeliumit');
     });
 
     it('filters book suggestions by abbreviation prefix (e.g. "@joh")', () => {
@@ -79,32 +91,33 @@ describe('islaIntellisense', () => {
   });
 
   describe('Pipeline suggestions (=>)', () => {
-    it('suggests functions, translations, and limits after "=>"', () => {
+    it('suggests functional actions, translations, and limits after "=>"', () => {
       const suggestions = getISLASuggestions('!@Joh 3:16 => ', 14);
       
-      expect(suggestions.some((s) => s.label === 'count' && s.kind === 'function')).toBe(true);
-      expect(suggestions.some((s) => s.label === '#themes' && s.kind === 'function')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'count()' && s.kind === 'function')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'use(KR92)' && s.kind === 'function')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'at(Room)' && s.kind === 'function')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'in(KR92)' && s.kind === 'function')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'vs(KR92, KR38)' && s.kind === 'function')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'refs(3)' && s.kind === 'function')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'themes(5)' && s.kind === 'function')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'suggest(3)' && s.kind === 'function')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'limit(5)' && s.kind === 'keyword')).toBe(true);
       expect(suggestions.some((s) => s.label === 'KR92' && s.kind === 'translation')).toBe(true);
-      expect(suggestions.some((s) => s.label === 'KR38' && s.kind === 'translation')).toBe(true);
-      expect(suggestions.some((s) => s.label === '1776' && s.kind === 'translation')).toBe(true);
-      expect(suggestions.some((s) => s.label === 'WEB' && s.kind === 'translation')).toBe(true);
-      expect(suggestions.some((s) => s.label === 'KJV' && s.kind === 'translation')).toBe(true);
-      expect(suggestions.some((s) => s.label === 'limit:3' && s.kind === 'keyword')).toBe(true);
-      expect(suggestions.some((s) => s.label === 'limit:5' && s.kind === 'keyword')).toBe(true);
-      expect(suggestions.some((s) => s.label === 'limit:10' && s.kind === 'keyword')).toBe(true);
     });
 
-    it('filters pipeline options by prefix (e.g. "=> co" -> "count")', () => {
-      const suggestions = getISLASuggestions('!? "rakkaus" => co', 19);
-      expect(suggestions).toHaveLength(1);
-      expect(suggestions[0].label).toBe('count');
-      expect(suggestions[0].kind).toBe('function');
+    it('filters pipeline actions by prefix (e.g. "=> us" or "=> co")', () => {
+      const useSuggestions = getISLASuggestions('!@Joh 3:16 => us', 16);
+      expect(useSuggestions.some((s) => s.label === 'use(KR92)')).toBe(true);
+
+      const countSuggestions = getISLASuggestions('!search("armo") => co', 21);
+      expect(countSuggestions.some((s) => s.label === 'count()')).toBe(true);
     });
 
-    it('filters pipeline options for theme badge cloud (e.g. "=> #th")', () => {
-      const suggestions = getISLASuggestions('!^ => #th', 9);
+    it('filters pipeline options for theme cloud (e.g. "=> th")', () => {
+      const suggestions = getISLASuggestions('!^ => th', 8);
       expect(suggestions).toHaveLength(1);
-      expect(suggestions[0].label).toBe('#themes');
+      expect(suggestions[0].label).toBe('themes(5)');
     });
 
     it('filters pipeline translations by prefix (e.g. "=> KR")', () => {

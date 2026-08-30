@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { Cell, CellType, CellWidth, Notebook } from './types';
+import type { Cell, CellWidth, Notebook } from './types';
 import { CellWrapper } from './cells/CellWrapper';
 import { MarkdownCell } from './cells/MarkdownCell';
-import { CodeCell } from './cells/CodeCell';
 import { useLanguage } from '../../context/LanguageContext';
 import { DragDropProvider } from '@dnd-kit/react';
 import { move } from '@dnd-kit/helpers';
@@ -160,12 +159,6 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
     );
   };
 
-  const handleCellTypeChange = (id: string, newType: CellType) => {
-    setCells((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, type: newType } : c))
-    );
-  };
-
   const handleCellWidthChange = (
     id: string,
     newWidth: CellWidth,
@@ -212,12 +205,12 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
     });
   };
 
-  // 6. Create and insert a new cell at a target index position
-  const handleInsertCell = (index: number, type: CellType) => {
+  // 6. Create and insert a new markdown cell at a target index position
+  const handleInsertCell = (index: number) => {
     const newCell: Cell = {
       id: crypto.randomUUID(),
       notebookId,
-      type,
+      type: 'markdown',
       content: '',
       position: index,
       resultJson: null,
@@ -226,69 +219,6 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
     setCells((prev) => {
       const next = [...prev];
       next.splice(index, 0, newCell);
-      return reorderCells(next);
-    });
-  };
-
-  // 7. Execute code cell CLI command via backend
-  const handleExecuteCell = async (id: string) => {
-    const targetCell = cells.find((c) => c.id === id);
-    if (!targetCell) return;
-
-    try {
-      const res = await fetch(`/api/notebooks/${notebookId}/cells/${id}/execute?translation=${translation}`, {
-        method: 'POST',
-      });
-      if (!res.ok) throw new Error('Execution failed');
-      const resultData = await res.json();
-
-      setCells((prev) =>
-        prev.map((c) =>
-          c.id === id ? { ...c, resultJson: resultData } : c
-        )
-      );
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown execution error';
-      setCells(prev =>
-        prev.map(c =>
-          c.id === id
-            ? { ...c, resultJson: {
-              type: 'error',
-                data: { message: errorMessage },
-              }}
-            : c
-        )
-      );
-    }
-  };
-
-  // 8. Freeze code cell CLI result into a permanent Markdown cell & reset source CLI cell
-  const handleFreezeCell = (index: number, markdown: string, direction: 'up' | 'down' = 'down') => {
-    const insertIndex = direction === 'up' ? index : index + 1;
-    const newMarkdownCell: Cell = {
-      id: crypto.randomUUID(),
-      notebookId,
-      type: 'markdown',
-      content: markdown,
-      position: insertIndex,
-      resultJson: null,
-    };
-
-    setCells((prev) => {
-      const next = [...prev];
-      // Insert the new Markdown cell
-      next.splice(insertIndex, 0, newMarkdownCell);
-
-      // Clear the original CLI cell and reset it to its pristine initial state
-      const sourceIndex = direction === 'up' ? index + 1 : index;
-      if (next[sourceIndex] && next[sourceIndex].type === 'code') {
-        next[sourceIndex] = {
-          ...next[sourceIndex],
-          content: '',
-          resultJson: null,
-        };
-      }
-
       return reorderCells(next);
     });
   };
@@ -384,20 +314,13 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
       {cells.length === 0 && (
         <div className="text-center py-16 bg-[var(--surface-2)]/40 border border-dashed border-[var(--border-soft)] rounded-xl space-y-4">
           <p className="text-[var(--muted)] text-sm">{strings.emptyNotebookText}</p>
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center">
             <button
               type="button"
-              onClick={() => handleInsertCell(0, 'markdown')}
-              className="px-3.5 py-1.5 bg-[var(--surface-2)] border border-[var(--border-soft)] hover:border-amber-500/30 text-amber-600 dark:text-amber-500 hover:text-amber-500 font-bold text-xs rounded transition-all cursor-pointer"
+              onClick={() => handleInsertCell(0)}
+              className="px-4 py-2 bg-[var(--surface-2)] border border-[var(--border-soft)] hover:border-amber-500/30 text-amber-600 dark:text-amber-500 hover:text-amber-500 font-bold text-xs rounded-lg transition-all cursor-pointer shadow-sm"
             >
               {strings.addMarkdownCellLabel}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleInsertCell(0, 'code')}
-              className="px-3.5 py-1.5 bg-[var(--surface-2)] border border-[var(--border-soft)] hover:border-amber-500/30 text-amber-600 dark:text-amber-500 hover:text-amber-500 font-bold text-xs rounded transition-all cursor-pointer"
-            >
-              {strings.addCodeCellLabel}
             </button>
           </div>
         </div>
@@ -415,21 +338,14 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
               {/* Floating divider insertion handle between cells */}
               <div className="col-span-12 h-2 relative group/divider flex items-center justify-center">
                 <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55 opacity-0 group-hover/divider:opacity-100 transition-opacity duration-200" />
-                <div className="absolute opacity-0 group-hover/divider:opacity-100 transition-all duration-200 flex gap-2 scale-90 group-hover/divider:scale-100 bg-[var(--surface)] px-2 py-1 rounded-full border border-[var(--border-soft)] shadow-lg z-20">
+                <div className="absolute opacity-0 group-hover/divider:opacity-100 transition-all duration-200 flex gap-2 scale-90 group-hover/divider:scale-100 bg-[var(--surface)] px-2.5 py-1 rounded-full border border-[var(--border-soft)] shadow-lg z-20">
                   <button
                     type="button"
-                    onClick={() => handleInsertCell(index, 'markdown')}
+                    onClick={() => handleInsertCell(index)}
                     className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
                   >
-                    + Markdown
-                  </button>
-                  <span className="w-px h-3 bg-[var(--border-soft)] self-center" />
-                  <button
-                    type="button"
-                    onClick={() => handleInsertCell(index, 'code')}
-                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
-                  >
-                    + Command
+                    {/* i18n.ts strings */}
+                    {/*  */}
                   </button>
                 </div>
               </div>
@@ -442,27 +358,16 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
                 onDelete={() => handleCellDelete(cell.id)}
                 onMoveUp={() => handleMoveUp(index)}
                 onMoveDown={() => handleMoveDown(index)}
-                onChangeType={(newType) => handleCellTypeChange(cell.id, newType)}
                 onChangeWidth={(newWidth, colSpan, customHeight) =>
                   handleCellWidthChange(cell.id, newWidth, colSpan, customHeight)
                 }
               >
-                {cell.type === 'markdown' ? (
-                  <MarkdownCell
-                    cell={cell}
-                    onChange={(content) => handleCellContentChange(cell.id, content)}
-                    onSelectVerse={onSelectVerse}
-                    translation={translation}
-                  />
-                ) : (
-                  <CodeCell
-                    cell={cell}
-                    onChange={(content) => handleCellContentChange(cell.id, content)}
-                    onExecute={() => handleExecuteCell(cell.id)}
-                    translation={translation}
-                    onFreeze={(markdown, direction) => handleFreezeCell(index, markdown, direction)}
-                  />
-                )}
+                <MarkdownCell
+                  cell={cell}
+                  onChange={(content) => handleCellContentChange(cell.id, content)}
+                  onSelectVerse={onSelectVerse}
+                  translation={translation}
+                />
               </CellWrapper>
             </React.Fragment>
           ))}
@@ -474,18 +379,10 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
               <div className="absolute flex gap-2 bg-[var(--surface)] px-3 py-1 rounded-full border border-[var(--border-soft)] shadow-md">
                 <button
                   type="button"
-                  onClick={() => handleInsertCell(cells.length, 'markdown')}
+                  onClick={() => handleInsertCell(cells.length)}
                   className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors cursor-pointer"
                 >
                   {strings.appendMarkdownCellLabel}
-                </button>
-                <span className="w-px h-3 bg-[var(--border-soft)] self-center" />
-                <button
-                  type="button"
-                  onClick={() => handleInsertCell(cells.length, 'code')}
-                  className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 transition-colors cursor-pointer"
-                >
-                  {strings.appendCodeCellLabel}
                 </button>
               </div>
             </div>

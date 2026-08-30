@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm';
 import type { Cell } from '../types';
 import { useLanguage } from '../../../context/LanguageContext';
 import { ISLABlock } from '../isla/ISLABlock';
+import { getISLASuggestions } from '../isla/islaIntellisense';
+import { isISLALine, tokenizeISLALine } from '../isla/islaLexer';
 
 /**
  * Properties for {@link MarkdownCell}.
@@ -95,13 +97,13 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
    * 4. Transforms line-level and mid-line `!isla ...`, `!@...`, `!?...`, `!#...`, `!~...` into ISLA code blocks.
    */
   const preprocessContent = (text: string) => {
-    // 1. Transform `![[isla @...]]` or `![[@...]]` embeds into ISLA blocks
-    let processed = text.replace(/!\[\[(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|.*?)\]\]/g, (_, g1) => {
+    // 1. Transform `![@...]` or `![[...]]` embeds into ISLA code blocks
+    let processed = text.replace(/!\[(?:\[)?(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|search\(.*?\)|read\(.*?\)|.*?)\](?:\])?/g, (_, g1) => {
       return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
     });
 
     // 2. Transform inline `!isla ...` or `!@...` or `!?...` into ISLA blocks (breaks out of inline <p><code>)
-    processed = processed.replace(/`!(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|.*?)`/g, (_, g1) => {
+    processed = processed.replace(/`!(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|search\(.*?\)|read\(.*?\)|.*?)`/g, (_, g1) => {
       return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
     });
 
@@ -113,8 +115,8 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
       return `[${ref}](#bible-link/${encodeURIComponent(ref)})`;
     });
 
-    // 4. Transform line and mid-line directives: `!isla ...`, `!@...`, `!?...`, `!#...`, `!~...`, `!i#...`
-    processed = processed.replace(/(?:^|[ \t]+)(!(?:isla\b|ISLA\b|i[@?#~]|[@?#~]|\s+@|\s+\?|\s+#|\s+~)[^\n`]*)/gm, (_, fullDirective) => {
+    // 4. Transform line and mid-line directives: `! @...`, `! ?...`, `! search(...)`, `! at(...)`, `! ^...`, `!isla ...`
+    processed = processed.replace(/(?:^|[ \t]+)(!(?![[])(?:isla\b|ISLA\b|\s*(?:search|read|at|use|vs|compare)\(|\s*[@?#~^]|\s*[A-Za-z0-9])[^\n`]*)/gm, (_, fullDirective) => {
       const query = normalizeISLAQuery(fullDirective);
       return `\n\n\`\`\`isla\n${query}\n\`\`\`\n\n`;
     });
@@ -189,6 +191,27 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
     );
   }
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    onChange(val);
+
+    // Live debug logging for ISLA IntelliSense and Lexer in browser console
+    const cursor = e.target.selectionStart ?? val.length;
+    const lines = val.slice(0, cursor).split('\n');
+    const currentLine = lines[lines.length - 1] || '';
+    const lineOffset = currentLine.length;
+
+    if (isISLALine(currentLine)) {
+      const suggestions = getISLASuggestions(currentLine, lineOffset);
+      const tokens = tokenizeISLALine(currentLine);
+      console.log(`[ISLA IntelliSense] Line: "${currentLine}" | Offset: ${lineOffset}`, {
+        suggestionsCount: suggestions.length,
+        suggestions: suggestions.map((s) => ({ label: s.label, kind: s.kind, detail: s.detail })),
+        tokens,
+      });
+    }
+  };
+
   if (isEditing) {
     return (
       <div className="w-full relative">
@@ -202,7 +225,7 @@ export const MarkdownCell: React.FC<MarkdownCellProps> = ({
           }}
           className="w-full min-h-[120px] p-4 font-serif bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-y transition-all"
           value={cell.content}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={handleTextChange}
           onBlur={() => setIsEditing(false)}
           onKeyDown={handleKeyDown}
           placeholder={strings.markdownCellPlaceholder}

@@ -42,7 +42,6 @@ describe('CellWrapper', () => {
     const onDelete = vi.fn();
     const onMoveUp = vi.fn();
     const onMoveDown = vi.fn();
-    const onChangeType = vi.fn();
     const onChangeWidth = vi.fn();
 
     act(() => {
@@ -56,7 +55,6 @@ describe('CellWrapper', () => {
             onDelete={onDelete}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
-            onChangeType={onChangeType}
             onChangeWidth={onChangeWidth}
           >
             <div data-testid="child-content">Cell Content</div>
@@ -86,7 +84,6 @@ describe('CellWrapper', () => {
     const onDelete = vi.fn();
     const onMoveUp = vi.fn();
     const onMoveDown = vi.fn();
-    const onChangeType = vi.fn();
     const onChangeWidth = vi.fn();
 
     act(() => {
@@ -100,7 +97,6 @@ describe('CellWrapper', () => {
             onDelete={onDelete}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
-            onChangeType={onChangeType}
             onChangeWidth={onChangeWidth}
           >
             <div>Cell Content</div>
@@ -123,51 +119,10 @@ describe('CellWrapper', () => {
     }
   });
 
-  it('triggers onChangeType when selecting a new cell type', () => {
-    const onDelete = vi.fn();
-    const onMoveUp = vi.fn();
-    const onMoveDown = vi.fn();
-    const onChangeType = vi.fn();
-    const onChangeWidth = vi.fn();
-
-    act(() => {
-      root = createRoot(container!);
-      root.render(
-        <LanguageProvider>
-          <CellWrapper
-            cell={mockCell}
-            index={0}
-            totalCells={2}
-            onDelete={onDelete}
-            onMoveUp={onMoveUp}
-            onMoveDown={onMoveDown}
-            onChangeType={onChangeType}
-            onChangeWidth={onChangeWidth}
-          >
-            <div>Cell Content</div>
-          </CellWrapper>
-        </LanguageProvider>
-      );
-    });
-
-    const selects = container?.querySelectorAll('select');
-    const typeSelect = selects?.[1];
-    expect(typeSelect).toBeDefined();
-
-    if (typeSelect) {
-      act(() => {
-        typeSelect.value = 'code';
-        typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      });
-      expect(onChangeType).toHaveBeenCalledWith('code');
-    }
-  });
-
   it('handles move up, move down, and delete button clicks', () => {
     const onDelete = vi.fn();
     const onMoveUp = vi.fn();
     const onMoveDown = vi.fn();
-    const onChangeType = vi.fn();
     const onChangeWidth = vi.fn();
 
     act(() => {
@@ -181,7 +136,6 @@ describe('CellWrapper', () => {
             onDelete={onDelete}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
-            onChangeType={onChangeType}
             onChangeWidth={onChangeWidth}
           >
             <div>Cell Content</div>
@@ -225,7 +179,6 @@ describe('CellWrapper', () => {
     const onDelete = vi.fn();
     const onMoveUp = vi.fn();
     const onMoveDown = vi.fn();
-    const onChangeType = vi.fn();
     const onChangeWidth = vi.fn();
 
     act(() => {
@@ -239,7 +192,6 @@ describe('CellWrapper', () => {
             onDelete={onDelete}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
-            onChangeType={onChangeType}
             onChangeWidth={onChangeWidth}
           >
             <div>Cell Content</div>

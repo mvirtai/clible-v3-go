@@ -1,7 +1,7 @@
 /**
  * Supported cell types within a notebook.
  */
-export type CellType = 'markdown' | 'code';
+export type CellType = 'markdown';
 
 /**
  * Preset column width designations for cells.
@@ -60,8 +60,8 @@ export interface Cell {
 export interface CellCounts {
     /** Number of markdown cells */
     markdown: number;
-    /** Number of CLI code cells */
-    code: number;
+    /** Optional legacy code count */
+    code?: number;
 }
 
 /**
