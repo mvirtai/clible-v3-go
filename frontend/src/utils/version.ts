@@ -1,7 +1,9 @@
 /**
  * Application SemVer version identifier injected at build/test time directly from root VERSION.
  */
-export const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '3.1.1';
+declare const __APP_VERSION__: string | undefined;
+
+export const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '3.1.2';
 
 /**
  * Runtime version and build metadata returned by the backend.

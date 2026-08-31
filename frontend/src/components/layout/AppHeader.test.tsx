@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 import { AppHeader } from './AppHeader';
 import { LanguageProvider } from '../../context/LanguageContext';
+import { APP_VERSION } from '../../utils/version';
 
 describe('AppHeader', () => {
   let container: HTMLDivElement | null = null;
@@ -48,7 +49,7 @@ describe('AppHeader', () => {
 
     const text = container?.textContent || '';
     expect(text).toContain('Clible');
-    expect(text).toContain('v3.1.1');
+    expect(text).toContain(`v${APP_VERSION}`);
     expect(text).toContain('test@clible.com');
   });
 });
