@@ -223,6 +223,9 @@ export interface Messages {
   passwordReqSpecial: string;
   passwordReqInvalid: string;
   passwordsDoNotMatch: string;
+  termsNotice: string;
+  termsAndPrivacy: string;
+  registerFastBadge: string;
   cardEmptyNote: string;
   cardClickToAddCells: string;
   cardEmptyBadge: string;
@@ -499,6 +502,9 @@ export const strings: Record<UILanguage, Messages> = {
     passwordReqSpecial: 'At least one special character',
     passwordReqInvalid: 'Password does not meet all security requirements.',
     passwordsDoNotMatch: 'Passwords do not match.',
+    termsNotice: 'By creating an account, you agree to the',
+    termsAndPrivacy: 'Terms of Service & Privacy Policy',
+    registerFastBadge: 'Create a free account in 10 seconds',
     cardEmptyNote: 'Empty note...',
     cardClickToAddCells: 'Click to open notebook and add cells',
     cardEmptyBadge: 'Empty',
@@ -764,6 +770,9 @@ export const strings: Record<UILanguage, Messages> = {
     passwordReqSpecial: 'Vähintään yksi erikoismerkki',
     passwordReqInvalid: 'Salasana ei täytä kaikkia turvavaatimuksia.',
     passwordsDoNotMatch: 'Salasanat eivät täsmää.',
+    termsNotice: 'Luomalla tilin hyväksyt',
+    termsAndPrivacy: 'käyttöehdot ja tietosuojaselosteen',
+    registerFastBadge: 'Luo ilmainen tili 10 sekunnissa',
     cardEmptyNote: 'Tyhjä muistiinpano...',
     cardClickToAddCells: 'Klikkaa avataksesi muistikirjan ja lisätäksesi soluja',
     cardEmptyBadge: 'Tyhjä',

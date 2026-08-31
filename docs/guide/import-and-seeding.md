@@ -1,102 +1,153 @@
-# XML Ingestion & Seeding Engine
+# Translation Catalog & Ingestion Engine
 
-clible-v3-go implements a highly optimized, memory-efficient pipeline to import large Bible translations from XML files (typically ranging from 3MB to over 10MB in size) directly into the database.
-
-This engine is designed to operate on constrained environments (like low-memory container instances) without causing high RAM spikes.
+clible-v3 provides a comprehensive Bible translation management system. Users can easily activate translations from a global catalog, and administrators can upload custom Bible translations in standardized XML formats directly through the web API.
 
 ---
 
-## The $O(1)$ Ingestion Philosophy
+## 1. Managing Translations in the Web UI
 
-Traditional XML parsing strategies (such as DOM-tree parsing or using Go's `xml.Unmarshal` on the entire file) load the complete document into memory. This can consume up to 10 times the raw file size in RAM, easily leading to memory exhaustion (OOM crashes).
+From the **Translations Catalog** view (`/translations`), users can browse and configure available Bible versions:
 
-Instead, clible-v3-go uses a **streaming token parser** (`xml.Decoder`) which achieves **$O(1)$ space complexity**:
-
-- It reads the XML file sequentially, character by character, token by token.
-- Only the current XML node and metadata are held in memory.
-- It leverages a **functional callback pattern** to hand off fully reconstructed verses immediately to the database writer.
+- **Global Catalog**: Pre-installed standard translations (such as Finnish KR92, Finnish KR38, World English Bible, and King James Version) are available globally to all users.
+- **Activating / Linking**: Clicking **Activate** links a translation to your personal account (`POST /api/translations/link`), enabling it across the Reader, Search, Comparison Matrix, and ISLA query engines.
+- **Deactivating / Unlinking**: Deactivating a translation removes it from your active selectors without deleting the underlying translation data from the database.
 
 ```mermaid
-graph TD
-    File[Raw XML Stream / io.Reader] --> Dec[Go xml.Decoder]
+graph LR
+    subgraph Catalog [Global Catalog]
+        T1[KR92: Suomi 1992]
+        T2[KR38: Suomi 1938]
+        T3[WEB: World English Bible]
+        T4[KJV: King James Version]
+    end
     
-    subgraph XML Parser [internal/parsers/xml_parser.go]
-        Dec --> Token[Get Next Token]
-        Token --> Filter{f or x Tag?}
-        Filter -- Yes --> Skip[Skip content]
-        Filter -- No --> Process[Reconstruct Verse]
+    subgraph UserSpace [User Workspace]
+        Active[Active Workspace Translations]
     end
-
-    subgraph Seed Service [internal/services/seed_service.go]
-        Process -- Callback(models.Verse) --> Buffer{Buffer >= 500?}
-        Buffer -- Yes --> Bulk[Bulk Insert]
-        Buffer -- No --> Accumulate[Keep in memory chunk]
-    end
-
-    Bulk --> DB[(Database: Postgres/SQLite)]
+    
+    T1 -->|Activate / Link| Active
+    T3 -->|Activate / Link| Active
 ```
 
 ---
 
-## Stream Parsing Details (`xml_parser.go`)
+## 2. High-Performance $O(1)$ XML Streaming Engine
 
-The core parsing logic is located in [xml_parser.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/parsers/xml_parser.go). It reads standard USFX and OSIS XML structures.
+When new translations are imported (via `POST /api/translations/import` or CLI seeding), the backend utilizes a memory-efficient streaming pipeline capable of parsing large Bible XML files (ranging from 3MB to over 15MB) with **$O(1)$ constant memory overhead**.
 
-### Key Mechanics
+### The $O(1)$ Ingestion Philosophy
 
-1. **State Tracking**: The parser maintains a minimal state machine keeping track of `currentBook`, `currentChapter`, and whether it is currently inside a verse text (`inVerse`).
-2. **Text Construction**: A `strings.Builder` accumulates character data (`CharData`) when `inVerse` is active.
-3. **Footnote and Reference Filtration**: Structural tags like `<f>` (footnotes) or `<x>` (cross-references) contain text that is not part of the actual Bible verse. The parser uses a `skipDepth` counter:
-   - When a start tag `<f>` or `<x>` is encountered, `skipDepth` increases.
-   - Any character data encountered while `skipDepth > 0` is discarded.
-   - When the corresponding end tag is reached, `skipDepth` decreases.
-4. **Self-closing & Multi-format support**: It handles standard USFX verse markers (like `<v id="1">` followed by text and `<ve/>` or `</v>`) and OSIS schemas (like `<verse osisID="Gen.1.1">`).
+Traditional XML parsers (such as DOM tree builders or unmarshalling the full file into memory) can easily consume 50MB to 100MB+ of RAM during import, potentially crashing low-memory container environments.
 
----
+clible-v3 uses Go's streaming token parser (`xml.Decoder`):
 
-## Seeding Pipeline and Chunking (`seed_service.go`)
+- **Sequential Token Stream**: Reads the XML input rune by rune, holding only the immediate XML tag in RAM.
+- **Functional Callback Pattern**: Reconstructed verses are handed off instantly to a buffered batch writer.
+- **Zero Temporary Disk Files**: Streaming data pipes directly from HTTP multipart network streams into the database.
 
-The [seed_service.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/seed_service.go) coordinates the ingestion and acts as the gatekeeper for database operations.
+```mermaid
+graph TD
+    Stream["Raw XML Stream / HTTP Body / io.Reader"] --> Dec["Go xml.Decoder"]
+    
+    subgraph XML_Parser ["XML Parser: internal/parsers/xml_parser.go"]
+        Dec --> Token["Get Next Token"]
+        Token --> Filter{"Footnote or Ref tag?"}
+        Filter -- Yes --> Skip["Skip metadata content"]
+        Filter -- No --> Process["Reconstruct Verse Text"]
+    end
 
-### 1. Canonical Validation
+    subgraph Seed_Service ["Seed Service: internal/services/seed_service.go"]
+        Process -->|"Emit Verse Callback"| Buffer{"Buffer >= 500 verses?"}
+        Buffer -- Yes --> Bulk["Bulk Insert Transaction"]
+        Buffer -- No --> Accumulate["Append to memory batch"]
+    end
 
-Before parsing begins, the service queries the `books` metadata table to fetch the 66 canonical book IDs (from Genesis to Revelation). As the parser emits verses, any book not in this list (such as Apocrypha, introductions, or glossaries) is automatically skipped.
-
-### 2. Alternative Abbreviation Mapping
-
-To support various source XML providers, the service maps common book name abbreviations (e.g., `GENESIS.`, `1KGS`, `JN.`, `ROMA`) to the canonical three-letter uppercase IDs (e.g., `GEN`, `1KI`, `JHN`, `ROM`).
-
-### 3. Buffered Bulk Insertion
-
-Writing to a database can be extremely slow if done row-by-row. In SQLite, every individual insert initiates a separate disk file transaction. In PostgreSQL, it incurs massive network round-trip overhead.
-To maximize performance:
-
-- The service groups parsed verses into **chunks of 500**.
-- Once the buffer reaches 500, it flushes the segment to the database using `verseRepo.BulkInsert(ctx, chunk)`.
-- A final flush is performed at the end of the stream to write any remaining verses.
-- This reduces the import duration of a whole Bible (~31,000 verses) from several minutes down to **less than 2 seconds**.
+    Bulk --> DB[("Database: PostgreSQL")]
+```
 
 ---
 
-## API Integration
+## 3. Supported Translation XML Formats
 
-The XML import is triggered via the HTTP REST API endpoint:
+The parser automatically detects and parses two major open Scripture formats:
+
+### 1. USFX (Unified Scripture Format XML)
+
+Standard XML format with `<v id="1">` verse markers, `<c id="1">` chapter markers, and `<ve/>` end tags:
+
+```xml
+<book id="JHN">
+  <c id="3"/>
+  <v id="16"/>Sillä niin on Jumala maailmaa rakastanut...<ve/>
+</book>
+```
+
+### 2. OSIS (Open Scriptural Information Standard)
+
+Standard theological schema using structured element attributes:
+
+```xml
+<div type="book" osisID="John">
+  <chapter osisID="John.3">
+    <verse osisID="John.3.16">For God so loved the world...</verse>
+  </chapter>
+</div>
+```
+
+### Footnote & Editorial Filtration
+
+Source XML files often embed footnotes (`<f>`), cross-references (`<x>`), and translation notes within verse tags. The parser maintains a `skipDepth` counter:
+
+- When opening tags `<f>` or `<x>` are encountered, `skipDepth` increments and character collection is paused.
+- When closing tags `</f>` or `</x>` are reached, `skipDepth` decrements, ensuring only pure scriptural text is indexed.
+
+---
+
+## 4. Seeding Pipeline & Buffered Batch Insertion
+
+The ingestion pipeline in `internal/services/seed_service.go` applies three critical optimizations:
+
+### 1. Canonical Book Validation
+
+Before parsing begins, the service loads the 66 canonical book definitions from the database (`books` table). Non-canonical materials (such as introductions, appendices, or glossaries) are filtered out automatically.
+
+### 2. Standardized Abbreviation Normalization
+
+Source XML files often use non-standard book labels (e.g., `GENESIS.`, `1KGS`, `JN.`, `ROMA`). The service maps all variants to canonical 3-letter uppercase IDs (`GEN`, `1KI`, `JHN`, `ROM`).
+
+### 3. Buffered Bulk Insertion (Chunks of 500)
+
+Writing 31,102 verses individually creates severe database lock contention and network round-trip overhead.
+
+The service buffers verses in memory chunks of **500 records** and issues multi-row batch insert statements:
+
+- In **PostgreSQL**, this reduces full Bible import time from over 60 seconds to **under 2 seconds**.
+- A final buffer flush is executed at the end of the file stream to write the remaining verses in a clean ACID transaction.
+
+---
+
+## 5. Admin Import API Endpoint
+
+To upload and seed a new Bible translation into the catalog, send a multipart POST request:
 
 ```http
 POST /api/translations/import
 Content-Type: multipart/form-data
 ```
 
-The file is streamed directly from the incoming multipart network request into the parser:
+### Form Fields
 
-```go
-// In translation_handler.go
-file, header, err := r.FormFile("file")
-if err != nil { ... }
-defer file.Close()
+- `translationId`: Unique slug (e.g., `fin-1992`, `kjv`, `vulgate`).
+- `name`: Human-readable display title (e.g., `Suomi 1992`).
+- `language`: 3-letter ISO language code (`FIN`, `ENG`, `LAT`, `GRC`, `HEB`).
+- `file`: The raw XML file attachment.
 
-// The file stream is passed directly down
-err = s.seedService.SeedTranslationFromFile(r.Context(), filePath, translationID)
+```bash
+# Example curl upload
+curl -X POST http://localhost:8080/api/translations/import \
+  -H "Cookie: token=YOUR_JWT_SESSION" \
+  -F "translationId=fin-1992" \
+  -F "name=Pyhä Raamattu (1992)" \
+  -F "language=FIN" \
+  -F "file=@/path/to/fin-1992.xml"
 ```
-
-This ensures that the server does not buffer the uploaded file to disk or load it fully into RAM, maintaining the $O(1)$ memory guarantee across the entire HTTP lifecycle.

@@ -7,7 +7,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // Extract single source of truth version with robust fallback
-let appVersion = '3.1.1'
+let appVersion = '3.1.2'
 try {
   const versionFilePath = path.resolve(__dirname, '../VERSION')
   if (fs.existsSync(versionFilePath)) {

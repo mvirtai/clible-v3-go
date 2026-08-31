@@ -1,136 +1,184 @@
-# clible-v3-go
+# clible-v3
 
-Modern, high-performance, web-native Bible study platform featuring a stateless Go REST API and a responsive React 19 frontend. Designed from the ground up for cloud environments and optimized for concurrent stateless/session web traffic.
+<div align="center">
 
-Unlike previous versions, **clible-v3** is designed as a cloud-ready client-server web application. It features a lightweight, high-performance **Go REST API** utilizing PostgreSQL (Neon PostgreSQL in cloud/dev) and a beautiful, responsive **React 19** frontend powered by TailwindCSS v4.
+**The Modern, 100% Free & Open Web-Native Bible Study & Text Analytics Platform**
+
+*Professional-grade theological exegesis, quantitative linguistics, 2D canvas study sheets, and the ISLA inline query language — directly in your browser, completely free forever.*
+
+[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![React Version](https://img.shields.io/badge/React-19.2-61DAFB?style=flat&logo=react)](https://react.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%20%2F%20Neon-336791?style=flat&logo=postgresql)](https://neon.tech/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/Docs-VitePress-d4af37.svg)](https://mvirtai.github.io/clible-v3-go/)
+
+[**Explore the Documentation**](https://mvirtai.github.io/clible-v3-go/) · [**ISLA Language Guide**](https://mvirtai.github.io/clible-v3-go/guide/isla-guide) · [**API Reference**](https://mvirtai.github.io/clible-v3-go/api/reference)
+
+</div>
 
 ---
 
-## Key Features
+## 🌟 Why clible-v3?
 
-- **Web-Native REST API** — High-performance backend utilizing Go 1.22+ standard routing (`http.ServeMux`), structured JSON logging (`slog`), and robust graceful shutdown, optimized for stateless cloud deployment.
-- **O(1) Streaming XML Ingestion** — Import Bible translations from HTTP network streams directly into the database using a memory-efficient `xml.Decoder` and functional callbacks. Zero temporary files, zero DOM tree buffers.
-- **Instant FTS Search** — PostgreSQL-backed full-text search with optional regex filtering, sorting, and statistics.
-- **Modern React 19 Frontend** — A beautifully curated UI featuring a gold/warm-neutral design system, Georgia serif typography, and dark/light modes.
-- **Workspaces & Scopes** — Save search configurations, specific Bible passages (verse reads), and text analysis results into persistent scopes (workspaces) with instant serialized database caching.
-- **Text Analytics** — Lexical metrics, n-grams, and word comparisons across different translations.
-- **No Heavy CLI or Monolithic Bridges** — Deprecated Python scripts and child process bridges in favor of a fast, compiled Go binary.
+Traditional theological software is often locked behind **$200 to $3,000 paywalls**, expensive monthly subscriptions, and clunky, legacy desktop installations that hog gigabytes of disk space.
+
+**clible-v3 changes the paradigm:**
+It is a **modern, cloud-native web platform** built for theological students, researchers, pastors, and curious readers. Access academic-grade exegesis, lexical statistics, parallel translations, and interactive study notebooks from any web browser on your laptop, tablet, or smartphone — **100% free and open**.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  Notebook: Romans 5 Exegesis (2D Canvas Matrix)                        │
+├──────────────────────────────────┬─────────────────────────────────────┤
+│  [Card 1: Markdown Exegesis]     │  [Card 2: Live ISLA Reactive Embed] │
+│  colSpan: 12                     │  colSpan: 12                        │
+│                                  │                                     │
+│  Justification by faith brings   │  ! at(Rom 5:1) => vs(KR92, KJV)     │
+│  peace with God through Christ.  │  ─────────────────────────────────  │
+│                                  │  KR92: Koska me siis olemme...      │
+│                                  │  KJV:  Therefore being justified... │
+├──────────────────────────────────┴─────────────────────────────────────┤
+│  [Card 3: Persistent CLI Scratchpad]                                   │
+│  colSpan: 24                                                           │
+│  $ clible search "grace" --scope=ROM                                   │
+│  [x] ROM 5:2  [x] ROM 5:15  [ ] ROM 5:17  ──> [ Freeze to Markdown ]   │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Architecture Overview
+## 🚀 Key Differentiators & Core Features
+
+### 1. ✦ ISLA DSL — The Query Language That Lives Inside Your Text
+Clible introduces **ISLA** (*Inline Structure & Logic Architecture*), an ergonomic query language embedded directly inside your Markdown documents:
+- **Instant Reactive Directives**: Insert `! at(Joh 3:16) => vs(KR92, KJV)` or `! search("armo" AND "rauha") @epistolat => count()`.
+- **Clean Reading Mode**: Technical syntax automatically disappears in reading mode, presenting elegant serif scripture cards. Hovering reveals a `✦` inspect badge.
+- **Smart Scopes & Translation Inference**: Search smart genres like `@epistolat`, `@evankeliumit`, `@toora`, or `@viisaus` with automatic language-matched translation resolution.
+- **Monaco IntelliSense**: In-editor autocompletion (`! `, `@`, `=>`, `?`), hover documentation, and Levenshtein-driven typo corrections.
+
+### 2. 📓 2D Canvas Matrix & the "Freeze" Scratchpad
+- **24-Column Resizable Grid**: Place exegesis notes, comparison cards, and analytical charts side-by-side with custom widths (1–24 columns) and heights.
+- **Persistent `$ clible` CLI Scratchpad**: Run ad-hoc searches directly in your notebook, pick relevant verses with interactive checkboxes, and click **Freeze**. Selected verses instantly convert to permanent Markdown text while the CLI prompt resets cleanly for your next inquiry.
+
+### 3. 📊 Quantitative Text Analytics & Linguistics
+- **Lexical Diversity (Type-Token Ratio / TTR)**: Measure vocabulary richness across chapters or authors in milliseconds.
+- **Token Frequencies & N-Grams**: Extract dominant keywords, recurring 2-grams/3-grams, and stylistic patterns without external linguistic software.
+
+### 4. ⚖️ Comparative Translation Matrix with Visual Diffing
+- **Side-by-Side Comparison**: Align multiple Bible versions (KR92, KR38, WEB, KJV, etc.) verse by verse.
+- **LCS Word Diffing**: Visual highlighting reveals exact phrasing variations, syntactic shifts, and translational choices at a glance.
+
+### 5. 🗂️ Project Research Workspaces (Scopes)
+- **Isolated Exegesis Workspaces**: Organize studies into dedicated scopes (e.g., *Romans 8 Exegesis*, *Sermon on the Mount*, *Covenant Theology*).
+- **Single-Roundtrip Loading**: Pinned searches, saved frequency analyses, and linked notebooks load instantly via `GET /api/scopes/workspace?id=...`.
+- **Data Protection**: Personal notebooks are preserved even if a workspace scope is deleted (`ON DELETE SET NULL`).
+
+### 6. 🤖 Theological AI Integrations (Google Gemini)
+- **Original Language Insights**: Greek and Hebrew root word breakdowns, grammatical morphology, and lexicons.
+- **Semantic Conceptual Search**: Query scripture with natural language concepts (*"Where does scripture discuss the armor of God?"*).
+- **Hermeneutical Deep-Dives**: Detailed literary tone, structural outlines, and covenantal exegesis.
+
+### 7. 🌐 100% Bilingual & Modern Design Tokens
+- **Bilingual Interface**: Seamlessly switch between Finnish (`fi`) and English (`en`) with one click.
+- **Aesthetic Warm Theme**: Curated warm-neutral and gold design tokens with automatic light and dark modes.
+
+---
+
+## 🏗️ Architecture & Technology Stack
+
+clible-v3 is engineered with clean layer boundaries and $O(1)$ streaming memory guarantees:
 
 ```mermaid
-graph TD
-    UI[React 19 Frontend / TS / Tailwind v4]
-    
-    subgraph Go Backend [Go REST API Monolith]
-        API[API Layer: internal/api]
-        SVC[Service Layer: internal/services]
-        REP[Repository Layer: internal/db]
-        PRS[XML Parsers: internal/parsers]
+flowchart TD
+    subgraph Frontend_App ["Frontend: React 19 + Vite SPA"]
+        UI["Reader, Search, Compare, Analytics, 2D Canvas Notebooks"]
+        Monaco["ISLA Monaco IntelliSense & Highlighting"]
     end
 
-    DB[(PostgreSQL: Neon)]
+    subgraph Backend_App ["Backend: Stateless Go REST API Monolith"]
+        API["API Layer: Go 1.22+ Standard http.ServeMux"]
+        SVC["Service Layer: Text Analytics, ISLA Executor, Scopes"]
+        REP["Repository Layer: PostgreSQL GIN FTS"]
+        PRS["Streaming XML Parser: O(1) Memory"]
+    end
 
-    UI -- "HTTP (JSON)" --> API
-    API -- "Calls" --> SVC
-    SVC -- "Calls" --> REP
-    SVC -- "Streams XML" --> PRS
-    REP -- "Context-aware SQL" --> DB
+    subgraph Storage_External ["Storage & External"]
+        DB[("Neon PostgreSQL Database")]
+        AI["Google Gemini AI API"]
+    end
+
+    UI --> API
+    Monaco --> API
+    API --> SVC
+    SVC --> REP
+    SVC --> PRS
+    SVC --> AI
+    REP --> DB
 ```
 
-### Boundary & Layering Rules
-
-To maintain high maintainability, the backend strictly enforces boundaries between layers:
-
-1. **API Layer (`internal/api/`)**: Translates HTTP requests to Service calls. Forbidden: database access, direct SQL, file system interaction. Space complexity is kept to O(1) by passing streams through.
-2. **Service Layer (`internal/services/`)**: Orchestrates business logic, parses files, and calls Repositories. Forbidden: HTTP objects (`ResponseWriter`, `Request`).
-3. **Repository Layer (`internal/db/`)**: Interacts directly with PostgreSQL. Uses `context.Context` everywhere to abort queries instantly if the HTTP connection is terminated. Forbidden: Services, API, direct network I/O.
-4. **Parser Layer (`internal/parsers/`)**: Parses input streams. Forbidden: DB, Services, Repos. Space complexity is O(1) using sequential token tracking.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| **Backend** | Go 1.22+, `http.ServeMux` (standard router), `log/slog` (structured logger) |
-| **Frontend** | React 19, TypeScript, Vite, TailwindCSS v4 |
-| **Database** | PostgreSQL (Neon Cloud, SQLite in-memory test fallback) |
-| **DevOps & Tooling** | Taskfile, golangci-lint, Docker |
+| Component | Technology | Purpose |
+|---|---|---|
+| **Backend API** | Go 1.22+ Standard Library | Stateless REST routing, O(1) streaming XML parser, graceful shutdown |
+| **Frontend Client** | React 19, TypeScript, Vite | 2D canvas matrix, Monaco editor, responsive TailwindCSS v4 theme |
+| **Primary Database** | Neon PostgreSQL | Cloud persistence, GIN tsvector full-text indexing, ACID transactions |
+| **Testing DB** | In-Memory SQLite (`:memory:`) | Blazing fast, self-contained unit and integration test suite |
+| **Documentation** | VitePress | Interactive, search-indexed documentation with native i18n |
 
 ---
 
-## Quick Start
+## ⚡ Quick Start for Developers & Self-Hosters
 
-### Prerequisites
+clible-v3 is ready to run as a web application. For local development or self-hosting:
 
-- [Go 1.22+](https://go.dev/)
-- [Node.js 18+](https://nodejs.org/)
-- [Task](https://taskfile.dev/) (Taskfile runner)
+### 1. Prerequisites
 
-### Running Locally
+- **Go**: 1.22+ ([Download](https://go.dev/))
+- **Node.js**: 18+ ([Download](https://nodejs.org/))
+- **pnpm**: Fast package manager ([Install](https://pnpm.io/))
+- **Task**: Automation runner ([Install](https://taskfile.dev/))
 
-We use `Taskfile` to simplify local development commands.
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/mvirtai/clible-v3-go.git
-   cd clible-v3-go
-   ```
-
-2. **Run the backend dev server:**
-   The backend auto-runs migrations on startup and initializes the database.
-
-   ```bash
-   task backend:dev
-   ```
-
-   *The API will be available at `http://localhost:8080`.*
-
-3. **Run the frontend dev server:**
-   In a separate terminal:
-
-   ```bash
-   task frontend:dev
-   ```
-
-   *The web UI will be available at `http://localhost:5173`.*
-
-4. **Verify quality gates:**
-   Run all linter checks and tests across both backend and frontend:
-
-   ```bash
-   task check
-   ```
-
----
-
-## Documentation
-
-The detailed, interactive documentation is generated using **VitePress** and resides in the [`docs/`](./docs) directory.
-
-To run the documentation site locally:
+### 2. Clone and Run Concurrently
 
 ```bash
-cd docs
-pnpm install
-pnpm run docs:dev
+# Clone the repository
+git clone https://github.com/mvirtai/clible-v3-go.git
+cd clible-v3-go
+
+# Install frontend dependencies
+task frontend:install
+
+# Start both Go REST API (:8080) and React frontend (:5173) concurrently
+task dev
 ```
 
-*This starts the documentation server at `http://localhost:5173` (or the next available port).*
+*The web application will be live at `http://localhost:5173`.*
 
-The docs cover:
+### 3. Run Quality Gates & Tests
 
-- **Getting Started** — Detailed guide to setup, run, and configure Clible-v3.
-- **Architecture & Database** — Technical deep-dive into layers, PostgreSQL schemas, and migrations.
-- **XML Ingestion Engine** — Detailed mechanics of O(1) memory-efficient streaming XML ingestion.
-- **API Reference** — REST endpoint references with request/response schemas.
+```bash
+task check
+```
 
 ---
 
-## License
+## 📖 Complete Documentation
 
-This project is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). Bible translation data sources and license details can be found in `NOTICE.md`.
+Visit our full documentation suite for comprehensive guides and specifications:
+
+- 📖 **[Platform Overview & User Guide](https://mvirtai.github.io/clible-v3-go/guide/getting-started)**
+- 🗂️ **[Research Workspaces & Scopes](https://mvirtai.github.io/clible-v3-go/guide/workspaces)**
+- 🔎 **[Search & Text Analytics Guide](https://mvirtai.github.io/clible-v3-go/guide/search-and-analytics)**
+- 📓 **[Notebooks & 2D Canvas Matrix](https://mvirtai.github.io/clible-v3-go/guide/notebooks)**
+- ✦ **[ISLA Language Guide & Directives](https://mvirtai.github.io/clible-v3-go/guide/isla-guide)**
+- 📚 **[Translation Ingestion Engine & $O(1)$ Streaming](https://mvirtai.github.io/clible-v3-go/guide/import-and-seeding)**
+- 🛠️ **[Self-Hosting & Docker Setup](https://mvirtai.github.io/clible-v3-go/guide/self-hosting)**
+- 📐 **[ISLA Language Formal Specification (EBNF)](https://mvirtai.github.io/clible-v3-go/architecture/isla-specification)**
+- 🔌 **[REST Web API Reference](https://mvirtai.github.io/clible-v3-go/api/reference)**
+
+---
+
+## 📜 License & Acknowledgements
+
+Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).  
+Bible translation data sources, copyright notices, and acknowledgements are listed in `NOTICE.md`.

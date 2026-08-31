@@ -143,16 +143,31 @@ When exiting edit mode (`Esc` or `Ctrl + Enter`):
 
 ---
 
-## 6. ISLA Syntax Reference & Cheat Sheet
+## 6. Monaco Intellisense & Diagnostic Engine
+
+ISLA features rich language intelligence integrated into notebook editors:
+
+- **Autocompletion Triggers**:
+  - `! ` — Presents quick action snippets (verse lookup, range, boolean search, comparison).
+  - `@` — Triggers book and smart scope completions (`@epistolat`, `@evankeliumit`, `@toora`, `@viisaus`, `@profeetat`, etc.).
+  - `=>` — Suggests pipeline actions (`use()`, `vs()`, `refs()`, `themes()`, `suggest()`, `count()`, `limit()`).
+  - `?` — Suggests boolean search and regex patterns.
+- **Hover Documentation**: Hovering over any ISLA keyword or citation in the editor displays inline markdown documentation with parameter descriptions and examples.
+- **Levenshtein Distance Diagnostics**: If you mistype an action (such as `! at(Joh 3:16) => cnt()`), the parser returns a structured diagnostic error with a helpful correction:
+  `Unknown action 'cnt'. Did you mean 'count'?`
+
+---
+
+## 7. ISLA Syntax Reference & Cheat Sheet
 
 | Query Pattern | Syntax Example | Rendered View | Description |
 | --- | --- | --- | --- |
 | **Passage Lookup** | `! at(Joh 3:16)`<br>`! @Joh 3:16` | Verse Card | Retrieves passage in default translation |
-| **Passage Range** | `! range(Joh 1:1, Joh 3:36)`<br>`! range(GEN, DEU)` | Verse Collection | Fetches contiguous text passage from start to end |
+| **Passage Range** | `! range(Joh 1:1, Joh 1:5)`<br>`! range(GEN, DEU)` | Verse Collection | Fetches contiguous text passage from start to end |
 | **Translation Projection** | `! at(Joh 3:16) => use(KR92)`<br>`! @Joh 3:16 => in(KR92)` | Verse Card | Projects passage into specified translation |
 | **Comparative Matrix** | `! at(Joh 3:16) => vs(KR92, KJV)`<br>`! @Joh 3:16 ? KR92 : KJV` | 2-Column Matrix | Synchronized side-by-side comparative layout |
 | **Cross-References** | `! at(Joh 3:16) => refs(3)`<br>`! ~ @Joh 3:16` | Verse Collection | Related cross-references from the database |
-| **Thematic Extraction** | `! at(Joh 3:16) => themes(5)`<br>`! range(Joh 1:1, Joh 3:36) => themes(8)`<br>`! ^ => themes(10)` | Keyword Cloud | Extracted thematic keywords and frequencies |
+| **Thematic Extraction** | `! at(Joh 3:16) => themes(5)`<br>`! range(Joh 1:1, Joh 1:5) => themes(5)`<br>`! ^ => themes(10)` | Keyword Cloud | Extracted thematic keywords and frequencies |
 | **Contextual Suggestions** | `! ^ => suggest(3)`<br>`! at(Joh 3:16) => suggest(5)` | Verse Collection | Content-driven related scripture suggestions |
 | **Full-Text Search** | `! search("love")`<br>`! ? "love"` | Verse List | Full-text database search |
 | **Boolean AND Search** | `! search("armo" AND "rauha")` | Verse List | Verses matching all specified search terms |
@@ -161,6 +176,7 @@ When exiting edit mode (`Esc` or `Ctrl + Enter`):
 | **Scoped Search** | `! search("light") @Joh`<br>`! search("valkeus") => at(Joh)` | Verse List | Search restricted to specific biblical book |
 | **Genre & Group Scopes** | `! search("armo") @epistolat`<br>`! search("grace") @epistles`<br>`! search("valkeus") @evankeliumit`<br>`! search("laki") @toora` | Verse List | Search restricted to smart genre group with auto-inferred translation |
 | **Regex Query** | `! ? /righteous.*/ @Rom` | Verse List | Morphological pattern match |
-| **Count Aggregator** | `! search("armo" AND "rauha") @epistolat => count()`<br>`! range(GEN, DEU) => count()` | Metric Card | Match count metric card |
+| **Count Aggregator** | `! search("armo" AND "rauha") @epistolat => count()`<br>`! range(Joh 1:1, Joh 1:5) => count()` | Metric Card | Match count metric card |
 | **Chained Pipeline** | `! search("armo") => at(epistolat) => use(KR92) => count()` | Result Card | Sequential multi-stage evaluation |
+
 
