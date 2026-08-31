@@ -81,6 +81,16 @@ export const Register: React.FC = () => {
           <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
             {strings.registerSubtitle}
           </p>
+          <div
+            className="inline-flex items-center gap-1.5 px-3 py-1 mt-3 rounded-full text-xs font-medium"
+            style={{
+              background: 'var(--accent-bg)',
+              color: 'var(--accent)',
+              border: '1px solid var(--accent-border)',
+            }}
+          >
+            ✨ {strings.registerFastBadge}
+          </div>
         </div>
 
         {error && (
@@ -207,11 +217,24 @@ export const Register: React.FC = () => {
           </button>
         </form>
 
-        <p className="text-sm text-center mt-6" style={{ color: 'var(--muted)' }}>
+        <p className="text-sm text-center mt-5" style={{ color: 'var(--muted)' }}>
           {strings.alreadyHaveAccountPrompt}{' '}
           <Link to="/login" style={{ color: 'var(--accent)' }} className="hover:underline font-medium">
             {strings.loginLink}
           </Link>
+        </p>
+
+        <p className="text-xs text-center mt-4 pt-3 border-t" style={{ borderColor: 'var(--border)', color: 'var(--muted)', lineHeight: '1.5' }}>
+          {strings.termsNotice}{' '}
+          <a
+            href="/clible-v3-go/guide/terms-and-privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--accent)' }}
+            className="hover:underline font-medium"
+          >
+            {strings.termsAndPrivacy}
+          </a>.
         </p>
       </div>
     </div>

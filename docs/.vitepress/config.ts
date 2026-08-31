@@ -56,6 +56,7 @@ export default defineConfig({
             { text: "ISLA Language Guide", link: "/guide/isla-guide" },
             { text: "Translations & Ingestion", link: "/guide/import-and-seeding" },
             { text: "Self-Hosting & Setup", link: "/guide/self-hosting" },
+            { text: "Terms & Privacy", link: "/guide/terms-and-privacy" },
           ],
         },
       ],
