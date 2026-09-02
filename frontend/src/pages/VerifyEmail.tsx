@@ -28,6 +28,10 @@ export function VerifyEmail() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    document.title = `${strings.verifyEmailTitle || 'Vahvista sähköposti'} – Clible Workspace`;
+  }, [strings]);
+
   // 1. Automated direct link verification if token is present in URL
   useEffect(() => {
     if (!urlToken) return;

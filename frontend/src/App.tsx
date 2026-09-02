@@ -81,6 +81,21 @@ export function App() {
   const [loadedComparisonAi, setLoadedComparisonAi] = useState<AiTextResponse | null>(null);
   const [loadedComparisonDeepDive, setLoadedComparisonDeepDive] = useState<string | null>(null);
 
+  // Päivitetään sivun otsikko aktiivisen näkymän ja jaeviitteen mukaan (SEO & selainvälilehdet)
+  useEffect(() => {
+    let tabLabel = strings.tabReader;
+    if (viewMode === 'analytics') tabLabel = strings.tabAnalytics;
+    else if (viewMode === 'compare') tabLabel = strings.tabCompare;
+    else if (viewMode === 'original') tabLabel = strings.tabOriginal;
+    else if (viewMode === 'notebooks') tabLabel = strings.tabNotebooks;
+
+    if (activeReference && viewMode === 'reader') {
+      document.title = `${activeReference} – Clible Workspace`;
+    } else {
+      document.title = `${tabLabel} – Clible Workspace`;
+    }
+  }, [viewMode, activeReference, strings]);
+
   // Haetaan muistikirjat kun siirrytään näkymään tai palataan editorista listaukseen
   useEffect(() => {
     if (viewMode === 'notebooks') {

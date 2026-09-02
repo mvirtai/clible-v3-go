@@ -1,3 +1,11 @@
+# Robots.txt for Clible Workspace
 User-agent: *
 Allow: /
+Allow: /vierailija-yleinen
+Allow: /login
+Allow: /register
+Disallow: /api/
+Allow: /api/health
+Allow: /api/version
+
 Sitemap: https://clible-v3-421720438581.europe-north1.run.app/sitemap.xml

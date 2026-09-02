@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -19,6 +19,10 @@ export function Login() {
   const { login } = useAuth();
   const { strings } = useLanguage();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = `${strings.loginButton || 'Kirjaudu'} – Clible Workspace`;
+  }, [strings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

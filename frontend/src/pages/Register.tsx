@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen } from 'lucide-react';
@@ -20,6 +20,10 @@ export function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const { strings } = useLanguage();
+
+  useEffect(() => {
+    document.title = `${strings.registerTitle || 'Luo tili'} – Clible Workspace`;
+  }, [strings]);
 
   const hasMinLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
