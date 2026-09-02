@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { Globe } from 'lucide-react';
 
@@ -9,7 +9,7 @@ import { Globe } from 'lucide-react';
  *
  * @returns Accessible language toggle component.
  */
-export const LanguageSwitcher: React.FC = () => {
+export function LanguageSwitcher() {
   const { lang, setLang, strings } = useLanguage();
   const [open, setOpen] = useState(false);
   const [hovering, setHovering] = useState(false);

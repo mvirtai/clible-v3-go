@@ -1,4 +1,3 @@
-import React from 'react';
 import { Columns, Check } from 'lucide-react';
 import { bookCitationAbbrevFi } from '../../../utils/bookNames';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -59,12 +58,12 @@ export interface CellCompareResultProps {
  * @param props - Component properties conforming to {@link CellCompareResultProps}.
  * @returns Synchronized side-by-side comparison table.
  */
-export const CellCompareResult: React.FC<CellCompareResultProps> = ({
+export function CellCompareResult({
   data,
   deselectedVerseIds = {},
   onToggleVerse,
   selectable = false,
-}) => {
+}: CellCompareResultProps) {
   const { strings } = useLanguage();
   const leftVerses = data.left?.verses || [];
   const rightVerses = data.right?.verses || [];

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Hash } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 
@@ -36,7 +35,7 @@ export interface CellCountResultProps {
  * @param props - Component properties conforming to {@link CellCountResultProps}.
  * @returns Count summary card.
  */
-export const CellCountResult: React.FC<CellCountResultProps> = ({ data }) => {
+export function CellCountResult({ data }: CellCountResultProps) {
   const { strings } = useLanguage();
 
   return (

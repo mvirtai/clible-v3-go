@@ -28,13 +28,13 @@ export interface WorkspaceSidebarProps {
  * @param props - Component properties conforming to {@link WorkspaceSidebarProps}.
  * @returns Accessible sidebar navigation component.
  */
-export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
+export function WorkspaceSidebar({
   activeScopeId,
   onScopeChanged,
   onLoadSavedSearch,
   onLoadSavedAnalysis,
   refreshTrigger
-}) => {
+}: WorkspaceSidebarProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { strings } = useLanguage();
@@ -46,16 +46,14 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   const [loadingWorkspace, setLoadingWorkspace] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!user) {
-      setScopes([]);
-      setLoadingScopes(false);
-      return;
-    }
+    if (!user) return;
 
+    let isMounted = true;
     const fetchScopes = async () => {
       setLoadingScopes(true);
       try {
         const list = await apiService.getScopes();
+        if (!isMounted) return;
         setScopes(list || []);
         
         // Auto-select/heal activeScopeId if it belongs to another user or doesn't exist
@@ -70,33 +68,50 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           onScopeChanged(list[0].id);
         }
       } catch {
-        alert(strings.createScopeFailed);
+        if (isMounted) {
+          alert(strings.createScopeFailed);
+        }
       } finally {
-        setLoadingScopes(false);
+        if (isMounted) {
+          setLoadingScopes(false);
+        }
       }
     };
     fetchScopes();
-  }, [refreshTrigger, activeScopeId, onScopeChanged, strings]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, refreshTrigger, activeScopeId, onScopeChanged, strings]);
 
   useEffect(() => {
+    if (!user || !activeScopeId) {
+      return;
+    }
+
+    let isMounted = true;
     const fetchWorkspace = async () => {
-      if (!activeScopeId) {
-        setWorkspace(null);
-        setLoadingWorkspace(false);
-        return;
-      }
       setLoadingWorkspace(true);
       try {
         const data = await apiService.getScopeWorkspace(activeScopeId);
+        if (!isMounted) return;
         setWorkspace(data);
       } catch {
-        console.error('Failed to load workspace data');
+        if (isMounted) {
+          console.error('Failed to load workspace data');
+        }
       } finally {
-        setLoadingWorkspace(false);
+        if (isMounted) {
+          setLoadingWorkspace(false);
+        }
       }
     };
     fetchWorkspace();
-  }, [activeScopeId, refreshTrigger, strings]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, activeScopeId, refreshTrigger, strings]);
 
   const handleCreateScope = async (e: React.FormEvent) => {
     e.preventDefault();

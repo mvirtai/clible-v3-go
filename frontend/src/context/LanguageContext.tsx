@@ -31,7 +31,7 @@ const LanguageContext = createContext<LanguageContextValue>({
  * @param props - React provider properties including children nodes.
  * @returns Context provider element wrapping child components.
  */
-export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<UILanguage>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);

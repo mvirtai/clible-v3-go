@@ -84,12 +84,12 @@ function highlightMatch(text: string, query?: string): React.ReactNode {
   }
 }
 
-export const CellVersesResult: React.FC<CellVersesResultProps> = ({
+export function CellVersesResult({
   data,
   deselectedVerseIds = {},
   onToggleVerse,
   selectable = false,
-}) => {
+}: CellVersesResultProps) {
   const { strings } = useLanguage();
   const verses = data.verses || data.references || data.suggestions || [];
 
