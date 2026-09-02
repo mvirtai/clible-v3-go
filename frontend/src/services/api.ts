@@ -337,6 +337,39 @@ export class ApiService {
     }
 
     /**
+     * Verifies user email via 6-digit OTP code or link token.
+     */
+    async verifyEmail(params: { email?: string; code?: string; token?: string }): Promise<UserResponse> {
+        const res = await fetch(`${this.baseUrl}/auth/verify-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params),
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `POST /auth/verify-email returned ${res.status}`);
+        }
+        return await res.json();
+    }
+
+    /**
+     * Resends email verification code.
+     */
+    async resendVerification(email: string, language?: string): Promise<void> {
+        const res = await fetch(`${this.baseUrl}/auth/resend-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, language: language || 'fi' }),
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `POST /auth/resend-verification returned ${res.status}`);
+        }
+    }
+
+    /**
      * Retrieves the currently logged-in user profile.
      */
     async getMe(): Promise<UserResponse> {

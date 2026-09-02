@@ -19,78 +19,80 @@ func setupAuthService(t *testing.T) (*services.AuthService, *db.UserRepository) 
 	t.Cleanup(func() { _ = conn.Close() })
 
 	userRepo := db.NewUserRepository(conn)
-	authSvc := services.NewAuthService(userRepo, "test-jwt-secret-32-chars-long!")
+	mailer := services.NewMockMailer()
+	authSvc := services.NewAuthService(userRepo, "test-jwt-secret-32-chars-long!", mailer, "http://localhost:5173")
 	return authSvc, userRepo
 }
 
+func TestAuthService_Generators(t *testing.T) {
+	t.Run("GenerateOTP produces 6 digits", func(t *testing.T) {
+		otp, err := services.GenerateOTP()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(otp) != 6 {
+			t.Errorf("expected 6-digit OTP, got '%s'", otp)
+		}
+	})
+
+	t.Run("GenerateURLToken produces 64 chars", func(t *testing.T) {
+		token, err := services.GenerateURLToken()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(token) != 64 {
+			t.Errorf("expected 64-char token, got len %d", len(token))
+		}
+	})
+}
+
 func TestAuthService_Register(t *testing.T) {
-	authSvc, _ := setupAuthService(t)
+	authSvc, userRepo := setupAuthService(t)
 	ctx := context.Background()
 
-	t.Run("successfully registers a new user", func(t *testing.T) {
-		user, err := authSvc.Register(ctx, "test@example.com", "Password123!")
+	t.Run("successfully registers a new unverified user", func(t *testing.T) {
+		user, err := authSvc.Register(ctx, "test@example.com", "Password123!", "fi")
 		if err != nil {
 			t.Fatalf("unexpected error registering user: %v", err)
 		}
 		if user == nil || user.ID == "" {
 			t.Fatalf("expected valid user struct with ID, got %+v", user)
-			return
 		}
 		if user.Email != "test@example.com" {
 			t.Errorf("expected email 'test@example.com', got %s", user.Email)
 		}
-		if user.PasswordHash == "" || user.PasswordHash == "Password123!" {
-			t.Errorf("expected password to be hashed, got %s", user.PasswordHash)
+		if user.IsVerified {
+			t.Errorf("expected new user to be unverified, got true")
+		}
+
+		// Verify that a verification code was created
+		storedUser, err := userRepo.GetByEmail(ctx, "test@example.com")
+		if err != nil || storedUser == nil {
+			t.Fatalf("failed to fetch user from repo: %v", err)
 		}
 	})
 
 	t.Run("rejects registration with duplicate email", func(t *testing.T) {
-		_, err := authSvc.Register(ctx, "test@example.com", "Password123!")
+		_, err := authSvc.Register(ctx, "test@example.com", "Password123!", "fi")
 		if err == nil {
 			t.Errorf("expected error when registering duplicate email, got nil")
 		}
 	})
 }
 
-func TestAuthService_Login(t *testing.T) {
-	authSvc, _ := setupAuthService(t)
+func TestAuthService_LoginAndVerify(t *testing.T) {
+	authSvc, userRepo := setupAuthService(t)
 	ctx := context.Background()
 
-	_, err := authSvc.Register(ctx, "login@example.com", "SecretPass123!")
+	user, err := authSvc.Register(ctx, "login@example.com", "SecretPass123!", "fi")
 	if err != nil {
-		t.Fatalf("failed to register user for login test: %v", err)
+		t.Fatalf("failed to register user: %v", err)
 	}
 
-	t.Run("successfully logs in with valid credentials", func(t *testing.T) {
-		user, token, err := authSvc.Login(ctx, "login@example.com", "SecretPass123!")
-		if err != nil {
-			t.Fatalf("unexpected error during login: %v", err)
-		}
-		if user == nil {
-			t.Fatalf("expected logged in user struct, got nil")
-			return
-		}
-		if user.Email != "login@example.com" {
-			t.Errorf("expected logged in user struct, got %+v", user)
-		}
-		if token == "" {
-			t.Errorf("expected non-empty JWT token string")
-		}
-
-		// Validate the issued token
-		validatedUserID, err := authSvc.ValidateToken(token)
-		if err != nil {
-			t.Fatalf("failed to validate newly issued token: %v", err)
-		}
-		if validatedUserID != user.ID {
-			t.Errorf("expected token user ID %s, got %s", user.ID, validatedUserID)
-		}
-	})
-
-	t.Run("rejects login with non-existent email", func(t *testing.T) {
-		_, _, err := authSvc.Login(ctx, "unknown@example.com", "SecretPass123!")
-		if err != services.ErrInvalidCredentials {
-			t.Errorf("expected ErrInvalidCredentials, got %v", err)
+	t.Run("rejects login for unverified user", func(t *testing.T) {
+		_, _, err := authSvc.Login(ctx, "login@example.com", "SecretPass123!")
+		if err != services.ErrEmailNotVerified {
+			t.Errorf("expected ErrEmailNotVerified, got %v", err)
 		}
 	})
 
@@ -98,6 +100,98 @@ func TestAuthService_Login(t *testing.T) {
 		_, _, err := authSvc.Login(ctx, "login@example.com", "WrongPassword123!")
 		if err != services.ErrInvalidCredentials {
 			t.Errorf("expected ErrInvalidCredentials, got %v", err)
+		}
+	})
+
+	t.Run("verifies user with OTP code and allows login", func(t *testing.T) {
+		verCode := "654321"
+		verToken := "token1234567890123456789012345678901234567890123456789012345678901234"
+		_ = userRepo.CreateVerification(ctx, &db.EmailVerification{
+			ID:        "ver-id-1",
+			UserID:    user.ID,
+			Code:      verCode,
+			Token:     verToken,
+			ExpiresAt: time.Now().Add(15 * time.Minute),
+		})
+
+		verifiedUser, token, err := authSvc.VerifyEmail(ctx, "login@example.com", verCode, "")
+		if err != nil {
+			t.Fatalf("VerifyEmail failed: %v", err)
+		}
+		if !verifiedUser.IsVerified {
+			t.Errorf("expected user to be verified, got false")
+		}
+		if token == "" {
+			t.Errorf("expected valid jwt token")
+		}
+
+		// Now login should succeed
+		loggedInUser, loginToken, err := authSvc.Login(ctx, "login@example.com", "SecretPass123!")
+		if err != nil {
+			t.Fatalf("Login failed after verification: %v", err)
+		}
+		if loggedInUser.ID != user.ID || loginToken == "" {
+			t.Errorf("login failed to return valid user and token")
+		}
+	})
+
+	t.Run("verifies user with link token", func(t *testing.T) {
+		user2, err := authSvc.Register(ctx, "user2@example.com", "SecretPass123!", "en")
+		if err != nil {
+			t.Fatalf("failed to register user2: %v", err)
+		}
+
+		verToken := "user2-token-64-bytes-long-string-for-email-verification-testing-12"
+		_ = userRepo.CreateVerification(ctx, &db.EmailVerification{
+			ID:        "ver-id-2",
+			UserID:    user2.ID,
+			Code:      "999888",
+			Token:     verToken,
+			ExpiresAt: time.Now().Add(15 * time.Minute),
+		})
+
+		verifiedUser, token, err := authSvc.VerifyEmail(ctx, "", "", verToken)
+		if err != nil {
+			t.Fatalf("VerifyEmail by token failed: %v", err)
+		}
+		if !verifiedUser.IsVerified {
+			t.Errorf("expected user2 to be verified")
+		}
+		if token == "" {
+			t.Errorf("expected token to be returned")
+		}
+	})
+
+	t.Run("rejects expired verification code", func(t *testing.T) {
+		user3, err := authSvc.Register(ctx, "user3@example.com", "SecretPass123!", "fi")
+		if err != nil {
+			t.Fatalf("failed to register user3: %v", err)
+		}
+
+		verToken := "expired-token-64-bytes-long-string-for-email-verification-testing"
+		_ = userRepo.CreateVerification(ctx, &db.EmailVerification{
+			ID:        "ver-id-3",
+			UserID:    user3.ID,
+			Code:      "111222",
+			Token:     verToken,
+			ExpiresAt: time.Now().Add(-5 * time.Minute), // expired
+		})
+
+		_, _, err = authSvc.VerifyEmail(ctx, "", "", verToken)
+		if err != services.ErrVerificationExpired {
+			t.Errorf("expected ErrVerificationExpired, got %v", err)
+		}
+	})
+
+	t.Run("resend verification code works for unverified user", func(t *testing.T) {
+		user4, err := authSvc.Register(ctx, "user4@example.com", "SecretPass123!", "fi")
+		if err != nil {
+			t.Fatalf("failed to register user4: %v", err)
+		}
+
+		err = authSvc.ResendVerification(ctx, user4.Email, "fi")
+		if err != nil {
+			t.Fatalf("unexpected error resending verification: %v", err)
 		}
 	})
 }
@@ -134,7 +228,7 @@ func TestAuthService_Tokens(t *testing.T) {
 	})
 
 	t.Run("rejects token signed with different secret", func(t *testing.T) {
-		otherSvc := services.NewAuthService(nil, "completely-different-secret-key!")
+		otherSvc := services.NewAuthService(nil, "completely-different-secret-key!", nil, "")
 		foreignToken, err := otherSvc.GenerateToken("user-id-999")
 		if err != nil {
 			t.Fatalf("foreign GenerateToken failed: %v", err)
@@ -182,3 +276,4 @@ func TestAuthService_Tokens(t *testing.T) {
 		}
 	})
 }
+

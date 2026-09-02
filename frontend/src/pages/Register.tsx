@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen } from 'lucide-react';
@@ -6,11 +6,12 @@ import { useLanguage } from '../context/LanguageContext';
 
 /**
  * Authentication user registration page component.
- * Validates password complexity client-side, creates the new user account, and navigates to the workspace.
+ * Validates password complexity client-side, registers account, and prompts email verification.
+ * Fully compliant with React 19.2+ and optimized for React Compiler.
  *
  * @returns Rendered registration view.
  */
-export const Register: React.FC = () => {
+export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,7 +45,7 @@ export const Register: React.FC = () => {
 
     try {
       await register(email, password);
-      navigate('/');
+      navigate('/verify-email', { state: { email } });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : strings.registerFailedMessage;
       setError(errorMsg);
@@ -224,7 +225,18 @@ export const Register: React.FC = () => {
           </Link>
         </p>
 
-        <p className="text-xs text-center mt-4 pt-3 border-t" style={{ borderColor: 'var(--border)', color: 'var(--muted)', lineHeight: '1.5' }}>
+        <div className="mt-4 pt-3 border-t text-center" style={{ borderColor: 'var(--border)' }}>
+          <Link
+            to="/vierailija-yleinen"
+            className="text-xs font-medium hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+            style={{ color: 'var(--muted)' }}
+          >
+            <span>👤</span>
+            <span>{strings.continueAsGuest}</span>
+          </Link>
+        </div>
+
+        <p className="text-xs text-center mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)', color: 'var(--muted)', lineHeight: '1.5' }}>
           {strings.termsNotice}{' '}
           <a
             href="/clible-v3-go/guide/terms-and-privacy"
