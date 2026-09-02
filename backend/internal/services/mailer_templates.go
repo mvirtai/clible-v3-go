@@ -41,7 +41,8 @@ const htmlTemplateEN = `<div style="font-family: sans-serif; max-width: 520px; m
   <p style="color: #94a3b8; font-size: 12px; margin-top: 32px; text-align: center;">This code expires in 15 minutes. If you did not create a Clible account, you can safely ignore this email.</p>
 </div>`
 
-func renderVerificationEmail(lang, code, verifyURL string) EmailContent {
+// RenderVerificationEmail renders the subject and body for account verification emails in FI or EN.
+func RenderVerificationEmail(lang, code, verifyURL string) EmailContent {
 
 	// Default: en
 	if strings.ToLower(lang) == "en" {
@@ -65,4 +66,5 @@ func renderVerificationEmail(lang, code, verifyURL string) EmailContent {
 		BodyText: fmt.Sprintf("Tervetuloa Clibleen!\n\nVahvistuskoodi: %s\nLinkki: %s", code, verifyURL),
 	}
 }
+
 

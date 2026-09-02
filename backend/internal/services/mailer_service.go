@@ -21,9 +21,11 @@ func NewMockMailer() *MockMailer {
 
 func (m *MockMailer) SendVerificationEmail(ctx context.Context, toEmail, code, token, lang, baseURL string) error {
 	verifyURL := fmt.Sprintf("%s/verify-email?token=%s", strings.TrimRight(baseURL, "/"), token)
+	content := RenderVerificationEmail(lang, code, verifyURL)
 	log.Printf(
-		"📧 [MockMailer] Verification email to: %s | Code: [%s] | Link: %s",
+		"📧 [MockMailer] Verification email to: %s | Subject: %s | Code: [%s] | Link: %s",
 		toEmail,
+		content.Subject,
 		code,
 		verifyURL,
 	)
