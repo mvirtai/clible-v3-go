@@ -61,7 +61,8 @@ func main() {
 		slog.Error("Critical startup failure: JWT_SECRET must be at least 32 characters long")
 		os.Exit(1)
 	}
-	authService := services.NewAuthService(userRepo, jwtSecret)
+	mailerService := services.NewMockMailer()
+	authService := services.NewAuthService(userRepo, jwtSecret, mailerService, cfg.AppBaseURL)
 
 	analyticService, err := services.NewAnalyticService(verseRepo, true, "en,fi,grc,el")
 	if err != nil {
@@ -90,11 +91,12 @@ func main() {
 	mux.HandleFunc("GET /api/version", versionHandler.GetVersion)
 	mux.HandleFunc("GET /api/health", versionHandler.GetVersion)
 
+	optionalAuth := middleware.OptionalAuth(authService)
 	requireAuth := middleware.RequireAuth(authService)
 
-	// Verse & Bible endpoints
-	mux.Handle("GET /api/verses", requireAuth(http.HandlerFunc(bibleHandler.GetVersesByReference)))
-	mux.Handle("GET /api/search", requireAuth(http.HandlerFunc(bibleHandler.SearchVerses)))
+	// Verse & Bible endpoints (Accessible to guests via optionalAuth)
+	mux.Handle("GET /api/verses", optionalAuth(http.HandlerFunc(bibleHandler.GetVersesByReference)))
+	mux.Handle("GET /api/search", optionalAuth(http.HandlerFunc(bibleHandler.SearchVerses)))
 
 	// Book metadata endpoints
 	mux.HandleFunc("GET /api/books", bookHandler.GetBooks)
@@ -103,6 +105,8 @@ func main() {
 	// Auth endpoints
 	mux.HandleFunc("POST /api/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
+	mux.HandleFunc("POST /api/auth/verify-email", authHandler.VerifyEmail)
+	mux.HandleFunc("POST /api/auth/resend-verification", authHandler.ResendVerification)
 	mux.HandleFunc("POST /api/auth/logout", authHandler.Logout)
 	mux.HandleFunc("GET /api/auth/me", authHandler.Me)
 
@@ -111,7 +115,7 @@ func main() {
 	mux.Handle("GET /api/history", requireAuth(http.HandlerFunc(historyHandler.GetRecentHistory)))
 
 	// Catalog & Translation activation endpoints
-	mux.Handle("GET /api/translations", requireAuth(http.HandlerFunc(translationHandler.GetTranslations)))
+	mux.Handle("GET /api/translations", optionalAuth(http.HandlerFunc(translationHandler.GetTranslations)))
 	mux.Handle("POST /api/translations/link", requireAuth(http.HandlerFunc(translationHandler.LinkTranslation)))
 	mux.Handle("DELETE /api/translations/link", requireAuth(http.HandlerFunc(translationHandler.UnlinkTranslation)))
 
@@ -136,11 +140,11 @@ func main() {
 	mux.Handle("DELETE /api/notebooks/{id}", requireAuth(http.HandlerFunc(notebookHandler.DeleteNotebook)))
 	mux.Handle("PUT /api/notebooks/{id}/cells", requireAuth(http.HandlerFunc(notebookHandler.SaveCells)))
 	mux.Handle("POST /api/notebooks/{id}/cells/{cell_id}/execute", requireAuth(http.HandlerFunc(notebookHandler.ExecuteCommand)))
-	mux.Handle("POST /api/dsl/eval", requireAuth(http.HandlerFunc(dslHandler.EvalDSL)))
+	mux.Handle("POST /api/dsl/eval", optionalAuth(http.HandlerFunc(dslHandler.EvalDSL)))
 
 	// Text Analysis Engine endpoints
-	mux.Handle("POST /api/analytics/analyze", requireAuth(http.HandlerFunc(analyticsHandler.Analyze)))
-	mux.Handle("POST /api/analytics/compare", requireAuth(http.HandlerFunc(analyticsHandler.Compare)))
+	mux.Handle("POST /api/analytics/analyze", optionalAuth(http.HandlerFunc(analyticsHandler.Analyze)))
+	mux.Handle("POST /api/analytics/compare", optionalAuth(http.HandlerFunc(analyticsHandler.Compare)))
 
 	// Gemini AI endpoints (Protected by Auth and specialized Rate Limiting)
 	aiLimiter := middleware.NewIPRateLimiter(rate.Limit(15.0/3600.0), 5)

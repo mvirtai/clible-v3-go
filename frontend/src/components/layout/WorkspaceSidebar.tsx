@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import type { Scope, ScopeWorkspace, SavedSearch, SavedAnalysis } from '../../types/workspace';
 import { Folder, Plus, Trash2, Edit2, Search, BarChart3 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Properties for {@link WorkspaceSidebar}.
@@ -33,6 +35,8 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onLoadSavedAnalysis,
   refreshTrigger
 }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { strings } = useLanguage();
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [newScopeName, setNewScopeName] = useState('');
@@ -42,6 +46,12 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   const [loadingWorkspace, setLoadingWorkspace] = useState<boolean>(false);
 
   useEffect(() => {
+    if (!user) {
+      setScopes([]);
+      setLoadingScopes(false);
+      return;
+    }
+
     const fetchScopes = async () => {
       setLoadingScopes(true);
       try {
@@ -189,6 +199,35 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       alert(strings.renameAnalysisFailed);
     }
   };
+
+  // Guest mode notice
+  if (!user) {
+    return (
+      <div
+        className="rounded-3xl p-6 text-center border animate-fade-in"
+        style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+      >
+        <div
+          className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--surface-2)', color: 'var(--accent)' }}
+        >
+          <Folder size={24} className="opacity-80" />
+        </div>
+        <h3 className="font-semibold text-sm mb-1.5" style={{ color: 'var(--text)' }}>
+          {strings.workspacesTitle}
+        </h3>
+        <p className="text-xs mb-4" style={{ color: 'var(--muted)', lineHeight: '1.5' }}>
+          {strings.guestWorkspaceNotice}
+        </p>
+        <button
+          onClick={() => navigate('/register')}
+          className="w-full py-2.5 rounded-xl text-xs font-medium btn-tactile btn-accent cursor-pointer shadow-sm"
+        >
+          {strings.guestQuickSignup}
+        </button>
+      </div>
+    );
+  }
 
   // VAIHE 4: Haamukuvion renderöinti alussa
   if (loadingScopes && scopes.length === 0) {

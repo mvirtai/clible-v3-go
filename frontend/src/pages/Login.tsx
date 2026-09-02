@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -7,10 +7,11 @@ import { BookOpen } from 'lucide-react';
 /**
  * Authentication login page component.
  * Allows registered users to authenticate with email and password to access their workspaces.
+ * Fully compliant with React 19.2+ and optimized for React Compiler.
  *
  * @returns Rendered login view.
  */
-export const Login: React.FC = () => {
+export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -123,6 +124,17 @@ export const Login: React.FC = () => {
             {strings.registerLink}
           </Link>
         </p>
+
+        <div className="mt-4 pt-4 border-t text-center" style={{ borderColor: 'var(--border)' }}>
+          <Link
+            to="/vierailija-yleinen"
+            className="text-xs font-medium hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+            style={{ color: 'var(--muted)' }}
+          >
+            <span>👤</span>
+            <span>{strings.continueAsGuest}</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

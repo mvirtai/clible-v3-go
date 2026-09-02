@@ -42,6 +42,33 @@ func RequireAuth(authService *services.AuthService) func(http.Handler) http.Hand
 	}
 }
 
+// OptionalAuth inspects the incoming request for a valid JWT cookie.
+// If valid, it injects the userID into the request context.
+// If absent or expired, it allows the request to proceed as an anonymous guest.
+func OptionalAuth(authService *services.AuthService) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			cookie, err := r.Cookie("jwt")
+			if err != nil {
+				// Ei evästettä -> jatketaan vieraana
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			userID, err := authService.ValidateToken(cookie.Value)
+			if err != nil {
+				// Virheellinen tai vanhentunut eväste -> jatketaan vieraana
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Asetetaan käyttäjä kontekstiin
+			ctx := context.WithValue(r.Context(), ctxkeys.UserIDKey, userID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 // GetUserID retrieves the user_id from the context if available.
 func GetUserID(ctx context.Context) (string, bool) {
 	return ctxkeys.GetUserID(ctx)
