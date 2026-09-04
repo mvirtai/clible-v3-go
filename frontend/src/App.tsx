@@ -405,13 +405,18 @@ export function App() {
         setInstalledTranslations(list);
 
         const activeList = list.filter((t) => t.installed);
-        const stored = localStorage.getItem('selectedTranslation') || '';
-        const exists = activeList.some((t) => t.id === stored);
-        if (activeList.length > 0 && (!stored || !exists)) {
+        if (activeList.length > 0) {
           const defaultId = getDefaultTranslationForLanguage(activeList, lang);
-          setSelectedTranslation(defaultId);
-          localStorage.setItem('selectedTranslation', defaultId);
-        } else if (activeList.length === 0 && stored) {
+          // When language changes or no valid stored translation exists, sync to language default
+          const stored = localStorage.getItem('selectedTranslation') || '';
+          const currentMeta = activeList.find((t) => t.id === stored);
+
+          // If no stored translation, or stored doesn't exist, or stored language does not match active UI language:
+          if (!stored || !currentMeta || (currentMeta.language !== lang && defaultId)) {
+            setSelectedTranslation(defaultId);
+            localStorage.setItem('selectedTranslation', defaultId);
+          }
+        } else {
           setSelectedTranslation('');
           localStorage.removeItem('selectedTranslation');
         }
