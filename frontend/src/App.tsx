@@ -16,6 +16,7 @@ import { useAuth } from './context/AuthContext';
 import { useLanguage } from './context/LanguageContext';
 import { BookOpen } from 'lucide-react';
 import { APP_VERSION } from './utils/version';
+import { getDefaultTranslationForLanguage } from './utils/translationDefaults';
 import type { InstalledTranslation, TextStats, ComparisonResult } from './types/bible';
 import type { SavedSearch, SavedAnalysis } from './types/workspace';
 import type { SearchVerse } from './types/search';
@@ -407,9 +408,9 @@ export function App() {
         const stored = localStorage.getItem('selectedTranslation') || '';
         const exists = activeList.some((t) => t.id === stored);
         if (activeList.length > 0 && (!stored || !exists)) {
-          const firstId = activeList[0].id;
-          setSelectedTranslation(firstId);
-          localStorage.setItem('selectedTranslation', firstId);
+          const defaultId = getDefaultTranslationForLanguage(activeList, lang);
+          setSelectedTranslation(defaultId);
+          localStorage.setItem('selectedTranslation', defaultId);
         } else if (activeList.length === 0 && stored) {
           setSelectedTranslation('');
           localStorage.removeItem('selectedTranslation');
@@ -419,7 +420,7 @@ export function App() {
       }
     };
     loadTranslations();
-  }, [translationTrigger]);
+  }, [translationTrigger, lang]);
 
   const handleSearchFinished = () => setHistoryTrigger((p) => !p);
   const handleTranslationChanged = () => setTranslationTrigger((p) => !p);
