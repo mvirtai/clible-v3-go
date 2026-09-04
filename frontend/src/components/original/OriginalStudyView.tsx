@@ -12,8 +12,8 @@ import type { NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
 import { NextFocusChips } from '../search/NextFocusChips';
 import { DeepDiveCard } from '../layout/DeepDiveCard';
 
-const GREEK_PACK_ID = 'greeksblgnt';
-const HEBREW_PACK_ID = 'hebrewaleppocodex';
+const GREEK_PACK_ID = 'sblgnt';
+const HEBREW_PACK_ID = 'heb-leningrad';
 const MAX_TARGETS = 3;
 const STUDY_SCOPES: StudyScope[] = ['verse', 'chapter', 'book'];
 
@@ -28,9 +28,8 @@ function isOriginalLanguage(tr: InstalledTranslation): boolean {
   if (l === 'grc' || l === 'he' || l === 'hbo' || l.startsWith('heb')) return true;
 
   const id = (tr.id ?? '').toLowerCase().trim();
-  if (id === GREEK_PACK_ID) return true;
-  if (id.startsWith('hebrew')) return true;
-  if (id.includes('leningrad')) return true;
+  if (id === GREEK_PACK_ID || id === 'greeksblgnt' || id === 'sblgnt') return true;
+  if (id.startsWith('hebrew') || id.startsWith('heb-') || id.includes('leningrad')) return true;
   return false;
 }
 
@@ -164,8 +163,8 @@ export function OriginalStudyView({
     [installedTranslations],
   );
 
-  const greekInstalled = installedTranslations.some((tr) => tr.id === GREEK_PACK_ID);
-  const hebrewInstalled = installedTranslations.some((tr) => tr.id === HEBREW_PACK_ID);
+  const greekInstalled = installedTranslations.some((tr) => tr.id === GREEK_PACK_ID || tr.id === 'greeksblgnt' || tr.language === 'grc');
+  const hebrewInstalled = installedTranslations.some((tr) => tr.id === HEBREW_PACK_ID || tr.id.includes('leningrad') || tr.language === 'he');
 
   const [reference, setReference] = useState(() => defaultReference?.trim() ?? '');
   const [prevDefaultReference, setPrevDefaultReference] = useState(defaultReference);

@@ -49,19 +49,23 @@ var translationAliasMap = map[string]string{
 	"king james":         "kjv",
 	"king james version": "kjv",
 
-	// Ancient Greek (Tischendorf) aliases
-	"grc":         "grc-tisch",
-	"tisch":       "grc-tisch",
-	"grc-tisch":   "grc-tisch",
-	"tischendorf": "grc-tisch",
-	"sblgnt":      "grc-tisch",
-	"greeksblgnt": "grc-tisch",
+	// Ancient Greek (SBLGNT) aliases
+	"grc":         "sblgnt",
+	"greek":       "sblgnt",
+	"kreikka":     "sblgnt",
+	"sblgnt":      "sblgnt",
+	"greeksblgnt": "sblgnt",
+	"grc-tisch":   "sblgnt",
+	"tisch":       "sblgnt",
+	"tischendorf": "sblgnt",
 
 	// Hebrew Leningrad Codex aliases
-	"heb":           "heb-leningrad",
-	"hebrew":        "heb-leningrad",
-	"heb-leningrad": "heb-leningrad",
-	"leningrad":     "heb-leningrad",
+	"heb":            "heb-leningrad",
+	"hebrew":         "heb-leningrad",
+	"heprea":         "heb-leningrad",
+	"heb-leningrad":  "heb-leningrad",
+	"heb-leningradu": "heb-leningrad",
+	"leningrad":      "heb-leningrad",
 }
 
 // normalizeTranslationKey normalizes an input string by lowercasing and trimming spaces.
