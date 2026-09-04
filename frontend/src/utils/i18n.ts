@@ -281,7 +281,8 @@ export interface Messages {
   enterVerificationCode: string;
   verifyingLabel: string;
   verifyButton: string;
-  resendCodeLabel: string;    
+  resendCodeLabel: string;
+  resendCodeCooldown: string;
   themeLightAria: string;
   themeDarkAria: string;
   packageInstalledMsg: string;
