@@ -257,7 +257,7 @@ export interface Messages {
   cellWidthSelectAria: string;
   cellTypeSelectAria: string;
   dragResizeTitle: string;
-
+  notebookDefaultTitle: string;
   resetNotebookSizes: string;
 
   previousChapterLabel: string;
@@ -281,8 +281,11 @@ export interface Messages {
   enterVerificationCode: string;
   verifyingLabel: string;
   verifyButton: string;
-  resendCodeLabel: string;
-  resendCodeCooldown: string;
+  resendCodeLabel: string;    
+  themeLightAria: string;
+  themeDarkAria: string;
+  packageInstalledMsg: string;
+  errOriginalTextNotFound: string;
 
   // Language selection
   changeLanguage: string;
@@ -290,6 +293,10 @@ export interface Messages {
 
 export const strings: Record<UILanguage, Messages> = {
   en: {
+    themeLightAria: 'Switch to light theme',
+    themeDarkAria: 'Switch to dark theme',
+    packageInstalledMsg: 'Package {id} installed successfully.',
+    errOriginalTextNotFound: 'Original text not found for this reference.',
     changeLanguage: 'Change language',
     // App / Shell
         chooseTranslation: 'Choose translation',
@@ -367,7 +374,7 @@ export const strings: Record<UILanguage, Messages> = {
     cancelLabel: 'Cancel',
     searchRecentHeader: 'Recent searches',
     searchClear: 'Clear',
-
+    notebookDefaultTitle: 'New notebook',
     searchResultsTitle: 'Search Results',
     searchNoResults: 'No verses found for this search.',
     selectBookAria: 'Select book',
@@ -543,6 +550,7 @@ export const strings: Record<UILanguage, Messages> = {
     cellTypeSelectAria: 'Select cell type',
     dragResizeTitle: 'Drag to resize cell width and height',
 
+
     // Drag and Drop
     dragHandleTitle: 'Drag to reorder cells',
     resetNotebookSizes: 'Reset sizes',
@@ -700,6 +708,7 @@ export const strings: Record<UILanguage, Messages> = {
     runLabel: 'Suorita',
     runningLabel: 'Suoritetaan...',
     cliOutputPrefix: 'CLI Output —',
+    notebookDefaultTitle: 'Uusi muistikirja',
     freezeLabel: 'Jäädytä',
     freezeDisabledTitle: 'Valitse vähintään yksi jae jäädyttääksesi',
     freezeEnabledTitle: 'Muunna valitut jakeet Markdown-soluksi',
@@ -850,6 +859,10 @@ export const strings: Record<UILanguage, Messages> = {
     verifyButton: 'Vahvista tili',
     resendCodeLabel: 'Lähetä uusi koodi',
     resendCodeCooldown: 'Voit pyytää uuden koodin {seconds}s kuluttua',
+    themeLightAria: 'Käytä vaaleaa tilaa',
+    themeDarkAria: 'Käytä pimeää tilaa',
+    packageInstalledMsg: 'Paketti {id} asennettiin onnistuneesti.',
+    errOriginalTextNotFound: 'Alkutekstiä ei löytynyt tälle viitteelle.',
   }
 
 };
