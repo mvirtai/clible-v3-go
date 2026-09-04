@@ -1,4 +1,3 @@
-import React from 'react';
 import type { InstalledTranslation } from '../../types/bible';
 import { Globe } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
@@ -23,11 +22,11 @@ export interface TranslationSelectorProps {
  * @param props - Component properties conforming to {@link TranslationSelectorProps}.
  * @returns Accessible translation picker dropdown.
  */
-export const TranslationSelector: React.FC<TranslationSelectorProps> = ({
+export function TranslationSelector({
   selectedTranslation,
   onSelectTranslation,
   translations,
-}) => {
+}: TranslationSelectorProps) {
   const { strings } = useLanguage();
 
   // If user has active translations, show only those. Otherwise show full catalogue for initial discovery.

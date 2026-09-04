@@ -3,6 +3,7 @@ package db_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/mvirtai/clible-v3-go/internal/db"
@@ -101,4 +102,72 @@ func TestUserRepository(t *testing.T) {
 			t.Errorf("expected error on duplicate email, got nil")
 		}
 	})
+
+	t.Run("EmailVerification workflow success", func(t *testing.T) {
+		userID := uuid.New().String()
+		user := &db.User{
+			ID:           userID,
+			Email:        "verify@example.com",
+			PasswordHash: "hash123",
+			IsVerified:   false,
+		}
+		if err := repo.Create(ctx, user); err != nil {
+			t.Fatalf("failed to create user: %v", err)
+		}
+
+		verID := uuid.New().String()
+		ver := &db.EmailVerification{
+			ID:        verID,
+			UserID:    userID,
+			Code:      "123456",
+			Token:     "test-token-64-bytes-long-string-for-email-verification-testing",
+			ExpiresAt: time.Now().Add(15 * time.Minute),
+		}
+
+		if err := repo.CreateVerification(ctx, ver); err != nil {
+			t.Fatalf("failed to create verification: %v", err)
+		}
+
+		// Lookup by code
+		byCode, err := repo.GetVerificationByCode(ctx, userID, "123456")
+		if err != nil {
+			t.Fatalf("failed to get verification by code: %v", err)
+		}
+		if byCode == nil || byCode.ID != verID {
+			t.Errorf("expected verification %s, got %+v", verID, byCode)
+		}
+
+		// Lookup by token
+		byToken, err := repo.GetVerificationByToken(ctx, ver.Token)
+		if err != nil {
+			t.Fatalf("failed to get verification by token: %v", err)
+		}
+		if byToken == nil || byToken.ID != verID {
+			t.Errorf("expected verification %s, got %+v", verID, byToken)
+		}
+
+		// Mark user verified
+		if err := repo.MarkUserVerified(ctx, userID, verID); err != nil {
+			t.Fatalf("failed to mark user as verified: %v", err)
+		}
+
+		// Verify user status
+		verifiedUser, err := repo.GetByID(ctx, userID)
+		if err != nil {
+			t.Fatalf("failed to fetch user after verification: %v", err)
+		}
+		if !verifiedUser.IsVerified {
+			t.Errorf("expected user to be verified, got false")
+		}
+
+		// Verify email_verifications verified_at timestamp
+		updatedVer, err := repo.GetVerificationByToken(ctx, ver.Token)
+		if err != nil {
+			t.Fatalf("failed to fetch updated verification: %v", err)
+		}
+		if updatedVer.VerifiedAt == nil {
+			t.Errorf("expected verified_at to be populated")
+		}
+	})
 }
+

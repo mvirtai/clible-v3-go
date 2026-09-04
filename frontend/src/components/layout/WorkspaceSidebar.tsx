@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import type { Scope, ScopeWorkspace, SavedSearch, SavedAnalysis } from '../../types/workspace';
 import { Folder, Plus, Trash2, Edit2, Search, BarChart3 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Properties for {@link WorkspaceSidebar}.
@@ -26,13 +28,15 @@ export interface WorkspaceSidebarProps {
  * @param props - Component properties conforming to {@link WorkspaceSidebarProps}.
  * @returns Accessible sidebar navigation component.
  */
-export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
+export function WorkspaceSidebar({
   activeScopeId,
   onScopeChanged,
   onLoadSavedSearch,
   onLoadSavedAnalysis,
   refreshTrigger
-}) => {
+}: WorkspaceSidebarProps) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { strings } = useLanguage();
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [newScopeName, setNewScopeName] = useState('');
@@ -42,10 +46,14 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   const [loadingWorkspace, setLoadingWorkspace] = useState<boolean>(false);
 
   useEffect(() => {
+    if (!user) return;
+
+    let isMounted = true;
     const fetchScopes = async () => {
       setLoadingScopes(true);
       try {
         const list = await apiService.getScopes();
+        if (!isMounted) return;
         setScopes(list || []);
         
         // Auto-select/heal activeScopeId if it belongs to another user or doesn't exist
@@ -60,33 +68,50 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           onScopeChanged(list[0].id);
         }
       } catch {
-        alert(strings.createScopeFailed);
+        if (isMounted) {
+          alert(strings.createScopeFailed);
+        }
       } finally {
-        setLoadingScopes(false);
+        if (isMounted) {
+          setLoadingScopes(false);
+        }
       }
     };
     fetchScopes();
-  }, [refreshTrigger, activeScopeId, onScopeChanged, strings]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, refreshTrigger, activeScopeId, onScopeChanged, strings]);
 
   useEffect(() => {
+    if (!user || !activeScopeId) {
+      return;
+    }
+
+    let isMounted = true;
     const fetchWorkspace = async () => {
-      if (!activeScopeId) {
-        setWorkspace(null);
-        setLoadingWorkspace(false);
-        return;
-      }
       setLoadingWorkspace(true);
       try {
         const data = await apiService.getScopeWorkspace(activeScopeId);
+        if (!isMounted) return;
         setWorkspace(data);
       } catch {
-        console.error('Failed to load workspace data');
+        if (isMounted) {
+          console.error('Failed to load workspace data');
+        }
       } finally {
-        setLoadingWorkspace(false);
+        if (isMounted) {
+          setLoadingWorkspace(false);
+        }
       }
     };
     fetchWorkspace();
-  }, [activeScopeId, refreshTrigger, strings]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, activeScopeId, refreshTrigger, strings]);
 
   const handleCreateScope = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,6 +214,35 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       alert(strings.renameAnalysisFailed);
     }
   };
+
+  // Guest mode notice
+  if (!user) {
+    return (
+      <div
+        className="rounded-3xl p-6 text-center border animate-fade-in"
+        style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+      >
+        <div
+          className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--surface-2)', color: 'var(--accent)' }}
+        >
+          <Folder size={24} className="opacity-80" />
+        </div>
+        <h3 className="font-semibold text-sm mb-1.5" style={{ color: 'var(--text)' }}>
+          {strings.workspacesTitle}
+        </h3>
+        <p className="text-xs mb-4" style={{ color: 'var(--muted)', lineHeight: '1.5' }}>
+          {strings.guestWorkspaceNotice}
+        </p>
+        <button
+          onClick={() => navigate('/register')}
+          className="w-full py-2.5 rounded-xl text-xs font-medium btn-tactile btn-accent cursor-pointer shadow-sm"
+        >
+          {strings.guestQuickSignup}
+        </button>
+      </div>
+    );
+  }
 
   // VAIHE 4: Haamukuvion renderöinti alussa
   if (loadingScopes && scopes.length === 0) {

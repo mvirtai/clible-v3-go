@@ -1,26 +1,28 @@
-import React, { Suspense, use } from 'react';
+import { Suspense, use } from 'react';
 import { CellCompareResult, type CompareResultData } from '../results/CellCompareResult';
 import { CellVersesResult, type VersesResultData } from '../results/CellVersesResult';
 import { CellCountResult, type CountResultData } from '../results/CellCountResult';
 import { fetchISLAResult } from './islaCache';
 
-const ISLASkeleton: React.FC<{ code: string }> = ({ code }) => (
-  <div
-    className="my-4 p-4 w-full max-w-full rounded-xl border border-amber-500/20 bg-amber-500/5 animate-pulse not-prose select-none whitespace-normal break-words"
-  >
-    <div className="flex items-center gap-2 mb-3">
-      <span className="text-amber-500 font-mono text-xs font-semibold">✦ ISLA</span>
-      <span className="text-neutral-500 dark:text-neutral-400 font-mono text-xs truncate">{code}</span>
+function ISLASkeleton({ code }: { code: string }) {
+  return (
+    <div
+      className="my-4 p-4 w-full max-w-full rounded-xl border border-amber-500/20 bg-amber-500/5 animate-pulse not-prose select-none whitespace-normal break-words"
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-amber-500 font-mono text-xs font-semibold">✦ ISLA</span>
+        <span className="text-neutral-500 dark:text-neutral-400 font-mono text-xs truncate">{code}</span>
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 bg-amber-500/10 rounded w-3/4"></div>
+        <div className="h-4 bg-amber-500/10 rounded w-5/6"></div>
+        <div className="h-4 bg-amber-500/10 rounded w-1/2"></div>
+      </div>
     </div>
-    <div className="space-y-2">
-      <div className="h-4 bg-amber-500/10 rounded w-3/4"></div>
-      <div className="h-4 bg-amber-500/10 rounded w-5/6"></div>
-      <div className="h-4 bg-amber-500/10 rounded w-1/2"></div>
-    </div>
-  </div>
-);
+  );
+}
 
-const ISLAContent: React.FC<{ code: string; translation: string }> = ({ code, translation }) => {
+function ISLAContent({ code, translation }: { code: string; translation: string }) {
   const result = use(fetchISLAResult(code, translation));
 
   if (result.type === 'error') {
@@ -65,7 +67,7 @@ const ISLAContent: React.FC<{ code: string; translation: string }> = ({ code, tr
       </div>
     </div>
   );
-};
+}
 
 /**
  * Properties for {@link ISLABlock}.
@@ -83,7 +85,7 @@ export interface ISLABlockProps {
  * @param props - Component properties conforming to {@link ISLABlockProps}.
  * @returns Suspended interactive ISLA query visualization.
  */
-export const ISLABlock: React.FC<ISLABlockProps> = ({ code, translation }) => {
+export function ISLABlock({ code, translation }: ISLABlockProps) {
   const cleanQuery = code.trim();
   if (!cleanQuery) return null;
 
@@ -92,5 +94,5 @@ export const ISLABlock: React.FC<ISLABlockProps> = ({ code, translation }) => {
       <ISLAContent code={cleanQuery} translation={translation} />
     </Suspense>
   );
-};
+}
 

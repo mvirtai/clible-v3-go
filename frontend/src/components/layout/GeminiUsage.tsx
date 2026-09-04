@@ -1,4 +1,3 @@
-import React from 'react';
 import { Cpu } from 'lucide-react';
 import type { GeminiUsageMetadata } from '../../types/ai';
 import { useLanguage } from '../../context/LanguageContext';
@@ -17,7 +16,7 @@ export interface GeminiUsageProps {
  * @param props - Component properties conforming to {@link GeminiUsageProps}.
  * @returns Accessible usage telemetry bar or null if no tokens were consumed.
  */
-export const GeminiUsage: React.FC<GeminiUsageProps> = ({ usage }) => {
+export function GeminiUsage({ usage }: GeminiUsageProps) {
   const { strings } = useLanguage();
   if (!usage || (usage.promptTokenCount === 0 && usage.candidatesTokenCount === 0)) {
     return null;

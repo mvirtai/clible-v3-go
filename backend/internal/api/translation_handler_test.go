@@ -197,7 +197,7 @@ func TestTranslationHandler_Endpoints(t *testing.T) {
 		}
 	})
 
-	t.Run("GET /api/translations returns 401 when unauthorized", func(t *testing.T) {
+	t.Run("GET /api/translations returns 200 with global translations in guest mode", func(t *testing.T) {
 		conn, _ := db.InitializeDB(":memory:")
 		defer func() { _ = conn.Close() }()
 		repo := db.NewTranslationRepository(conn)
@@ -207,8 +207,8 @@ func TestTranslationHandler_Endpoints(t *testing.T) {
 		rec := httptest.NewRecorder()
 		handler.GetTranslations(rec, req)
 
-		if rec.Code != http.StatusUnauthorized {
-			t.Errorf("expected 401, got %d", rec.Code)
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200 OK for guest access, got %d", rec.Code)
 		}
 	})
 

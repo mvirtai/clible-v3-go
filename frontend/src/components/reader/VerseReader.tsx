@@ -55,14 +55,14 @@ const parseCurrentChapter = (reference: string): { bookId: string, chapter: numb
  * @param props - Component properties conforming to {@link VerseReaderProps}.
  * @returns Scripture reading pane.
  */
-export const VerseReader: React.FC<VerseReaderProps> = ({
+export function VerseReader({
   translation,
   activeReference,
   activeScopeId,
   onWorkspaceUpdated,
   loadedSavedInsight,
   loadedSavedDeepDive
-}) => {
+}: VerseReaderProps) {
   const [reference, setReference] = useState(activeReference || '');
   const [prevActiveReference, setPrevActiveReference] = useState('');
   const [data, setData] = useState<BibleResponse | null>(null);

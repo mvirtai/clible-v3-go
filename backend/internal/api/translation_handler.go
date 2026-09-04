@@ -20,18 +20,30 @@ func NewTranslationHandler(repo *db.TranslationRepository) *TranslationHandler {
 }
 
 // GetTranslations handles GET /api/translations.
-// Returns all global translations annotated with the current user's installed status.
+// Returns all global translations annotated with the current user's installed status,
+// or marked all as installed if unauthenticated (guest mode).
 func (h *TranslationHandler) GetTranslations(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	ctx := r.Context()
 
-	userID, ok := middleware.GetUserID(r.Context())
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		// Guest mode: all global translations are accessible and marked as installed
+		translations, err := h.translationRepo.GetAllGlobal(ctx)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to gather translations catalog: " + err.Error()})
+			return
+		}
+		for i := range translations {
+			translations[i].Installed = true
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(translations)
 		return
 	}
 
-	translations, err := h.translationRepo.GetAllWithInstalled(r.Context(), userID)
+	translations, err := h.translationRepo.GetAllWithInstalled(ctx, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to gather translations catalog: " + err.Error()})

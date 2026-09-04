@@ -21,7 +21,7 @@ func setupAuthService(t *testing.T) *services.AuthService {
 	t.Cleanup(func() { _ = conn.Close() })
 
 	userRepo := db.NewUserRepository(conn)
-	return services.NewAuthService(userRepo, "test-jwt-secret-key-32-chars-long!")
+	return services.NewAuthService(userRepo, "test-jwt-secret-key-32-chars-long!", nil, "")
 }
 
 func TestRequireAuth(t *testing.T) {

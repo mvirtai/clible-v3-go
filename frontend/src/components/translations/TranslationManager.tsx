@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { apiService } from '../../services/api';
 import { CheckCircle, PlusCircle, Loader2, MinusCircle } from 'lucide-react';
 import type { InstalledTranslation } from '../../types/bible';
@@ -20,7 +20,7 @@ export interface TranslationManagerProps {
  * @param props - Component properties conforming to {@link TranslationManagerProps}.
  * @returns Translation catalogue management modal/card.
  */
-export const TranslationManager: React.FC<TranslationManagerProps> = ({ translations, onTranslationChanged }) => {
+export function TranslationManager({ translations, onTranslationChanged }: TranslationManagerProps) {
   const { strings } = useLanguage();
   const [loading, setLoading] = useState<string | null>(null); // stores the translationId being processed
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);

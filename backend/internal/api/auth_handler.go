@@ -29,6 +29,18 @@ func NewAuthHandler(authService *services.AuthService, userRepo *db.UserReposito
 type authRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Lang     string `json:"lang"`
+}
+
+type verifyEmailRequest struct {
+	Email string `json:"email"`
+	Code  string `json:"code"`
+	Token string `json:"token"`
+}
+
+type resendRequest struct {
+	Email string `json:"email"`
+	Lang  string `json:"lang"`
 }
 
 func writeJSONError(w http.ResponseWriter, status int, msg string) {
@@ -65,24 +77,23 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.authService.Register(r.Context(), req.Email, req.Password)
+	lang := req.Lang
+	if lang == "" {
+		lang = "fi"
+	}
+
+	user, err := h.authService.Register(r.Context(), req.Email, req.Password, lang)
 	if err != nil {
 		slog.Warn("Registration failed", "email", req.Email, "error", err)
 		writeJSONError(w, http.StatusBadRequest, "registration failed")
 		return
 	}
 
-	// Kirjataan käyttäjä suoraan sisään rekisteröitymisen jälkeen
-	_, token, err := h.authService.Login(r.Context(), req.Email, req.Password)
-	if err != nil {
-		slog.Error("Registration succeeded but login failed", "email", req.Email, "error", err)
-		writeJSONError(w, http.StatusInternalServerError, "registration succeeded but login failed")
-		return
-	}
-
-	h.setJWTCookie(w, token)
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(user)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "verification_email_sent",
+		"email":   user.Email,
+	})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -100,6 +111,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, token, err := h.authService.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
+		if errors.Is(err, services.ErrEmailNotVerified) {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": "email_not_verified",
+				"email": req.Email,
+			})
+			return
+		}
 		slog.Warn("Login failed", "email", req.Email, "error", err)
 		writeJSONError(w, http.StatusUnauthorized, "invalid email or password")
 		return
@@ -107,6 +126,73 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	h.setJWTCookie(w, token)
 	_ = json.NewEncoder(w).Encode(user)
+}
+
+func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var req verifyEmailRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	user, token, err := h.authService.VerifyEmail(r.Context(), req.Email, req.Code, req.Token)
+	if err != nil {
+		slog.Warn("Email verification failed", "email", req.Email, "error", err)
+		if errors.Is(err, services.ErrVerificationExpired) {
+			writeJSONError(w, http.StatusBadRequest, "verification_code_expired")
+			return
+		}
+		writeJSONError(w, http.StatusBadRequest, "invalid_verification_code")
+		return
+	}
+
+	h.setJWTCookie(w, token)
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"user":    user,
+		"message": "email_verified",
+	})
+}
+
+func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var req resendRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Email == "" {
+		writeJSONError(w, http.StatusBadRequest, "email is required")
+		return
+	}
+
+	lang := req.Lang
+	if lang == "" {
+		lang = "fi"
+	}
+
+	if err := h.authService.ResendVerification(r.Context(), req.Email, lang); err != nil {
+		slog.Warn("Resend verification failed", "email", req.Email, "error", err)
+		writeJSONError(w, http.StatusBadRequest, "failed_to_resend_verification")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "verification_code_resent",
+	})
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {

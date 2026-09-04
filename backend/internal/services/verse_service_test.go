@@ -239,6 +239,7 @@ func TestVerseService_SearchVerses_InvalidRegex(t *testing.T) {
 
 	verseRepo := db.NewVerseRepository(dbConn)
 	translationRepo := db.NewTranslationRepository(dbConn)
+	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format, is_global) VALUES ('web', 'World English Bible', 'en', 'text', TRUE)`)
 	svc := NewVerseService(verseRepo, translationRepo)
 
 	_, err = svc.SearchVerses(context.Background(), "[invalid", true, "web", "", "")
@@ -247,5 +248,62 @@ func TestVerseService_SearchVerses_InvalidRegex(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "invalid regex pattern") {
 		t.Errorf("expected regex error message, got: %v", err)
+	}
+}
+
+func TestVerseService_GuestMode_GlobalTranslation(t *testing.T) {
+	dbConn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize connection: %v", err)
+	}
+	defer func() { _ = dbConn.Close() }()
+
+	// Seed global translation fin-1776 and book 1JN
+	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format, is_global) VALUES ('fin-1776', 'Biblia 1776', 'fi', 'text', TRUE)`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('1JN', '1. Johanneksen kirje', 'NT', 62, 5)`)
+
+	verseRepo := db.NewVerseRepository(dbConn)
+	translationRepo := db.NewTranslationRepository(dbConn)
+	svc := NewVerseService(verseRepo, translationRepo)
+
+	ctx := context.Background() // unauthenticated (no user in ctx)
+
+	mockVerse := models.Verse{
+		ID:            "fin-1776:1JN:1:1",
+		TranslationID: "fin-1776",
+		BookID:        "1JN",
+		Chapter:       1,
+		Verse:         1,
+		Text:          "Mitä alusta oli, minkä me kuulimme, minkä me silmillämme näimme...",
+	}
+	if err := verseRepo.BulkInsert(ctx, []models.Verse{mockVerse}); err != nil {
+		t.Fatalf("failed to seed test verses: %v", err)
+	}
+
+	// 1. Unauthenticated guest should successfully fetch verses with fin-1776
+	verses, err := svc.GetVerses(ctx, "1JOH 1:1", "fin-1776")
+	if err != nil {
+		t.Fatalf("unexpected error for guest fetching global translation: %v", err)
+	}
+	if len(verses) != 1 {
+		t.Fatalf("expected 1 verse, got %d", len(verses))
+	}
+	if verses[0].Text != mockVerse.Text {
+		t.Errorf("expected verse text %q, got %q", mockVerse.Text, verses[0].Text)
+	}
+
+	// 2. Unauthenticated guest should successfully search verses with fin-1776
+	searchResults, err := svc.SearchVerses(ctx, "kuulimme", false, "fin-1776", "", "")
+	if err != nil {
+		t.Fatalf("unexpected error for guest searching global translation: %v", err)
+	}
+	if len(searchResults) != 1 {
+		t.Fatalf("expected 1 search result, got %d", len(searchResults))
+	}
+
+	// 3. Inaccessible/non-existent translation should still be rejected
+	_, err = svc.GetVerses(ctx, "1JOH 1:1", "nonexistent-translation")
+	if err == nil {
+		t.Fatal("expected error for non-existent translation, got nil")
 	}
 }

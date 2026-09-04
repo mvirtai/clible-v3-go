@@ -54,6 +54,37 @@ func (r *TranslationRepository) GetAllWithInstalled(ctx context.Context, userID 
 	return translations, nil
 }
 
+// GetAllGlobal returns all global preset translations ordered by installed_at.
+func (r *TranslationRepository) GetAllGlobal(ctx context.Context) ([]models.Translation, error) {
+	query := `
+		SELECT t.id, t.name, t.language, t.format, t.source_url, t.installed_at, t.is_global
+		FROM translations t
+		WHERE t.is_global = TRUE
+		ORDER BY t.installed_at
+	`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query global translations: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	translations := []models.Translation{}
+	for rows.Next() {
+		var t models.Translation
+		err := rows.Scan(&t.ID, &t.Name, &t.Language, &t.Format, &t.SourceURL, &t.InstalledAt, &t.IsGlobal)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan translation row: %w", err)
+		}
+		translations = append(translations, t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during global translation row iteration: %w", err)
+	}
+
+	return translations, nil
+}
+
 // GetByUser returns translations that the specified user has actively linked/installed.
 // Used internally for permission checks in verse lookups.
 func (r *TranslationRepository) GetByUser(ctx context.Context, userID string) ([]models.Translation, error) {
@@ -104,6 +135,20 @@ func (r *TranslationRepository) IsAccessible(ctx context.Context, userID, transl
 		return false, fmt.Errorf("failed to check translation accessibility: %w", err)
 	}
 	return exists, nil
+}
+
+// IsGlobal checks if the given translation exists and is marked as a global preset.
+func (r *TranslationRepository) IsGlobal(ctx context.Context, translationID string) (bool, error) {
+	var isGlobal bool
+	query := "SELECT is_global FROM translations WHERE id = $1"
+	err := r.db.QueryRowContext(ctx, query, translationID).Scan(&isGlobal)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to check if translation is global: %w", err)
+	}
+	return isGlobal, nil
 }
 
 // LinkUser activates a global translation for a user by inserting into user_translations.

@@ -30,13 +30,13 @@ export interface MarkdownCellProps {
  * @param props - Component properties conforming to {@link MarkdownCellProps}.
  * @returns Interactive Markdown cell container.
  */
-export const MarkdownCell: React.FC<MarkdownCellProps> = ({
+export function MarkdownCell({
   cell,
   onChange,
   isEditable = true,
   onSelectVerse,
   translation = 'WEB',
-}) => {
+}: MarkdownCellProps) {
   const [isEditing, setIsEditing] = useState(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

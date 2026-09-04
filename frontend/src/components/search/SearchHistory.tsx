@@ -32,7 +32,7 @@ function getHistoryPromise(trigger: boolean, force = false): Promise<SearchHisto
  * @param props - Component properties conforming to {@link SearchHistoryProps}.
  * @returns Search history feed card.
  */
-export const SearchHistory: React.FC<SearchHistoryProps> = ({ triggerRefresh }) => {
+export function SearchHistory({ triggerRefresh }: SearchHistoryProps) {
   const { strings } = useLanguage();
   const [refreshToken, setRefreshToken] = useState(0);
 

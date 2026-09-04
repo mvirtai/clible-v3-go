@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, use, useState, useEffect, type ReactNode } from 'react';
 import { apiService } from '../services/api';
 
 /**
@@ -12,30 +12,35 @@ export interface User {
 }
 
 /**
- * Authentication context value defining session state and auth mutations.
+ * Authentication context value defining session state, guest status, and auth mutations.
  */
 export interface AuthContextType {
-  /** Currently authenticated user or null if unauthenticated. */
+  /** Currently authenticated user or null if in guest mode / unauthenticated. */
   user: User | null;
+  /** True when browsing as an anonymous guest explorer. */
+  isGuest: boolean;
   /** True while the initial session check is in flight. */
   loading: boolean;
   /** Authenticates user with email and password credentials. */
   login: (email: string, password: string) => Promise<void>;
   /** Registers a new user account with email and password credentials. */
   register: (email: string, password: string) => Promise<void>;
-  /** Terminates the active user session. */
+  /** Terminates the active user session and reverts to guest mode. */
   logout: () => Promise<void>;
+  /** Activates guest exploration mode without requiring authentication. */
+  enterGuestMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
  * Provides user authentication state and session handlers across the React component tree.
+ * Built with React 19.2 idioms and optimized for React Compiler.
  *
  * @param props - React provider properties including child nodes.
  * @returns Context provider element wrapping child components.
  */
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -75,28 +80,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await apiService.logout();
-    setUser(null);
+    try {
+      await apiService.logout();
+    } finally {
+      setUser(null);
+    }
   };
 
+  const enterGuestMode = () => {
+    setUser(null);
+    setLoading(false);
+  };
+
+  const isGuest = user === null;
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext value={{ user, isGuest, loading, login, register, logout, enterGuestMode }}>
       {children}
-    </AuthContext.Provider>
+    </AuthContext>
   );
 };
 
 /**
- * Custom hook to access authentication context state and session methods.
+ * Custom hook to access authentication context state and session methods using React 19 use().
  *
  * @throws {Error} If invoked outside of an `<AuthProvider>`.
  * @returns The active authentication context.
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
+  const context = use(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
+

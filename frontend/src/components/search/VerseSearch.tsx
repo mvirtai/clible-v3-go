@@ -37,14 +37,14 @@ export interface VerseSearchProps {
  * @param props - Component properties conforming to {@link VerseSearchProps}.
  * @returns Scripture search interface.
  */
-export const VerseSearch: React.FC<VerseSearchProps> = ({
+export function VerseSearch({
   translation,
   onSelectVerse,
   activeScopeId,
   onWorkspaceUpdated,
   loadedSavedResults,
   onClearLoadedResults
-}) => {
+}: VerseSearchProps) {
   const [query, setQuery] = useState('');
   const [regex, setRegex] = useState(false);
   const [results, setResults] = useState<SearchVerse[]>([]);

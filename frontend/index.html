@@ -1,16 +1,74 @@
 <!doctype html>
-<html lang="en">
+<html lang="fi">
 
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clible Workspace - Bible Translation and Analysis Tools</title>
-  <meta name="description" content="Clible Workspace provides advanced tools for Bible translation, workspace management, and scriptural analysis.">
-   <!-- Google Fonts: Lora (Raamattuteksti) & JetBrains Mono (DSL & Monospace) -->
+
+  <!-- Primary SEO Meta Tags -->
+  <title>Clible Workspace – Raamatun tutkimus- ja analyysityökalut</title>
+  <meta name="title" content="Clible Workspace – Raamatun tutkimus- ja analyysityökalut" />
+  <meta name="description" content="Clible on nopea ja moderni Raamatun tutkimusalusta: monikäännösvertailu, alkukielten sanakirjat (heprea/kreikka), ISLA DSL -pikahaku ja tekoälyavusteiset syväanalyysit." />
+  <meta name="keywords" content="Clible, Raamattu, raamatuntutkimus, bible study tools, heprea, kreikka, eksegetiikka, käännösvertailu, ISLA DSL, raamattuhaku, teologia" />
+  <meta name="author" content="Clible Project" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://clible-v3-421720438581.europe-north1.run.app/" />
+
+  <!-- Theme and Web App Config -->
+  <meta name="theme-color" content="#1a1c23" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="application-name" content="Clible" />
+  <meta name="apple-mobile-web-app-title" content="Clible" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <!-- Open Graph / Facebook / WhatsApp -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://clible-v3-421720438581.europe-north1.run.app/" />
+  <meta property="og:site_name" content="Clible Workspace" />
+  <meta property="og:title" content="Clible Workspace – Raamatun tutkimus- ja analyysityökalut" />
+  <meta property="og:description" content="Tutki tekstejä useilla käännöksillä rinnakkain, suorita lause- ja sanastoanalyysejä sekä luo tutkimusmuistiinpanoja." />
+  <meta property="og:image" content="/favicon.svg" />
+  <meta property="og:locale" content="fi_FI" />
+  <meta property="og:locale:alternate" content="en_US" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Clible Workspace – Raamatun tutkimus- ja analyysityökalut" />
+  <meta name="twitter:description" content="Nopea ja monipuolinen Raamatun eksegetiikka- ja tutkimusalusta alkukielityökaluilla ja ISLA DSL:llä." />
+  <meta name="twitter:image" content="/favicon.svg" />
+
+  <!-- Google Fonts: Lora (Raamattuteksti) & JetBrains Mono (DSL & Monospace) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Clible Workspace",
+    "url": "https://clible-v3-421720438581.europe-north1.run.app/",
+    "description": "Moderni ja avoin Raamatun tutkimus- ja analyysityökalu monikäännösvertailulla, alkukielianalyysillä ja ISLA DSL -skripteillä.",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "All",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    },
+    "featureList": [
+      "Monikäännösvertailu rinnakkain",
+      "Alkukielten sanakirjat ja kielioppianalyysi (Hebrea & Kreikka)",
+      "ISLA DSL -raamattukyselykieli ja pikakomennot",
+      "Interaktiiviset tutkimusmuistiinpanot ja työtilat",
+      "Vierastila ilman pakollista rekisteröitymistä"
+    ]
+  }
+  </script>
+
   <script>
     (function () {
       const storedTheme = localStorage.getItem('theme');
@@ -24,6 +82,18 @@
 </head>
 
 <body>
+  <noscript>
+    <div style="font-family: sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.6;">
+      <h1>Clible Workspace – Raamatun tutkimusalusta</h1>
+      <p>Clible tarjoaa modernit työkalut Raamatun tekstien tutkimiseen, rinnakkaisvertailuun, alkukielten analysointiin ja muistiinpanojen tekemiseen.</p>
+      <ul>
+        <li><a href="/vierailija-yleinen">Jatka vierailijana (Guest Mode)</a></li>
+        <li><a href="/login">Kirjaudu sisään</a></li>
+        <li><a href="/register">Luo maksuton käyttäjätili</a></li>
+      </ul>
+      <p>Parhaan käyttökokemuksen saavuttamiseksi ota JavaScript käyttöön selaimessasi.</p>
+    </div>
+  </noscript>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

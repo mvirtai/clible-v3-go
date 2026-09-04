@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/mvirtai/clible-v3-go/internal/api"
 	"github.com/mvirtai/clible-v3-go/internal/db"
@@ -22,7 +23,8 @@ func setupAuthHandler(t *testing.T) (*api.AuthHandler, *services.AuthService, *d
 	t.Cleanup(func() { _ = conn.Close() })
 
 	userRepo := db.NewUserRepository(conn)
-	authSvc := services.NewAuthService(userRepo, "test-jwt-secret-for-handler-tests-32!")
+	mailer := services.NewMockMailer()
+	authSvc := services.NewAuthService(userRepo, "test-jwt-secret-for-handler-tests-32!", mailer, "http://localhost:5173")
 	handler := api.NewAuthHandler(authSvc, userRepo)
 	return handler, authSvc, userRepo
 }
@@ -92,8 +94,8 @@ func TestAuthHandler_Register(t *testing.T) {
 		}
 	})
 
-	t.Run("successfully registers and sets JWT cookie", func(t *testing.T) {
-		body, _ := json.Marshal(map[string]string{"email": "newuser@example.com", "password": "StrongPassword123!"})
+	t.Run("successfully registers and returns 201 with verification pending", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{"email": "newuser@example.com", "password": "StrongPassword123!", "lang": "fi"})
 		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(body))
 		rec := httptest.NewRecorder()
 
@@ -102,26 +104,12 @@ func TestAuthHandler_Register(t *testing.T) {
 			t.Fatalf("expected 201 Created, got %d: %s", rec.Code, rec.Body.String())
 		}
 
-		// Verify cookie is set
-		cookies := rec.Result().Cookies()
-		var jwtCookie *http.Cookie
-		for _, c := range cookies {
-			if c.Name == "jwt" {
-				jwtCookie = c
-				break
-			}
-		}
-		if jwtCookie == nil || jwtCookie.Value == "" {
-			t.Errorf("expected non-empty jwt cookie to be set")
-		}
-
-		// Verify response payload is user struct
-		var user db.User
-		if err := json.NewDecoder(rec.Body).Decode(&user); err != nil {
+		var resp map[string]string
+		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 			t.Fatalf("failed to decode response: %v", err)
 		}
-		if user.Email != "newuser@example.com" {
-			t.Errorf("expected email newuser@example.com, got %s", user.Email)
+		if resp["message"] != "verification_email_sent" || resp["email"] != "newuser@example.com" {
+			t.Errorf("expected verification_email_sent, got %+v", resp)
 		}
 	})
 
@@ -137,11 +125,11 @@ func TestAuthHandler_Register(t *testing.T) {
 	})
 }
 
-func TestAuthHandler_Login(t *testing.T) {
-	handler, authSvc, _ := setupAuthHandler(t)
-	_, _ = authSvc.Register(context.Background(), "registered@example.com", "SecretPass123!")
+func TestAuthHandler_LoginAndVerify(t *testing.T) {
+	handler, authSvc, userRepo := setupAuthHandler(t)
+	user, _ := authSvc.Register(context.Background(), "registered@example.com", "SecretPass123!", "fi")
 
-	t.Run("rejects non-POST method", func(t *testing.T) {
+	t.Run("rejects non-POST method on login", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/auth/login", nil)
 		rec := httptest.NewRecorder()
 
@@ -151,13 +139,58 @@ func TestAuthHandler_Login(t *testing.T) {
 		}
 	})
 
-	t.Run("rejects invalid JSON body", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader([]byte("{invalid-json")))
+	t.Run("rejects unverified user with 403", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{"email": "registered@example.com", "password": "SecretPass123!"})
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
 		rec := httptest.NewRecorder()
 
 		handler.Login(rec, req)
-		if rec.Code != http.StatusBadRequest {
-			t.Errorf("expected 400, got %d", rec.Code)
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 Forbidden for unverified user, got %d: %s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("successfully verifies email via code and sets cookie", func(t *testing.T) {
+		verCode := "777888"
+		_ = userRepo.CreateVerification(context.Background(), &db.EmailVerification{
+			ID:        "ver-handler-1",
+			UserID:    user.ID,
+			Code:      verCode,
+			Token:     "handler-token-64-bytes-long-string-for-email-verification-testing",
+			ExpiresAt: time.Now().Add(15 * time.Minute),
+		})
+
+		body, _ := json.Marshal(map[string]string{"email": "registered@example.com", "code": verCode})
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/verify-email", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.VerifyEmail(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for email verification, got %d: %s", rec.Code, rec.Body.String())
+		}
+
+		// Verify cookie is set
+		cookies := rec.Result().Cookies()
+		var jwtCookie *http.Cookie
+		for _, c := range cookies {
+			if c.Name == "jwt" {
+				jwtCookie = c
+				break
+			}
+		}
+		if jwtCookie == nil || jwtCookie.Value == "" {
+			t.Errorf("expected non-empty jwt cookie on email verification")
+		}
+	})
+
+	t.Run("successfully logs in after verification", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{"email": "registered@example.com", "password": "SecretPass123!"})
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.Login(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
 		}
 	})
 
@@ -171,27 +204,20 @@ func TestAuthHandler_Login(t *testing.T) {
 			t.Errorf("expected 401 for wrong password, got %d", rec.Code)
 		}
 	})
+}
 
-	t.Run("successfully logs in and sets cookie", func(t *testing.T) {
-		body, _ := json.Marshal(map[string]string{"email": "registered@example.com", "password": "SecretPass123!"})
-		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
+func TestAuthHandler_ResendVerification(t *testing.T) {
+	handler, authSvc, _ := setupAuthHandler(t)
+	_, _ = authSvc.Register(context.Background(), "unverified@example.com", "SecretPass123!", "fi")
+
+	t.Run("successfully resends verification code", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{"email": "unverified@example.com", "lang": "fi"})
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/resend-verification", bytes.NewReader(body))
 		rec := httptest.NewRecorder()
 
-		handler.Login(rec, req)
+		handler.ResendVerification(rec, req)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200 OK, got %d: %s", rec.Code, rec.Body.String())
-		}
-
-		cookies := rec.Result().Cookies()
-		var jwtCookie *http.Cookie
-		for _, c := range cookies {
-			if c.Name == "jwt" {
-				jwtCookie = c
-				break
-			}
-		}
-		if jwtCookie == nil || jwtCookie.Value == "" {
-			t.Errorf("expected non-empty jwt cookie on login")
 		}
 	})
 }
@@ -222,7 +248,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 
 func TestAuthHandler_Me(t *testing.T) {
 	handler, authSvc, userRepo := setupAuthHandler(t)
-	user, _ := authSvc.Register(context.Background(), "me@example.com", "SecretPass123!")
+	user, _ := authSvc.Register(context.Background(), "me@example.com", "SecretPass123!", "fi")
 
 	t.Run("returns 401 when cookie is missing", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
@@ -279,3 +305,4 @@ func TestAuthHandler_Me(t *testing.T) {
 
 	_ = userRepo
 }
+

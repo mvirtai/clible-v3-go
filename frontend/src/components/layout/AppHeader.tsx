@@ -1,4 +1,5 @@
-import { Terminal, Settings, Sun, Moon, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Terminal, Settings, Sun, Moon, LogOut, LogIn, UserPlus } from 'lucide-react';
 import { LanguageSwitcher } from '../LanguageSwitcher/LanguageSwitcher';
 import { TranslationSelector } from '../translations/TranslationSelector';
 import { useLanguage } from '../../context/LanguageContext';
@@ -21,7 +22,7 @@ export interface AppHeaderProps {
 
 /**
  * Top sticky header bar containing branding, theme toggle, translation selector,
- * user authentication info, and settings manager buttons.
+ * user authentication info, guest mode indicator, and settings manager buttons.
  */
 export function AppHeader({
   theme,
@@ -35,6 +36,7 @@ export function AppHeader({
   onSelectTranslation,
 }: AppHeaderProps) {
   const { strings } = useLanguage();
+  const navigate = useNavigate();
 
   return (
     <header
@@ -80,25 +82,49 @@ export function AppHeader({
 
         {/* User & Global Controls */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink">
-          {user && (
-            <span className="text-xs max-md:hidden" style={{ color: 'var(--muted)' }}>
-              {user.email}
-            </span>
+          {user ? (
+            <>
+              <span className="text-xs max-md:hidden" style={{ color: 'var(--muted)' }}>
+                {user.email}
+              </span>
+              <button
+                onClick={onSignOut}
+                aria-label={strings.signOutTitle}
+                className="flex items-center gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)] shrink-0 cursor-pointer"
+                style={{
+                  border: '1px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--muted)',
+                }}
+              >
+                <LogOut size={14} />
+                <span className="max-md:hidden">{strings.signOutTitle}</span>
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium btn-tactile hover:text-[var(--text)] cursor-pointer"
+                style={{ color: 'var(--muted)' }}
+              >
+                <LogIn size={13} />
+                <span>{strings.loginButton}</span>
+              </button>
+              <button
+                onClick={() => navigate('/register')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                style={{
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface-2)',
+                  color: 'var(--text)',
+                }}
+              >
+                <UserPlus size={13} />
+                <span>{strings.guestQuickSignup}</span>
+              </button>
+            </div>
           )}
-
-          <button
-            onClick={onSignOut}
-            aria-label={strings.signOutTitle}
-            className="flex items-center gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)] shrink-0 cursor-pointer"
-            style={{
-              border: '1px solid var(--border)',
-              background: 'transparent',
-              color: 'var(--muted)',
-            }}
-          >
-            <LogOut size={14} />
-            <span className="max-md:hidden">{strings.signOutTitle}</span>
-          </button>
 
           <button
             onClick={onToggleManager}

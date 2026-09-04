@@ -258,7 +258,7 @@ export interface Messages {
   cellTypeSelectAria: string;
   dragResizeTitle: string;
 
-  resetNotebookSizes?: string;
+  resetNotebookSizes: string;
 
   previousChapterLabel: string;
   nextChapterLabel: string;
@@ -267,6 +267,22 @@ export interface Messages {
   dragHandleTitle: string;
   compareSideBySideTitle: string;
   documentationLabel: string;
+
+  // Guest Mode & Email Verification
+  workspacesTitle: string;
+  guestMode: string;
+  guestQuickSignup: string;
+  continueAsGuest: string;
+  guestWorkspaceNotice: string;
+  guestAiNotice: string;
+  verifyEmailTitle: string;
+  verifyEmailSubtitle: string;
+  verificationSuccess: string;
+  enterVerificationCode: string;
+  verifyingLabel: string;
+  verifyButton: string;
+  resendCodeLabel: string;
+  resendCodeCooldown: string;
 
   // Language selection
   changeLanguage: string;
@@ -504,7 +520,7 @@ export const strings: Record<UILanguage, Messages> = {
     passwordsDoNotMatch: 'Passwords do not match.',
     termsNotice: 'By creating an account, you agree to the',
     termsAndPrivacy: 'Terms of Service & Privacy Policy',
-    registerFastBadge: 'Create a free account in 10 seconds',
+    registerFastBadge: 'Create a free account',
     cardEmptyNote: 'Empty note...',
     cardClickToAddCells: 'Click to open notebook and add cells',
     cardEmptyBadge: 'Empty',
@@ -532,6 +548,22 @@ export const strings: Record<UILanguage, Messages> = {
     resetNotebookSizes: 'Reset sizes',
     compareSideBySideTitle: 'Side-by-side comparison for',
     documentationLabel: 'Docs',
+
+    // Guest Mode & Email Verification
+    workspacesTitle: 'Workspaces',
+    guestMode: 'Guest Mode',
+    guestQuickSignup: 'Create account',
+    continueAsGuest: 'Continue as guest',
+    guestWorkspaceNotice: 'Cloud synchronization for workspaces and notebooks requires a free account.',
+    guestAiNotice: 'Gemini AI deep dives require a free account.',
+    verifyEmailTitle: 'Verify your email address',
+    verifyEmailSubtitle: 'We sent a 6-digit verification code to',
+    verificationSuccess: 'Email verified successfully!',
+    enterVerificationCode: 'Enter 6-digit code',
+    verifyingLabel: 'Verifying...',
+    verifyButton: 'Verify Account',
+    resendCodeLabel: 'Resend new code',
+    resendCodeCooldown: 'You can request a new code in {seconds}s',
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -772,7 +804,7 @@ export const strings: Record<UILanguage, Messages> = {
     passwordsDoNotMatch: 'Salasanat eivät täsmää.',
     termsNotice: 'Luomalla tilin hyväksyt',
     termsAndPrivacy: 'käyttöehdot ja tietosuojaselosteen',
-    registerFastBadge: 'Luo ilmainen tili 10 sekunnissa',
+    registerFastBadge: 'Luo ilmainen tili',
     cardEmptyNote: 'Tyhjä muistiinpano...',
     cardClickToAddCells: 'Klikkaa avataksesi muistikirjan ja lisätäksesi soluja',
     cardEmptyBadge: 'Tyhjä',
@@ -802,6 +834,22 @@ export const strings: Record<UILanguage, Messages> = {
     resetNotebookSizes: 'Palauta koot',
     compareSideBySideTitle: 'Rinnakkaisvertailu viitteelle',
     documentationLabel: 'Dokumentaatio',
+
+    // Guest Mode & Email Verification
+    workspacesTitle: 'Työtilat',
+    guestMode: 'Vierastila',
+    guestQuickSignup: 'Luo tili',
+    continueAsGuest: 'Jatka vierailijana',
+    guestWorkspaceNotice: 'Työtilojen ja muistiinpanojen pilvitallennus vaatii maksuttoman käyttäjätilin.',
+    guestAiNotice: 'Gemini AI -syventävät analyysit vaativat maksuttoman tilin.',
+    verifyEmailTitle: 'Vahvista sähköpostiosoitteesi',
+    verifyEmailSubtitle: 'Lähetimme 6-numeroisen vahvistuskoodin osoitteeseen',
+    verificationSuccess: 'Sähköposti vahvistettu onnistuneesti!',
+    enterVerificationCode: 'Syötä 6-numeroinen koodi',
+    verifyingLabel: 'Vahvistetaan...',
+    verifyButton: 'Vahvista tili',
+    resendCodeLabel: 'Lähetä uusi koodi',
+    resendCodeCooldown: 'Voit pyytää uuden koodin {seconds}s kuluttua',
   }
 
 };

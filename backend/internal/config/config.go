@@ -16,6 +16,13 @@ type Config struct {
 	GeminiModelTone     string
 	GeminiModelOriginal string
 	GeminiModelSearch   string
+	ResendAPIKey        string
+	SMTPHost            string
+	SMTPPort            string
+	SMTPUser            string
+	SMTPPass            string
+	SMTPFrom            string
+	AppBaseURL          string
 }
 
 func cleanEnv(val string) string {
@@ -73,6 +80,11 @@ func Load() *Config {
 		env = "development"
 	}
 
+	appBaseURL := cleanEnv(os.Getenv("APP_BASE_URL"))
+	if appBaseURL == "" {
+		appBaseURL = "http://localhost:5173"
+	}
+
 	return &Config{
 		Port:                port,
 		DatabaseURL:         databaseURL,
@@ -83,5 +95,12 @@ func Load() *Config {
 		GeminiModelTone:     modelTone,
 		GeminiModelOriginal: modelOriginal,
 		GeminiModelSearch:   modelSearch,
+		ResendAPIKey:        cleanEnv(os.Getenv("RESEND_API_KEY")),
+		SMTPHost:            cleanEnv(os.Getenv("SMTP_HOST")),
+		SMTPPort:            cleanEnv(os.Getenv("SMTP_PORT")),
+		SMTPUser:            cleanEnv(os.Getenv("SMTP_USER")),
+		SMTPPass:            cleanEnv(os.Getenv("SMTP_PASS")),
+		SMTPFrom:            cleanEnv(os.Getenv("SMTP_FROM")),
+		AppBaseURL:          appBaseURL,
 	}
 }
