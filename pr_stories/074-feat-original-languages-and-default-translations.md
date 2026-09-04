@@ -42,16 +42,16 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    A[Raw Input / Query String] --> B{ResolveTranslationID}
-    B -->|'heb', 'heprea', 'hebrew', 'heb-leningradu'| C[heb-leningrad]
-    B -->|'grc', 'greek', 'kreikka', 'grc-tisch', 'sblgnt'| D[sblgnt]
-    B -->|'kr92', '1992', 'kirkkoraamattu 1992'| E[fin-1992]
-    B -->|'kr38', '1938', 'biblia 33/38'| F[fin-biblia-33-38]
+    A["Raw Input / Query String"] --> B{"ResolveTranslationID"}
+    B -->|heb / heprea / heb-leningradu| C["heb-leningrad"]
+    B -->|grc / greek / kreikka / sblgnt| D["sblgnt"]
+    B -->|kr92 / 1992 / kirkkoraamattu 1992| E["fin-1992"]
+    B -->|kr38 / 1938 / biblia 33/38| F["fin-biblia-33-38"]
 
     subgraph Consolidation ["Database Consolidation (Migration 015)"]
-        G["heb-leningradu: 21,703 verses"] -->|Migrate verses & Delete old ID| C
+        G["heb-leningradu: 21,703 verses"] -->|Migrate verses and delete old ID| C
         H["Empty 0-verse heb-leningrad stub"] -->|Pruned| C
-        I["sblgnt: 7,943 verses"] -->|Renamed to 'Kreikka (SBLGNT)'| D
+        I["sblgnt: 7,943 verses"] -->|Renamed to Kreikka SBLGNT| D
     end
 ```
 
@@ -128,6 +128,9 @@ ON CONFLICT (user_id, translation_id) DO NOTHING;
 | `backend/internal/parsers/translation_aliases_test.go` | Added table-driven tests verifying Greek and Hebrew alias resolutions |
 | `frontend/src/components/original/OriginalStudyView.tsx` | Updated original language pack IDs and installed detection logic |
 | `frontend/src/utils/i18n.ts` | Updated English and Finnish strings from Aleppo Codex to Leningrad Codex |
+| `frontend/src/utils/translationDefaults.ts` | Added language-aware default Bible translation resolution logic (`fin-1992` for `fi`, `web` for `en`) |
+| `frontend/src/utils/translationDefaults.test.ts` | Unit test suite for `getDefaultTranslationForLanguage` |
+| `frontend/src/App.tsx` | Integrated `getDefaultTranslationForLanguage` to auto-select translations based on UI language preference |
 
 ---
 
@@ -162,9 +165,10 @@ ok      github.com/mvirtai/clible-v3-go/internal/services   3.367s
 * **Output:**
 
 ```text
-Test Files  25 passed (25)
-     Tests  138 passed (138)
-  Duration  7.81s
+Test Files  26 passed (26)
+     Tests  143 passed (143)
+  Start at  19:20:13
+  Duration  7.02s
 ```
 
 All local quality gates (`task check`) passed cleanly.
