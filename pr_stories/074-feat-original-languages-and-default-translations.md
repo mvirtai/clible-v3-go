@@ -102,25 +102,25 @@ ON CONFLICT (user_id, translation_id) DO NOTHING;
 
 ## 📈 Improvement Metrics & Key Figures
 
-* **Backend Statement Coverage:** Maintained strong **78.1%** statement coverage across all services and repositories.
-* **Database Cohesion:** Consolidated 21,703 verses into the canonical `heb-leningrad` identifier, eliminating split datasets.
-* **Onboarding Friction:** Reduced from **7 manual installation clicks** to **0 clicks**; all users immediately have full reading and comparative analytics capabilities upon signup.
-* **Zero Runtime Scan Panics:** 100% elimination of `Scan error on column index: converting NULL to string is unsupported` via query-level `COALESCE`.
+- **Backend Statement Coverage:** Maintained strong **78.1%** statement coverage across all services and repositories.
+- **Database Cohesion:** Consolidated 21,703 verses into the canonical `heb-leningrad` identifier, eliminating split datasets.
+- **Onboarding Friction:** Reduced from **7 manual installation clicks** to **0 clicks**; all users immediately have full reading and comparative analytics capabilities upon signup.
+- **Zero Runtime Scan Panics:** 100% elimination of `Scan error on column index: converting NULL to string is unsupported` via query-level `COALESCE`.
 
 ---
 
 ## Security & Compliance
 
-* **Idempotent Linking:** Default translation insertion uses parameterized SQL queries with `ON CONFLICT DO NOTHING`, preventing duplicate key violations and SQL injection.
-* **User Isolation:** `user_translations` rows remain strictly scoped to `user_id`.
-* **Zero Disruption Migration:** Migration 015 executes safely within transaction boundaries and handles empty test setups as well as live production state.
+- **Idempotent Linking:** Default translation insertion uses parameterized SQL queries with `ON CONFLICT DO NOTHING`, preventing duplicate key violations and SQL injection.
+- **User Isolation:** `user_translations` rows remain strictly scoped to `user_id`.
+- **Zero Disruption Migration:** Migration 015 executes safely within transaction boundaries and handles empty test setups as well as live production state.
 
 ---
 
 ## Files Changed
 
 | File | Change Summary |
-|------|----------------|
+| --- | --- |
 | `backend/migrations/015_clean_and_default_translations.sql` | Migration to consolidate Hebrew dataset, rename Greek, and seed default user translations |
 | `backend/internal/db/translation_repo.go` | Added `COALESCE(source_url, '')` across SELECT queries to prevent NULL scan panics |
 | `backend/internal/db/user_repo.go` | Added automatic default translation linking on new user creation in `UserRepository.Create` |
@@ -140,9 +140,9 @@ ON CONFLICT (user_id, translation_id) DO NOTHING;
 
 #### Backend (Go Test Suite)
 
-* **Overall Coverage:** **78.1%** statement coverage (`.cov/backend/coverage.txt`).
-* **Test Command:** `task check` / `go test -v ./...`
-* **Output:**
+- **Overall Coverage:** **78.1%** statement coverage (`.cov/backend/coverage.txt`).
+- **Test Command:** `task check` / `go test -v ./...`
+- **Output:**
 
 ```text
 === RUN   TestResolveTranslationID
@@ -161,8 +161,8 @@ ok      github.com/mvirtai/clible-v3-go/internal/services   3.367s
 
 #### Frontend (Vitest Suite)
 
-* **Test Command:** `pnpm test`
-* **Output:**
+- **Test Command:** `pnpm test`
+- **Output:**
 
 ```text
 Test Files  26 passed (26)
