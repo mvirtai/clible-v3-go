@@ -16,6 +16,7 @@ import { useAuth } from './context/AuthContext';
 import { useLanguage } from './context/LanguageContext';
 import { BookOpen } from 'lucide-react';
 import { APP_VERSION } from './utils/version';
+import { getDefaultTranslationForLanguage } from './utils/translationDefaults';
 import type { InstalledTranslation, TextStats, ComparisonResult } from './types/bible';
 import type { SavedSearch, SavedAnalysis } from './types/workspace';
 import type { SearchVerse } from './types/search';
@@ -49,7 +50,7 @@ export function App() {
   const navigate = useNavigate();
   const { lang, strings } = useLanguage();
 
-  const [selectedTranslation, setSelectedTranslation] = useState<string>(
+  const [userSelectedTranslation, setUserSelectedTranslation] = useState<string>(
     () => localStorage.getItem('selectedTranslation') || ''
   );
   const [historyTrigger, setHistoryTrigger] = useState(false);
@@ -59,6 +60,17 @@ export function App() {
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
+
+  // Pure derived state: determine active Bible translation based on installed catalog, user override, and UI language
+  const activeTranslations = installedTranslations.filter((t) => t.installed);
+  const defaultTranslationForLang = getDefaultTranslationForLanguage(activeTranslations, lang);
+  const selectedMeta = activeTranslations.find((t) => t.id === userSelectedTranslation);
+
+  // If user selected translation exists and matches the current UI language (or no language mismatch), keep it; otherwise fall back to language default
+  const selectedTranslation =
+    selectedMeta && selectedMeta.language === lang
+      ? userSelectedTranslation
+      : defaultTranslationForLang || userSelectedTranslation || '';
   const [activeReference, setActiveReference] = useState<string>(
     () => localStorage.getItem('activeReference') || ''
   );
@@ -66,11 +78,11 @@ export function App() {
     return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
   });
 
-  // Työtilanhallinnan tilat
+  // Workspace configurations
   const [activeScopeId, setActiveScopeId] = useState<string>(() => localStorage.getItem('activeScopeId') || '');
   const [workspaceTrigger, setWorkspaceTrigger] = useState(false);
 
-  // Tallennettujen tulosten pikalatauksen tilat (välimuisti)
+  // Saved results states for quick loading
   const [loadedSearch, setLoadedSearch] = useState<LoadedSearchState | null>(null);
   const [loadedStats, setLoadedStats] = useState<LoadedStatsState | null>(null);
   const [loadedComparison, setLoadedComparison] = useState<LoadedComparisonState | null>(null);
@@ -81,7 +93,7 @@ export function App() {
   const [loadedComparisonAi, setLoadedComparisonAi] = useState<AiTextResponse | null>(null);
   const [loadedComparisonDeepDive, setLoadedComparisonDeepDive] = useState<string | null>(null);
 
-  // Päivitetään sivun otsikko aktiivisen näkymän ja jaeviitteen mukaan (SEO & selainvälilehdet)
+  // Update page title according to the active view and verse reference (SEO & browser tabs)
   useEffect(() => {
     let tabLabel = strings.tabReader;
     if (viewMode === 'analytics') tabLabel = strings.tabAnalytics;
@@ -96,7 +108,7 @@ export function App() {
     }
   }, [viewMode, activeReference, strings]);
 
-  // Haetaan muistikirjat kun siirrytään näkymään tai palataan editorista listaukseen
+  // Fetch notebooks when switching to the view or returning from the editor to the list
   useEffect(() => {
     if (viewMode === 'notebooks') {
       const fetchNotebooks = async () => {
@@ -120,7 +132,7 @@ export function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: 'Uusi muistikirja',
+          title: `${strings.notebookDefaultTitle} ${new Date().toISOString().split('T')[0]}`,
           scopeId: activeScopeId || undefined,
         }),
       });
@@ -178,7 +190,7 @@ export function App() {
   };
 
   const handleSelectTranslation = async (translation_id: string) => {
-    setSelectedTranslation(translation_id);
+    setUserSelectedTranslation(translation_id);
     if (translation_id) {
       localStorage.setItem('selectedTranslation', translation_id);
       const tr = installedTranslations.find((t) => t.id === translation_id);
@@ -252,7 +264,7 @@ export function App() {
         reference: a.reference,
         translationId: a.translationId,
       });
-      setSelectedTranslation(a.translationId);
+      handleSelectTranslation(a.translationId);
       setViewMode('analytics');
       setLoadedTone(null);
     } else if (a.analysisType === 'comparison') {
@@ -277,7 +289,7 @@ export function App() {
       setLoadedInsight(result.insight || result);
       setLoadedInsightDeepDive(result.deepDive || null);
       setActiveReference(a.reference);
-      setSelectedTranslation(a.translationId);
+      handleSelectTranslation(a.translationId);
       setViewMode('reader');
     } else if (a.analysisType === 'tone') {
       setLoadedTone(result.tone || result);
@@ -287,13 +299,13 @@ export function App() {
         reference: a.reference,
         translationId: a.translationId,
       });
-      setSelectedTranslation(a.translationId);
+      handleSelectTranslation(a.translationId);
       setViewMode('analytics');
     } else if (a.analysisType === 'original') {
       setOriginalResult(result.result || result);
       setOriginalDeepDive(result.deepDive || null);
       setActiveReference(a.reference);
-      setSelectedTranslation(a.translationId);
+      handleSelectTranslation(a.translationId);
       setViewMode('original');
     }
   };
@@ -313,9 +325,7 @@ export function App() {
     setInstallSuccess(null);
     try {
       await apiService.linkTranslation(id);
-      setInstallSuccess(
-        lang === 'fi' ? `Paketti ${id} asennettiin onnistuneesti.` : `Package ${id} installed successfully.`
-      );
+      setInstallSuccess(strings.packageInstalledMsg.replace('{id}', id));
       setTranslationTrigger((prev) => !prev);
     } catch (err) {
       const errorObj = err as Error;
@@ -325,6 +335,17 @@ export function App() {
     }
   };
 
+  /**
+   * Coordinates AI-assisted original language deep dive analysis across Hebrew/Greek source text and user translations.
+   *
+   * Fetches the original language verses, aligns them with target comparative translations, and delegates
+   * analysis to the AI insight service using the selected or UI language.
+   *
+   * @param ref - Target Bible passage reference (e.g. "JHN 3:16")
+   * @param originalId - Identifier of original language text ('sblgnt' | 'heb-leningrad')
+   * @param translationIds - Target translation IDs to align for comparative analysis
+   * @param scope - Passage analysis scope granularity ('verse' | 'chapter' | 'book')
+   */
   const handleStudyOriginalLanguage = async (
     ref: string,
     originalId: string,
@@ -339,11 +360,7 @@ export function App() {
       const versesRes = await apiService.getVerses(ref, originalId);
       const verses = versesRes.verses;
       if (verses.length === 0) {
-        throw new Error(
-          lang === 'fi'
-            ? 'Alkutekstiä ei löytynyt tälle viitteelle.'
-            : 'Original text not found for this reference.'
-        );
+        throw new Error(strings.errOriginalTextNotFound);
       }
       const sourceText = verses.map((v: { text: string }) => v.text).join('\n');
       const sourceLanguage = originalId === 'greeksblgnt' ? 'grc' : 'he';
@@ -396,29 +413,24 @@ export function App() {
     }
   };
 
-  // Load installed translations list and auto-select active translation if needed
+  /**
+   * Fetches installed Bible translations catalog from the API when catalog updates are triggered.
+   */
   useEffect(() => {
+    let isMounted = true;
     const loadTranslations = async () => {
       try {
         const list = await apiService.getTranslations();
+        if (!isMounted) return;
         setInstalledTranslations(list);
-
-        const activeList = list.filter((t) => t.installed);
-        const stored = localStorage.getItem('selectedTranslation') || '';
-        const exists = activeList.some((t) => t.id === stored);
-        if (activeList.length > 0 && (!stored || !exists)) {
-          const firstId = activeList[0].id;
-          setSelectedTranslation(firstId);
-          localStorage.setItem('selectedTranslation', firstId);
-        } else if (activeList.length === 0 && stored) {
-          setSelectedTranslation('');
-          localStorage.removeItem('selectedTranslation');
-        }
       } catch (err) {
-        console.error('Failed to load translations list:', err);
+        if (isMounted) console.error('Failed to load translations list:', err);
       }
     };
     loadTranslations();
+    return () => {
+      isMounted = false;
+    };
   }, [translationTrigger]);
 
   const handleSearchFinished = () => setHistoryTrigger((p) => !p);

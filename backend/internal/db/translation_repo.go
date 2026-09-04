@@ -22,7 +22,7 @@ func NewTranslationRepository(db *sql.DB) *TranslationRepository {
 // This is the primary catalog endpoint for the frontend listing.
 func (r *TranslationRepository) GetAllWithInstalled(ctx context.Context, userID string) ([]models.Translation, error) {
 	query := `
-		SELECT t.id, t.name, t.language, t.format, t.source_url, t.installed_at, t.is_global,
+		SELECT t.id, t.name, t.language, t.format, COALESCE(t.source_url, '') AS source_url, t.installed_at, t.is_global,
 		       EXISTS(
 		           SELECT 1 FROM user_translations ut
 		           WHERE ut.user_id = $1 AND ut.translation_id = t.id
@@ -57,7 +57,7 @@ func (r *TranslationRepository) GetAllWithInstalled(ctx context.Context, userID 
 // GetAllGlobal returns all global preset translations ordered by installed_at.
 func (r *TranslationRepository) GetAllGlobal(ctx context.Context) ([]models.Translation, error) {
 	query := `
-		SELECT t.id, t.name, t.language, t.format, t.source_url, t.installed_at, t.is_global
+		SELECT t.id, t.name, t.language, t.format, COALESCE(t.source_url, '') AS source_url, t.installed_at, t.is_global
 		FROM translations t
 		WHERE t.is_global = TRUE
 		ORDER BY t.installed_at
@@ -89,7 +89,7 @@ func (r *TranslationRepository) GetAllGlobal(ctx context.Context) ([]models.Tran
 // Used internally for permission checks in verse lookups.
 func (r *TranslationRepository) GetByUser(ctx context.Context, userID string) ([]models.Translation, error) {
 	query := `
-		SELECT t.id, t.name, t.language, t.format, t.source_url, t.installed_at, t.is_global
+		SELECT t.id, t.name, t.language, t.format, COALESCE(t.source_url, '') AS source_url, t.installed_at, t.is_global
 		FROM translations t
 		WHERE t.is_global = TRUE
 		  AND t.id IN (SELECT translation_id FROM user_translations WHERE user_id = $1)
@@ -196,7 +196,7 @@ func (r *TranslationRepository) UnlinkUser(ctx context.Context, userID, translat
 // Used internally for admin operations and seeding.
 func (r *TranslationRepository) GetAll() ([]models.Translation, error) {
 	query := `
-	SELECT id, name, language, format, source_url, installed_at, is_global
+	SELECT id, name, language, format, COALESCE(source_url, '') AS source_url, installed_at, is_global
 	FROM translations
 	ORDER BY installed_at
 	`

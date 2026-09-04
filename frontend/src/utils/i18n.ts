@@ -257,7 +257,7 @@ export interface Messages {
   cellWidthSelectAria: string;
   cellTypeSelectAria: string;
   dragResizeTitle: string;
-
+  notebookDefaultTitle: string;
   resetNotebookSizes: string;
 
   previousChapterLabel: string;
@@ -283,6 +283,10 @@ export interface Messages {
   verifyButton: string;
   resendCodeLabel: string;
   resendCodeCooldown: string;
+  themeLightAria: string;
+  themeDarkAria: string;
+  packageInstalledMsg: string;
+  errOriginalTextNotFound: string;
 
   // Language selection
   changeLanguage: string;
@@ -290,6 +294,10 @@ export interface Messages {
 
 export const strings: Record<UILanguage, Messages> = {
   en: {
+    themeLightAria: 'Switch to light theme',
+    themeDarkAria: 'Switch to dark theme',
+    packageInstalledMsg: 'Package {id} installed successfully.',
+    errOriginalTextNotFound: 'Original text not found for this reference.',
     changeLanguage: 'Change language',
     // App / Shell
         chooseTranslation: 'Choose translation',
@@ -367,7 +375,7 @@ export const strings: Record<UILanguage, Messages> = {
     cancelLabel: 'Cancel',
     searchRecentHeader: 'Recent searches',
     searchClear: 'Clear',
-
+    notebookDefaultTitle: 'New notebook',
     searchResultsTitle: 'Search Results',
     searchNoResults: 'No verses found for this search.',
     selectBookAria: 'Select book',
@@ -389,10 +397,10 @@ export const strings: Record<UILanguage, Messages> = {
     mostSimilarVerse: 'Most similar verse',
     aiComparing: 'AI is analyzing and comparing translations...',
     originalSetupTitle: 'Install Original Language Packs',
-    originalSetupHint: 'To analyze original languages, you need Koine Greek (SBLGNT) or Biblical Hebrew (Aleppo Codex) source packs installed.',
+    originalSetupHint: 'To analyze original languages, you need Koine Greek (SBLGNT) or Biblical Hebrew (Leningrad Codex) source packs installed.',
     originalAlreadyInstalled: 'Installed',
     originalInstallGreek: 'Install SBLGNT Koine Greek',
-    originalInstallHebrew: 'Install Aleppo Codex Hebrew',
+    originalInstallHebrew: 'Install Leningrad Codex Hebrew',
     originalReferenceLabel: 'Bible Reference',
     originalReferencePlaceholder: 'E.g. John 3:16 or Genesis 1:1',
     originalSelectOriginal: 'Select Original Source Text',
@@ -543,6 +551,7 @@ export const strings: Record<UILanguage, Messages> = {
     cellTypeSelectAria: 'Select cell type',
     dragResizeTitle: 'Drag to resize cell width and height',
 
+
     // Drag and Drop
     dragHandleTitle: 'Drag to reorder cells',
     resetNotebookSizes: 'Reset sizes',
@@ -663,10 +672,10 @@ export const strings: Record<UILanguage, Messages> = {
     mostSimilarVerse: 'Samankaltaisin jae',
     aiComparing: 'Tekoäly analysoi ja vertailee käännöksiä...',
     originalSetupTitle: 'Asenna alkukieliset käännöspaketit',
-    originalSetupHint: 'Alkukielistä vertailua varten tarvitset kreikankielisen (SBLGNT) tai hepreankielisen (Aleppo Codex) lähdetekstin.',
+    originalSetupHint: 'Alkukielistä vertailua varten tarvitset kreikankielisen (SBLGNT) tai hepreankielisen (Leningrad Codex) lähdetekstin.',
     originalAlreadyInstalled: 'Asennettu',
     originalInstallGreek: 'Asenna SBLGNT Koine Greek',
-    originalInstallHebrew: 'Asenna Aleppo Codex Hebrew',
+    originalInstallHebrew: 'Asenna Leningrad Codex Hebrew',
     originalReferenceLabel: 'Raamatunkohta / Viite',
     originalReferencePlaceholder: 'Esim. Johannes 3:16 tai 1. Moos. 1:1',
     originalSelectOriginal: 'Valitse alkukielinen teksti',
@@ -700,6 +709,7 @@ export const strings: Record<UILanguage, Messages> = {
     runLabel: 'Suorita',
     runningLabel: 'Suoritetaan...',
     cliOutputPrefix: 'CLI Output —',
+    notebookDefaultTitle: 'Uusi muistikirja',
     freezeLabel: 'Jäädytä',
     freezeDisabledTitle: 'Valitse vähintään yksi jae jäädyttääksesi',
     freezeEnabledTitle: 'Muunna valitut jakeet Markdown-soluksi',
@@ -850,6 +860,10 @@ export const strings: Record<UILanguage, Messages> = {
     verifyButton: 'Vahvista tili',
     resendCodeLabel: 'Lähetä uusi koodi',
     resendCodeCooldown: 'Voit pyytää uuden koodin {seconds}s kuluttua',
+    themeLightAria: 'Käytä vaaleaa tilaa',
+    themeDarkAria: 'Käytä pimeää tilaa',
+    packageInstalledMsg: 'Paketti {id} asennettiin onnistuneesti.',
+    errOriginalTextNotFound: 'Alkutekstiä ei löytynyt tälle viitteelle.',
   }
 
 };

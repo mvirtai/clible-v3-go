@@ -55,7 +55,7 @@ export function AppHeader({
           <button
             type="button"
             onClick={onToggleTheme}
-            aria-label={theme === 'dark' ? 'Käytä vaaleaa tilaa' : 'Käytä pimeää tilaa'}
+            aria-label={theme === 'dark' ? strings.themeLightAria : strings.themeDarkAria}
             className="theme-toggle-btn cursor-pointer"
           >
             {theme === 'dark' ? (

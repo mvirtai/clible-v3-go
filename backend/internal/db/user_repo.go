@@ -48,6 +48,16 @@ func (r *UserRepository) Create(ctx context.Context, user *User) error {
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
+
+	// Automatically link default translations for the new user
+	defaultLinkQuery := `
+		INSERT INTO user_translations (user_id, translation_id)
+		SELECT $1, id FROM translations
+		WHERE id IN ('web', 'kjv', 'fin-1992', 'fin-biblia-33-38', 'fin-1776', 'sblgnt', 'heb-leningrad')
+		ON CONFLICT (user_id, translation_id) DO NOTHING
+	`
+	_, _ = r.db.ExecContext(ctx, defaultLinkQuery, user.ID)
+
 	return nil
 }
 
