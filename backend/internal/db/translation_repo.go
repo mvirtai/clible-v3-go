@@ -137,6 +137,20 @@ func (r *TranslationRepository) IsAccessible(ctx context.Context, userID, transl
 	return exists, nil
 }
 
+// IsGlobal checks if the given translation exists and is marked as a global preset.
+func (r *TranslationRepository) IsGlobal(ctx context.Context, translationID string) (bool, error) {
+	var isGlobal bool
+	query := "SELECT is_global FROM translations WHERE id = $1"
+	err := r.db.QueryRowContext(ctx, query, translationID).Scan(&isGlobal)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to check if translation is global: %w", err)
+	}
+	return isGlobal, nil
+}
+
 // LinkUser activates a global translation for a user by inserting into user_translations.
 // Idempotent: silently ignores conflicts if the link already exists.
 func (r *TranslationRepository) LinkUser(ctx context.Context, userID, translationID string) error {

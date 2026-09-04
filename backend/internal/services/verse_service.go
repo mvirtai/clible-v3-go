@@ -86,8 +86,12 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 			return nil, fmt.Errorf("translation %q is not accessible", tid)
 		}
 	} else {
-		// If not authenticated, restrict to fixed preset (web only)
-		if tid != "web" {
+		// In guest mode (unauthenticated), all global preset translations are accessible
+		isGlobal, err := s.translationRepo.IsGlobal(ctx, tid)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify translation accessibility: %w", err)
+		}
+		if !isGlobal {
 			return nil, fmt.Errorf("translation %q is not accessible", tid)
 		}
 	}
@@ -125,8 +129,12 @@ func (s *VerseService) SearchVerses(ctx context.Context, query string, useRegex 
 			return nil, fmt.Errorf("translation %q is not accessible", tid)
 		}
 	} else {
-		// If not authenticated, restrict to fixed preset (web only)
-		if tid != "web" {
+		// In guest mode (unauthenticated), all global preset translations are accessible
+		isGlobal, err := s.translationRepo.IsGlobal(ctx, tid)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify translation accessibility: %w", err)
+		}
+		if !isGlobal {
 			return nil, fmt.Errorf("translation %q is not accessible", tid)
 		}
 	}

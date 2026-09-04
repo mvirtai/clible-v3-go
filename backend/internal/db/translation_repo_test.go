@@ -245,3 +245,37 @@ func TestTranslationRepository_Delete(t *testing.T) {
 	}
 }
 
+func TestTranslationRepository_IsGlobal(t *testing.T) {
+	db, err := InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to set up database connection: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	repo := NewTranslationRepository(db)
+	ctx := context.Background()
+
+	// 1. Non-existent translation should return false, nil
+	isGlobal, err := repo.IsGlobal(ctx, "non-existent")
+	if err != nil {
+		t.Fatalf("unexpected error for non-existent translation: %v", err)
+	}
+	if isGlobal {
+		t.Errorf("expected false for non-existent translation, got true")
+	}
+
+	// 2. Insert a global translation
+	_, err = db.Exec("INSERT INTO translations (id, name, language, format, is_global) VALUES ('fin-1776', 'Biblia 1776', 'fi', 'USFX', TRUE)")
+	if err != nil {
+		t.Fatalf("failed to insert test translation: %v", err)
+	}
+
+	isGlobal, err = repo.IsGlobal(ctx, "fin-1776")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !isGlobal {
+		t.Errorf("expected true for global translation, got false")
+	}
+}
+
