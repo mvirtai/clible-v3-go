@@ -62,9 +62,9 @@ flowchart TD
     AUTH --> HANDLER[Route Handler]
     GUEST --> HANDLER
 
-    HANDLER --> CHECK{Requires Auth?}
-    CHECK -->|Write ops: notebooks, scopes| DENY[401 Unauthorized]
-    CHECK -->|Read ops: verses, catalog| ALLOW[200 OK - Public Data]
+    HANDLER --> CHECK{"Requires Auth?"}
+    CHECK -->|"Write ops: notebooks, scopes"| DENY[401 Unauthorized]
+    CHECK -->|"Read ops: verses, catalog"| ALLOW[200 OK - Public Data]
     CHECK -->|Authenticated| FULL[Full Feature Access]
 ```
 
