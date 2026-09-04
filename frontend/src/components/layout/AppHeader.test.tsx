@@ -80,6 +80,6 @@ describe('AppHeader', () => {
 
     const text = container?.textContent || '';
     expect(text).toContain('Clible');
-    expect(text).toContain('Vierastila');
+    expect(text).toContain('Luo tili');
   });
 });

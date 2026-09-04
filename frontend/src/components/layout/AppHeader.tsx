@@ -103,30 +103,25 @@ export function AppHeader({
             </>
           ) : (
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <span
-                className="text-xs px-2.5 py-1 rounded-full font-medium hidden md:inline-flex items-center gap-1"
-                style={{
-                  background: 'var(--surface-2)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--muted)',
-                }}
-              >
-                👤 {strings.guestMode}
-              </span>
-              <button
-                onClick={() => navigate('/register')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium btn-tactile btn-accent cursor-pointer shadow-sm"
-              >
-                <UserPlus size={13} />
-                <span>{strings.guestQuickSignup}</span>
-              </button>
               <button
                 onClick={() => navigate('/login')}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium btn-tactile hover:text-[var(--text)] cursor-pointer"
                 style={{ color: 'var(--muted)' }}
               >
                 <LogIn size={13} />
-                <span className="max-md:hidden">{strings.loginButton}</span>
+                <span>{strings.loginButton}</span>
+              </button>
+              <button
+                onClick={() => navigate('/register')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                style={{
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface-2)',
+                  color: 'var(--text)',
+                }}
+              >
+                <UserPlus size={13} />
+                <span>{strings.guestQuickSignup}</span>
               </button>
             </div>
           )}
