@@ -1,13 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useState, useEffect, useActionState, useTransition } from 'react';
+import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { Mail, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
+
+interface ActionState {
+  success: boolean;
+  error: string | null;
+}
+
+const initialActionState: ActionState = {
+  success: false,
+  error: null,
+};
 
 /**
  * Email verification page component.
  * Supports automated link token activation as well as 6-digit manual OTP code input.
- * Fully compliant with React 19.2+ and optimized for React Compiler.
+ * Strictly aligned with modern React 19.2+ and optimized for React Compiler.
  *
  * @returns Rendered email verification view.
  */
@@ -16,89 +27,104 @@ export function VerifyEmail() {
   const location = useLocation();
   const navigate = useNavigate();
   const { strings } = useLanguage();
+  const { verifyEmail } = useAuth();
 
+  // Pure derived state from router context
   const urlToken = searchParams.get('token') || '';
-  const emailFromState = (location.state as { email?: string } | null)?.email || '';
-  const [email] = useState(emailFromState);
-  const [code, setCode] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const email = (location.state as { email?: string } | null)?.email || '';
+
+  // 1. React 19 useActionState for manual OTP form submission
+  const [otpState, submitOtp, isOtpPending] = useActionState<ActionState, FormData>(
+    async (_prevState, formData) => {
+      const code = ((formData.get('code') as string) || '').replace(/\D/g, '');
+      if (code.length !== 6) {
+        return { success: false, error: strings.enterVerificationCode };
+      }
+      try {
+        await verifyEmail({ email: email || undefined, code });
+        setTimeout(() => navigate('/'), 1200);
+        return { success: true, error: null };
+      } catch (err) {
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : strings.errUnexpected,
+        };
+      }
+    },
+    initialActionState
+  );
+
+  // 2. Action state for automated link token activation
+  const [tokenState, setTokenState] = useState<ActionState>(initialActionState);
+  const [isTokenPending, setIsTokenPending] = useState(() => Boolean(urlToken));
+
+  // 3. React 19 useTransition and timer for resending verification code
   const [cooldown, setCooldown] = useState(0);
+  const [isResending, startResendTransition] = useTransition();
+  const [resendError, setResendError] = useState<string | null>(null);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    document.title = `${strings.verifyEmailTitle || 'Vahvista sähköposti'} – Clible Workspace`;
-  }, [strings]);
-
-  // 1. Automated direct link verification if token is present in URL
+  // Automated link verification when URL token is present (imperative external URL integration)
   useEffect(() => {
     if (!urlToken) return;
 
     let isMounted = true;
-    const verifyWithToken = async () => {
-      setLoading(true);
-      try {
-        await apiService.verifyEmail({ token: urlToken });
+
+    verifyEmail({ token: urlToken })
+      .then(() => {
         if (isMounted) {
-          setSuccess(true);
+          setTokenState({ success: true, error: null });
           setTimeout(() => navigate('/'), 1500);
         }
-      } catch (err) {
+      })
+      .catch((err: unknown) => {
         if (isMounted) {
-          setError(err instanceof Error ? err.message : strings.errUnexpected);
+          setTokenState({
+            success: false,
+            error: err instanceof Error ? err.message : strings.errUnexpected,
+          });
         }
-      } finally {
+      })
+      .finally(() => {
         if (isMounted) {
-          setLoading(false);
+          setIsTokenPending(false);
         }
-      }
-    };
+      });
 
-    verifyWithToken();
     return () => {
       isMounted = false;
     };
-  }, [urlToken, navigate, strings]);
+  }, [urlToken, navigate, strings, verifyEmail]);
 
-  // 2. Cooldown timer for resending verification code
+  // Cooldown countdown timer for resend action
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  const handleVerify = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (code.length !== 6) return;
-
-    setLoading(true);
-    setError('');
-
-    try {
-      await apiService.verifyEmail({ email: email || undefined, code });
-      setSuccess(true);
-      setTimeout(() => navigate('/'), 1200);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.errUnexpected);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
+  const handleResend = () => {
     if (cooldown > 0 || !email) return;
-    try {
-      await apiService.resendVerification(email);
-      setCooldown(60);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.errUnexpected);
-    }
+    setResendError(null);
+    startResendTransition(async () => {
+      try {
+        await apiService.resendVerification(email);
+        setCooldown(60);
+      } catch (err) {
+        setResendError(err instanceof Error ? err.message : strings.errUnexpected);
+      }
+    });
   };
+
+  // Pure derived states
+  const isPending = isTokenPending || isOtpPending || isResending;
+  const isSuccess = tokenState.success || otpState.success;
+  const activeError = tokenState.error || otpState.error || resendError;
 
   return (
     <div className="flex items-center justify-center min-h-screen px-4" style={{ background: 'var(--bg)' }}>
+      {/* React 19 Document Metadata Hoisting */}
+      <title>{`${isSuccess ? strings.verificationSuccess : strings.verifyEmailTitle} – Clible Workspace`}</title>
+
       <div
         className="w-full max-w-md p-8 rounded-3xl border animate-fade-in text-center"
         style={{
@@ -111,28 +137,28 @@ export function VerifyEmail() {
           className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center transition-transform hover:scale-105 duration-300"
           style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}
         >
-          {success ? <CheckCircle2 size={32} /> : <Mail size={32} />}
+          {isSuccess ? <CheckCircle2 size={32} /> : <Mail size={32} />}
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight mb-2" style={{ color: 'var(--text)' }}>
-          {success ? strings.verificationSuccess : strings.verifyEmailTitle}
+          {isSuccess ? strings.verificationSuccess : strings.verifyEmailTitle}
         </h1>
         <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
           {strings.verifyEmailSubtitle} {email && <strong className="text-[var(--text)]">{email}</strong>}
         </p>
 
-        {error && (
+        {activeError && (
           <div
             role="alert"
             className="p-3 mb-5 text-sm rounded-xl border bg-red-500/10 border-red-500/30 text-red-500 flex items-center gap-2 text-left"
           >
             <AlertCircle size={16} className="shrink-0" />
-            <span>{error}</span>
+            <span>{activeError}</span>
           </div>
         )}
 
-        {!urlToken && !success && (
-          <form onSubmit={handleVerify} className="space-y-4">
+        {!urlToken && !isSuccess && (
+          <form action={submitOtp} className="space-y-4">
             <div>
               <label
                 htmlFor="verification-code"
@@ -143,26 +169,23 @@ export function VerifyEmail() {
               </label>
               <input
                 id="verification-code"
-                ref={inputRef}
+                name="code"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={6}
-                value={code}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '');
-                  setCode(val);
-                  if (val.length === 6) {
-                    setTimeout(() => {
-                      if (inputRef.current?.form) {
-                        inputRef.current.form.requestSubmit();
-                      }
-                    }, 50);
-                  }
-                }}
                 placeholder="123456"
                 autoFocus
                 autoComplete="one-time-code"
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/\D/g, '');
+                  if (cleaned !== e.target.value) {
+                    e.target.value = cleaned;
+                  }
+                  if (cleaned.length === 6) {
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
                 className="w-full px-4 py-3 rounded-xl border text-center text-2xl font-mono tracking-widest transition-all focus:outline-none"
                 style={{
                   background: 'var(--surface-2)',
@@ -174,28 +197,35 @@ export function VerifyEmail() {
 
             <button
               type="submit"
-              disabled={loading || code.length !== 6}
+              disabled={isPending}
               className="w-full py-3.5 rounded-xl font-medium tracking-wide btn-tactile btn-accent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? strings.verifyingLabel : strings.verifyButton}
+              {isPending ? strings.verifyingLabel : strings.verifyButton}
             </button>
           </form>
         )}
 
-        {!success && (
-          <div className="mt-6 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+        {!isSuccess && (
+          <div className="mt-6 pt-4 border-t flex flex-col items-center gap-3" style={{ borderColor: 'var(--border)' }}>
             <button
               type="button"
               onClick={handleResend}
-              disabled={cooldown > 0}
+              disabled={cooldown > 0 || isResending}
               className="text-xs font-medium hover:underline inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ color: 'var(--accent)' }}
             >
-              <RefreshCw size={13} className={cooldown > 0 ? 'animate-spin-slow' : ''} />
+              <RefreshCw size={13} className={cooldown > 0 || isResending ? 'animate-spin-slow' : ''} />
               {cooldown > 0
                 ? strings.resendCodeCooldown.replace('{seconds}', cooldown.toString())
                 : strings.resendCodeLabel}
             </button>
+
+            <Link
+              to="/login"
+              className="text-xs text-[var(--muted)] hover:text-[var(--text)] transition-colors hover:underline"
+            >
+              ← {strings.loginLink}
+            </Link>
           </div>
         )}
       </div>

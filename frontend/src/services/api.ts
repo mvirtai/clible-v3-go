@@ -350,7 +350,8 @@ export class ApiService {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.error || `POST /auth/verify-email returned ${res.status}`);
         }
-        return await res.json();
+        const data = await res.json();
+        return (data.user as UserResponse) || (data as UserResponse);
     }
 
     /**
