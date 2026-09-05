@@ -45,56 +45,56 @@ Tietoturva-auditointi suoritettiin kehityshaaran `feat/resend-mailer-integration
 
 ### 3.1 Salaisuuksien hallinta ja API-avainten suojaus (CWE-798, CWE-312)
 
-* **Tarkasteltu:** Pääseekö `RESEND_API_KEY` vuotamaan lokitiedostoihin, asiakaspuolen HTTP-vastauksiin tai versionhallintaan?
-* **Havainto:**
-  * `RESEND_API_KEY` luetaan ainoastaan palvelimen ympäristömuuttujista (`config.Load()`).
-  * API-avainta ei koskaan sisällytetä lokiviesteihin (`slog` / `log.Printf`), virheilmoituksiin eikä JSON-vastauksiin.
-  * `.env` on määritelty `.gitignore`-tiedostossa.
-  * Tuotantoympäristössä (Cloud Run) avain välitetään suojattuna Secret Manager / environment -muuttujana.
+- **Tarkasteltu:** Pääseekö `RESEND_API_KEY` vuotamaan lokitiedostoihin, asiakaspuolen HTTP-vastauksiin tai versionhallintaan?
+- **Havainto:**
+  - `RESEND_API_KEY` luetaan ainoastaan palvelimen ympäristömuuttujista (`config.Load()`).
+  - API-avainta ei koskaan sisällytetä lokiviesteihin (`slog` / `log.Printf`), virheilmoituksiin eikä JSON-vastauksiin.
+  - `.env` on määritelty `.gitignore`-tiedostossa.
+  - Tuotantoympäristössä (Cloud Run) avain välitetään suojattuna Secret Manager / environment -muuttujana.
 
 ---
 
 ### 3.2 Kertakäyttötokenien ja OTP-koodien entropia ja elinkaari (CWE-330, CWE-340)
 
-* **Tarkasteltu:** Ovatko vahvistuskoodit ennustettavissa ja miten vanhenemista valvotaan?
-* **Havainto:**
-  * OTP-koodi generoidaan `crypto/rand`-kriptografisella satunnaislukugeneraattorilla väliltä `100000–999999` ([`auth_service.go:55-63`](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/auth_service.go#L55-L63)).
-  * Linkkivahvistus käyttää 32 tavun kryptografista satunnaislukua heksadesimaalimuodossa (64 merkkiä, 256 bittiä entropiaa).
-  * Vahvistustietueilla on tiukka 15 minuutin vanhenemisaika (`ExpiresAt = time.Now().Add(15 * time.Minute)`). Vanhentuneet koodit hylätään suoraan virhekoodilla `verification_code_expired`.
+- **Tarkasteltu:** Ovatko vahvistuskoodit ennustettavissa ja miten vanhenemista valvotaan?
+- **Havainto:**
+  - OTP-koodi generoidaan `crypto/rand`-kriptografisella satunnaislukugeneraattorilla väliltä `100000–999999` ([`auth_service.go:55-63`](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/auth_service.go#L55-L63)).
+  - Linkkivahvistus käyttää 32 tavun kryptografista satunnaislukua heksadesimaalimuodossa (64 merkkiä, 256 bittiä entropiaa).
+  - Vahvistustietueilla on tiukka 15 minuutin vanhenemisaika (`ExpiresAt = time.Now().Add(15 * time.Minute)`). Vanhentuneet koodit hylätään suoraan virhekoodilla `verification_code_expired`.
 
 ---
 
 ### 3.3 Istunnon luonti ja evästeturvallisuus (CWE-287, CWE-384, CWE-614)
 
-* **Tarkasteltu:** Miten JWT-istunto luodaan sähköpostivahvistuksen jälkeen ja onko eväste suojattu?
-* **Havainto:**
-  * Onnistuneen sähköpostivahvistuksen yhteydessä `authHandler.VerifyEmail` asettaa `jwt`-evästeen selaimelle ([`auth_handler.go:155`](file:///home/vivaldev/code/clible-v3-go/backend/internal/api/auth_handler.go#L155)).
-  * Evästeen asetukset:
-    * `HttpOnly: true` (estää JavaScript-pääsyn ja XSS-pohjaiset token-varkaudet).
-    * `SameSite: http.SameSiteLaxMode` (suojaa CSRF-hyökkäyksiltä).
-    * `Secure: isProduction` (vaatii HTTPS-yhteyden tuotannossa).
-    * `Path: "/"` ja `Expires: 24h`.
-  * Frontendin `AuthContext` vastaanottaa käyttäjäolion ja päivittää sovelluksen todennettuun tilaan ilman arkaluontoisten tietojen kirjaamista `localStorage`-muistiin.
+- **Tarkasteltu:** Miten JWT-istunto luodaan sähköpostivahvistuksen jälkeen ja onko eväste suojattu?
+- **Havainto:**
+  - Onnistuneen sähköpostivahvistuksen yhteydessä `authHandler.VerifyEmail` asettaa `jwt`-evästeen selaimelle ([`auth_handler.go:155`](file:///home/vivaldev/code/clible-v3-go/backend/internal/api/auth_handler.go#L155)).
+  - Evästeen asetukset:
+    - `HttpOnly: true` (estää JavaScript-pääsyn ja XSS-pohjaiset token-varkaudet).
+    - `SameSite: http.SameSiteLaxMode` (suojaa CSRF-hyökkäyksiltä).
+    - `Secure: isProduction` (vaatii HTTPS-yhteyden tuotannossa).
+    - `Path: "/"` ja `Expires: 24h`.
+  - Frontendin `AuthContext` vastaanottaa käyttäjäolion ja päivittää sovelluksen todennettuun tilaan ilman arkaluontoisten tietojen kirjaamista `localStorage`-muistiin.
 
 ---
 
 ### 3.4 Syötteen validointi ja DoS-kestävyys (CWE-20, CWE-400)
 
-* **Tarkasteltu:** Onko sähköpostien lähetys- ja vahvistusrajapinnoissa mahdollisuutta palvelunestoon (DoS) tai roskapostittamiseen?
-* **Havainto:**
-  * `authHandler.Register` ja `authHandler.ResendVerification` suojaavat backendia virheellisiltä syötteiltä `mail.ParseAddress`-validoinnilla.
-  * Kaikkia API-kutsuja valvoo `middleware.MaxBodySize` (1 MB) ja globaali `middleware.RateLimitMiddleware`.
-  * Sähköpostin uudelleenlähetykselle (`resendVerification`) on käyttöliittymässä 60 sekunnin jäähdytysaika (`cooldown`), ja backend vaatii olemassa olevan käyttäjätilin.
+- **Tarkasteltu:** Onko sähköpostien lähetys- ja vahvistusrajapinnoissa mahdollisuutta palvelunestoon (DoS) tai roskapostittamiseen?
+- **Havainto:**
+  - `authHandler.Register` ja `authHandler.ResendVerification` suojaavat backendia virheellisiltä syötteiltä `mail.ParseAddress`-validoinnilla.
+  - Kaikkia API-kutsuja valvoo `middleware.MaxBodySize` (1 MB) ja globaali `middleware.RateLimitMiddleware`.
+  - Sähköpostin uudelleenlähetykselle (`resendVerification`) on käyttöliittymässä 60 sekunnin jäähdytysaika (`cooldown`), ja backend vaatii olemassa olevan käyttäjätilin.
 
 ---
 
 ### 3.5 Resend-lähettimen verkkoliikenteen vikasietoisuus (CWE-400)
 
-* **Tarkasteltu:** Voiko jumittuva ulkoinen HTTP-pyyntö Resendin palvelimelle aiheuttaa Go-rutiinien kasautumista tai muistivuotoa?
-* **Havainto:**
-  * `ResendMailer` konfiguroi oletusasiakkaalleen 10 sekunnin aikarajan (`Timeout: 10 * time.Second`).
-  * Kaikki HTTP-kutsut käyttävät `http.NewRequestWithContext(ctx, ...)`, jolloin peruutettu asiakaspyyntö keskeyttää myös ulkoisen verkkokutsun välittömästi.
-  * Vastausvirta suljetaan aina varmistusrakenteella: `defer func() { _ = resp.Body.Close() }()`.
+- **Tarkasteltu:** Voiko jumittuva ulkoinen HTTP-pyyntö Resendin palvelimelle aiheuttaa Go-rutiinien kasautumista tai muistivuotoa?
+- **Havainto:**
+  - `ResendMailer` konfiguroi oletusasiakkaalleen 10 sekunnin aikarajan (`Timeout: 10 * time.Second`).
+  - Kaikki HTTP-kutsut käyttävät `http.NewRequestWithContext(ctx, ...)`, jolloin peruutettu asiakaspyyntö keskeyttää myös ulkoisen verkkokutsun välittömästi.
+  - Vastausvirta suljetaan aina varmistusrakenteella: `defer func() { _ = resp.Body.Close() }()`.
 
 ---
 

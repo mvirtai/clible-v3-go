@@ -121,9 +121,10 @@ const handleSubmit = async (e: React.FormEvent) => {
 ```
 
 This distributed model introduces cognitive overhead and structural risks:
-* **State Desynchronization:** Exception boundaries or aborted requests can leave `loading: true` permanently active or preserve stale error messages.
-* **Render Pass Multiplicity:** Independent state dispatches trigger redundant render passes unless explicitly batched by concurrent schedulers.
-* **Decoupling from Web Standards:** Bypasses native HTML form behavior, requiring synthetic event interception (`e.preventDefault()`).
+
+- **State Desynchronization:** Exception boundaries or aborted requests can leave `loading: true` permanently active or preserve stale error messages.
+- **Render Pass Multiplicity:** Independent state dispatches trigger redundant render passes unless explicitly batched by concurrent schedulers.
+- **Decoupling from Web Standards:** Bypasses native HTML form behavior, requiring synthetic event interception (`e.preventDefault()`).
 
 #### Declarative Mutation Architecture with `useActionState`
 
@@ -152,13 +153,14 @@ const [actionState, formAction, isPending] = useActionState(
 );
 ```
 
-##### Architectural Characteristics:
-* **Atomic State Transitions:** Next states are calculated pure-functionally as `(prevState, formData) => Promise<nextState>`. The UI cannot enter invalid composite states (e.g. concurrent `loading = true` and `success = true`).
-* **Integrated Transition Coordination:** The returned `isPending` boolean is managed natively within React's transition scheduler, avoiding manual loading flags and keeping peripheral UI responsive.
-* **Standard Form Binding:** Attaching `formAction` to `<form action={formAction}>` delegates event capture, form data aggregation, and submission lifecycle to the browser and React runtime declaratively.
+##### Architectural Characteristics
+
+- **Atomic State Transitions:** Next states are calculated pure-functionally as `(prevState, formData) => Promise<nextState>`. The UI cannot enter invalid composite states (e.g. concurrent `loading = true` and `success = true`).
+- **Integrated Transition Coordination:** The returned `isPending` boolean is managed natively within React's transition scheduler, avoiding manual loading flags and keeping peripheral UI responsive.
+- **Standard Form Binding:** Attaching `formAction` to `<form action={formAction}>` delegates event capture, form data aggregation, and submission lifecycle to the browser and React runtime declaratively.
 
 | Dimension | Distributed State (`useState`) | Declarative Actions (`useActionState`) |
-|---|---|---|
+| :--- | :--- | :--- |
 | **State Machine** | Disconnected variables (`loading`, `error`, `success`) | Single unified state tuple `[state, action, isPending]` |
 | **Error Handling** | Imperative `try/catch/finally` blocks | Deterministic state resolution via return value |
 | **Concurrency** | Manual flag synchronization | Native integration with React Transition scheduler |
@@ -183,7 +185,8 @@ useEffect(() => {
 
 When `setIsPending(true)` executes synchronously during effect processing, React must discard the initial render commit and schedule an immediate re-render, generating a `react-hooks/set-state-in-effect` linting diagnostic.
 
-##### Deterministic Resolution via Lazy State Initialization:
+##### Deterministic Resolution via Lazy State Initialization
+
 In `VerifyEmail.tsx`, the initial pending state is resolved synchronously during the initial render pass:
 
 ```tsx
@@ -225,7 +228,8 @@ This eliminates imperative DOM access, supports seamless server-side rendering r
 
 Automated form submission upon reaching a target character threshold (e.g. 6-digit verification codes) previously encouraged imperative DOM manipulation via `useRef`:
 
-##### Modern Standards-Compliant Approach:
+##### Modern Standards-Compliant Approach
+
 Using HTML5 `HTMLFormElement.requestSubmit()`:
 
 ```tsx
@@ -253,27 +257,27 @@ Architectures that minimize side-effect dependencies (`useEffect`), eliminate mu
 
 A formal security audit ([`SECOPS-2026-09-05-002`](file:///home/vivaldev/code/clible-v3-go/.security_audits/security-audit-2026-09-05-resend-mailer-and-email-verification.md)) was conducted covering outbound mail transport and authentication flows:
 
-* **Credential Protection:** `RESEND_API_KEY` is loaded exclusively from environment variables and is never exposed in client-facing API responses or logs.
-* **Bearer HTTPS Authentication:** All outbound requests strictly use TLS with standard Bearer authorization headers.
-* **OTP & Token Entropy:** 6-digit numeric OTPs and 64-hex-character URL tokens are generated using cryptographically secure random (`crypto/rand`).
-* **Session Cookie Security:** JWT session cookies issued upon verification are configured with `HttpOnly: true`, `SameSite: Lax`, and `Secure: isProduction`.
-* **Zero Vulnerabilities:** 0 Critical, 0 High, 0 Medium, 0 Low — **PASSED**.
+- **Credential Protection:** `RESEND_API_KEY` is loaded exclusively from environment variables and is never exposed in client-facing API responses or logs.
+- **Bearer HTTPS Authentication:** All outbound requests strictly use TLS with standard Bearer authorization headers.
+- **OTP & Token Entropy:** 6-digit numeric OTPs and 64-hex-character URL tokens are generated using cryptographically secure random (`crypto/rand`).
+- **Session Cookie Security:** JWT session cookies issued upon verification are configured with `HttpOnly: true`, `SameSite: Lax`, and `Secure: isProduction`.
+- **Zero Vulnerabilities:** 0 Critical, 0 High, 0 Medium, 0 Low — **PASSED**.
 
 ---
 
 ## 📈 Improvement Metrics & Key Figures
 
-* **Zero External Dependencies:** 0 external Go modules added; 100% standard library implementation.
-* **Services Statement Coverage:** 78.2% across `internal/services`, with 100% on `mailer_service.go` and `mailer_templates.go`, and 89.7% on `resend_mailer.go`.
-* **Frontend Test Suite:** 28 test suites passing, 173/173 tests green (100% pass rate).
-* **Linter Quality:** 0 errors across `golangci-lint` and `eslint`.
+- **Zero External Dependencies:** 0 external Go modules added; 100% standard library implementation.
+- **Services Statement Coverage:** 78.2% across `internal/services`, with 100% on `mailer_service.go` and `mailer_templates.go`, and 89.7% on `resend_mailer.go`.
+- **Frontend Test Suite:** 28 test suites passing, 173/173 tests green (100% pass rate).
+- **Linter Quality:** 0 errors across `golangci-lint` and `eslint`.
 
 ---
 
 ## Files Changed
 
 | File | Change Summary |
-|------|----------------|
+| :--- | :--- |
 | `backend/internal/services/resend_mailer.go` | ResendMailer implementation via Resend HTTPS REST API (`POST /emails`). |
 | `backend/internal/services/resend_mailer_test.go` | Comprehensive unit tests with `httptest.Server` verifying success, errors, and cancellation. |
 | `backend/internal/services/mailer_service.go` | Added `NewMailerFromConfig` factory to dynamically choose between Resend and Mock mailers. |
