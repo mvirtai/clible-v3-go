@@ -16,13 +16,13 @@ This pull request aligns all SEO metadata and routing with the production domain
 
 - **[sitemap.xml](file:///home/vivaldev/code/clible-v3-go/frontend/public/sitemap.xml):** Replaced Cloud Run host URLs with `https://clible.fi/` for all indexed endpoints and updated `lastmod` timestamps to `2026-09-05`.
 - **[robots.txt](file:///home/vivaldev/code/clible-v3-go/frontend/public/robots.txt):** Updated `Sitemap:` directive to `https://clible.fi/sitemap.xml` and added `Allow: /guest`.
-- **[index.html](file:///home/vivaldev/code/clible-v3-go/frontend/index.html):** Aligned `<link rel="canonical">`, `og:url`, `og:image`, `twitter:image`, and Schema.org JSON-LD `url` to `https://clible.fi/`.
+- **[index.html](file:///home/vivaldev/code/clible-v3-go/frontend/index.html):** Aligned `<link rel="canonical">`, `og:url`, `og:image`, `twitter:image`, and Schema.org JSON-LD `url` to `https://clible.fi/`. Enhanced `title`, `meta description`, Open Graph tags, Schema.org JSON-LD, and `<noscript>` sections with bilingual (FI + EN) copy and accessibility attributes (`lang="fi"`, `lang="en"`).
 
 ### 2. URL Internationalization (`/guest`) & Backward Compatibility
 
 - **[main.tsx](file:///home/vivaldev/code/clible-v3-go/frontend/src/main.tsx):** Added `/guest` route rendering the main workspace and wired a client-side redirect `<Navigate to="/guest" replace />` for the legacy `/vierailija-yleinen` path.
 - **[Login.tsx](file:///home/vivaldev/code/clible-v3-go/frontend/src/pages/Login.tsx) & [Register.tsx](file:///home/vivaldev/code/clible-v3-go/frontend/src/pages/Register.tsx):** Updated guest navigation links to point to `/guest`.
-- **[index.html](file:///home/vivaldev/code/clible-v3-go/frontend/index.html):** Updated `<noscript>` fallback navigation anchor to point to `/guest`.
+- **[index.html](file:///home/vivaldev/code/clible-v3-go/frontend/index.html):** Updated `<noscript>` fallback navigation anchor to point to `/guest` across both language sections.
 
 ---
 
