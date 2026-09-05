@@ -57,15 +57,18 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 		}
 	})
 
-	t.Run("Unauthorized if no user in context", func(t *testing.T) {
-		reqBody, _ := json.Marshal(api.DSLEvalRequest{Query: "@Joh 3:16"})
+	t.Run("Allows unauthenticated guest evaluation", func(t *testing.T) {
+		reqBody, _ := json.Marshal(api.DSLEvalRequest{
+			Query:         "@Joh 3:16",
+			TranslationID: "web",
+		})
 		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(reqBody))
 		rr := httptest.NewRecorder()
 
 		handler.EvalDSL(rr, req)
 
-		if rr.Code != http.StatusUnauthorized {
-			t.Errorf("expected status 401, got %d", rr.Code)
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
 		}
 	})
 
