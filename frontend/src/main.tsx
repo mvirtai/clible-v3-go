@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import App from './App.tsx';
 import Login from './pages/Login.tsx';
 import Register from './pages/Register.tsx';
@@ -18,7 +18,8 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/vierailija-yleinen" element={<App />} />
+            <Route path="/guest" element={<App />} />
+            <Route path="/vierailija-yleinen" element={<Navigate to="/guest" replace />} />
             <Route path="/*" element={<App />} />
           </Routes>
         </AuthProvider>
