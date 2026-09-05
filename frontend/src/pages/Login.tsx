@@ -131,7 +131,7 @@ export function Login() {
 
         <div className="mt-4 pt-4 border-t text-center" style={{ borderColor: 'var(--border)' }}>
           <Link
-            to="/vierailija-yleinen"
+            to="/guest"
             className="text-xs font-medium hover:underline inline-flex items-center gap-1.5 cursor-pointer"
             style={{ color: 'var(--muted)' }}
           >
