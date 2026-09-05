@@ -535,3 +535,51 @@ tasks:
           echo "✅ Created git release tag: v$VER"
         '
 
+  clip:
+    desc: "Copy file or line range to clipboard. Usage: task clip FILE=path ROWS=start,end (or FROM=.. TO=..)"
+    silent: true
+    vars:
+      FILE: '{{.FILE}}'
+      ROWS: '{{.ROWS}}'
+      FROM: '{{.FROM}}'
+      TO: '{{.TO}}'
+    cmds:
+      - |
+        if [ -z "{{.FILE}}" ]; then
+          echo "❌ Error: FILE parameter is required. Example: task clip FILE=path/to/file ROWS=10,20"
+          exit 1
+        fi
+        if [ ! -f "{{.FILE}}" ]; then
+          echo "❌ Error: File not found: {{.FILE}}"
+          exit 1
+        fi
+
+        RANGE=""
+        if [ -n "{{.ROWS}}" ]; then
+          RANGE=$(echo "{{.ROWS}}" | tr '-' ',' | tr ':' ',')
+        elif [ -n "{{.FROM}}" ] && [ -n "{{.TO}}" ]; then
+          RANGE="{{.FROM}},{{.TO}}"
+        elif [ -n "{{.FROM}}" ]; then
+          RANGE="{{.FROM}},{{.FROM}}"
+        fi
+
+        CLIP_CMD=""
+        if command -v xclip >/dev/null 2>&1; then
+          CLIP_CMD="xclip -selection clipboard"
+        elif command -v wl-copy >/dev/null 2>&1; then
+          CLIP_CMD="wl-copy"
+        elif command -v xsel >/dev/null 2>&1; then
+          CLIP_CMD="xsel --clipboard --input"
+        else
+          echo "❌ Error: Neither xclip, wl-copy, nor xsel found on system."
+          exit 1
+        fi
+
+        if [ -n "$RANGE" ]; then
+          sed -n "${RANGE}p" "{{.FILE}}" | $CLIP_CMD
+          echo "📋 Copied lines $RANGE from {{.FILE}} to clipboard."
+        else
+          cat "{{.FILE}}" | $CLIP_CMD
+          echo "📋 Copied entire {{.FILE}} to clipboard."
+        fi
+
