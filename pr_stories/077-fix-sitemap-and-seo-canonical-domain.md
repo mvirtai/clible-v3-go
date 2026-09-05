@@ -26,6 +26,20 @@ This pull request aligns all SEO metadata and routing with the production domain
 
 ---
 
+## Files Changed
+
+| File | Change Summary |
+|------|----------------|
+| `frontend/public/sitemap.xml` | Updated domain to `https://clible.fi/`, updated guest route to `/guest`, updated `lastmod` |
+| `frontend/public/robots.txt` | Updated Sitemap URL to `https://clible.fi/sitemap.xml`, added `Allow: /guest` |
+| `frontend/index.html` | Updated canonical URL, Open Graph, Twitter, Schema.org, and bilingual noscript section |
+| `frontend/src/main.tsx` | Added `/guest` route and backward-compatible redirect `/vierailija-yleinen` -> `/guest` |
+| `frontend/src/pages/Login.tsx` | Updated guest link destination to `/guest` |
+| `frontend/src/pages/Register.tsx` | Updated guest link destination to `/guest` |
+| `pr_stories/077-fix-sitemap-and-seo-canonical-domain.md` | PR story documentation |
+
+---
+
 ## Testing Strategy & Metrics
 
 ### Automated Backend Tests
