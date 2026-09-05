@@ -25,6 +25,8 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   /** Registers a new user account with email and password credentials. */
   register: (email: string, password: string) => Promise<void>;
+  /** Verifies user email via token or code and establishes authenticated session. */
+  verifyEmail: (params: { email?: string; code?: string; token?: string }) => Promise<User>;
   /** Terminates the active user session and reverts to guest mode. */
   logout: () => Promise<void>;
   /** Activates guest exploration mode without requiring authentication. */
@@ -75,8 +77,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const register = async (email: string, password: string) => {
-    const newUser = await apiService.register(email, password);
-    setUser(newUser);
+    await apiService.register(email, password);
+  };
+
+  const verifyEmail = async (params: { email?: string; code?: string; token?: string }): Promise<User> => {
+    const verifiedUser = await apiService.verifyEmail(params);
+    setUser(verifiedUser);
+    return verifiedUser;
   };
 
   const logout = async () => {
@@ -95,7 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isGuest = user === null;
 
   return (
-    <AuthContext value={{ user, isGuest, loading, login, register, logout, enterGuestMode }}>
+    <AuthContext value={{ user, isGuest, loading, login, register, verifyEmail, logout, enterGuestMode }}>
       {children}
     </AuthContext>
   );
