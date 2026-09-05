@@ -44,7 +44,7 @@ sequenceDiagram
     API->>API: Issue signed JWT & set HttpOnly SameSite=Lax cookie
     API-->>AuthCtx: 200 OK (user: { id, email }, message: email_verified)
     AuthCtx->>AuthCtx: setUser(verifiedUser) (isGuest = false)
-    AuthUI->>User: Animate success & navigate to '/' as authenticated user 🚀
+    AuthUI->>User: Animate success and navigate to '/' as authenticated user 🚀
 ```
 
 ---
@@ -57,8 +57,8 @@ The runtime environment determines provider selection dynamically on startup:
 flowchart TD
     Start["cfg.Load()"] --> CheckResend{"cfg.ResendAPIKey != ''"}
     CheckResend -->|"Yes"| ResolveSender{"cfg.SMTPFrom != ''"}
-    ResolveSender -->|"Yes"| UseCustomSender["from = cfg.SMTPFrom<br/>('Clible <noreply@mail.clible.fi>')"]
-    ResolveSender -->|"No"| UseDefaultSender["from = 'Clible <onboarding@resend.dev>'"]
+    ResolveSender -->|"Yes"| UseCustomSender["from = cfg.SMTPFrom<br/>('Clible noreply@mail.clible.fi')"]
+    ResolveSender -->|"No"| UseDefaultSender["from = 'Clible onboarding@resend.dev'"]
     UseCustomSender --> InitResend["NewResendMailer(apiKey, from)"]
     UseDefaultSender --> InitResend
     InitResend --> ReturnService["Return MailerService"]
@@ -90,14 +90,162 @@ flowchart TD
 - **AuthContext Session Action:** Added `verifyEmail` to `AuthContextType`, which updates React user state (`setUser(verifiedUser)`) upon verification.
 - **Removed False Registration Session:** Removed premature `setUser` call in `register` since unverified users do not possess a valid JWT cookie session.
 
-### 4. React 19.2 & React Compiler Modernization (`VerifyEmail.tsx`)
+### 4. Frontend Architectural Modernization: React 19.2 & React Compiler Paradigms
 
-- **`useActionState` Form Management:** Refactored manual OTP submission to React 19's native action pattern, eliminating manual `loading`, `error`, and `success` state boilerplate.
-- **`useTransition` Cooldown Handling:** Implemented code resend triggers using React 19 `useTransition` for responsive UI state transitions.
-- **Document Metadata Hoisting:** Replaced manual `document.title` `useEffect` with React 19's first-class `<title>` element rendered directly in JSX.
-- **Zero `useRef` Hacks:** Eliminated `inputRef` DOM synchronization hacks, leveraging native `e.currentTarget.form?.requestSubmit()` for 6-digit auto-submission.
-- **Eliminated Cascading Renders:** Resolved `react-hooks/set-state-in-effect` linting error by lazily initializing `isTokenPending` directly from router search parameters.
-- **Navigation Resilience:** Added direct fallback navigation link to `/login`.
+The email verification flow in `VerifyEmail.tsx` was restructured to establish a reference implementation for **React 19.2 idioms and React Compiler optimization patterns**, moving away from legacy imperative effect cascades, distributed boolean state juggling, and DOM ref bridges.
+
+#### Deterministic Action State Machines vs. Distributed Boolean State
+
+Conventional form handling in earlier React versions often relied on multiple disconnected state setters to orchestrate submission lifecycles:
+
+```tsx
+// Distributed state approach: prone to state desynchronization
+const [code, setCode] = useState("");
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+const [success, setSuccess] = useState(false);
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
+  try {
+    await verifyCode(code);
+    setSuccess(true);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+This distributed model introduces cognitive overhead and structural risks:
+* **State Desynchronization:** Exception boundaries or aborted requests can leave `loading: true` permanently active or preserve stale error messages.
+* **Render Pass Multiplicity:** Independent state dispatches trigger redundant render passes unless explicitly batched by concurrent schedulers.
+* **Decoupling from Web Standards:** Bypasses native HTML form behavior, requiring synthetic event interception (`e.preventDefault()`).
+
+#### Declarative Mutation Architecture with `useActionState`
+
+React 19 formalizes asynchronous operations through first-class **Actions**, consolidating submission lifecycles into a deterministic state transition:
+
+```tsx
+interface ActionState {
+  error: string | null;
+  success: boolean;
+}
+
+const [actionState, formAction, isPending] = useActionState(
+  async (prevState: ActionState, formData: FormData): Promise<ActionState> => {
+    const rawCode = (formData.get("code") as string)?.replace(/\D/g, "");
+    if (!rawCode || rawCode.length !== 6) {
+      return { error: t("auth.invalid_code"), success: false };
+    }
+    try {
+      await verifyEmail({ email, code: rawCode });
+      return { error: null, success: true };
+    } catch (err) {
+      return { error: (err as Error).message, success: false };
+    }
+  },
+  { error: null, success: false }
+);
+```
+
+##### Architectural Characteristics:
+* **Atomic State Transitions:** Next states are calculated pure-functionally as `(prevState, formData) => Promise<nextState>`. The UI cannot enter invalid composite states (e.g. concurrent `loading = true` and `success = true`).
+* **Integrated Transition Coordination:** The returned `isPending` boolean is managed natively within React's transition scheduler, avoiding manual loading flags and keeping peripheral UI responsive.
+* **Standard Form Binding:** Attaching `formAction` to `<form action={formAction}>` delegates event capture, form data aggregation, and submission lifecycle to the browser and React runtime declaratively.
+
+| Dimension | Distributed State (`useState`) | Declarative Actions (`useActionState`) |
+|---|---|---|
+| **State Machine** | Disconnected variables (`loading`, `error`, `success`) | Single unified state tuple `[state, action, isPending]` |
+| **Error Handling** | Imperative `try/catch/finally` blocks | Deterministic state resolution via return value |
+| **Concurrency** | Manual flag synchronization | Native integration with React Transition scheduler |
+| **DOM Semantics** | Synthetic `onSubmit` handlers | Standard HTML `<form action={...}>` invocation |
+
+---
+
+#### Synchronous Initial State Derivation vs. Effect-Driven Synchronization
+
+Component initialization from URL parameters (such as `?token=abc...`) often creates cascading render loops if parameters are evaluated inside effects:
+
+```tsx
+// Anti-pattern: Cascading update cycle
+const [isPending, setIsPending] = useState(false);
+useEffect(() => {
+  if (token) {
+    setIsPending(true); // Schedules synchronous second render pass
+    runVerification(token);
+  }
+}, [token]);
+```
+
+When `setIsPending(true)` executes synchronously during effect processing, React must discard the initial render commit and schedule an immediate re-render, generating a `react-hooks/set-state-in-effect` linting diagnostic.
+
+##### Deterministic Resolution via Lazy State Initialization:
+In `VerifyEmail.tsx`, the initial pending state is resolved synchronously during the initial render pass:
+
+```tsx
+const [isTokenPending, setIsTokenPending] = useState(() => Boolean(urlToken));
+```
+
+The component mounts directly in its verified pending state without intermediate layout shifts or discarded render frames. The asynchronous network execution remains cleanly isolated inside the effect lifecycle.
+
+---
+
+#### Declarative Document Metadata Hoisting
+
+Manipulating document headers traditionally required imperative DOM effects or third-party wrappers:
+
+```tsx
+// Imperative effect approach
+useEffect(() => {
+  document.title = `${t("auth.verify_email")} | Clible`;
+}, [t]);
+```
+
+React 19 natively recognizes document metadata elements (`<title>`, `<meta>`, `<link>`) placed within standard component trees and hoists them automatically into document `<head>`:
+
+```tsx
+// Native declarative hoisting
+return (
+  <div className="verify-page">
+    <title>{`${t("auth.verify_email")} | Clible`}</title>
+    {/* View content */}
+  </div>
+);
+```
+
+This eliminates imperative DOM access, supports seamless server-side rendering reconciliation, and ensures strict consistency during client-side route transitions.
+
+---
+
+#### Native Web Standards Event Dispatching vs. Imperative Refs
+
+Automated form submission upon reaching a target character threshold (e.g. 6-digit verification codes) previously encouraged imperative DOM manipulation via `useRef`:
+
+##### Modern Standards-Compliant Approach:
+Using HTML5 `HTMLFormElement.requestSubmit()`:
+
+```tsx
+onChange={(e) => {
+  const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+  if (val.length === 6) {
+    e.currentTarget.form?.requestSubmit();
+  }
+}}
+```
+
+`requestSubmit()` adheres to web standards by validating form constraints, triggering native submit handlers, and activating React's synthetic form pipeline without introducing mutable component ref bridges.
+
+---
+
+#### React Compiler Compatibility Principles
+
+The React Compiler performs automatic fine-grained memoization by statically analyzing lexical scopes and variable dependencies.
+
+Architectures that minimize side-effect dependencies (`useEffect`), eliminate mutable state bridges (`useRef`), and maintain unidirectional data flow allow the compiler to maximize optimization surface and omit manual `useMemo`/`useCallback` directives across the component hierarchy.
 
 ---
 
