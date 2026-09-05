@@ -13,9 +13,16 @@ tasks:
   backend:tidy:
     desc: Tidy and verify Go module dependencies
     dir: backend
+    sources:
+      - 'go.mod'
+      - 'go.sum'
+    generates:
+      - '../.cov/backend/.tidy_ok'
+    method: checksum
     cmds:
       - go mod tidy
       - go mod verify
+      - mkdir -p ../.cov/backend && touch ../.cov/backend/.tidy_ok
 
   backend:format:
     desc: Auto-format Go source code files
@@ -26,8 +33,16 @@ tasks:
   backend:lint:
     desc: Run golangci-lint on the Go source code
     dir: backend
+    sources:
+      - '**/*.go'
+      - '.golangci.yml'
+      - 'go.mod'
+    generates:
+      - '../.cov/backend/.lint_ok'
+    method: checksum
     cmds:
       - golangci-lint run ./...
+      - mkdir -p ../.cov/backend && touch ../.cov/backend/.lint_ok
 
   backend:test:
     desc: Run all Go unit and integration tests
@@ -38,6 +53,14 @@ tasks:
   backend:test-cov:
     desc: Run all Go unit and integration tests with race detector
     dir: backend
+    sources:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+    generates:
+      - '../.cov/backend/coverage.out'
+      - '../.cov/backend/coverage.txt'
+    method: checksum
     cmds:
       - mkdir -p ../.cov/backend
       - |
@@ -98,8 +121,19 @@ tasks:
   frontend:lint:
     desc: Run linter and type-checks for the React application
     dir: frontend
+    sources:
+      - 'src/**/*.{ts,tsx}'
+      - 'package.json'
+      - 'tsconfig.json'
+      - 'tsconfig.app.json'
+      - 'tsconfig.node.json'
+      - 'eslint.config.js'
+    generates:
+      - '../.cov/frontend/.lint_ok'
+    method: checksum
     cmds:
       - pnpm run lint
+      - mkdir -p ../.cov/frontend && touch ../.cov/frontend/.lint_ok
 
   frontend:build:
     desc: Build the production frontend assets
@@ -116,6 +150,14 @@ tasks:
   frontend:test-cov:
     desc: Run frontend unit tests and produce coverage report
     dir: frontend
+    sources:
+      - 'src/**/*.{ts,tsx}'
+      - 'package.json'
+      - 'vite.config.ts'
+      - 'vitest.setup.ts'
+    generates:
+      - '../.cov/frontend/test_output.log'
+    method: checksum
     cmds:
       - mkdir -p ../.cov/frontend
       - |
@@ -247,7 +289,7 @@ tasks:
       - rm temp_pr_story.md
 
   git:commit:
-    desc: 'Stage changes and create a formatted conventional commit. Usage: task git:commit TYPE=feat SCOPE=setup MSG="add config loader" [FILES="file1 file2"]'
+    desc: 'Stage changes and create a formatted conventional commit. Usage: task git:commit TYPE=feat SCOPE=setup MSG="add config loader" [FILES="file1"] [SKIP_CHECK=1]'
     cmds:
       - |
         VALID_TYPES="feat fix docs style refactor perf test build ci chore"
@@ -255,6 +297,10 @@ tasks:
         SCOPE="{{.SCOPE}}"
         MSG="{{.MSG}}"
         FILES="{{.FILES}}"
+        SKIP_CHECK="{{.SKIP_CHECK}}"
+        if [ -z "$SKIP_CHECK" ]; then
+          SKIP_CHECK="{{.SKIP_TESTS}}"
+        fi
 
         if [ -z "$FILES" ]; then
           FILES="."
@@ -262,7 +308,7 @@ tasks:
 
         if [ -z "$TYPE" ] || [ -z "$SCOPE" ] || [ -z "$MSG" ]; then
           echo "ERROR: Parameters TYPE, SCOPE, and MSG are required!"
-          echo "Usage: task git:commit TYPE=feat SCOPE=setup MSG=\"add configuration loader\" [FILES=\"cmd/ internal/config/config.go\"]"
+          echo "Usage: task git:commit TYPE=feat SCOPE=setup MSG=\"add configuration loader\" [FILES=\"cmd/ internal/config/config.go\"] [SKIP_CHECK=1]"
           echo "Allowed TYPE values: $VALID_TYPES"
           echo "Example SCOPE values: setup, config, handler, server, test, docs, db, auth"
           exit 1
@@ -303,7 +349,9 @@ tasks:
           fi
         fi
 
-        if [ $HAS_BACKEND -eq 1 ] && [ $HAS_FRONTEND -eq 1 ]; then
+        if [ "$SKIP_CHECK" = "1" ] || [ "$SKIP_CHECK" = "true" ]; then
+          echo "[TASK] SKIP_CHECK=1 provided. Bypassing quality checks."
+        elif [ $HAS_BACKEND -eq 1 ] && [ $HAS_FRONTEND -eq 1 ]; then
           echo "Changes affect both backend and frontend. Running global quality checks..."
           task check
         elif [ $HAS_BACKEND -eq 1 ]; then
