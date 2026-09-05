@@ -93,3 +93,13 @@ export interface Notebook {
     /** ISO timestamp string for last modification date */
     updatedAt: string;
 }
+
+/**
+ * Represents a guest notebook (not registered user).
+ */
+export interface GuestNotebookStore {
+    /** ISO timestamp string for expiration date */
+    expiresAt: number;
+    /** List of contained notebooks */
+    notebooks: Notebook[];
+}
