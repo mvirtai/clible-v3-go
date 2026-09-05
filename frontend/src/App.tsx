@@ -23,6 +23,11 @@ import type { SearchVerse } from './types/search';
 import type { OriginalStudyResult } from './types/originalStudy';
 import type { AiTextResponse } from './types/ai';
 import type { Notebook } from './components/notebook/types';
+import {
+  getGuestNotebooks,
+  createGuestNotebook,
+  updateGuestNotebook,
+} from './utils/guestNotebookStorage';
 
 interface LoadedSearchState {
   query: string;
@@ -111,6 +116,13 @@ export function App() {
   // Fetch notebooks when switching to the view or returning from the editor to the list
   useEffect(() => {
     if (viewMode === 'notebooks') {
+      if (!user) {
+        void Promise.resolve().then(() => {
+          setNotebooks(getGuestNotebooks());
+        });
+        return;
+      }
+
       const fetchNotebooks = async () => {
         try {
           const res = await fetch('/api/notebooks');
@@ -124,15 +136,24 @@ export function App() {
       };
       fetchNotebooks();
     }
-  }, [viewMode, selectedNotebookId]);
+  }, [viewMode, selectedNotebookId, user]);
 
   const handleCreateNotebook = async () => {
+    const title = `${strings.notebookDefaultTitle} ${new Date().toISOString().split('T')[0]}`;
+
+    if (!user) {
+      const newNotebook = createGuestNotebook(title, lang);
+      setNotebooks((prev) => [newNotebook, ...prev]);
+      setSelectedNotebookId(newNotebook.id);
+      return;
+    }
+
     try {
       const res = await fetch('/api/notebooks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: `${strings.notebookDefaultTitle} ${new Date().toISOString().split('T')[0]}`,
+          title,
           scopeId: activeScopeId || undefined,
         }),
       });
@@ -157,6 +178,20 @@ export function App() {
         colHeight: undefined,
       }))
     );
+
+    if (!user) {
+      notebooks.forEach((nb) => {
+        updateGuestNotebook(nb.id, {
+          colSpan: 12,
+          colStart: undefined,
+          rowStart: undefined,
+          rowSpan: 5,
+          colHeight: undefined,
+        });
+      });
+      return;
+    }
+
     try {
       await Promise.all(
         notebooks.map((nb) =>
@@ -580,6 +615,7 @@ export function App() {
                 }}
                 onCreateNotebook={handleCreateNotebook}
                 onResetNotebookSizes={handleResetNotebookSizes}
+                isGuest={!user}
               />
             )}
           </div>

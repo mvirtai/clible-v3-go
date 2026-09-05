@@ -7,6 +7,12 @@ import { SortableNotebookCard } from './SortableNotebookCard';
 import { NotebookEditor } from './NotebookEditor';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Notebook } from './types';
+import { GuestNotebookBanner } from './GuestNotebookBanner';
+import {
+  isGuestNotebookId,
+  updateGuestNotebook,
+  saveAllGuestNotebooks,
+} from '../../utils/guestNotebookStorage';
 
 export interface NotebookCanvasViewProps {
   notebooks: Notebook[];
@@ -17,6 +23,7 @@ export interface NotebookCanvasViewProps {
   onSelectVerse: (ref: string) => void;
   onCreateNotebook: () => void;
   onResetNotebookSizes: () => void;
+  isGuest?: boolean;
 }
 
 export function NotebookCanvasView({
@@ -28,6 +35,7 @@ export function NotebookCanvasView({
   onSelectVerse,
   onCreateNotebook,
   onResetNotebookSizes,
+  isGuest = false,
 }: NotebookCanvasViewProps) {
   const { strings } = useLanguage();
   const [isAnyCardResizing, setIsAnyCardResizing] = useState(false);
@@ -35,17 +43,19 @@ export function NotebookCanvasView({
   if (selectedNotebookId) {
     return (
       <div className="space-y-6">
+        {isGuest && <GuestNotebookBanner />}
         <div>
           <button
             onClick={() => onSelectNotebook(null)}
             className="mb-4 px-3 py-1.5 bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 border border-[var(--border-soft)] text-[var(--muted)] hover:text-[var(--text)] text-xs rounded transition-all flex items-center gap-1 cursor-pointer"
           >
-            ← {strings.backToBroaderText ? '← Takaisin listaukseen' : '← Back to list'}
+            {strings.backToList}
           </button>
           <NotebookEditor
             notebookId={selectedNotebookId}
             translation={selectedTranslation}
             onSelectVerse={onSelectVerse}
+            isGuest={isGuest}
           />
         </div>
       </div>
@@ -76,9 +86,17 @@ export function NotebookCanvasView({
         </div>
       </div>
 
+      {isGuest && <GuestNotebookBanner />}
+
       <DragDropProvider
         onDragEnd={(event) => {
-          onNotebooksChange((prev) => move(prev, event));
+          onNotebooksChange((prev) => {
+            const next = move(prev, event);
+            if (isGuest) {
+              saveAllGuestNotebooks(next);
+            }
+            return next;
+          });
         }}
       >
         {/* 24-sarakkeinen tiivis CSS Grid -kontti 24px automaattisilla rivikorkeuksilla */}
@@ -93,8 +111,18 @@ export function NotebookCanvasView({
               onResizeStart={() => setIsAnyCardResizing(true)}
               onResizeEnd={async (colSpan, rowSpan) => {
                 setIsAnyCardResizing(false);
+                if (isGuestNotebookId(nb.id)) {
+                  updateGuestNotebook(nb.id, { colSpan, rowSpan });
+                  onNotebooksChange((prev) =>
+                    prev.map((item) =>
+                      item.id === nb.id ? { ...item, colSpan, rowSpan } : item
+                    )
+                  );
+                  return;
+                }
+
                 try {
-                  // Tallenna matriisikoot taustajärjestelmään (colSpan ja rowSpan)
+                  // Save matrix sizes to backend (colSpan and rowSpan)
                   await fetch(`/api/notebooks/${nb.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -103,7 +131,7 @@ export function NotebookCanvasView({
                       rowSpan,
                     }),
                   });
-                  // Päivitä tila synkronisesti frontendissä
+                  // Update state synchronously in the frontend
                   onNotebooksChange((prev) =>
                     prev.map((item) =>
                       item.id === nb.id ? { ...item, colSpan, rowSpan } : item

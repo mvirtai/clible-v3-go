@@ -5,6 +5,12 @@ import { MarkdownCell } from './cells/MarkdownCell';
 import { useLanguage } from '../../context/LanguageContext';
 import { DragDropProvider } from '@dnd-kit/react';
 import { move } from '@dnd-kit/helpers';
+import {
+  isGuestNotebookId,
+  getSingleGuestNotebook,
+  updateSingleGuestNotebook,
+  saveGuestCells,
+} from '../../utils/guestNotebookStorage';
 
 /**
  * Props for the {@link NotebookEditor} component.
@@ -16,17 +22,20 @@ export interface NotebookEditorProps {
   translation?: string;
   /** Optional callback triggered when clicking a Bible verse reference */
   onSelectVerse?: (ref: string) => void;
+  /** Whether the notebook belongs to a guest user (if true, shows guest banner) */
+  isGuest?: boolean;
 }
 
 /**
  * Main interactive editor component for a single notebook.
  * Renders an editable title, drag-and-drop sortable cell grid, cell creation controls,
- * and auto-saving logic synced with the backend REST API.
+ * and auto-saving logic synced with the backend REST API or guest localStorage.
  *
  * @param props - Component properties conforming to {@link NotebookEditorProps}.
  * @returns Interactive notebook editor workspace.
  */
-export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse }: NotebookEditorProps) {
+export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse, isGuest = false }: NotebookEditorProps) {
+  const { strings } = useLanguage();
   const [notebook, setNotebook] = useState<Notebook | null>(null);
   const [cells, setCells] = useState<Cell[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +53,28 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
   useEffect(() => {
     const fetchNotebook = async () => {
       setIsLoading(true);
+
+      // Handle guest notebook loaded from localStorage
+      if (isGuest || isGuestNotebookId(notebookId)) {
+        const data = getSingleGuestNotebook(notebookId);
+        if (!data) {
+          setError(strings.guestNotebookExpiredNotice);
+          setIsLoading(false);
+          return;
+        }
+
+        const sortedCells = (data.cells || []).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        setNotebook(data);
+        setCells(sortedCells);
+        setTitleInput(data.title || '');
+        setError(null);
+        setIsLoading(false);
+        setTimeout(() => {
+          initialLoadDone.current = true;
+        }, 100);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/notebooks/${notebookId}`);
         if (!res.ok) throw new Error('Failed to load notebook.');
@@ -67,9 +98,9 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
     };
 
     fetchNotebook();
-  }, [notebookId]);
+  }, [notebookId, isGuest]);
 
-  // 2. Save modified title to backend
+  // 2. Save modified title to backend or localStorage
   const handleTitleSave = async () => {
     const trimmed = titleInput.trim();
     if (!trimmed || !notebook || trimmed === notebook.title) {
@@ -77,6 +108,16 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
       if (notebook) {
         setTitleInput(notebook.title);
       }
+      return;
+    }
+
+    if (isGuest || isGuestNotebookId(notebookId)) {
+      const updated = updateSingleGuestNotebook(notebookId, { title: trimmed });
+      if (updated) {
+        setNotebook(updated);
+        setTitleInput(updated.title);
+      }
+      setIsEditingTitle(false);
       return;
     }
 
@@ -105,8 +146,13 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
     }
   };
 
-  // 3. Persist current cell list state to backend
+  // 3. Persist current cell list state to backend or localStorage
   const saveCells = useCallback(async (currentCells: Cell[]) => {
+    if (isGuest || isGuestNotebookId(notebookId)) {
+      saveGuestCells(notebookId, currentCells);
+      return;
+    }
+
     setIsSaving(true);
     try {
       // Send cell contents and updated position indices
@@ -131,7 +177,7 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
     } finally {
       setIsSaving(false);
     }
-  }, [notebookId]);
+  }, [notebookId, isGuest]);
 
   // Debounced effect for auto-saving cell changes
   useEffect(() => {
@@ -207,8 +253,12 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
 
   // 6. Create and insert a new markdown cell at a target index position
   const handleInsertCell = (index: number) => {
+    const cellId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `cell-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
     const newCell: Cell = {
-      id: crypto.randomUUID(),
+      id: cellId,
       notebookId,
       type: 'markdown',
       content: '',
@@ -222,8 +272,6 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
       return reorderCells(next);
     });
   };
-
-  const { strings } = useLanguage();
 
   if (isLoading) {
     return (
@@ -239,13 +287,13 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse 
 
   if (error && cells.length === 0) {
     return (
-      <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-6 rounded-lg text-center my-6">
-        <h3 className="font-bold text-lg mb-1">{strings.errorHeading}</h3>
-        <p className="text-sm text-red-300/80 mb-4">{error}</p>
+      <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-300 p-6 rounded-2xl text-center my-6 max-w-lg mx-auto shadow-xs">
+        <h3 className="font-bold text-base mb-1.5">{strings.errorHeading}</h3>
+        <p className="text-xs text-red-600/90 dark:text-red-300/80 mb-4 leading-relaxed">{error}</p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-500/30 text-white rounded text-sm transition-all cursor-pointer"
+          className="px-4 py-2 bg-[var(--surface-2)] border border-[var(--border)] hover:bg-[var(--surface-2)]/80 text-[var(--text)] rounded-xl text-xs font-medium transition-all cursor-pointer shadow-xs"
         >
           {strings.retryButtonLabel}
         </button>

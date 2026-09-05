@@ -57,15 +57,18 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 		}
 	})
 
-	t.Run("Unauthorized if no user in context", func(t *testing.T) {
-		reqBody, _ := json.Marshal(api.DSLEvalRequest{Query: "@Joh 3:16"})
+	t.Run("Allows unauthenticated guest evaluation", func(t *testing.T) {
+		reqBody, _ := json.Marshal(api.DSLEvalRequest{
+			Query:         "@Joh 3:16",
+			TranslationID: "web",
+		})
 		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(reqBody))
 		rr := httptest.NewRecorder()
 
 		handler.EvalDSL(rr, req)
 
-		if rr.Code != http.StatusUnauthorized {
-			t.Errorf("expected status 401, got %d", rr.Code)
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
 		}
 	})
 
@@ -85,6 +88,18 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 	t.Run("Bad request on invalid json body", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBufferString("{invalid-json"))
 		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
+		rr := httptest.NewRecorder()
+
+		handler.EvalDSL(rr, req)
+
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400, got %d", rr.Code)
+		}
+	})
+
+	t.Run("Rejects request body exceeding max size", func(t *testing.T) {
+		largeBody := bytes.Repeat([]byte("a"), (1<<20)+10)
+		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(largeBody))
 		rr := httptest.NewRecorder()
 
 		handler.EvalDSL(rr, req)

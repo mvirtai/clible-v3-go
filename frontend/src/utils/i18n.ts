@@ -287,9 +287,17 @@ export interface Messages {
   themeDarkAria: string;
   packageInstalledMsg: string;
   errOriginalTextNotFound: string;
+  notebookTitleDefault: string;
 
   // Language selection
   changeLanguage: string;
+
+  // Guest Ephemeral Notebooks (1h TTL)
+  guestNotebookBannerTitle: string;
+  guestNotebookBannerDesc: string;
+  guestNotebookExpiresIn: string;
+  guestNotebookExpiredNotice: string;
+  guestNotebookSignUpCta: string;
 }
 
 export const strings: Record<UILanguage, Messages> = {
@@ -573,6 +581,15 @@ export const strings: Record<UILanguage, Messages> = {
     verifyButton: 'Verify Account',
     resendCodeLabel: 'Resend new code',
     resendCodeCooldown: 'You can request a new code in {seconds}s',
+    notebookTitleDefault: 'New Notebook',
+
+      // Guest Ephemeral Notebooks (1h TTL)
+    guestNotebookBannerTitle: 'Temporary Guest Mode (1h)',
+    guestNotebookBannerDesc: 'Your notebooks are stored in this browser for 1 hour. Create a free account to save them permanently to the cloud.',
+    guestNotebookExpiresIn: 'Time remaining: {time}',
+    guestNotebookExpiredNotice: 'The 1-hour guest notebook session has expired and temporary notebooks were reset.',
+    guestNotebookSignUpCta: 'Create account',
+    
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -864,6 +881,14 @@ export const strings: Record<UILanguage, Messages> = {
     themeDarkAria: 'Käytä pimeää tilaa',
     packageInstalledMsg: 'Paketti {id} asennettiin onnistuneesti.',
     errOriginalTextNotFound: 'Alkutekstiä ei löytynyt tälle viitteelle.',
+    notebookTitleDefault: 'Uusi muistikirja',
+
+    // Guest Ephemeral Notebooks (1h TTL)
+    guestNotebookBannerTitle: 'Väliaikainen vierastila (1 h)',
+    guestNotebookBannerDesc: 'Muistikirjasi säilyvät tässä selaimessa 1 tunnin ajan. Luo ilmainen tili tallentaaksesi ne pysyvästi pilveen.',
+    guestNotebookExpiresIn: 'Aikaa jäljellä: {time}',
+    guestNotebookExpiredNotice: 'Vierastilan 1 tunnin aikaraja on umpeutunut ja väliaikaiset muistikirjat on nollattu.',
+    guestNotebookSignUpCta: 'Luo ilmainen tili',
   }
 
 };

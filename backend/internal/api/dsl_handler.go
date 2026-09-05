@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
 
@@ -32,12 +31,9 @@ func (h *DSLHandler) EvalDSL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
-		return
+	// Limit request body to 1 MB to prevent resource exhaustion attacks (CWE-400, CWE-770)
+	if r.Body != nil {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	}
 
 	var req DSLEvalRequest
