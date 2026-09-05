@@ -61,7 +61,7 @@ func main() {
 		slog.Error("Critical startup failure: JWT_SECRET must be at least 32 characters long")
 		os.Exit(1)
 	}
-	mailerService := services.NewMockMailer()
+	mailerService := services.NewMailerFromConfig(cfg)
 	authService := services.NewAuthService(userRepo, jwtSecret, mailerService, cfg.AppBaseURL)
 
 	analyticService, err := services.NewAnalyticService(verseRepo, true, "en,fi,grc,el")

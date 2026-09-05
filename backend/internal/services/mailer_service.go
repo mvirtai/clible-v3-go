@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/mvirtai/clible-v3-go/internal/config"
 )
 
 // MailerService defines the delivery contract for transactional emails.
@@ -32,3 +34,18 @@ func (m *MockMailer) SendVerificationEmail(ctx context.Context, toEmail, code, t
 	return nil
 }
 
+// NewMailerFromConfig instantiates the appropriate MailerService based on configuration.
+// If ResendAPIKey is provided, it returns an active ResendMailer. Otherwise, it defaults to MockMailer.
+func NewMailerFromConfig(cfg *config.Config) MailerService {
+	if cfg != nil && cfg.ResendAPIKey != "" {
+		from := cfg.SMTPFrom
+		if from == "" {
+			from = "Clible <onboarding@resend.dev>"
+		}
+		log.Printf("📧 [Mailer] Initialized ResendMailer (from: %s)", from)
+		return NewResendMailer(cfg.ResendAPIKey, from)
+	}
+
+	log.Println("📧 [Mailer] No email provider configured, falling back to MockMailer (stdout logs)")
+	return NewMockMailer()
+}
