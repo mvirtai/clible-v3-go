@@ -35,8 +35,8 @@ Tietoturva-auditointi suoritettiin kehityshaaran `feat/guest-mode-ephemeral-note
 | 🔴 **Kriittinen (Critical)** | 0 | 9.0–10.0 | — |
 | 🟠 **Korkea (High)** | 0 | 7.0–8.9 | — |
 | 🟡 **Keskitaso (Medium)** | 0 | 4.0–6.9 | — |
-| 🔵 **Matala / Info (Low/Info)** | 2 | 0.1–3.9 | Huomioitu: DoS-suojaus (Body size) ja localStorage-herkkyys |
-| **Yhteensä** | **2** | | |
+| 🔵 **Matala / Info (Low/Info)** | 0 | 0.1–3.9 | Kaikki havainnot korjattu ja todennettu |
+| **Yhteensä** | **0** | | |
 
 ---
 
@@ -76,10 +76,16 @@ Tietoturva-auditointi suoritettiin kehityshaaran `feat/guest-mode-ephemeral-note
 ### 3.3 Syötteen validointi ja resurssienhallinta (CWE-400, CWE-770)
 
 * **Tarkasteltu:** Voiko `/api/dsl/eval`-reittiä ylikuormittaa suurilla pyyntökuormilla?
-* **Havainto (SEC-001 - Low/Info):**
-  * `DSLHandler.EvalDSL` lukee pyynnön rungon `json.NewDecoder(r.Body).Decode(&req)` ilman `http.MaxBytesReader`-rajoitusta.
-  * Vaikka Go:n JSON-dekooderi on tehokas, suositeltava puolustuksellinen käytäntö (Defense-in-Depth) on rajoittaa HTTP-pyynnön koko esimerkiksi 1 megatavuun (`r.Body = http.MaxBytesReader(w, r.Body, 1<<20)`).
-* **Tila:** Huomioitu tiedoksi / tulevaksi hardening-kohteeksi (Low).
+* **Havainto ja toimenpide:**
+  * [backend/internal/api/dsl_handler.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/api/dsl_handler.go#L34-L37) -handler suojattiin rajoittamalla saapuvan HTTP-pyynnön rungon koko enintään 1 megatavuun:
+    ```go
+    if r.Body != nil {
+        r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+    }
+    ```
+  * Mikäli pyynnön koko ylittää 1 megatavun, Go:n `MaxBytesReader` keskeyttää lukemisen ja JSON-dekooderi palauttaa virheen hyläten pyynnön (`400 Bad Request`), mikä estää muistin ylikuormituksen ja DoS-hyökkäykset.
+  * Toiminta todennettiin automaattisella yksikkötestillä `TestDSLHandler_EvalDSL/Rejects_request_body_exceeding_max_size` tiedostossa [backend/internal/api/dsl_handler_test.go](file:///home/vivaldev/code/clible-v3-go/backend/internal/api/dsl_handler_test.go).
+* **Tila:** **KORJATTU (RESOLVED)**.
 
 ### 3.4 Riippuvuustarkistus ja haavoittuvuuksien eliminointi (CWE-1395)
 

@@ -117,6 +117,8 @@ graph TD
 * **Ephemeral Isolation:** Guest notebooks are stored exclusively in the visitor's local browser storage. No temporary guest data or unverified notes are written to the production PostgreSQL cluster, eliminating database pollution.
 * **Safe Guest Identifiers:** Guest notebook IDs are explicitly prefixed with `guest-`. The backend strictly enforces `requireAuth` on `/api/notebooks/*`, preventing any client from querying or modifying foreign records via REST.
 * **AI & Cloud Persistence Boundaries Maintained:** Premium Gemini AI routes (`/api/ai/*`) and cloud workspace synchronization (`/api/scopes/*`) remain protected by strict JWT authentication and rate limiting.
+* **DoS Protection & Memory Limiting (CWE-400, CWE-770):** Secured `POST /api/dsl/eval` with `http.MaxBytesReader(w, r.Body, 1<<20)`, bounding incoming DSL payloads to 1 MB and mitigating resource exhaustion vectors.
+* **Formal Security Review:** Passed audit `SECOPS-2026-09-05-001` documented in `.security_audits/security-audit-2026-09-05-guest-notebooks-isla-eval-task-caching.md` with 0 critical, 0 high, and 0 medium findings.
 
 ---
 
@@ -130,6 +132,7 @@ graph TD
 === RUN   TestDSLHandler_EvalDSL/Allows_unauthenticated_guest_evaluation
 === RUN   TestDSLHandler_EvalDSL/Bad_request_on_empty_query
 === RUN   TestDSLHandler_EvalDSL/Bad_request_on_invalid_json_body
+=== RUN   TestDSLHandler_EvalDSL/Rejects_request_body_exceeding_max_size
 === RUN   TestDSLHandler_EvalDSL/Success_evaluation_of_DSL_query
 === RUN   TestDSLHandler_EvalDSL/Success_evaluation_of_cross-reference_tilde_query
 --- PASS: TestDSLHandler_EvalDSL (0.01s)
