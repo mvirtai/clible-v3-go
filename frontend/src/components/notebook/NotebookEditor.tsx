@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useActionState } from 'react';
 import type { Cell, CellWidth, Notebook } from './types';
 import { CellWrapper } from './cells/CellWrapper';
 import { MarkdownCell } from './cells/MarkdownCell';
@@ -26,183 +26,207 @@ export interface NotebookEditorProps {
   isGuest?: boolean;
 }
 
+interface TitleActionState {
+  error: string | null;
+}
+
+/**
+ * Helper function to recalculate cell position indices sequentially.
+ */
+function reorderCells(cells: Cell[]): Cell[] {
+  return cells.map((cell, idx) => ({
+    ...cell,
+    position: idx,
+  }));
+}
+
+/**
+ * Generates a unique cell identifier.
+ */
+function generateCellId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `cell-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 /**
  * Main interactive editor component for a single notebook.
- * Renders an editable title, drag-and-drop sortable cell grid, cell creation controls,
- * and auto-saving logic synced with the backend REST API or guest localStorage.
+ * Conforms strictly to React 19.2 and React Compiler paradigms:
+ * - Synchronous lazy initial state derivation for guest mode (Zero-flicker).
+ * - Event-driven auto-saving debounced directly from user mutations (no effect cascade / ref-flags).
+ * - React 19 Action-based title editing via `useActionState` and declarative form dispatching.
+ * - Declarative document metadata hoisting (<title>).
  *
  * @param props - Component properties conforming to {@link NotebookEditorProps}.
  * @returns Interactive notebook editor workspace.
  */
 export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse, isGuest = false }: NotebookEditorProps) {
   const { strings } = useLanguage();
-  const [notebook, setNotebook] = useState<Notebook | null>(null);
-  const [cells, setCells] = useState<Cell[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const isGuestMode = isGuest || isGuestNotebookId(notebookId);
 
-  // Title edit state
+  // 1. Synchronous lazy initial state derivation
+  const [notebook, setNotebook] = useState<Notebook | null>(() => {
+    if (isGuestMode) {
+      return getSingleGuestNotebook(notebookId);
+    }
+    return null;
+  });
+
+  const [cells, setCells] = useState<Cell[]>(() => {
+    if (isGuestMode) {
+      const guestData = getSingleGuestNotebook(notebookId);
+      return (guestData?.cells || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    }
+    return [];
+  });
+
+  const [isLoading, setIsLoading] = useState<boolean>(() => !isGuestMode);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(() => {
+    if (isGuestMode && !getSingleGuestNotebook(notebookId)) {
+      return strings.guestNotebookExpiredNotice;
+    }
+    return null;
+  });
+
+  // Title inline editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleInput, setTitleInput] = useState('');
 
-  // Ref flag to prevent auto-saving during initial fetch
-  const initialLoadDone = useRef(false);
+  // Auto-save debounce timer ref
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 1. Fetch notebook details on mount or ID change
+  // Cleanup auto-save timer on unmount
   useEffect(() => {
-    const fetchNotebook = async () => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
+
+  // 2. Adjust loading state synchronously during render if notebookId prop changes
+  const [prevNotebookId, setPrevNotebookId] = useState(notebookId);
+  if (prevNotebookId !== notebookId) {
+    setPrevNotebookId(notebookId);
+    if (!isGuestMode) {
       setIsLoading(true);
+    }
+  }
 
-      // Handle guest notebook loaded from localStorage
-      if (isGuest || isGuestNotebookId(notebookId)) {
-        const data = getSingleGuestNotebook(notebookId);
-        if (!data) {
-          setError(strings.guestNotebookExpiredNotice);
-          setIsLoading(false);
-          return;
-        }
+  // 3. Fetch remote notebook data (only executed for authenticated users)
+  useEffect(() => {
+    if (isGuestMode) return;
 
-        const sortedCells = (data.cells || []).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    const controller = new AbortController();
+
+    fetch(`/api/notebooks/${notebookId}`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load notebook.');
+        return res.json();
+      })
+      .then((data: Notebook) => {
+        const sortedCells = (data.cells || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setNotebook(data);
         setCells(sortedCells);
-        setTitleInput(data.title || '');
         setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setError(err instanceof Error ? err.message : 'Fetch failed');
+      })
+      .finally(() => {
         setIsLoading(false);
-        setTimeout(() => {
-          initialLoadDone.current = true;
-        }, 100);
-        return;
+      });
+
+    return () => controller.abort();
+  }, [notebookId, isGuestMode]);
+
+  // 3. Event-driven debounced auto-save handler (direct reaction to user interaction)
+  const scheduleAutoSave = (updatedCells: Cell[]) => {
+    setIsSaving(true);
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        if (isGuestMode) {
+          saveGuestCells(notebookId, updatedCells);
+        } else {
+          const res = await fetch(`/api/notebooks/${notebookId}/cells`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(
+              updatedCells.map((c, index) => ({
+                id: c.id,
+                type: c.type,
+                content: c.content,
+                position: index,
+              }))
+            ),
+          });
+          if (!res.ok) throw new Error('Cell persistence error');
+        }
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        setError('Auto-save failed. Check network connection.');
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1500);
+  };
+
+  // 4. React 19 Action for title editing
+  const [, saveTitleAction, isTitlePending] = useActionState<TitleActionState, FormData>(
+    async (_prevState, formData) => {
+      const trimmed = (formData.get('title') as string || '').trim();
+      if (!trimmed || !notebook || trimmed === notebook.title) {
+        setIsEditingTitle(false);
+        return { error: null };
+      }
+
+      if (isGuestMode) {
+        const updated = updateSingleGuestNotebook(notebookId, { title: trimmed });
+        if (updated) {
+          setNotebook(updated);
+        }
+        setIsEditingTitle(false);
+        return { error: null };
       }
 
       try {
-        const res = await fetch(`/api/notebooks/${notebookId}`);
-        if (!res.ok) throw new Error('Failed to load notebook.');
-        const data: Notebook = await res.json();
-        
-        // Sort cells by position index
-        const sortedCells = (data.cells || []).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-        setNotebook(data);
-        setCells(sortedCells);
-        setTitleInput(data.title || '');
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Fetch failed');
-      } finally {
-        setIsLoading(false);
-        // Mark initial loading completed after brief delay
-        setTimeout(() => {
-          initialLoadDone.current = true;
-        }, 100);
-      }
-    };
+        const res = await fetch(`/api/notebooks/${notebookId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: trimmed,
+            scopeId: notebook.scopeId,
+          }),
+        });
 
-    fetchNotebook();
-  }, [notebookId, isGuest]);
-
-  // 2. Save modified title to backend or localStorage
-  const handleTitleSave = async () => {
-    const trimmed = titleInput.trim();
-    if (!trimmed || !notebook || trimmed === notebook.title) {
-      setIsEditingTitle(false);
-      if (notebook) {
-        setTitleInput(notebook.title);
-      }
-      return;
-    }
-
-    if (isGuest || isGuestNotebookId(notebookId)) {
-      const updated = updateSingleGuestNotebook(notebookId, { title: trimmed });
-      if (updated) {
+        if (!res.ok) throw new Error('Title update failed');
+        const updated: Notebook = await res.json();
         setNotebook(updated);
-        setTitleInput(updated.title);
+        setIsEditingTitle(false);
+        return { error: null };
+      } catch (err) {
+        console.error(err);
+        setError('Title save failed.');
+        return { error: err instanceof Error ? err.message : 'Title save failed.' };
       }
-      setIsEditingTitle(false);
-      return;
-    }
+    },
+    { error: null }
+  );
 
-    setIsSaving(true);
-    try {
-      const res = await fetch(`/api/notebooks/${notebookId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: trimmed,
-          scopeId: notebook.scopeId,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Title update failed');
-      const updated: Notebook = await res.json();
-      setNotebook(updated);
-      setTitleInput(updated.title);
-      setIsEditingTitle(false);
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError('Title save failed.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // 3. Persist current cell list state to backend or localStorage
-  const saveCells = useCallback(async (currentCells: Cell[]) => {
-    if (isGuest || isGuestNotebookId(notebookId)) {
-      saveGuestCells(notebookId, currentCells);
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      // Send cell contents and updated position indices
-      const res = await fetch(`/api/notebooks/${notebookId}/cells`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          currentCells.map((c, index) => ({
-            id: c.id,
-            type: c.type,
-            content: c.content,
-            position: index,
-          }))
-        ),
-      });
-
-      if (!res.ok) throw new Error('Cell persistence error');
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError('Auto-save failed. Check network connection.');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [notebookId, isGuest]);
-
-  // Debounced effect for auto-saving cell changes
-  useEffect(() => {
-    if (!initialLoadDone.current) return;
-
-    const timer = setTimeout(() => {
-      saveCells(cells);
-    }, 1500); // 1.5 second debounce delay
-
-    return () => clearTimeout(timer);
-  }, [cells, saveCells]);
-
-  // 4. Helper function: recalculate cell position indices sequentially
-  const reorderCells = (updated: Cell[]): Cell[] => {
-    return updated.map((cell, idx) => ({
-      ...cell,
-      position: idx,
-    }));
-  };
-
-  // 5. Cell state mutation handlers
+  // 5. Direct user mutation handlers
   const handleCellContentChange = (id: string, newContent: string) => {
-    setCells((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, content: newContent } : c))
-    );
+    setCells((prev) => {
+      const next = prev.map((c) => (c.id === id ? { ...c, content: newContent } : c));
+      scheduleAutoSave(next);
+      return next;
+    });
   };
 
   const handleCellWidthChange = (
@@ -211,8 +235,8 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
     colSpan?: number,
     customHeight?: number
   ) => {
-    setCells((prev) =>
-      prev.map((c) =>
+    setCells((prev) => {
+      const next = prev.map((c) =>
         c.id === id
           ? {
               ...c,
@@ -221,12 +245,19 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
               ...(customHeight !== undefined && { customHeight }),
             }
           : c
-      )
-    );
+      );
+      scheduleAutoSave(next);
+      return next;
+    });
   };
 
   const handleCellDelete = (id: string) => {
-    setCells((prev) => reorderCells(prev.filter((c) => c.id !== id)));
+    setCells((prev) => {
+      const next = reorderCells(prev.filter((c) => c.id !== id));
+      scheduleAutoSave(next);
+      return next;
+    });
+    
   };
 
   const handleMoveUp = (index: number) => {
@@ -236,7 +267,9 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
       const temp = next[index - 1];
       next[index - 1] = next[index];
       next[index] = temp;
-      return reorderCells(next);
+      const reordered = reorderCells(next);
+      scheduleAutoSave(reordered);
+      return reordered;
     });
   };
 
@@ -247,15 +280,14 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
       const temp = next[index + 1];
       next[index + 1] = next[index];
       next[index] = temp;
-      return reorderCells(next);
+      const reordered = reorderCells(next);
+      scheduleAutoSave(reordered);
+      return reordered;
     });
   };
 
-  // 6. Create and insert a new markdown cell at a target index position
   const handleInsertCell = (index: number) => {
-    const cellId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `cell-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const cellId = generateCellId();
 
     const newCell: Cell = {
       id: cellId,
@@ -269,8 +301,12 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
     setCells((prev) => {
       const next = [...prev];
       next.splice(index, 0, newCell);
-      return reorderCells(next);
+      const reordered = reorderCells(next);
+      scheduleAutoSave(reordered);
+      return reordered;
     });
+
+    return cellId;
   };
 
   if (isLoading) {
@@ -303,28 +339,35 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 space-y-6">
+      {/* Declarative document metadata hoisting */}
+      <title>{notebook?.title ? `${notebook.title} | Clible` : strings.notebookTitle}</title>
+
       {/* Header section */}
       <div className="border-b border-[var(--border-soft)] pb-5 flex items-center justify-between">
         <div className="flex-1 mr-4">
           {isEditingTitle ? (
-            <input
-              type="text"
-              value={titleInput}
-              onChange={(e) => setTitleInput(e.target.value)}
-              onBlur={handleTitleSave}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleTitleSave();
-                if (e.key === 'Escape') {
-                  setIsEditingTitle(false);
-                  if (notebook) setTitleInput(notebook.title);
-                }
-              }}
-              className="text-2xl font-bold bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-              autoFocus
-            />
+            <form action={saveTitleAction} className="flex items-center gap-2 w-full">
+              <input
+                type="text"
+                name="title"
+                defaultValue={notebook?.title || ''}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setIsEditingTitle(false);
+                  }
+                }}
+                onBlur={(e) => {
+                  const form = e.currentTarget.form;
+                  if (form) form.requestSubmit();
+                }}
+                className="text-2xl font-bold bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                autoFocus
+                disabled={isTitlePending}
+              />
+            </form>
           ) : (
             <div className="flex items-center gap-2 group">
-              <h1 
+              <h1
                 onClick={() => setIsEditingTitle(true)}
                 className="text-2xl font-bold text-[var(--text)] tracking-tight cursor-pointer hover:text-[var(--text)]/85 transition-colors"
                 title={strings.markdownEditTitle}
@@ -345,7 +388,7 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
           )}
         </div>
         <div className="flex items-center gap-2">
-          {isSaving ? (
+          {isSaving || isTitlePending ? (
             <span className="text-[10px] font-mono text-amber-500 animate-pulse bg-amber-500/5 px-2 py-1 rounded border border-amber-500/10">
               {strings.savingLabel}
             </span>
@@ -356,7 +399,6 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
           )}
         </div>
       </div>
-          
 
       {/* Empty state notice */}
       {cells.length === 0 && (
@@ -377,7 +419,11 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
       {/* Cell list wrapped inside DragDropProvider context and 12-column CSS Grid */}
       <DragDropProvider
         onDragEnd={(event) => {
-          setCells((prev) => reorderCells(move(prev, event)));
+          setCells((prev) => {
+            const next = reorderCells(move(prev, event));
+            scheduleAutoSave(next);
+            return next;
+          });
         }}
       >
         <div className="grid grid-cols-12 gap-4 items-start">
@@ -390,10 +436,10 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
                   <button
                     type="button"
                     onClick={() => handleInsertCell(index)}
-                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2.5 py-1 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1"
+                    title={strings.addMarkdownCellLabel}
                   >
-                    {/* i18n.ts strings */}
-                    {/*  */}
+                    <span>{strings.addMarkdownCellLabel}</span>
                   </button>
                 </div>
               </div>
