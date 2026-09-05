@@ -276,5 +276,76 @@ describe('ApiService', () => {
             })
         );
     });
+
+    it('verifies email successfully and returns normalized user (verifyEmail)', async () => {
+        const mockUser = {
+            id: 'u-verify-123',
+            email: 'verified@example.com',
+            role: 'user',
+            isGuest: false,
+            isVerified: true,
+            createdAt: '2026-09-05T20:00:00Z',
+        };
+
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ message: 'email_verified', user: mockUser }),
+        } as Response);
+
+        const result = await apiService.verifyEmail({ email: 'verified@example.com', code: '654321' });
+
+        expect(result).toBeDefined();
+        expect(result.id).toBe('u-verify-123');
+        expect(result.email).toBe('verified@example.com');
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/auth/verify-email'),
+            expect.objectContaining({
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: 'verified@example.com', code: '654321' }),
+            })
+        );
+    });
+
+    it('throws error when verifyEmail fails with structured error', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 400,
+            json: async () => ({ error: 'verification_code_expired' }),
+        } as Response);
+
+        await expect(apiService.verifyEmail({ code: '999999' })).rejects.toThrow('verification_code_expired');
+    });
+
+    it('resends verification email successfully (resendVerification)', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ message: 'verification_email_sent' }),
+        } as Response);
+
+        await apiService.resendVerification('user@example.com');
+
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/auth/resend-verification'),
+            expect.objectContaining({
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: 'user@example.com', language: 'fi' }),
+            })
+        );
+    });
+
+    it('throws error when resendVerification fails', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 404,
+            json: async () => ({ error: 'user_not_found' }),
+        } as Response);
+
+        await expect(apiService.resendVerification('unknown@example.com')).rejects.toThrow('user_not_found');
+    });
 });
+
 

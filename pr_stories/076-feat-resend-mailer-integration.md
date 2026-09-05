@@ -269,7 +269,7 @@ A formal security audit ([`SECOPS-2026-09-05-002`](file:///home/vivaldev/code/cl
 
 - **Zero External Dependencies:** 0 external Go modules added; 100% standard library implementation.
 - **Services Statement Coverage:** 78.2% across `internal/services`, with 100% on `mailer_service.go` and `mailer_templates.go`, and 89.7% on `resend_mailer.go`.
-- **Frontend Test Suite:** 28 test suites passing, 173/173 tests green (100% pass rate).
+- **Frontend Test Suite:** 28 test suites passing, 177/177 tests green (100% pass rate).
 - **Linter Quality:** 0 errors across `golangci-lint` and `eslint`.
 
 ---
@@ -283,9 +283,10 @@ A formal security audit ([`SECOPS-2026-09-05-002`](file:///home/vivaldev/code/cl
 | `backend/internal/services/mailer_service.go` | Added `NewMailerFromConfig` factory to dynamically choose between Resend and Mock mailers. |
 | `backend/main.go` | Wired `NewMailerFromConfig(cfg)` into dependency injection setup. |
 | `frontend/src/services/api.ts` | Normalized `verifyEmail` return payload to extract `data.user` as `UserResponse`. |
+| `frontend/src/services/api.test.ts` | Unit tests for `verifyEmail` (success, normalized user mapping, error handling) and `resendVerification`. |
 | `frontend/src/context/AuthContext.tsx` | Added `verifyEmail` action handler to hydrate authenticated session upon verification. |
 | `frontend/src/pages/VerifyEmail.tsx` | Modernized component to React 19.2 `useActionState`, native `<title>`, pure derived state, and zero `useRef`. |
-| `.agents/AGENTS.md` | Added permanent proactive React 19.2 and React Compiler modernization pair programming rule. |
+| `.agents/AGENTS.md` | Added permanent proactive React 19.2 modernization and mandatory testing on refactoring rules. |
 | `.security_audits/security-audit-2026-09-05-resend-mailer-and-email-verification.md` | Formal security audit report `SECOPS-2026-09-05-002` (PASSED). |
 | `.env.example` | Documented `RESEND_API_KEY` and `SMTP_FROM` configuration options. |
 
@@ -318,8 +319,8 @@ ok  	github.com/mvirtai/clible-v3-go/internal/services	3.462s
 
 ```text
 Test Files  28 passed (28)
-     Tests  173 passed (173)
-  Duration  9.42s
+     Tests  177 passed (177)
+  Duration  8.59s
 ```
 
 ### Manual Verification Checklist
