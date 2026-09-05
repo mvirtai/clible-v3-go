@@ -31,6 +31,11 @@ func (h *DSLHandler) EvalDSL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Limit request body to 1 MB to prevent resource exhaustion attacks (CWE-400, CWE-770)
+	if r.Body != nil {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	}
+
 	var req DSLEvalRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.Header().Set("Content-Type", "application/json")

@@ -97,6 +97,18 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 		}
 	})
 
+	t.Run("Rejects request body exceeding max size", func(t *testing.T) {
+		largeBody := bytes.Repeat([]byte("a"), (1<<20)+10)
+		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(largeBody))
+		rr := httptest.NewRecorder()
+
+		handler.EvalDSL(rr, req)
+
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400, got %d", rr.Code)
+		}
+	})
+
 	t.Run("Success evaluation of DSL query", func(t *testing.T) {
 		reqBody, _ := json.Marshal(api.DSLEvalRequest{
 			Query:         "@Joh 3:16",
