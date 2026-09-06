@@ -16,6 +16,8 @@ export interface CLIResultData {
   is_regex?: boolean;
   /** Total count metric */
   count?: number;
+  /** Aggregation unit: 'verses' | 'chapters' | 'books' | 'words' */
+  unit?: 'verses' | 'chapters' | 'books' | 'words' | string;
   /** Translation identifier */
   translation?: string;
   /** Verses list */
@@ -98,11 +100,23 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
 
   else if (type === 'count') {
     const count = data.count ?? 0;
-    const matchLabel = count === 1 ? 'osuma' : 'osumaa';
+    const unit = data.unit;
+    let unitLabel = count === 1 ? 'jae' : 'jaetta';
+    if (unit === 'books') {
+      unitLabel = count === 1 ? 'kirja' : 'kirjaa';
+    } else if (unit === 'chapters') {
+      unitLabel = count === 1 ? 'luku' : 'lukua';
+    } else if (unit === 'words') {
+      unitLabel = count === 1 ? 'sana' : 'sanaa';
+    } else if (unit === 'verses') {
+      unitLabel = count === 1 ? 'jae' : 'jaetta';
+    } else if (!unit && data.target_type === 'search') {
+      unitLabel = count === 1 ? 'osuma' : 'osumaa';
+    }
     const target = data.target_type === 'search'
       ? `Hakutulokset haulle ${data.is_regex ? `/${data.query}/` : `"${data.query}"`}`
       : `Jakeet viitteelle ${data.reference}`;
-    markdown = `> **${target} (${tr})**: ${count} ${matchLabel}\n`;
+    markdown = `> **${target} (${tr})**: ${count} ${unitLabel}\n`;
   }
 
   else if (type === 'compare') {

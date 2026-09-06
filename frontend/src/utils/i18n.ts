@@ -144,6 +144,14 @@ export interface Messages {
   countVersesForRef: string;
   countMatchSingular: string;
   countMatchPlural: string;
+  countUnitVersesSingular: string;
+  countUnitVersesPlural: string;
+  countUnitChaptersSingular: string;
+  countUnitChaptersPlural: string;
+  countUnitBooksSingular: string;
+  countUnitBooksPlural: string;
+  countUnitWordsSingular: string;
+  countUnitWordsPlural: string;
   defaultTranslationLabel: string;
   noResults: string;
   dynamicRefsFor: string;
@@ -454,6 +462,14 @@ export const strings: Record<UILanguage, Messages> = {
     countVersesForRef: 'Verses for reference',
     countMatchSingular: 'hit',
     countMatchPlural: 'hits',
+    countUnitVersesSingular: 'verse',
+    countUnitVersesPlural: 'verses',
+    countUnitChaptersSingular: 'chapter',
+    countUnitChaptersPlural: 'chapters',
+    countUnitBooksSingular: 'book',
+    countUnitBooksPlural: 'books',
+    countUnitWordsSingular: 'word',
+    countUnitWordsPlural: 'words',
     defaultTranslationLabel: 'Default translation',
     noResults: 'No results.',
     dynamicRefsFor: 'Dynamic cross-references for',
@@ -739,6 +755,14 @@ export const strings: Record<UILanguage, Messages> = {
     countVersesForRef: 'Jakeet viitteelle',
     countMatchSingular: 'osuma',
     countMatchPlural: 'osumaa',
+    countUnitVersesSingular: 'jae',
+    countUnitVersesPlural: 'jaetta',
+    countUnitChaptersSingular: 'luku',
+    countUnitChaptersPlural: 'lukua',
+    countUnitBooksSingular: 'kirja',
+    countUnitBooksPlural: 'kirjaa',
+    countUnitWordsSingular: 'sana',
+    countUnitWordsPlural: 'sanaa',
     defaultTranslationLabel: 'Oletuskäännös',
     noResults: 'Ei tuloksia.',
     dynamicRefsFor: 'Dynaamiset ristiinviitteet jakeelle',

@@ -166,6 +166,25 @@ describe('islaIntellisense', () => {
     });
   });
 
+  describe('Count unit suggestions inside count(...)', () => {
+    it('suggests count units when typing inside count(', () => {
+      const suggestions = getISLASuggestions('!search("armo") => count(', 25);
+      expect(suggestions.some((s) => s.label === 'verses')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'chapters')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'books')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'words')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'sanat')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'kirjat')).toBe(true);
+    });
+
+    it('filters count units by prefix inside count(', () => {
+      const suggestions = getISLASuggestions('!search("armo") => count(bo', 27);
+      expect(suggestions).toHaveLength(1);
+      expect(suggestions[0].label).toBe('books');
+      expect(suggestions[0].insertText).toBe('books)');
+    });
+  });
+
   describe('Fallback behavior', () => {
     it('returns empty array when text does not trigger any IntelliSense rules', () => {
       expect(getISLASuggestions('Regular text in a markdown cell', 15)).toEqual([]);

@@ -300,7 +300,105 @@ export function getISLASuggestions(
     return [...groupOptions, ...bookOptions];
   }
 
-  // 3. Pipeline operators after `=>` — driven by COMMAND_REGISTRY for maintainability
+  // 3. Count unit suggestions when typing inside `count(...)`
+  const countParenMatch = textBeforeCursor.match(/count\(\s*["']?([A-Za-z0-9äöåÄÖÅ]*)$/i);
+  if (countParenMatch) {
+    const prefix = countParenMatch[1].toLowerCase();
+    const countUnits: ISLASuggestion[] = [
+      {
+        label: 'verses',
+        insertText: 'verses)',
+        detail: 'Jakeet / Verses (oletus)',
+        documentation: {
+          fi: 'Laskee jakeiden kokonaismäärän tulosjoukossa.',
+          en: 'Calculates the total number of verses in the result set.',
+        },
+        example: '! search("armo") => count(verses)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'chapters',
+        insertText: 'chapters)',
+        detail: 'Luvut / Chapters',
+        documentation: {
+          fi: 'Laskee uniikkien lukujen määrän tulosjoukossa.',
+          en: 'Calculates the number of unique chapters in the result set.',
+        },
+        example: '! search("armo") => count(chapters)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'books',
+        insertText: 'books)',
+        detail: 'Kirjat / Books',
+        documentation: {
+          fi: 'Laskee uniikkien kirjojen määrän tulosjoukossa.',
+          en: 'Calculates the number of unique books in the result set.',
+        },
+        example: '! search("armo") => count(books)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'words',
+        insertText: 'words)',
+        detail: 'Sanat / Words',
+        documentation: {
+          fi: 'Laskee sanojen kokonaismäärän tulosjoukon jakeissa.',
+          en: 'Calculates the total number of words across all result verses.',
+        },
+        example: '! search("armo") => count(words)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'sanat',
+        insertText: 'sanat)',
+        detail: 'Sanat (fi)',
+        documentation: {
+          fi: 'Laskee sanojen kokonaismäärän tulosjoukon jakeissa.',
+          en: 'Calculates total word count across result verses.',
+        },
+        example: '! search("armo") => count(sanat)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'kirjat',
+        insertText: 'kirjat)',
+        detail: 'Kirjat (fi)',
+        documentation: {
+          fi: 'Laskee uniikkien kirjojen määrän tulosjoukossa.',
+          en: 'Calculates unique book count.',
+        },
+        example: '! search("armo") => count(kirjat)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'luvut',
+        insertText: 'luvut)',
+        detail: 'Luvut (fi)',
+        documentation: {
+          fi: 'Laskee uniikkien lukujen määrän tulosjoukossa.',
+          en: 'Calculates unique chapter count.',
+        },
+        example: '! search("armo") => count(luvut)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'jakeet',
+        insertText: 'jakeet)',
+        detail: 'Jakeet (fi)',
+        documentation: {
+          fi: 'Laskee jakeiden määrän tulosjoukossa.',
+          en: 'Calculates verse count.',
+        },
+        example: '! search("armo") => count(jakeet)',
+        kind: 'function' as const,
+      },
+    ];
+
+    return countUnits.filter((u) => !prefix || u.label.toLowerCase().startsWith(prefix));
+  }
+
+  // 4. Pipeline operators after `=>` — driven by COMMAND_REGISTRY for maintainability
   const pipeMatch = textBeforeCursor.match(/=>\s*([A-Za-z0-9_#()-]*)$/);
   if (pipeMatch) {
     const prefix = pipeMatch[1].toLowerCase();

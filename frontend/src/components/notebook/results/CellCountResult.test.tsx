@@ -122,4 +122,84 @@ describe('CellCountResult', () => {
     expect(content).toContain('24');
     expect(content).toContain('osumaa');
   });
+
+  it('renders custom unit labels correctly for books, chapters, verses, and words', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CellCountResult
+            data={{
+              target_type: 'search',
+              query: 'armo',
+              count: 5,
+              unit: 'books',
+              translation: 'KR92',
+            }}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    let content = container?.textContent || '';
+    expect(content).toContain('5');
+    expect(content).toContain('kirjaa');
+
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <CellCountResult
+            data={{
+              target_type: 'search',
+              query: 'armo',
+              count: 1,
+              unit: 'books',
+              translation: 'KR92',
+            }}
+          />
+        </LanguageProvider>
+      );
+    });
+    content = container?.textContent || '';
+    expect(content).toContain('1');
+    expect(content).toContain('kirja');
+
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <CellCountResult
+            data={{
+              target_type: 'search',
+              query: 'rakkaus',
+              count: 120,
+              unit: 'words',
+              translation: 'KR92',
+            }}
+          />
+        </LanguageProvider>
+      );
+    });
+    content = container?.textContent || '';
+    expect(content).toContain('120');
+    expect(content).toContain('sanaa');
+
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <CellCountResult
+            data={{
+              target_type: 'search',
+              query: 'rakkaus',
+              count: 3,
+              unit: 'chapters',
+              translation: 'KR92',
+            }}
+          />
+        </LanguageProvider>
+      );
+    });
+    content = container?.textContent || '';
+    expect(content).toContain('3');
+    expect(content).toContain('lukua');
+  });
 });

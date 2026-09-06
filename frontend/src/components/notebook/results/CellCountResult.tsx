@@ -17,6 +17,8 @@ export interface CountResultData {
   scope_book?: string;
   /** Total matching count. */
   count: number;
+  /** Aggregation unit: 'verses' | 'chapters' | 'books' | 'words' */
+  unit?: 'verses' | 'chapters' | 'books' | 'words' | string;
   /** Translation identifier used for the calculation. */
   translation?: string;
 }
@@ -37,6 +39,24 @@ export interface CellCountResultProps {
  */
 export function CellCountResult({ data }: CellCountResultProps) {
   const { strings } = useLanguage();
+
+  const getUnitLabel = () => {
+    switch (data.unit) {
+      case 'books':
+        return data.count === 1 ? strings.countUnitBooksSingular : strings.countUnitBooksPlural;
+      case 'chapters':
+        return data.count === 1 ? strings.countUnitChaptersSingular : strings.countUnitChaptersPlural;
+      case 'words':
+        return data.count === 1 ? strings.countUnitWordsSingular : strings.countUnitWordsPlural;
+      case 'verses':
+        return data.count === 1 ? strings.countUnitVersesSingular : strings.countUnitVersesPlural;
+      default:
+        if (data.target_type === 'search') {
+          return data.count === 1 ? strings.countMatchSingular : strings.countMatchPlural;
+        }
+        return data.count === 1 ? strings.countUnitVersesSingular : strings.countUnitVersesPlural;
+    }
+  };
 
   return (
     <div className="flex items-center gap-3.5 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 dark:border-amber-500/20 text-amber-950 dark:text-amber-100 shadow-xs">
@@ -67,10 +87,10 @@ export function CellCountResult({ data }: CellCountResultProps) {
         <div className="text-2xl font-bold text-amber-950 dark:text-amber-100 mt-0.5 tracking-tight">
           {data.count}{' '}
           <span className="text-xs font-medium text-amber-800/90 dark:text-amber-300/80">
-            {data.count === 1 ? strings.countMatchSingular : strings.countMatchPlural} ({data.translation || strings.defaultTranslationLabel})
+            {getUnitLabel()} ({data.translation || strings.defaultTranslationLabel})
           </span>
         </div>
       </div>
     </div>
   );
-};
+}

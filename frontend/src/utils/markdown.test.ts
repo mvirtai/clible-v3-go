@@ -96,4 +96,30 @@ describe('formatResultToMarkdown', () => {
     const result = formatResultToMarkdown('count', data, 'KR92');
     expect(result).toBe('> **Hakutulokset haulle "valo" (KR92)**: 5 osumaa\n');
   });
+
+  it('formats unit-aware count results correctly', () => {
+    const bookData: CLIResultData = {
+      count: 2,
+      unit: 'books',
+      target_type: 'search',
+      query: 'armo',
+    };
+    expect(formatResultToMarkdown('count', bookData, 'KR92')).toBe('> **Hakutulokset haulle "armo" (KR92)**: 2 kirjaa\n');
+
+    const wordData: CLIResultData = {
+      count: 1,
+      unit: 'words',
+      target_type: 'reference',
+      reference: 'Joh 1:1',
+    };
+    expect(formatResultToMarkdown('count', wordData, 'KR92')).toBe('> **Jakeet viitteelle Joh 1:1 (KR92)**: 1 sana\n');
+
+    const wordPluralData: CLIResultData = {
+      count: 35,
+      unit: 'words',
+      target_type: 'reference',
+      reference: 'Joh 1:1-5',
+    };
+    expect(formatResultToMarkdown('count', wordPluralData, 'KR92')).toBe('> **Jakeet viitteelle Joh 1:1-5 (KR92)**: 35 sanaa\n');
+  });
 });
