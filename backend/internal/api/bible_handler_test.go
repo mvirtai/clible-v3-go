@@ -146,4 +146,3 @@ func TestBibleHandler_SearchVerses_InvalidRegexError(t *testing.T) {
 		t.Errorf("expected status 500 for invalid regex query, got %d", rr.Code)
 	}
 }
-

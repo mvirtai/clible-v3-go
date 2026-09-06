@@ -266,4 +266,3 @@ func (s *AuthService) ValidateToken(tokenString string) (string, error) {
 
 	return claims.UserID, nil
 }
-

@@ -278,4 +278,3 @@ func TestTranslationRepository_IsGlobal(t *testing.T) {
 		t.Errorf("expected true for global translation, got false")
 	}
 }
-

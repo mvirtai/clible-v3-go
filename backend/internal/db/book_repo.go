@@ -14,7 +14,7 @@ type BookRepository struct {
 }
 
 // NewBookRepository creates a new BookRepository instance.
-func NewBookRepository(db  *sql.DB) *BookRepository {
+func NewBookRepository(db *sql.DB) *BookRepository {
 	return &BookRepository{db: db}
 }
 
@@ -50,13 +50,13 @@ func (r *BookRepository) GetByID(ctx context.Context, id string) (*models.Book, 
 		FROM books
 		WHERE id = $1
 	`, id).Scan(&b.ID, &b.Name, &b.Testament, &b.Position, &b.Chapters)
-	
-	 if err != nil {
-  if err == sql.ErrNoRows {
-   return nil, fmt.Errorf("book not found with id: %s", id)
-  }
-  return nil, fmt.Errorf("failed to query book by id: %w", err)
- }
 
- return &b, nil
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("book not found with id: %s", id)
+		}
+		return nil, fmt.Errorf("failed to query book by id: %w", err)
+	}
+
+	return &b, nil
 }

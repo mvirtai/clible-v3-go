@@ -207,4 +207,3 @@ func TestAnalyticsHandler_Endpoints(t *testing.T) {
 		})
 	})
 }
-

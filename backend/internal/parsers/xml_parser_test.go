@@ -251,4 +251,3 @@ func TestXMLVerseParser_StreamingFormats(t *testing.T) {
 		}
 	})
 }
-
