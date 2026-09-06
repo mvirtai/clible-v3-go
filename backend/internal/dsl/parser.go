@@ -33,8 +33,17 @@ func init() {
 		"themes":  parseOptionalNumericAction("themes"),
 		"suggest": parseOptionalNumericAction("suggest"),
 
-		// Unit-aware aggregator: count(), count(verses), count(chapters), count(books), count(words)
+		// Unit-aware aggregator: count(), count(verses), count(chapters), count(books), count(words), count(unique_words)
 		"count": parseCountAction,
+
+		// Top word frequencies: top(10), top, words(10), words
+		"top":        parseTopAction,
+		"words":      parseTopAction,
+		"top_words":  parseTopAction,
+
+		// Text statistics & Type-Token Ratio: stats(), stats, ttr(), ttr
+		"stats": parseStatsAction,
+		"ttr":   parseStatsAction,
 
 		// Required-numeric limit
 		"limit": parseLimitAction,
@@ -170,9 +179,72 @@ func normalizeCountUnit(raw string) (string, error) {
 		return "verses", nil
 	case "w", "word", "words", "s", "sana", "sanat":
 		return "words", nil
+	case "unique_words", "unique", "vocab", "sanasto", "eri":
+		return "unique_words", nil
 	default:
-		return "", fmt.Errorf("invalid count unit %q: expected 'verses' ('v', 'j'), 'chapters' ('c', 'l'), 'books' ('b', 'k'), or 'words' ('w', 's')", raw)
+		return "", fmt.Errorf("invalid count unit %q: expected 'verses' ('v', 'j'), 'chapters' ('c', 'l'), 'books' ('b', 'k'), 'words' ('w', 's'), or 'unique_words' ('sanasto', 'unique')", raw)
 	}
+}
+
+// parseTopAction handles top(10), top, words(10), words. Default is 10, max 1000.
+func parseTopAction(p *Parser) (*ActionNode, error) {
+	limit := 10
+	if p.current().Type == TokenParenOpen {
+		p.next()
+		if p.current().Type == TokenNumber {
+			val, err := strconv.Atoi(p.current().Literal)
+			if err != nil {
+				return nil, fmt.Errorf("invalid number for top: %w", err)
+			}
+			if val > 1000 {
+				val = 1000
+			} else if val < 1 {
+				val = 1
+			}
+			limit = val
+			p.next()
+		}
+		if p.current().Type != TokenParenClose {
+			return nil, fmt.Errorf("expected ')' after top limit, got %s at pos %d", p.current().Type, p.current().Pos)
+		}
+		p.next()
+	} else if p.current().Type == TokenColon {
+		p.next()
+		if p.current().Type == TokenNumber {
+			val, err := strconv.Atoi(p.current().Literal)
+			if err != nil {
+				return nil, fmt.Errorf("invalid number for top: %w", err)
+			}
+			if val > 1000 {
+				val = 1000
+			} else if val < 1 {
+				val = 1
+			}
+			limit = val
+			p.next()
+		}
+	}
+	return &ActionNode{Kind: "top", Value: strconv.Itoa(limit)}, nil
+}
+
+// parseStatsAction handles stats(), stats, ttr(), ttr.
+func parseStatsAction(p *Parser) (*ActionNode, error) {
+	mode := "all"
+	if p.current().Type == TokenParenOpen {
+		p.next()
+		if p.current().Type == TokenIdent || p.current().Type == TokenString {
+			raw := strings.ToLower(strings.TrimSpace(p.current().Literal))
+			p.next()
+			if raw == "ttr" {
+				mode = "ttr"
+			}
+		}
+		if p.current().Type != TokenParenClose {
+			return nil, fmt.Errorf("expected ')' after stats argument, got %s at pos %d", p.current().Type, p.current().Pos)
+		}
+		p.next()
+	}
+	return &ActionNode{Kind: "stats", Value: mode}, nil
 }
 
 // parseLimitAction handles limit(5) or limit:5.
@@ -362,6 +434,41 @@ func (p *Parser) parsePrimary() (Node, error) {
 			p.next()
 		}
 		return &ScopeNode{Count: count, All: all}, nil
+
+	case TokenHash:
+		p.next()
+		var inner Node
+		if p.current().Type == TokenString || p.current().Type == TokenRegex {
+			queryTok := p.current()
+			p.next()
+			scopeBook := ""
+			if p.current().Type == TokenAt {
+				p.next()
+				var sb strings.Builder
+				for {
+					cur := p.current()
+					if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma {
+						appendCitationToken(&sb, cur)
+						p.next()
+					} else {
+						break
+					}
+				}
+				scopeBook = sb.String()
+			}
+			inner = &SearchNode{
+				Query:     queryTok.Literal,
+				IsRegex:   queryTok.Type == TokenRegex,
+				ScopeBook: scopeBook,
+			}
+		} else {
+			var err error
+			inner, err = p.parsePrimary()
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &PipeNode{Left: inner, Right: &ActionNode{Kind: "count", Value: "verses"}}, nil
 
 	case TokenIdent:
 		// ── search(...) ────────────────────────────────────────────────────────

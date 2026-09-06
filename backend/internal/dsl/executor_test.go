@@ -513,6 +513,11 @@ func TestDSLExecutor(t *testing.T) {
 			{query: `? "love" => count("w")`, expectedCount: 7, expectedUnit: "words"},
 			{query: `? "love" => count(sanat)`, expectedCount: 7, expectedUnit: "words"},
 			{query: `? "love" => count("s")`, expectedCount: 7, expectedUnit: "words"},
+			{query: `? "love" => count(unique_words)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(unique)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(sanasto)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(vocab)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(eri)`, expectedCount: 7, expectedUnit: "unique_words"},
 		}
 
 		for _, ut := range unitTests {
@@ -555,6 +560,31 @@ func TestDSLExecutor(t *testing.T) {
 		}
 		if resRangeBooks.Data["count"] != 1 || resRangeBooks.Data["unit"] != "books" {
 			t.Errorf("expected 1 book, got %+v", resRangeBooks.Data)
+		}
+
+		// 7. Context counting with ScopeNode
+		contextWordNode, err := Parse(`^ => count(words)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCtxWords, err := Execute(ctx, contextWordNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCtxWords.Data["count"] != 5 || resCtxWords.Data["unit"] != "words" {
+			t.Errorf("expected 5 context words, got %+v", resCtxWords.Data)
+		}
+
+		contextUniqueNode, err := Parse(`^ => count(unique_words)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCtxUnique, err := Execute(ctx, contextUniqueNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCtxUnique.Data["count"] != 5 || resCtxUnique.Data["unit"] != "unique_words" {
+			t.Errorf("expected 5 unique context words, got %+v", resCtxUnique.Data)
 		}
 
 		// 5. Scoped Search with testament NT/UT: ? "love" @UT
@@ -886,6 +916,54 @@ func TestDSLExecutor_FunctionalPipelines(t *testing.T) {
 		}
 		if res4.Data["translation"] != "kjv" || searcher.lastTrans != "kjv" {
 			t.Errorf("expected translation kjv for explicit override, got res=%v lastTrans=%v", res4.Data["translation"], searcher.lastTrans)
+		}
+	})
+
+	t.Run("Execute Top and Stats Actions", func(t *testing.T) {
+		// Top words on search results
+		topNode, err := Parse(`? "köyhät" => top(5)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resTop, err := Execute(ctx, topNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resTop.Type != "words" {
+			t.Errorf("expected type 'words', got %q", resTop.Type)
+		}
+		words, ok := resTop.Data["words"].([]models.ThemeItem)
+		if !ok || len(words) == 0 {
+			t.Fatalf("expected non-empty words list, got %+v", resTop.Data["words"])
+		}
+
+		// Stats on search results
+		statsNode, err := Parse(`? "köyhät" => stats()`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resStats, err := Execute(ctx, statsNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resStats.Type != "stats" {
+			t.Errorf("expected type 'stats', got %q", resStats.Type)
+		}
+		if ttr, ok := resStats.Data["type_token_ratio"].(float64); !ok || ttr <= 0 {
+			t.Errorf("expected positive type_token_ratio, got %v", resStats.Data["type_token_ratio"])
+		}
+
+		// Quick hash syntax: # "köyhät"
+		hashNode, err := Parse(`# "köyhät"`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resHash, err := Execute(ctx, hashNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resHash.Type != "count" || resHash.Data["count"] != 2 {
+			t.Errorf("expected count 2 for # \"köyhät\", got %+v", resHash.Data)
 		}
 	})
 }

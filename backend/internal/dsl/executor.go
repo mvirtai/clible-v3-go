@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -21,16 +22,27 @@ type VerseSearcher interface {
 	SearchVerses(ctx context.Context, query string, isRegex bool, translationID, searchScope, scopeValue string) ([]models.Verse, error)
 }
 
+// AnalyticsData contains aggregated lexical and linguistic metrics.
+type AnalyticsData struct {
+	TokenCount        int                `json:"token_count"`
+	UniqueTokenCount  int                `json:"unique_token_count"`
+	TypeTokenRatio    float64            `json:"type_token_ratio"`
+	CharacterCount    int                `json:"character_count"`
+	AverageWordLength float64            `json:"avg_word_length"`
+	TopWords          []models.ThemeItem `json:"top_words"`
+}
+
 // ExecutionContext is the runtime context for AST evaluation.
 type ExecutionContext struct {
-	Ctx            context.Context
-	DefaultTrans   string
-	ContextText    string
-	VerseFetcher   VerseFetcher
-	VerseSearcher  VerseSearcher
-	ThemeExtractor func(text string, limit int) []models.ThemeItem
-	RefsFinder     func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
-	SuggestFinder  func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
+	Ctx             context.Context
+	DefaultTrans    string
+	ContextText     string
+	VerseFetcher    VerseFetcher
+	VerseSearcher   VerseSearcher
+	ThemeExtractor  func(text string, limit int) []models.ThemeItem
+	RefsFinder      func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
+	SuggestFinder   func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
+	AnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
 }
 
 // Execute evaluates an AST Node and returns a structured CLIResult.
@@ -287,6 +299,22 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 	// 1. Count aggregator => count()
 	if action.Kind == "count" {
 		return executeCountPipe(ctx, n.Left, action.Value)
+	}
+
+	// 2. Top word frequencies => top(10), words(10), top_words
+	if action.Kind == "top" || action.Kind == "words" || action.Kind == "top_words" {
+		limit := 10
+		if action.Value != "" {
+			if parsedLim, err := strconv.Atoi(action.Value); err == nil && parsedLim > 0 {
+				limit = parsedLim
+			}
+		}
+		return executeTopPipe(ctx, n.Left, limit)
+	}
+
+	// 3. Text statistics & Type-Token Ratio => stats(), ttr()
+	if action.Kind == "stats" || action.Kind == "ttr" {
+		return executeStatsPipe(ctx, n.Left, action.Value)
 	}
 
 	// 2. Parallel comparison vs(A, B) or compare(A, B)
@@ -586,6 +614,19 @@ func aggregateCount(verses []models.Verse, unit string) int {
 			}
 		}
 		return totalWords
+	case "unique_words":
+		seen := make(map[string]struct{})
+		for _, v := range verses {
+			if v.Text != "" {
+				for _, w := range strings.Fields(v.Text) {
+					cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-")
+					if cleaned != "" {
+						seen[cleaned] = struct{}{}
+					}
+				}
+			}
+		}
+		return len(seen)
 	case "verses":
 		fallthrough
 	default:
@@ -744,6 +785,44 @@ func executeCountPipe(ctx *ExecutionContext, left Node, unit string) (*models.CL
 		}
 		return nil, fmt.Errorf("unsupported piped count target: %T", target)
 
+	case *ScopeNode:
+		text := ctx.ContextText
+		count := 0
+		switch unit {
+		case "words":
+			if text != "" {
+				count = len(strings.Fields(text))
+			}
+		case "unique_words":
+			if text != "" {
+				seen := make(map[string]struct{})
+				for _, w := range strings.Fields(text) {
+					cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-")
+					if cleaned != "" {
+						seen[cleaned] = struct{}{}
+					}
+				}
+				count = len(seen)
+			}
+		case "verses":
+			if text != "" {
+				lines := strings.Split(strings.TrimSpace(text), "\n")
+				count = len(lines)
+			}
+		default:
+			if text != "" {
+				count = len(strings.Fields(text))
+			}
+		}
+		return &models.CLIResult{
+			Type: "count",
+			Data: map[string]interface{}{
+				"target_type": "context",
+				"count":       count,
+				"unit":        unit,
+			},
+		}, nil
+
 	default:
 		return nil, fmt.Errorf("cannot count elements for node type %T", left)
 	}
@@ -894,4 +973,172 @@ func applyActionToResult(_ *ExecutionContext, res *models.CLIResult, action *Act
 		}
 	}
 	return res, nil
+}
+
+func extractTargetContent(ctx *ExecutionContext, left Node) ([]models.Verse, string, error) {
+	if _, isScope := left.(*ScopeNode); isScope {
+		return nil, ctx.ContextText, nil
+	}
+
+	res, err := Execute(ctx, left)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if verses, ok := res.Data["verses"].([]models.Verse); ok && len(verses) > 0 {
+		return verses, "", nil
+	}
+
+	if text, ok := res.Data["text"].(string); ok && text != "" {
+		return nil, text, nil
+	}
+
+	return nil, "", nil
+}
+
+func defaultAnalytics(verses []models.Verse, text string, topN int) AnalyticsData {
+	if topN <= 0 {
+		topN = 10
+	}
+	if topN > 1000 {
+		topN = 1000
+	}
+
+	var combinedText strings.Builder
+	if text != "" {
+		combinedText.WriteString(text)
+	} else if len(verses) > 0 {
+		for i, v := range verses {
+			if i > 0 {
+				combinedText.WriteString(" ")
+			}
+			combinedText.WriteString(v.Text)
+		}
+	}
+
+	content := strings.TrimSpace(combinedText.String())
+	if content == "" {
+		return AnalyticsData{
+			TopWords: []models.ThemeItem{},
+		}
+	}
+
+	rawWords := strings.Fields(content)
+	tokenCount := len(rawWords)
+	totalCharCount := len([]rune(content))
+
+	freqMap := make(map[string]int)
+	cleanCharSum := 0
+	cleanWordCount := 0
+
+	for _, w := range rawWords {
+		cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-")
+		if cleaned == "" {
+			continue
+		}
+		freqMap[cleaned]++
+		cleanCharSum += len([]rune(cleaned))
+		cleanWordCount++
+	}
+
+	uniqueCount := len(freqMap)
+	ttr := 0.0
+	if tokenCount > 0 {
+		ttr = float64(uniqueCount) / float64(tokenCount)
+	}
+
+	avgWordLen := 0.0
+	if cleanWordCount > 0 {
+		avgWordLen = float64(cleanCharSum) / float64(cleanWordCount)
+		avgWordLen = float64(int(avgWordLen*100+0.5)) / 100
+	}
+
+	type wordFreq struct {
+		word  string
+		count int
+	}
+	var sortedList []wordFreq
+	for w, c := range freqMap {
+		sortedList = append(sortedList, wordFreq{word: w, count: c})
+	}
+	sort.Slice(sortedList, func(i, j int) bool {
+		if sortedList[i].count == sortedList[j].count {
+			return sortedList[i].word < sortedList[j].word
+		}
+		return sortedList[i].count > sortedList[j].count
+	})
+
+	if len(sortedList) > topN {
+		sortedList = sortedList[:topN]
+	}
+
+	topWords := make([]models.ThemeItem, len(sortedList))
+	for i, item := range sortedList {
+		topWords[i] = models.ThemeItem{
+			Word:  item.word,
+			Count: item.count,
+		}
+	}
+
+	return AnalyticsData{
+		TokenCount:        tokenCount,
+		UniqueTokenCount:  uniqueCount,
+		TypeTokenRatio:    ttr,
+		CharacterCount:    totalCharCount,
+		AverageWordLength: avgWordLen,
+		TopWords:          topWords,
+	}
+}
+
+func executeTopPipe(ctx *ExecutionContext, left Node, limit int) (*models.CLIResult, error) {
+	verses, text, err := extractTargetContent(ctx, left)
+	if err != nil {
+		return nil, err
+	}
+
+	var data AnalyticsData
+	if ctx.AnalyticsFinder != nil {
+		data = ctx.AnalyticsFinder(verses, text, limit)
+	} else {
+		data = defaultAnalytics(verses, text, limit)
+	}
+
+	return &models.CLIResult{
+		Type: "words",
+		Data: map[string]interface{}{
+			"words":            data.TopWords,
+			"limit":            limit,
+			"count":            len(data.TopWords),
+			"token_count":      data.TokenCount,
+			"unique_tokens":    data.UniqueTokenCount,
+			"type_token_ratio": data.TypeTokenRatio,
+		},
+	}, nil
+}
+
+func executeStatsPipe(ctx *ExecutionContext, left Node, mode string) (*models.CLIResult, error) {
+	verses, text, err := extractTargetContent(ctx, left)
+	if err != nil {
+		return nil, err
+	}
+
+	var data AnalyticsData
+	if ctx.AnalyticsFinder != nil {
+		data = ctx.AnalyticsFinder(verses, text, 10)
+	} else {
+		data = defaultAnalytics(verses, text, 10)
+	}
+
+	return &models.CLIResult{
+		Type: "stats",
+		Data: map[string]interface{}{
+			"mode":              mode,
+			"token_count":       data.TokenCount,
+			"unique_tokens":     data.UniqueTokenCount,
+			"type_token_ratio":  data.TypeTokenRatio,
+			"character_count":   data.CharacterCount,
+			"avg_word_length":   data.AverageWordLength,
+			"top_words":         data.TopWords,
+		},
+	}, nil
 }

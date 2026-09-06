@@ -264,6 +264,11 @@ func TestParser_CountAction(t *testing.T) {
 		{name: "Count s ident", input: `? "rakkaus" => count(s)`, expectedUnit: "words"},
 		{name: "Count s string", input: `? "rakkaus" => count("s")`, expectedUnit: "words"},
 		{name: "Count colon syntax", input: `? "rakkaus" => count:books`, expectedUnit: "books"},
+		{name: "Count unique_words ident", input: `? "rakkaus" => count(unique_words)`, expectedUnit: "unique_words"},
+		{name: "Count unique ident", input: `? "rakkaus" => count(unique)`, expectedUnit: "unique_words"},
+		{name: "Count vocab ident", input: `? "rakkaus" => count(vocab)`, expectedUnit: "unique_words"},
+		{name: "Count sanasto ident", input: `? "rakkaus" => count(sanasto)`, expectedUnit: "unique_words"},
+		{name: "Count eri ident", input: `? "rakkaus" => count(eri)`, expectedUnit: "unique_words"},
 	}
 
 	for _, tt := range tests {
@@ -300,6 +305,118 @@ func TestParser_CountAction(t *testing.T) {
 			_, err := Parse(tt.input)
 			if err == nil {
 				t.Errorf("expected error for invalid count expression %q, got nil", tt.input)
+			}
+		})
+	}
+}
+
+func TestParser_TopAction(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedKind  string
+		expectedValue string
+	}{
+		{name: "Top default without parens", input: `? "valo" => top`, expectedKind: "top", expectedValue: "10"},
+		{name: "Top explicit 10", input: `? "valo" => top(10)`, expectedKind: "top", expectedValue: "10"},
+		{name: "Top words alias 5", input: `? "valo" => words(5)`, expectedKind: "top", expectedValue: "5"},
+		{name: "Top words alias without parens", input: `? "valo" => words`, expectedKind: "top", expectedValue: "10"},
+		{name: "Top_words alias 20", input: `? "valo" => top_words(20)`, expectedKind: "top", expectedValue: "20"},
+		{name: "Top colon syntax", input: `? "valo" => top:15`, expectedKind: "top", expectedValue: "15"},
+		{name: "Top clamped to max 1000", input: `? "valo" => top(2000)`, expectedKind: "top", expectedValue: "1000"},
+		{name: "Top clamped to min 1", input: `? "valo" => top(0)`, expectedKind: "top", expectedValue: "1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+			}
+			pipe, ok := node.(*PipeNode)
+			if !ok {
+				t.Fatalf("expected *PipeNode, got %T", node)
+			}
+			action, ok := pipe.Right.(*ActionNode)
+			if !ok {
+				t.Fatalf("expected *ActionNode, got %T", pipe.Right)
+			}
+			if action.Kind != tt.expectedKind || action.Value != tt.expectedValue {
+				t.Errorf("Parse(%q): expected (%s, %s), got (%s, %s)", tt.input, tt.expectedKind, tt.expectedValue, action.Kind, action.Value)
+			}
+		})
+	}
+}
+
+func TestParser_StatsAction(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedKind  string
+		expectedValue string
+	}{
+		{name: "Stats default without parens", input: `@Joh 1:1-5 => stats`, expectedKind: "stats", expectedValue: "all"},
+		{name: "Stats with parens", input: `@Joh 1:1-5 => stats()`, expectedKind: "stats", expectedValue: "all"},
+		{name: "Stats with ttr ident", input: `@Joh 1:1-5 => stats(ttr)`, expectedKind: "stats", expectedValue: "ttr"},
+		{name: "Stats with ttr string", input: `@Joh 1:1-5 => stats("ttr")`, expectedKind: "stats", expectedValue: "ttr"},
+		{name: "TTR action alias without parens", input: `@Joh 1:1-5 => ttr`, expectedKind: "stats", expectedValue: "all"},
+		{name: "TTR action alias with parens", input: `@Joh 1:1-5 => ttr()`, expectedKind: "stats", expectedValue: "all"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+			}
+			pipe, ok := node.(*PipeNode)
+			if !ok {
+				t.Fatalf("expected *PipeNode, got %T", node)
+			}
+			action, ok := pipe.Right.(*ActionNode)
+			if !ok {
+				t.Fatalf("expected *ActionNode, got %T", pipe.Right)
+			}
+			if action.Kind != tt.expectedKind || action.Value != tt.expectedValue {
+				t.Errorf("Parse(%q): expected (%s, %s), got (%s, %s)", tt.input, tt.expectedKind, tt.expectedValue, action.Kind, action.Value)
+			}
+		})
+	}
+}
+
+func TestParser_QuickHashPrefix(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedQuery string
+		expectedScope string
+		isRegex       bool
+	}{
+		{name: "Quick hash search string", input: `# "armo"`, expectedQuery: "armo", expectedScope: "", isRegex: false},
+		{name: "Quick hash search with scope", input: `# "armo" @Joh`, expectedQuery: "armo", expectedScope: "Joh", isRegex: false},
+		{name: "Quick hash regex search", input: `# /arm.*/`, expectedQuery: "arm.*", expectedScope: "", isRegex: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+			}
+			pipe, ok := node.(*PipeNode)
+			if !ok {
+				t.Fatalf("expected *PipeNode, got %T", node)
+			}
+			search, ok := pipe.Left.(*SearchNode)
+			if !ok {
+				t.Fatalf("expected Left to be *SearchNode, got %T", pipe.Left)
+			}
+			if search.Query != tt.expectedQuery || search.ScopeBook != tt.expectedScope || search.IsRegex != tt.isRegex {
+				t.Errorf("SearchNode mismatch: query=%q, scope=%q, regex=%v", search.Query, search.ScopeBook, search.IsRegex)
+			}
+			action, ok := pipe.Right.(*ActionNode)
+			if !ok || action.Kind != "count" || action.Value != "verses" {
+				t.Errorf("expected Right to be count(verses), got %#v", pipe.Right)
 			}
 		})
 	}

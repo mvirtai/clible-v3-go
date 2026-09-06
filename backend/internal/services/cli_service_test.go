@@ -536,5 +536,66 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 			t.Errorf("expected parse error for invalid DSL, got nil")
 		}
 	})
+
+	// Test with real AnalyticService injected
+	analyticService, err := services.NewAnalyticService(verseRepo, false, "en")
+	if err != nil {
+		t.Fatalf("failed to create analytic service: %v", err)
+	}
+	cliService.SetAnalyticService(analyticService)
+
+	t.Run("execute top pipeline @JHN 3:16 => top(5)", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(ctx, "@JHN 3:16 => top(5)", "web", "")
+		if err != nil {
+			t.Fatalf("ExecuteDSL top failed: %v", err)
+		}
+		if res.Type != "words" {
+			t.Errorf("expected type 'words', got %s", res.Type)
+		}
+		wordsList, ok := res.Data["words"].([]models.ThemeItem)
+		if !ok || len(wordsList) == 0 {
+			t.Fatalf("expected words list, got %v", res.Data["words"])
+		}
+	})
+
+	t.Run("execute stats pipeline @JHN 3:16 => stats()", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(ctx, "@JHN 3:16 => stats()", "web", "")
+		if err != nil {
+			t.Fatalf("ExecuteDSL stats failed: %v", err)
+		}
+		if res.Type != "stats" {
+			t.Errorf("expected type 'stats', got %s", res.Type)
+		}
+		if ttr, ok := res.Data["type_token_ratio"].(float64); !ok || ttr <= 0 {
+			t.Errorf("expected positive type_token_ratio, got %v", res.Data["type_token_ratio"])
+		}
+	})
+
+	t.Run("execute unique_words count @JHN 3:16 => count(unique_words)", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(ctx, "@JHN 3:16 => count(unique_words)", "web", "")
+		if err != nil {
+			t.Fatalf("ExecuteDSL count(unique_words) failed: %v", err)
+		}
+		if res.Type != "count" {
+			t.Errorf("expected type 'count', got %s", res.Type)
+		}
+		if res.Data["unit"] != "unique_words" {
+			t.Errorf("expected unit 'unique_words', got %v", res.Data["unit"])
+		}
+	})
+
+	t.Run("execute context words count ^ => count(words)", func(t *testing.T) {
+		contextText := "One two three four five"
+		res, err := cliService.ExecuteDSL(ctx, "^ => count(words)", "web", contextText)
+		if err != nil {
+			t.Fatalf("ExecuteDSL ^ => count(words) failed: %v", err)
+		}
+		if res.Type != "count" {
+			t.Errorf("expected type 'count', got %s", res.Type)
+		}
+		if res.Data["count"] != 5 {
+			t.Errorf("expected 5 words, got %v", res.Data["count"])
+		}
+	})
 }
 

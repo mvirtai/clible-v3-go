@@ -116,6 +116,30 @@ func (s *CLIService) ExecuteDSL(ctx context.Context, input string, defaultTrans 
 		},
 	}
 
+	if s.analyticService != nil {
+		execCtx.AnalyticsFinder = func(verses []models.Verse, text string, topN int) dsl.AnalyticsData {
+			var targetVerses []models.Verse
+			if len(verses) > 0 {
+				targetVerses = verses
+			} else if text != "" {
+				targetVerses = []models.Verse{{Text: text}}
+			}
+			res := s.analyticService.AnalyzeVerses(targetVerses, topN)
+			var topWords []models.ThemeItem
+			for _, tw := range res.TopWords {
+				topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
+			}
+			return dsl.AnalyticsData{
+				TokenCount:        res.TokenCount,
+				UniqueTokenCount:  res.UniqueTokenCount,
+				TypeTokenRatio:    res.TypeTokenRatio,
+				CharacterCount:    res.CharacterCount,
+				AverageWordLength: res.AverageWordLength,
+				TopWords:          topWords,
+			}
+		}
+	}
+
 	return dsl.Execute(execCtx, node)
 }
 
@@ -278,16 +302,27 @@ func ParseCLICommand(input string) *CLICommand {
 
 // CLIService orchestrates notebook cell CLI slash command executions.
 type CLIService struct {
-	verseRepo    *db.VerseRepository
-	verseService *VerseService
+	verseRepo       *db.VerseRepository
+	verseService    *VerseService
+	analyticService *AnalyticService
 }
 
 // NewCLIService constructs a CLI command execution engine.
-func NewCLIService(vr *db.VerseRepository, vs *VerseService) *CLIService {
-	return &CLIService{
-		verseRepo:    vr,
-		verseService: vs,
+func NewCLIService(vr *db.VerseRepository, vs *VerseService, as ...*AnalyticService) *CLIService {
+	var analytic *AnalyticService
+	if len(as) > 0 {
+		analytic = as[0]
 	}
+	return &CLIService{
+		verseRepo:       vr,
+		verseService:    vs,
+		analyticService: analytic,
+	}
+}
+
+// SetAnalyticService configures or updates the optional analytics engine dependency.
+func (s *CLIService) SetAnalyticService(as *AnalyticService) {
+	s.analyticService = as
 }
 
 // ExecuteCommand runs a parsed command and returns a structured CLIResult.
