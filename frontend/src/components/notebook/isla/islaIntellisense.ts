@@ -111,6 +111,50 @@ export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
     kind: 'snippet',
   },
   {
+    label: '! range(Joh 1:1, Joh 1:18) => top(10)',
+    insertText: '! range(Joh 1:1, Joh 1:18) => top(10)',
+    detail: 'Top Word Frequencies',
+    documentation: {
+      fi: 'Yleisimmät sanat: laskee ja visualisoi tekstin useimmin esiintyvät sanat vaakapalkeilla.',
+      en: 'Top word frequencies: calculates and visualizes most frequent words as a bar chart.',
+    },
+    example: '! range(Joh 1:1, Joh 1:18) => top(10)',
+    kind: 'snippet',
+  },
+  {
+    label: '! @Room 8:1-39 => stats()',
+    insertText: '! @Room 8:1-39 => stats()',
+    detail: 'Text Statistics & TTR',
+    documentation: {
+      fi: 'Tekstitilastot ja sanaston rikkaus (Type-Token Ratio TTR, uniikit sanat ja keskipituus).',
+      en: 'Text statistics and lexical diversity (Type-Token Ratio TTR, unique words and average length).',
+    },
+    example: '! @Room 8:1-39 => stats()',
+    kind: 'snippet',
+  },
+  {
+    label: '! ^ => count(words)',
+    insertText: '! ^ => count(words)',
+    detail: 'Context Word Count',
+    documentation: {
+      fi: 'Muistiinpanon sanalaskenta: laskee edellisten solujen sanamäärän.',
+      en: 'Note context word count: counts words from preceding notebook cells.',
+    },
+    example: '! ^ => count(words)',
+    kind: 'snippet',
+  },
+  {
+    label: '!# "armo"',
+    insertText: '!# "armo"',
+    detail: 'Quick Count Prefix',
+    documentation: {
+      fi: 'Pikalaskuri (#): laskee hakutulokset tai jakeet välittömästi ilman putkikomentoa.',
+      en: 'Quick count prefix (#): immediately counts search results or verses without pipeline suffix.',
+    },
+    example: '!# "armo" @Joh',
+    kind: 'snippet',
+  },
+  {
     label: '! search("valkeus") => at(Joh) => limit(5)',
     insertText: '! search("valkeus") => at(Joh) => limit(5)',
     detail: 'Scoped Search',

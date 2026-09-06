@@ -333,11 +333,55 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     keyword: 'count',
     label: { fi: 'Laskuri', en: 'Result Counter' },
     description: {
-      fi: 'Laskee tulosten määrän (jakeet, luvut, kirjat tai sanat) mittarikortilla. Valinnainen yksikkö: count(verses), count(chapters), count(books), count(words).',
-      en: 'Aggregates result count (verses, chapters, books, or words) on a metric card. Optional unit: count(verses), count(chapters), count(books), count(words).',
+      fi: 'Laskee tulosten määrän (jakeet, luvut, kirjat, sanat tai uniikit sanat) mittarikortilla. Valinnainen yksikkö: count(verses), count(chapters), count(books), count(words), count(unique_words).',
+      en: 'Aggregates result count (verses, chapters, books, words, or unique words) on a metric card. Optional unit: count(verses), count(chapters), count(books), count(words), count(unique_words).',
     },
     syntax: 'count([unit])',
-    example: '! search("armo") => at(kirjeet) => count(books)',
+    example: '! search("armo") => at(kirjeet) => count(unique_words)',
+    hasArgs: false,
+  },
+  {
+    keyword: 'top',
+    label: { fi: 'Yleisimmät sanat', en: 'Top Word Frequencies' },
+    description: {
+      fi: 'Laskee ja visualisoi tekstin yleisimmät sanat pylväskaaviona. Oletus top(10), valinnainen määrä esim. top(20).',
+      en: 'Calculates and visualizes most frequent words as a horizontal bar chart. Default top(10), optional count e.g. top(20).',
+    },
+    syntax: 'top(N?) | words(N?)',
+    example: '! range(Joh 1:1, Joh 1:18) => top(10)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'words',
+    label: { fi: 'Yleisimmät sanat (alias)', en: 'Word Frequencies (alias)' },
+    description: {
+      fi: 'Alias komennolle `top(...)`. Näyttää yleisimpien sanojen frekvenssit.',
+      en: 'Alias for `top(...)`. Displays top word frequencies.',
+    },
+    syntax: 'words(N?)',
+    example: '! search("valo") => words(5)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'stats',
+    label: { fi: 'Tekstitilastot & TTR', en: 'Text Statistics & TTR' },
+    description: {
+      fi: 'Laskee tekstin leksikaaliset metriikat: Type-Token Ratio (TTR), sanaston rikkauden, kokonaissanamäärän ja keskipituuden.',
+      en: 'Calculates lexical metrics: Type-Token Ratio (TTR), vocabulary richness, word counts, and average length.',
+    },
+    syntax: 'stats() | ttr()',
+    example: '! @Room 8:1-39 => stats()',
+    hasArgs: false,
+  },
+  {
+    keyword: 'ttr',
+    label: { fi: 'Sanaston rikkaus (TTR)', en: 'Type-Token Ratio (TTR)' },
+    description: {
+      fi: 'Alias komennolle `stats()`. Laskee sanaston rikkaussuhteen (Type-Token Ratio).',
+      en: 'Alias for `stats()`. Calculates lexical diversity ratio (Type-Token Ratio).',
+    },
+    syntax: 'ttr()',
+    example: '! ^ => ttr()',
     hasArgs: false,
   },
   {

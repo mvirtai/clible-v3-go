@@ -48,6 +48,8 @@ export function CellCountResult({ data }: CellCountResultProps) {
         return data.count === 1 ? strings.countUnitChaptersSingular : strings.countUnitChaptersPlural;
       case 'words':
         return data.count === 1 ? strings.countUnitWordsSingular : strings.countUnitWordsPlural;
+      case 'unique_words':
+        return data.count === 1 ? strings.countUnitUniqueWordsSingular : strings.countUnitUniqueWordsPlural;
       case 'verses':
         return data.count === 1 ? strings.countUnitVersesSingular : strings.countUnitVersesPlural;
       default:
@@ -77,6 +79,13 @@ export function CellCountResult({ data }: CellCountResultProps) {
                 </span>
               )}
             </span>
+          ) : data.target_type === 'context' ? (
+            <span>
+              {strings.countResultsForContext}{' '}
+              <code className="px-1.5 py-0.5 rounded bg-amber-900/10 dark:bg-black/40 text-amber-950 dark:text-amber-200 border border-amber-500/20 font-mono">
+                ^
+              </code>
+            </span>
           ) : (
             <span>
               {strings.countVersesForRef}{' '}
@@ -87,7 +96,7 @@ export function CellCountResult({ data }: CellCountResultProps) {
         <div className="text-2xl font-bold text-amber-950 dark:text-amber-100 mt-0.5 tracking-tight">
           {data.count}{' '}
           <span className="text-xs font-medium text-amber-800/90 dark:text-amber-300/80">
-            {getUnitLabel()} ({data.translation || strings.defaultTranslationLabel})
+            {getUnitLabel()}{data.translation ? ` (${data.translation})` : ''}
           </span>
         </div>
       </div>

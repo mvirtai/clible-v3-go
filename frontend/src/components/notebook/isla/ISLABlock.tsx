@@ -2,6 +2,8 @@ import { Suspense, use } from 'react';
 import { CellCompareResult, type CompareResultData } from '../results/CellCompareResult';
 import { CellVersesResult, type VersesResultData } from '../results/CellVersesResult';
 import { CellCountResult, type CountResultData } from '../results/CellCountResult';
+import { CellWordFreqResult, type WordFreqResultData } from '../results/CellWordFreqResult';
+import { CellStatsResult, type StatsResultData } from '../results/CellStatsResult';
 import { fetchISLAResult } from './islaCache';
 
 function ISLASkeleton({ code }: { code: string }) {
@@ -78,6 +80,12 @@ function ISLAContent({ code, translation }: { code: string; translation: string 
         )}
         {result.type === 'count' && (
           <CellCountResult data={result.data as CountResultData} />
+        )}
+        {result.type === 'words' && (
+          <CellWordFreqResult data={result.data as WordFreqResultData} />
+        )}
+        {result.type === 'stats' && (
+          <CellStatsResult data={result.data as StatsResultData} />
         )}
       </div>
     </div>

@@ -121,5 +121,42 @@ describe('formatResultToMarkdown', () => {
       reference: 'Joh 1:1-5',
     };
     expect(formatResultToMarkdown('count', wordPluralData, 'KR92')).toBe('> **Jakeet viitteelle Joh 1:1-5 (KR92)**: 35 sanaa\n');
+
+    const uniqueWordData: CLIResultData = {
+      count: 12,
+      unit: 'unique_words',
+      target_type: 'context',
+    };
+    expect(formatResultToMarkdown('count', uniqueWordData, 'KR92')).toBe('> **Muistiinpanon konteksti**: 12 uniikkia sanaa\n');
+  });
+
+  it('formats words results as a table', () => {
+    const data: CLIResultData = {
+      words: [
+        { word: 'armo', count: 10 },
+        { word: 'totuus', count: 5 },
+      ],
+    };
+    const result = formatResultToMarkdown('words', data, 'KR92');
+    expect(result).toContain('### Sanatiheydet');
+    expect(result).toContain('| 1 | **armo** | 10 |');
+    expect(result).toContain('| 2 | **totuus** | 5 |');
+  });
+
+  it('formats stats results with TTR and counts', () => {
+    const data: CLIResultData = {
+      type_token_ratio: 0.654,
+      unique_tokens: 65,
+      token_count: 100,
+      avg_word_length: 5.2,
+      character_count: 520,
+    };
+    const result = formatResultToMarkdown('stats', data, 'KR92');
+    expect(result).toContain('### Tekstitilastot');
+    expect(result).toContain('- **Sanaston rikkaus (TTR)**: 65.4 %');
+    expect(result).toContain('- **Uniikkeja sanoja**: 65');
+    expect(result).toContain('- **Sanoja yhteensä**: 100');
+    expect(result).toContain('- **Sanan keskipituus**: 5.2');
+    expect(result).toContain('- **Merkkejä**: 520');
   });
 });

@@ -202,4 +202,26 @@ describe('CellCountResult', () => {
     expect(content).toContain('3');
     expect(content).toContain('lukua');
   });
+
+  it('renders unique_words unit and context target correctly', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CellCountResult
+            data={{
+              target_type: 'context',
+              count: 42,
+              unit: 'unique_words',
+            }}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const content = container?.textContent || '';
+    expect(content).toContain('^');
+    expect(content).toContain('42');
+    expect(content).toContain('uniikkia sanaa');
+  });
 });

@@ -152,6 +152,18 @@ export interface Messages {
   countUnitBooksPlural: string;
   countUnitWordsSingular: string;
   countUnitWordsPlural: string;
+  countUnitUniqueWordsSingular: string;
+  countUnitUniqueWordsPlural: string;
+  countResultsForContext: string;
+  statsTitle: string;
+  ttrLabel: string;
+  ttrExplanation: string;
+  uniqueWordsLabel: string;
+  totalWordsLabel: string;
+  avgWordLengthLabel: string;
+  characterCountLabel: string;
+  topWordsTitle: string;
+  frequencyLabel: string;
   defaultTranslationLabel: string;
   noResults: string;
   dynamicRefsFor: string;
@@ -470,6 +482,18 @@ export const strings: Record<UILanguage, Messages> = {
     countUnitBooksPlural: 'books',
     countUnitWordsSingular: 'word',
     countUnitWordsPlural: 'words',
+    countUnitUniqueWordsSingular: 'unique word',
+    countUnitUniqueWordsPlural: 'unique words',
+    countResultsForContext: 'From note context',
+    statsTitle: 'Text Statistics',
+    ttrLabel: 'Type-Token Ratio (TTR)',
+    ttrExplanation: 'Lexical diversity ratio of unique words to total words',
+    uniqueWordsLabel: 'Unique words',
+    totalWordsLabel: 'Total words',
+    avgWordLengthLabel: 'Avg. word length',
+    characterCountLabel: 'Characters',
+    topWordsTitle: 'Word Frequencies',
+    frequencyLabel: 'occurrences',
     defaultTranslationLabel: 'Default translation',
     noResults: 'No results.',
     dynamicRefsFor: 'Dynamic cross-references for',
@@ -763,6 +787,18 @@ export const strings: Record<UILanguage, Messages> = {
     countUnitBooksPlural: 'kirjaa',
     countUnitWordsSingular: 'sana',
     countUnitWordsPlural: 'sanaa',
+    countUnitUniqueWordsSingular: 'uniikki sana',
+    countUnitUniqueWordsPlural: 'uniikkia sanaa',
+    countResultsForContext: 'Muistiinpanon kontekstista',
+    statsTitle: 'Tekstitilastot',
+    ttrLabel: 'Sanaston rikkaus (TTR)',
+    ttrExplanation: 'Uniikkien sanojen osuus kaikista sanoista (Type-Token Ratio)',
+    uniqueWordsLabel: 'Uniikkeja sanoja',
+    totalWordsLabel: 'Sanoja yhteensä',
+    avgWordLengthLabel: 'Sanan keskipituus',
+    characterCountLabel: 'Merkkejä',
+    topWordsTitle: 'Sanatiheydet',
+    frequencyLabel: 'esiintymää',
     defaultTranslationLabel: 'Oletuskäännös',
     noResults: 'Ei tuloksia.',
     dynamicRefsFor: 'Dynaamiset ristiinviitteet jakeelle',
