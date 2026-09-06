@@ -52,6 +52,7 @@ func (h *DSLHandler) EvalDSL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("⚡ [ISLA Command]", "query", req.Query, "translationId", req.TranslationID)
 	result, err := h.cliService.ExecuteDSL(r.Context(), req.Query, req.TranslationID, req.ContextText)
 	if err != nil {
 		slog.Warn("DSL evaluation error", "query", req.Query, "error", err)

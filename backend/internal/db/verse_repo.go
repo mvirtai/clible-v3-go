@@ -4,11 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
+
+func logISLASQL(query string, args ...any) {
+	cleanQuery := strings.Join(strings.Fields(strings.TrimSpace(query)), " ")
+	slog.Info("🔍 [ISLA SQL]", "query", cleanQuery, "args", args)
+}
 
 // SearchByKeywords queries the database using PostgreSQL full-text search.
 // It ranks the verses based on keyword frequency.
@@ -39,6 +45,7 @@ func (r *VerseRepository) SearchByKeywords(ctx context.Context, keywords []strin
 		query += " LIMIT " + fmt.Sprintf("$%d", len(args)+1)
 		args = append(args, limit)
 
+		logISLASQL(query, args...)
 		rows, err := r.db.QueryContext(ctx, query, args...)
 		if err != nil {
 			return nil, err
@@ -94,6 +101,7 @@ func (r *VerseRepository) SearchByKeywords(ctx context.Context, keywords []strin
 		LIMIT $3;
 	`, ftsConfigName)
 
+	logISLASQL(query, translationID, tsQuery, limit)
 	rows, err := r.db.QueryContext(ctx, query, translationID, tsQuery, limit)
 	if err != nil {
 		return nil, err
@@ -178,12 +186,14 @@ func (r *VerseRepository) BulkInsert(ctx context.Context, verses []models.Verse)
 
 // GetByReference fetches verses matching exact book/chapter/verse range and translation.
 func (r *VerseRepository) GetByReference(ctx context.Context, translationID, bookID string, chapter, verseStart, verseEnd int) ([]models.Verse, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	query := `
 			SELECT id, translation_id, book_id, chapter, verse, text
 			FROM verses
 			WHERE translation_id = $1 AND book_id = $2 AND chapter = $3 AND verse >= $4 AND verse <= $5
 			ORDER BY verse ASC
-		`, translationID, bookID, chapter, verseStart, verseEnd)
+		`
+	logISLASQL(query, translationID, bookID, chapter, verseStart, verseEnd)
+	rows, err := r.db.QueryContext(ctx, query, translationID, bookID, chapter, verseStart, verseEnd)
 	if err != nil {
 		return nil, fmt.Errorf("reference lookup failed: %w", err)
 	}
@@ -261,6 +271,7 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		}
 		baseQuery += " ORDER BY book_id ASC, chapter ASC, verse ASC"
 
+		logISLASQL(baseQuery, args...)
 		rows, err = r.db.QueryContext(ctx, baseQuery, args...)
 		if err != nil {
 			return nil, fmt.Errorf("regex table scan query failed: %w", err)
@@ -355,6 +366,7 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 		ftsQuery += " ORDER BY v.book_id ASC, v.chapter ASC, v.verse ASC"
 	}
 
+	logISLASQL(ftsQuery, args...)
 	rows, err = r.db.QueryContext(ctx, ftsQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("fts search query failed: %w", err)
@@ -375,12 +387,14 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 
 // GetByChapter fetches all verses for a given chapter, translation, and book.
 func (r *VerseRepository) GetByChapter(ctx context.Context, translationID string, bookId string, chapter int) ([]models.Verse, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	query := `
 			SELECT id, translation_id, book_id, chapter, verse, text
 			FROM verses
 			WHERE translation_id = $1 AND book_id = $2 AND chapter = $3
 			ORDER BY verse ASC
-		`, translationID, bookId, chapter)
+		`
+	logISLASQL(query, translationID, bookId, chapter)
+	rows, err := r.db.QueryContext(ctx, query, translationID, bookId, chapter)
 	if err != nil {
 		return nil, fmt.Errorf("chapter lookup failed: %w", err)
 	}
@@ -399,12 +413,14 @@ func (r *VerseRepository) GetByChapter(ctx context.Context, translationID string
 
 // GetByBook fetches all verses for an entire book and translation, ordered by chapter and verse.
 func (r *VerseRepository) GetByBook(ctx context.Context, translationID string, bookID string) ([]models.Verse, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	query := `
 			SELECT id, translation_id, book_id, chapter, verse, text
 			FROM verses
 			WHERE translation_id = $1 AND book_id = $2
 			ORDER BY chapter ASC, verse ASC
-		`, translationID, bookID)
+		`
+	logISLASQL(query, translationID, bookID)
+	rows, err := r.db.QueryContext(ctx, query, translationID, bookID)
 	if err != nil {
 		return nil, fmt.Errorf("book lookup failed: %w", err)
 	}
