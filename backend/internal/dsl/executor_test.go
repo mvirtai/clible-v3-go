@@ -50,6 +50,23 @@ func TestDSLExecutor(t *testing.T) {
 			"Joh 3:16@fin-1992": {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "Sillä niin on Jumala maailmaa rakastanut"}},
 			"Joh 3:16@kjv":      {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world"}},
 			"Joh 3:16@web":      {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world (WEB)"}},
+			"JHN 1:1-5@fin-1992": {
+				{BookID: "JHN", Chapter: 1, Verse: 1, Text: "Alussa oli Sana"},
+				{BookID: "JHN", Chapter: 1, Verse: 2, Text: "Sana oli Jumalan luona"},
+			},
+			"JHN 1:1-5@kjv": {
+				{BookID: "JHN", Chapter: 1, Verse: 1, Text: "In the beginning was the Word"},
+				{BookID: "JHN", Chapter: 1, Verse: 2, Text: "The same was in the beginning with God"},
+			},
+			"JHN 1:1-5@web": {
+				{BookID: "JHN", Chapter: 1, Verse: 1, Text: "In the beginning was the Word"},
+				{BookID: "JHN", Chapter: 1, Verse: 2, Text: "The same was in the beginning with God"},
+				{BookID: "JHN", Chapter: 1, Verse: 3, Text: "All things were made through him"},
+				{BookID: "JHN", Chapter: 1, Verse: 4, Text: "In him was life"},
+				{BookID: "JHN", Chapter: 1, Verse: 5, Text: "The light shines in the darkness"},
+			},
+			"Joh 1:1@web": {{BookID: "JHN", Chapter: 1, Verse: 1, Text: "In the beginning was the Word"}},
+			"Joh 1:5@web": {{BookID: "JHN", Chapter: 1, Verse: 5, Text: "The light shines in the darkness"}},
 		},
 	}
 	searcher := &mockVerseSearcher{
@@ -67,6 +84,12 @@ func TestDSLExecutor(t *testing.T) {
 		VerseSearcher: searcher,
 		ThemeExtractor: func(text string, limit int) []models.ThemeItem {
 			return []models.ThemeItem{{Word: "rakkaus", Count: 2}}
+		},
+		RefsFinder: func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error) {
+			return []models.Verse{{BookID: "1JN", Chapter: 4, Verse: 8, Text: "God is love"}}, nil
+		},
+		SuggestFinder: func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error) {
+			return []models.Verse{{BookID: "1JN", Chapter: 4, Verse: 8, Text: "God is love"}}, []string{"rakkaus"}, nil
 		},
 	}
 
@@ -125,6 +148,149 @@ func TestDSLExecutor(t *testing.T) {
 		}
 		if res.Type != "compare" {
 			t.Errorf("expected type 'compare', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Range Expression Same Chapter", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5)")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "range" {
+			t.Errorf("expected type 'range', got %q", res.Type)
+		}
+		verses, ok := res.Data["verses"].([]models.Verse)
+		if !ok || len(verses) != 5 {
+			t.Fatalf("expected 5 verses in range, got %d", len(verses))
+		}
+		if ref, ok := res.Data["reference"].(string); !ok || ref != "Joh 1:1 – Joh 1:5" {
+			t.Errorf("unexpected reference in data: %v", ref)
+		}
+	})
+
+	t.Run("Execute Range with Count Pipeline", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => count()")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "count" {
+			t.Errorf("expected type 'count', got %q", res.Type)
+		}
+		if count, ok := res.Data["count"].(int); !ok || count != 5 {
+			t.Errorf("expected count 5, got %v", count)
+		}
+	})
+
+	t.Run("Execute Range with Themes Pipeline", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => themes(5)")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "themes" {
+			t.Errorf("expected type 'themes', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Range with Ternary Comparison", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) ? KR92 : KJV")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "compare" {
+			t.Errorf("expected type 'compare', got %q", res.Type)
+		}
+		if ref, ok := res.Data["reference"].(string); !ok || ref != "Joh 1:1 – Joh 1:5" {
+			t.Errorf("unexpected reference in comparison: %v", ref)
+		}
+	})
+
+	t.Run("Execute Range with vs() Comparison Pipeline", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => vs(KR92, KJV)")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "compare" {
+			t.Errorf("expected type 'compare', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Range Chained Pipeline use and count", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => use(KR92) => count()")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "count" || res.Data["count"] != 2 {
+			t.Errorf("unexpected count result: %+v", res)
+		}
+	})
+
+	t.Run("Execute Range with Refs Pipeline", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => refs(3)")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "refs" {
+			t.Errorf("expected type 'refs', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Search with Themes Pipeline", func(t *testing.T) {
+		node, err := Parse(`search("love") => themes(5)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "themes" {
+			t.Errorf("expected type 'themes', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Verse Reference with Limit Pipeline", func(t *testing.T) {
+		node, err := Parse(`@JHN 1:1-5 => limit(2)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		verses, ok := res.Data["verses"].([]models.Verse)
+		if !ok || len(verses) != 2 {
+			t.Errorf("expected 2 verses due to limit, got %d", len(verses))
+		}
+		if count, ok := res.Data["count"].(int); !ok || count != 2 {
+			t.Errorf("expected count 2 in res.Data, got %v", count)
 		}
 	})
 

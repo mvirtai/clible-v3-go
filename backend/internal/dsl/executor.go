@@ -82,6 +82,7 @@ func executeVerseRef(ctx *ExecutionContext, n *VerseRefNode, transID string) (*m
 			"reference":   n.Reference,
 			"translation": tid,
 			"verses":      verses,
+			"count":       len(verses),
 		},
 	}, nil
 }
@@ -204,14 +205,45 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 	}, nil
 }
 
-// executeRange fetches all verses between Start and End references (inclusive)
-// by retrieving each boundary and returning them as a combined passage result.
-// Both references are resolved with the default translation.
+// executeRange fetches all verses between Start and End references (inclusive).
+// If both references belong to the same chapter of the same book, it fetches all verses
+// in the range (e.g. range(Joh 1:1, Joh 1:5) -> verses 1..5).
+// Otherwise, it retrieves the boundaries and combines them.
 func executeRange(ctx *ExecutionContext, n *RangeNode) (*models.CLIResult, error) {
 	if ctx.VerseFetcher == nil {
 		return nil, errors.New("verse fetcher dependency is not configured")
 	}
 	tid := parsers.ResolveTranslationID(ctx.DefaultTrans)
+
+	// Check if both start and end references are within the same chapter of the same book
+	pStart, errStart := parsers.ParseReference(n.Start)
+	pEnd, errEnd := parsers.ParseReference(n.End)
+	if errStart == nil && errEnd == nil &&
+		pStart.BookName != "" && pStart.BookName == pEnd.BookName &&
+		pStart.Chapter > 0 && pStart.Chapter == pEnd.Chapter &&
+		pStart.Scope == parsers.ScopeVerse && pEnd.Scope == parsers.ScopeVerse {
+		endVerse := pEnd.VerseEnd
+		if endVerse == 0 {
+			endVerse = pEnd.VerseStart
+		}
+		if pStart.VerseStart > 0 && endVerse >= pStart.VerseStart {
+			combinedRef := fmt.Sprintf("%s %d:%d-%d", pStart.BookName, pStart.Chapter, pStart.VerseStart, endVerse)
+			verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, combinedRef, tid)
+			if err == nil && len(verses) > 0 {
+				return &models.CLIResult{
+					Type: "range",
+					Data: map[string]interface{}{
+						"start":       n.Start,
+						"end":         n.End,
+						"reference":   fmt.Sprintf("%s – %s", n.Start, n.End),
+						"translation": tid,
+						"verses":      verses,
+						"count":       len(verses),
+					},
+				}, nil
+			}
+		}
+	}
 
 	startVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.Start, tid)
 	if err != nil {
@@ -222,8 +254,7 @@ func executeRange(ctx *ExecutionContext, n *RangeNode) (*models.CLIResult, error
 		return nil, fmt.Errorf("range(): failed to fetch end reference %q: %w", n.End, err)
 	}
 
-	// Combine: start verses + end verses deduplicated (simple boundary fetch).
-	// Full between-query support requires a GetVerseRange repo method (future work).
+	// Combine: start verses + end verses deduplicated (boundary fetch).
 	seen := make(map[string]struct{}, len(startVerses)+len(endVerses))
 	all := make([]models.Verse, 0, len(startVerses)+len(endVerses))
 	for _, v := range append(startVerses, endVerses...) {
@@ -239,6 +270,7 @@ func executeRange(ctx *ExecutionContext, n *RangeNode) (*models.CLIResult, error
 		Data: map[string]interface{}{
 			"start":       n.Start,
 			"end":         n.End,
+			"reference":   fmt.Sprintf("%s – %s", n.Start, n.End),
 			"translation": tid,
 			"verses":      all,
 			"count":       len(all),
@@ -259,12 +291,21 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 
 	// 2. Parallel comparison vs(A, B) or compare(A, B)
 	if action.Kind == "vs" || action.Kind == "compare" {
-		if refNode, ok := n.Left.(*VerseRefNode); ok && len(action.Args) >= 2 {
-			return executeComparison(ctx, &ComparisonNode{
-				Target: refNode,
-				Left:   &ActionNode{Kind: "translation", Value: action.Args[0]},
-				Right:  &ActionNode{Kind: "translation", Value: action.Args[1]},
-			})
+		if len(action.Args) >= 2 {
+			if refNode, ok := n.Left.(*VerseRefNode); ok {
+				return executeComparison(ctx, &ComparisonNode{
+					Target: refNode,
+					Left:   &ActionNode{Kind: "translation", Value: action.Args[0]},
+					Right:  &ActionNode{Kind: "translation", Value: action.Args[1]},
+				})
+			}
+			if rangeNode, ok := n.Left.(*RangeNode); ok {
+				return executeComparison(ctx, &ComparisonNode{
+					Target: rangeNode,
+					Left:   &ActionNode{Kind: "translation", Value: action.Args[0]},
+					Right:  &ActionNode{Kind: "translation", Value: action.Args[1]},
+				})
+			}
 		}
 	}
 
@@ -284,13 +325,17 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		transID := ctx.DefaultTrans
 		if refNode, ok := n.Left.(*VerseRefNode); ok {
 			refStr = refNode.Reference
+		} else if rangeNode, ok := n.Left.(*RangeNode); ok {
+			refStr = rangeNode.Start
 		} else if pipeNode, ok := n.Left.(*PipeNode); ok {
-			// Pipeline chaining: @Joh 3:16 => use(KR92) => refs(3)
+			// Pipeline chaining: @Joh 3:16 => use(KR92) => refs(3) or range(...) => use(KR92) => refs(3)
 			if innerAct, isAct := pipeNode.Right.(*ActionNode); isAct && (innerAct.Kind == "use" || innerAct.Kind == "in" || innerAct.Kind == "translation") {
 				transID = innerAct.Value
 			}
-			if innerRef, isRef := pipeNode.Left.(*VerseRefNode); isRef {
+			if innerRef := extractRootVerseRefNode(pipeNode); innerRef != nil {
 				refStr = innerRef.Reference
+			} else if innerRange := extractRootRangeNode(pipeNode); innerRange != nil {
+				refStr = innerRange.Start
 			}
 		}
 
@@ -319,22 +364,20 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 				limit = parsedLim
 			}
 		}
-		if refNode, ok := n.Left.(*VerseRefNode); ok {
-			res, err := executeVerseRef(ctx, refNode, ctx.DefaultTrans)
-			if err != nil {
-				return nil, err
-			}
-			var sb strings.Builder
-			if verses, ok := res.Data["verses"].([]models.Verse); ok {
-				for _, v := range verses {
-					sb.WriteString(v.Text + " ")
-				}
-			}
-			return executeThemesOnText(ctx, sb.String(), limit)
-		}
 		if _, isScope := n.Left.(*ScopeNode); isScope {
 			return executeThemesOnText(ctx, ctx.ContextText, limit)
 		}
+		res, err := Execute(ctx, n.Left)
+		if err != nil {
+			return nil, err
+		}
+		var sb strings.Builder
+		if verses, ok := res.Data["verses"].([]models.Verse); ok {
+			for _, v := range verses {
+				sb.WriteString(v.Text + " ")
+			}
+		}
+		return executeThemesOnText(ctx, sb.String(), limit)
 	}
 
 	// 5. Suggestions => suggest(3)
@@ -349,11 +392,14 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 			return nil, errors.New("suggest finder dependency not configured")
 		}
 		targetText := ctx.ContextText
-		if refNode, ok := n.Left.(*VerseRefNode); ok {
-			res, err := executeVerseRef(ctx, refNode, ctx.DefaultTrans)
-			if err == nil {
+		if _, isScope := n.Left.(*ScopeNode); !isScope {
+			if res, err := Execute(ctx, n.Left); err == nil {
 				if verses, ok := res.Data["verses"].([]models.Verse); ok && len(verses) > 0 {
-					targetText = verses[0].Text
+					var sb strings.Builder
+					for _, v := range verses {
+						sb.WriteString(v.Text + " ")
+					}
+					targetText = strings.TrimSpace(sb.String())
 				}
 			}
 		}
@@ -412,6 +458,20 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		}
 		return applyActionToResult(ctx, res, action)
 
+	case *RangeNode:
+		if action.Kind == "use" || action.Kind == "in" || action.Kind == "translation" {
+			prevTrans := ctx.DefaultTrans
+			ctx.DefaultTrans = action.Value
+			res, err := executeRange(ctx, src)
+			ctx.DefaultTrans = prevTrans
+			return res, err
+		}
+		res, err := executeRange(ctx, src)
+		if err != nil {
+			return nil, err
+		}
+		return applyActionToResult(ctx, res, action)
+
 	case *PipeNode:
 		if action.Kind == "use" || action.Kind == "in" || action.Kind == "translation" {
 			if refNode := extractRootVerseRefNode(src); refNode != nil {
@@ -424,21 +484,17 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 				}
 				return executeSearch(ctx, searchNode, action.Value, 0)
 			}
+			if rangeNode := extractRootRangeNode(src); rangeNode != nil {
+				prevTrans := ctx.DefaultTrans
+				ctx.DefaultTrans = action.Value
+				res, err := executeRange(ctx, rangeNode)
+				ctx.DefaultTrans = prevTrans
+				return res, err
+			}
 		}
 		res, err := executePipe(ctx, src)
 		if err != nil {
 			return nil, err
-		}
-		if action.Kind == "limit" {
-			lim, _ := strconv.Atoi(action.Value)
-			if verses, ok := res.Data["verses"].([]models.Verse); ok && lim > 0 && len(verses) > lim {
-				res.Data["verses"] = verses[:lim]
-				res.Data["count"] = lim
-			}
-			if refs, ok := res.Data["references"].([]models.Verse); ok && lim > 0 && len(refs) > lim {
-				res.Data["references"] = refs[:lim]
-				res.Data["count"] = lim
-			}
 		}
 		return applyActionToResult(ctx, res, action)
 
@@ -464,6 +520,17 @@ func extractRootVerseRefNode(n Node) *VerseRefNode {
 		return t
 	case *PipeNode:
 		return extractRootVerseRefNode(t.Left)
+	default:
+		return nil
+	}
+}
+
+func extractRootRangeNode(n Node) *RangeNode {
+	switch t := n.(type) {
+	case *RangeNode:
+		return t
+	case *PipeNode:
+		return extractRootRangeNode(t.Left)
 	default:
 		return nil
 	}
@@ -539,6 +606,25 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 			},
 		}, nil
 
+	case *RangeNode:
+		res, err := executeRange(ctx, target)
+		if err != nil {
+			return nil, err
+		}
+		count := 0
+		if verses, ok := res.Data["verses"].([]models.Verse); ok {
+			count = len(verses)
+		}
+		return &models.CLIResult{
+			Type: "count",
+			Data: map[string]interface{}{
+				"target_type": "range",
+				"reference":   fmt.Sprintf("%s – %s", target.Start, target.End),
+				"count":       count,
+				"translation": res.Data["translation"],
+			},
+		}, nil
+
 	case *PipeNode:
 		// Piped search or verse reference: e.g. search("armo") => at(evankeliumit) => use(KR92) => count()
 		tid, scopeVal := extractPipedSearchOptions(target, "")
@@ -584,6 +670,31 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 				},
 			}, nil
 		}
+		if rangeNode := extractRootRangeNode(target); rangeNode != nil {
+			if tid == "" {
+				tid = defaultTid
+			}
+			prevDefault := ctx.DefaultTrans
+			ctx.DefaultTrans = tid
+			res, err := executeRange(ctx, rangeNode)
+			ctx.DefaultTrans = prevDefault
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch range for count: %w", err)
+			}
+			count := 0
+			if verses, ok := res.Data["verses"].([]models.Verse); ok {
+				count = len(verses)
+			}
+			return &models.CLIResult{
+				Type: "count",
+				Data: map[string]interface{}{
+					"target_type": "range",
+					"reference":   fmt.Sprintf("%s – %s", rangeNode.Start, rangeNode.End),
+					"count":       count,
+					"translation": tid,
+				},
+			}, nil
+		}
 		return nil, fmt.Errorf("unsupported piped count target: %T", target)
 
 	default:
@@ -592,11 +703,6 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 }
 
 func executeComparison(ctx *ExecutionContext, n *ComparisonNode) (*models.CLIResult, error) {
-	refNode, ok := n.Target.(*VerseRefNode)
-	if !ok {
-		return nil, fmt.Errorf("comparison target must be a verse reference, got %T", n.Target)
-	}
-
 	leftTrans := parsers.ResolveTranslationID(ctx.DefaultTrans)
 	if leftAct, ok := n.Left.(*ActionNode); ok && leftAct.Value != "" {
 		leftTrans = parsers.ResolveTranslationID(leftAct.Value)
@@ -611,30 +717,74 @@ func executeComparison(ctx *ExecutionContext, n *ComparisonNode) (*models.CLIRes
 		return nil, errors.New("verse fetcher dependency not configured")
 	}
 
-	leftVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, leftTrans)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch left verses %q: %w", leftTrans, err)
+	if refNode, ok := n.Target.(*VerseRefNode); ok {
+		leftVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, leftTrans)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch left verses %q: %w", leftTrans, err)
+		}
+
+		rightVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, rightTrans)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch right verses %q: %w", rightTrans, err)
+		}
+
+		return &models.CLIResult{
+			Type: "compare",
+			Data: map[string]interface{}{
+				"reference": refNode.Reference,
+				"left": map[string]interface{}{
+					"translation": leftTrans,
+					"verses":      leftVerses,
+				},
+				"right": map[string]interface{}{
+					"translation": rightTrans,
+					"verses":      rightVerses,
+				},
+			},
+		}, nil
 	}
 
-	rightVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, rightTrans)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch right verses %q: %w", rightTrans, err)
+	if rangeNode, ok := n.Target.(*RangeNode); ok {
+		prevTrans := ctx.DefaultTrans
+		ctx.DefaultTrans = leftTrans
+		leftRes, err := executeRange(ctx, rangeNode)
+		ctx.DefaultTrans = prevTrans
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch left verses %q: %w", leftTrans, err)
+		}
+		var leftVerses []models.Verse
+		if v, ok := leftRes.Data["verses"].([]models.Verse); ok {
+			leftVerses = v
+		}
+
+		ctx.DefaultTrans = rightTrans
+		rightRes, err := executeRange(ctx, rangeNode)
+		ctx.DefaultTrans = prevTrans
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch right verses %q: %w", rightTrans, err)
+		}
+		var rightVerses []models.Verse
+		if v, ok := rightRes.Data["verses"].([]models.Verse); ok {
+			rightVerses = v
+		}
+
+		return &models.CLIResult{
+			Type: "compare",
+			Data: map[string]interface{}{
+				"reference": fmt.Sprintf("%s – %s", rangeNode.Start, rangeNode.End),
+				"left": map[string]interface{}{
+					"translation": leftTrans,
+					"verses":      leftVerses,
+				},
+				"right": map[string]interface{}{
+					"translation": rightTrans,
+					"verses":      rightVerses,
+				},
+			},
+		}, nil
 	}
 
-	return &models.CLIResult{
-		Type: "compare",
-		Data: map[string]interface{}{
-			"reference": refNode.Reference,
-			"left": map[string]interface{}{
-				"translation": leftTrans,
-				"verses":      leftVerses,
-			},
-			"right": map[string]interface{}{
-				"translation": rightTrans,
-				"verses":      rightVerses,
-			},
-		},
-	}, nil
+	return nil, fmt.Errorf("comparison target must be a verse reference or range, got %T", n.Target)
 }
 
 func executeScope(ctx *ExecutionContext, _ *ScopeNode) (*models.CLIResult, error) {
@@ -666,6 +816,27 @@ func executeThemesOnText(ctx *ExecutionContext, text string, limit int) (*models
 }
 
 func applyActionToResult(_ *ExecutionContext, res *models.CLIResult, action *ActionNode) (*models.CLIResult, error) {
+	if action.Kind == "limit" {
+		lim, _ := strconv.Atoi(action.Value)
+		if lim > 0 && res.Data != nil {
+			if verses, ok := res.Data["verses"].([]models.Verse); ok && len(verses) > lim {
+				res.Data["verses"] = verses[:lim]
+				res.Data["count"] = lim
+			}
+			if refs, ok := res.Data["references"].([]models.Verse); ok && len(refs) > lim {
+				res.Data["references"] = refs[:lim]
+				res.Data["count"] = lim
+			}
+			if suggs, ok := res.Data["suggestions"].([]models.Verse); ok && len(suggs) > lim {
+				res.Data["suggestions"] = suggs[:lim]
+				res.Data["count"] = lim
+			}
+			if themes, ok := res.Data["themes"].([]models.ThemeItem); ok && len(themes) > lim {
+				res.Data["themes"] = themes[:lim]
+				res.Data["count"] = lim
+			}
+		}
+	}
 	if action.Kind == "style" || action.Kind == "card" || action.Kind == "cards" {
 		if res.Data == nil {
 			res.Data = make(map[string]interface{})
