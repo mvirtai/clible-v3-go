@@ -791,13 +791,20 @@ func executeCountPipe(ctx *ExecutionContext, left Node, unit string) (*models.CL
 		switch unit {
 		case "words":
 			if text != "" {
-				count = len(strings.Fields(text))
+				total := 0
+				for _, w := range strings.Fields(text) {
+					cleaned := strings.Trim(w, ".,;:!?\"'()[]{}«»—–-#*`_~")
+					if cleaned != "" {
+						total++
+					}
+				}
+				count = total
 			}
 		case "unique_words":
 			if text != "" {
 				seen := make(map[string]struct{})
 				for _, w := range strings.Fields(text) {
-					cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-")
+					cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-#*`_~")
 					if cleaned != "" {
 						seen[cleaned] = struct{}{}
 					}
@@ -811,7 +818,14 @@ func executeCountPipe(ctx *ExecutionContext, left Node, unit string) (*models.CL
 			}
 		default:
 			if text != "" {
-				count = len(strings.Fields(text))
+				total := 0
+				for _, w := range strings.Fields(text) {
+					cleaned := strings.Trim(w, ".,;:!?\"'()[]{}«»—–-#*`_~")
+					if cleaned != "" {
+						total++
+					}
+				}
+				count = total
 			}
 		}
 		return &models.CLIResult{
@@ -1132,13 +1146,13 @@ func executeStatsPipe(ctx *ExecutionContext, left Node, mode string) (*models.CL
 	return &models.CLIResult{
 		Type: "stats",
 		Data: map[string]interface{}{
-			"mode":              mode,
-			"token_count":       data.TokenCount,
-			"unique_tokens":     data.UniqueTokenCount,
-			"type_token_ratio":  data.TypeTokenRatio,
-			"character_count":   data.CharacterCount,
-			"avg_word_length":   data.AverageWordLength,
-			"top_words":         data.TopWords,
+			"mode":             mode,
+			"token_count":      data.TokenCount,
+			"unique_tokens":    data.UniqueTokenCount,
+			"type_token_ratio": data.TypeTokenRatio,
+			"character_count":  data.CharacterCount,
+			"avg_word_length":  data.AverageWordLength,
+			"top_words":        data.TopWords,
 		},
 	}, nil
 }

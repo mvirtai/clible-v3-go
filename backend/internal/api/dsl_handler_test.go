@@ -158,9 +158,40 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 		if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
 			t.Fatalf("failed to decode response: %v", err)
 		}
-
 		if res.Type != "refs" {
 			t.Errorf("expected result type 'refs', got %q", res.Type)
+		}
+	})
+
+	t.Run("Success evaluation of context words count with leading bang", func(t *testing.T) {
+		reqBody, _ := json.Marshal(api.DSLEvalRequest{
+			Query:         "! ^ => count(words)",
+			TranslationID: "web",
+			ContextText:   "Alussa loi Jumala taivaan ja maan.",
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(reqBody))
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, userID))
+		rr := httptest.NewRecorder()
+
+		handler.EvalDSL(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
+		}
+
+		var res models.CLIResult
+		if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+
+		if res.Type != "count" {
+			t.Errorf("expected result type 'count', got %q", res.Type)
+		}
+		if res.Data["target_type"] != "context" {
+			t.Errorf("expected target_type 'context', got %v", res.Data["target_type"])
+		}
+		if res.Data["count"] != float64(6) {
+			t.Errorf("expected count 6 words, got %v", res.Data["count"])
 		}
 	})
 }

@@ -304,4 +304,49 @@ describe('MarkdownCell', () => {
 
     expect(container?.textContent).toContain('Armoa teille ja rauhaa Jumalalta.');
   });
+
+  it('renders ISLABlock with context count: ! ^ => count(words) and passes contextText', async () => {
+    let capturedBody: { query?: string; contextText?: string } | null = null;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((_url, init) => {
+        if (init?.body) {
+          capturedBody = JSON.parse(init.body as string);
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              type: 'count',
+              data: {
+                target_type: 'context',
+                count: 6,
+                unit: 'words',
+              },
+            }),
+        });
+      })
+    );
+
+    const cell = {
+      id: 'cell-m7',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: 'Tämä on muistiinpanoni tekstiä.\n\n! ^ => count(words)',
+    };
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={() => {}} />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('6');
+    expect(container?.textContent).toContain('sanaa');
+    expect(capturedBody?.query).toBe('^ => count(words)');
+    expect(capturedBody?.contextText).toBe('Tämä on muistiinpanoni tekstiä.');
+  });
 });

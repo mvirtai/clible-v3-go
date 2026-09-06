@@ -26,6 +26,12 @@ var nonAlphaRegex = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
 
 func (s *CLIService) ExecuteDSL(ctx context.Context, input string, defaultTrans string, contextText string) (*models.CLIResult, error) {
 	trimmedInput := strings.TrimSpace(input)
+	if strings.HasPrefix(trimmedInput, "!") {
+		trimmedInput = strings.TrimSpace(strings.TrimPrefix(trimmedInput, "!"))
+	}
+	if strings.HasPrefix(strings.ToLower(trimmedInput), "isla ") {
+		trimmedInput = strings.TrimSpace(trimmedInput[5:])
+	}
 
 	// Direct cross-reference prefix `~ @Joh 3:16` or `~ Joh 3:16`
 	if strings.HasPrefix(trimmedInput, "~") || strings.HasPrefix(trimmedInput, "refs ") {
@@ -39,7 +45,7 @@ func (s *CLIService) ExecuteDSL(ctx context.Context, input string, defaultTrans 
 		return s.executeRefsCommand(ctx, &CLICommand{Name: "/refs", Args: []string{refStr}}, defaultTrans)
 	}
 
-	node, err := dsl.Parse(input)
+	node, err := dsl.Parse(trimmedInput)
 	if err != nil {
 		// Fallback to flexible CLI command interpreter (e.g. custom commands)
 		if cmd := ParseCLICommand(input); cmd != nil {

@@ -427,44 +427,53 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
         }}
       >
         <div className="grid grid-cols-12 gap-4 items-start">
-          {cells.map((cell, index) => (
-            <React.Fragment key={cell.id}>
-              {/* Floating divider insertion handle between cells */}
-              <div className="col-span-12 h-2 relative group/divider flex items-center justify-center">
-                <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55 opacity-0 group-hover/divider:opacity-100 transition-opacity duration-200" />
-                <div className="absolute opacity-0 group-hover/divider:opacity-100 transition-all duration-200 flex gap-2 scale-90 group-hover/divider:scale-100 bg-[var(--surface)] px-2.5 py-1 rounded-full border border-[var(--border-soft)] shadow-lg z-20">
-                  <button
-                    type="button"
-                    onClick={() => handleInsertCell(index)}
-                    className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2.5 py-1 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1"
-                    title={strings.addMarkdownCellLabel}
-                  >
-                    <span>{strings.addMarkdownCellLabel}</span>
-                  </button>
-                </div>
-              </div>
+          {cells.map((cell, index) => {
+            const precedingCellsText = cells
+              .slice(0, index)
+              .filter((c) => c.type === 'markdown' && c.content.trim() !== '')
+              .map((c) => c.content)
+              .join('\n\n');
 
-              {/* CellWrapper delegates sortable hooks internally */}
-              <CellWrapper
-                cell={cell}
-                index={index}
-                totalCells={cells.length}
-                onDelete={() => handleCellDelete(cell.id)}
-                onMoveUp={() => handleMoveUp(index)}
-                onMoveDown={() => handleMoveDown(index)}
-                onChangeWidth={(newWidth, colSpan, customHeight) =>
-                  handleCellWidthChange(cell.id, newWidth, colSpan, customHeight)
-                }
-              >
-                <MarkdownCell
+            return (
+              <React.Fragment key={cell.id}>
+                {/* Floating divider insertion handle between cells */}
+                <div className="col-span-12 h-2 relative group/divider flex items-center justify-center">
+                  <div className="absolute inset-x-0 h-px bg-[var(--border-soft)]/55 opacity-0 group-hover/divider:opacity-100 transition-opacity duration-200" />
+                  <div className="absolute opacity-0 group-hover/divider:opacity-100 transition-all duration-200 flex gap-2 scale-90 group-hover/divider:scale-100 bg-[var(--surface)] px-2.5 py-1 rounded-full border border-[var(--border-soft)] shadow-lg z-20">
+                    <button
+                      type="button"
+                      onClick={() => handleInsertCell(index)}
+                      className="text-[10px] font-bold text-[var(--muted)] hover:text-amber-600 dark:hover:text-amber-500 px-2.5 py-1 rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1"
+                      title={strings.addMarkdownCellLabel}
+                    >
+                      <span>{strings.addMarkdownCellLabel}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* CellWrapper delegates sortable hooks internally */}
+                <CellWrapper
                   cell={cell}
-                  onChange={(content) => handleCellContentChange(cell.id, content)}
-                  onSelectVerse={onSelectVerse}
-                  translation={translation}
-                />
-              </CellWrapper>
-            </React.Fragment>
-          ))}
+                  index={index}
+                  totalCells={cells.length}
+                  onDelete={() => handleCellDelete(cell.id)}
+                  onMoveUp={() => handleMoveUp(index)}
+                  onMoveDown={() => handleMoveDown(index)}
+                  onChangeWidth={(newWidth, colSpan, customHeight) =>
+                    handleCellWidthChange(cell.id, newWidth, colSpan, customHeight)
+                  }
+                >
+                  <MarkdownCell
+                    cell={cell}
+                    onChange={(content) => handleCellContentChange(cell.id, content)}
+                    onSelectVerse={onSelectVerse}
+                    translation={translation}
+                    contextText={precedingCellsText}
+                  />
+                </CellWrapper>
+              </React.Fragment>
+            );
+          })}
 
           {/* Append button at the bottom of notebook */}
           {cells.length > 0 && (

@@ -22,6 +22,7 @@ func NewDSLHandler(cliService *services.CLIService) *DSLHandler {
 type DSLEvalRequest struct {
 	Query         string `json:"query"`
 	TranslationID string `json:"translationId,omitempty"`
+	ContextText   string `json:"contextText,omitempty"`
 }
 
 // EvalDSL handles POST /api/dsl/eval
@@ -51,7 +52,7 @@ func (h *DSLHandler) EvalDSL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.cliService.ExecuteDSL(r.Context(), req.Query, req.TranslationID, "")
+	result, err := h.cliService.ExecuteDSL(r.Context(), req.Query, req.TranslationID, req.ContextText)
 	if err != nil {
 		slog.Warn("DSL evaluation error", "query", req.Query, "error", err)
 		w.Header().Set("Content-Type", "application/json")

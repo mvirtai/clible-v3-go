@@ -42,6 +42,7 @@ export function isISLALine(line: string): boolean {
     trimmed.startsWith('!?') ||
     trimmed.startsWith('!#') ||
     trimmed.startsWith('!~') ||
+    trimmed.startsWith('!^') ||
     trimmed.startsWith('!isla') ||
     trimmed.startsWith('!ISLA') ||
     trimmed.startsWith('! ') ||

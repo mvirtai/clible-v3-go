@@ -597,5 +597,18 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 			t.Errorf("expected 5 words, got %v", res.Data["count"])
 		}
 	})
-}
 
+	t.Run("execute context words count with leading bang ! ^ => count(words)", func(t *testing.T) {
+		contextText := "Alussa loi Jumala taivaan ja maan."
+		res, err := cliService.ExecuteDSL(ctx, "! ^ => count(words)", "web", contextText)
+		if err != nil {
+			t.Fatalf("ExecuteDSL ! ^ => count(words) failed: %v", err)
+		}
+		if res.Type != "count" {
+			t.Errorf("expected type 'count', got %s", res.Type)
+		}
+		if res.Data["count"] != 6 {
+			t.Errorf("expected 6 words, got %v", res.Data["count"])
+		}
+	})
+}

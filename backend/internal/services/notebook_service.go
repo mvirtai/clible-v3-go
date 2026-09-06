@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/mvirtai/clible-v3-go/internal/db"
@@ -406,13 +407,51 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 
 	// 3. Parse and execute either Clible Magic DSL or traditional slash command
 	trimmedContent := strings.TrimSpace(targetCell.Content)
+	if strings.HasPrefix(trimmedContent, "!") {
+		trimmedContent = strings.TrimSpace(strings.TrimPrefix(trimmedContent, "!"))
+	}
+	if strings.HasPrefix(strings.ToLower(trimmedContent), "isla ") {
+		trimmedContent = strings.TrimSpace(trimmedContent[5:])
+	}
 	var cliResult *models.CLIResult
 
-	if strings.HasPrefix(trimmedContent, "@") || strings.HasPrefix(trimmedContent, "?") || strings.HasPrefix(trimmedContent, "^") || strings.HasPrefix(trimmedContent, "~") || strings.HasPrefix(trimmedContent, "#") {
+	isDSL := strings.HasPrefix(trimmedContent, "@") ||
+		strings.HasPrefix(trimmedContent, "?") ||
+		strings.HasPrefix(trimmedContent, "^") ||
+		strings.HasPrefix(trimmedContent, "~") ||
+		strings.HasPrefix(trimmedContent, "#") ||
+		strings.HasPrefix(trimmedContent, "search(") ||
+		strings.HasPrefix(trimmedContent, "range(") ||
+		strings.HasPrefix(trimmedContent, "read(") ||
+		strings.HasPrefix(trimmedContent, "from(") ||
+		strings.HasPrefix(trimmedContent, "at(") ||
+		strings.HasPrefix(trimmedContent, "top(") ||
+		strings.HasPrefix(trimmedContent, "words(") ||
+		strings.HasPrefix(trimmedContent, "stats(") ||
+		strings.HasPrefix(trimmedContent, "ttr(")
+
+	if isDSL {
 		// 1. Clible Magic DSL execution
 		var contextText string
 		if strings.HasPrefix(trimmedContent, "^") {
-			contextText = ResolveCellContext(notebook.Cells, cellID, &CLICommand{Name: "/themes"})
+			cmd := &CLICommand{Flags: map[string]string{"dir": "up", "scope": "prev"}}
+			rest := strings.TrimPrefix(trimmedContent, "^")
+			if strings.HasPrefix(rest, "all") {
+				cmd.Flags["dir"] = "all"
+			} else {
+				var numDigits strings.Builder
+				for _, r := range rest {
+					if unicode.IsDigit(r) {
+						numDigits.WriteRune(r)
+					} else {
+						break
+					}
+				}
+				if numDigits.Len() > 0 {
+					cmd.Flags["n"] = numDigits.String() + "u"
+				}
+			}
+			contextText = ResolveCellContext(notebook.Cells, cellID, cmd)
 		}
 		res, err := s.cliService.ExecuteDSL(ctx, trimmedContent, translationID, contextText)
 		if err != nil {
@@ -466,4 +505,3 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 
 	return cliResult, nil
 }
-

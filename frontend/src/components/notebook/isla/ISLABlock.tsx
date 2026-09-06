@@ -24,8 +24,16 @@ function ISLASkeleton({ code }: { code: string }) {
   );
 }
 
-function ISLAContent({ code, translation }: { code: string; translation: string }) {
-  const result = use(fetchISLAResult(code, translation));
+function ISLAContent({
+  code,
+  translation,
+  contextText = '',
+}: {
+  code: string;
+  translation: string;
+  contextText?: string;
+}) {
+  const result = use(fetchISLAResult(code, translation, contextText));
 
   if (result.type === 'error') {
     const errorMsg = (result.data as { message?: string })?.message || 'Unknown ISLA error';
@@ -100,6 +108,8 @@ export interface ISLABlockProps {
   code: string;
   /** Active Bible translation identifier for resolving text data. */
   translation: string;
+  /** Optional notebook text context for caret (^) scope operations. */
+  contextText?: string;
 }
 
 /**
@@ -108,13 +118,13 @@ export interface ISLABlockProps {
  * @param props - Component properties conforming to {@link ISLABlockProps}.
  * @returns Suspended interactive ISLA query visualization.
  */
-export function ISLABlock({ code, translation }: ISLABlockProps) {
+export function ISLABlock({ code, translation, contextText = '' }: ISLABlockProps) {
   const cleanQuery = code.trim();
   if (!cleanQuery) return null;
 
   return (
     <Suspense fallback={<ISLASkeleton code={code} />}>
-      <ISLAContent code={cleanQuery} translation={translation} />
+      <ISLAContent code={cleanQuery} translation={translation} contextText={contextText} />
     </Suspense>
   );
 }
