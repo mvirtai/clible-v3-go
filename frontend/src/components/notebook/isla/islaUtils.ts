@@ -333,11 +333,11 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     keyword: 'count',
     label: { fi: 'Laskuri', en: 'Result Counter' },
     description: {
-      fi: 'Laskee tulosten määrän (jakeet, luvut, kirjat, sanat tai uniikit sanat) mittarikortilla. Valinnainen yksikkö: count(verses), count(chapters), count(books), count(words), count(unique_words).',
-      en: 'Aggregates result count (verses, chapters, books, words, or unique words) on a metric card. Optional unit: count(verses), count(chapters), count(books), count(words), count(unique_words).',
+      fi: 'Laskee tulosten määrän (jakeet, luvut, kirjat, sanat tai uniikit sanat) mittarikortilla. Valinnainen yksikkö: count(verses), count(chapters), count(books), count(words), count(unique_words) [aliakset: uw, uniques, uniq, uniikit, uniikit_sanat, us].',
+      en: 'Aggregates result count (verses, chapters, books, words, or unique words) on a metric card. Optional unit: count(verses), count(chapters), count(books), count(words), count(unique_words) [aliases: uw, uniques, uniq, uniikit, uniikit_sanat, us].',
     },
     syntax: 'count([unit])',
-    example: '! search("armo") => at(kirjeet) => count(unique_words)',
+    example: '! search("armo") => at(kirjeet) => count(uw)',
     hasArgs: false,
   },
   {

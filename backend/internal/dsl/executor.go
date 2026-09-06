@@ -402,7 +402,8 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		var sb strings.Builder
 		if verses, ok := res.Data["verses"].([]models.Verse); ok {
 			for _, v := range verses {
-				sb.WriteString(v.Text + " ")
+				sb.WriteString(v.Text)
+				sb.WriteString(" ")
 			}
 		}
 		return executeThemesOnText(ctx, sb.String(), limit)
@@ -425,7 +426,8 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 				if verses, ok := res.Data["verses"].([]models.Verse); ok && len(verses) > 0 {
 					var sb strings.Builder
 					for _, v := range verses {
-						sb.WriteString(v.Text + " ")
+						sb.WriteString(v.Text)
+						sb.WriteString(" ")
 					}
 					targetText = strings.TrimSpace(sb.String())
 				}

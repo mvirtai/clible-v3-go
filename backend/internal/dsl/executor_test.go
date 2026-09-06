@@ -518,6 +518,14 @@ func TestDSLExecutor(t *testing.T) {
 			{query: `? "love" => count(sanasto)`, expectedCount: 7, expectedUnit: "unique_words"},
 			{query: `? "love" => count(vocab)`, expectedCount: 7, expectedUnit: "unique_words"},
 			{query: `? "love" => count(eri)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(uw)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count("uniques")`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(uniq)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(uniikit)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(uniikit_sanat)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(us)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => uw`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => uniikit`, expectedCount: 7, expectedUnit: "unique_words"},
 		}
 
 		for _, ut := range unitTests {
@@ -585,6 +593,30 @@ func TestDSLExecutor(t *testing.T) {
 		}
 		if resCtxUnique.Data["count"] != 5 || resCtxUnique.Data["unit"] != "unique_words" {
 			t.Errorf("expected 5 unique context words, got %+v", resCtxUnique.Data)
+		}
+
+		ctxUwNode, err := Parse(`^ => count(uw)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCtxUw, err := Execute(ctx, ctxUwNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCtxUw.Data["count"] != 5 || resCtxUw.Data["unit"] != "unique_words" {
+			t.Errorf("expected 5 unique context words for count(uw), got %+v", resCtxUw.Data)
+		}
+
+		ctxUniikitNode, err := Parse(`^ => count(uniikit)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCtxUniikit, err := Execute(ctx, ctxUniikitNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCtxUniikit.Data["count"] != 5 || resCtxUniikit.Data["unit"] != "unique_words" {
+			t.Errorf("expected 5 unique context words for count(uniikit), got %+v", resCtxUniikit.Data)
 		}
 
 		// 5. Scoped Search with testament NT/UT: ? "love" @UT

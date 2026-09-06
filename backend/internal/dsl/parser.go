@@ -36,6 +36,15 @@ func init() {
 		// Unit-aware aggregator: count(), count(verses), count(chapters), count(books), count(words), count(unique_words)
 		"count": parseCountAction,
 
+		// Shorthand actions for unique words count
+		"unique_words":  parseCountUnitAction("unique_words"),
+		"uw":            parseCountUnitAction("unique_words"),
+		"uniques":       parseCountUnitAction("unique_words"),
+		"uniq":          parseCountUnitAction("unique_words"),
+		"uniikit":       parseCountUnitAction("unique_words"),
+		"uniikit_sanat": parseCountUnitAction("unique_words"),
+		"us":            parseCountUnitAction("unique_words"),
+
 		// Top word frequencies: top(10), top, words(10), words
 		"top":        parseTopAction,
 		"words":      parseTopAction,
@@ -169,6 +178,17 @@ func parseCountAction(p *Parser) (*ActionNode, error) {
 	return &ActionNode{Kind: "count", Value: unit}, nil
 }
 
+// parseCountUnitAction returns a parser for direct pipeline count unit actions, e.g. => unique_words, => uw.
+func parseCountUnitAction(unit string) actionParserFn {
+	return func(p *Parser) (*ActionNode, error) {
+		if p.current().Type == TokenParenOpen {
+			p.next()
+			p.consumeOptional(TokenParenClose)
+		}
+		return &ActionNode{Kind: "count", Value: unit}, nil
+	}
+}
+
 func normalizeCountUnit(raw string) (string, error) {
 	switch raw {
 	case "b", "book", "books", "k", "kirja", "kirjat":
@@ -179,10 +199,10 @@ func normalizeCountUnit(raw string) (string, error) {
 		return "verses", nil
 	case "w", "word", "words", "s", "sana", "sanat":
 		return "words", nil
-	case "unique_words", "unique", "vocab", "sanasto", "eri":
+	case "unique_words", "unique words", "unique", "uniques", "uniq", "uw", "vocab", "sanasto", "eri", "uniikit", "uniikit_sanat", "uniikit sanat", "eri_sanat", "eri sanat", "us":
 		return "unique_words", nil
 	default:
-		return "", fmt.Errorf("invalid count unit %q: expected 'verses' ('v', 'j'), 'chapters' ('c', 'l'), 'books' ('b', 'k'), 'words' ('w', 's'), or 'unique_words' ('sanasto', 'unique')", raw)
+		return "", fmt.Errorf("invalid count unit %q: expected 'verses' ('v', 'j'), 'chapters' ('c', 'l'), 'books' ('b', 'k'), 'words' ('w', 's'), or 'unique_words' ('uw', 'uniques', 'uniq', 'uniikit', 'uniikit_sanat', 'us', 'sanasto', 'unique')", raw)
 	}
 }
 

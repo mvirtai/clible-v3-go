@@ -345,7 +345,7 @@ export function getISLASuggestions(
   }
 
   // 3. Count unit suggestions when typing inside `count(...)`
-  const countParenMatch = textBeforeCursor.match(/count\(\s*["']?([A-Za-z0-9äöåÄÖÅ]*)$/i);
+  const countParenMatch = textBeforeCursor.match(/count\(\s*["']?([A-Za-z0-9äöåÄÖÅ_]*)$/i);
   if (countParenMatch) {
     const prefix = countParenMatch[1].toLowerCase();
     const countUnits: ISLASuggestion[] = [
@@ -435,6 +435,83 @@ export function getISLASuggestions(
           en: 'Calculates verse count.',
         },
         example: '! search("armo") => count(jakeet)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'unique_words',
+        insertText: 'unique_words)',
+        detail: 'Uniikit sanat / Unique Words',
+        documentation: {
+          fi: 'Laskee eri (uniikkien) sanojen määrän tulosjoukossa.',
+          en: 'Calculates the number of unique distinct words in the result set.',
+        },
+        example: '! search("armo") => count(unique_words)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uw',
+        insertText: 'uw)',
+        detail: 'Uniikit sanat (alias: uw)',
+        documentation: {
+          fi: 'Alias yksikölle unique_words (uniikit sanat).',
+          en: 'Alias for unique_words.',
+        },
+        example: '! search("armo") => count(uw)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uniques',
+        insertText: 'uniques)',
+        detail: 'Uniikit sanat (alias: uniques)',
+        documentation: {
+          fi: 'Alias yksikölle unique_words (uniikit sanat).',
+          en: 'Alias for unique_words.',
+        },
+        example: '! search("armo") => count(uniques)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uniq',
+        insertText: 'uniq)',
+        detail: 'Uniikit sanat (alias: uniq)',
+        documentation: {
+          fi: 'Alias yksikölle unique_words (uniikit sanat).',
+          en: 'Alias for unique_words.',
+        },
+        example: '! search("armo") => count(uniq)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uniikit',
+        insertText: 'uniikit)',
+        detail: 'Uniikit sanat (fi: uniikit)',
+        documentation: {
+          fi: 'Laskee eri (uniikkien) sanojen määrän tulosjoukossa.',
+          en: 'Calculates unique distinct words in the result set.',
+        },
+        example: '! search("armo") => count(uniikit)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uniikit_sanat',
+        insertText: 'uniikit_sanat)',
+        detail: 'Uniikit sanat (fi: uniikit_sanat)',
+        documentation: {
+          fi: 'Laskee eri (uniikkien) sanojen määrän tulosjoukossa.',
+          en: 'Calculates unique distinct words in the result set.',
+        },
+        example: '! search("armo") => count(uniikit_sanat)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'us',
+        insertText: 'us)',
+        detail: 'Uniikit sanat (alias: us)',
+        documentation: {
+          fi: 'Alias yksikölle unique_words (uniikit sanat).',
+          en: 'Alias for unique_words.',
+        },
+        example: '! search("armo") => count(us)',
         kind: 'function' as const,
       },
     ];
