@@ -406,3 +406,24 @@ export function getCommandMeta(keyword: string): ISLACommandMeta | undefined {
     (c) => c.keyword.toLowerCase() === keyword.toLowerCase()
   );
 }
+
+/**
+ * Strips all ISLA code blocks, embed widgets, inline directives, and command lines from markdown text.
+ * Leaves only user narrative notes, headings, and natural language prose.
+ */
+export function stripISLAFromText(text: string): string {
+  if (!text) return '';
+  return text
+    // 1. Triple-backtick ISLA code blocks: ```isla ... ``` or ```ISLA ... ```
+    .replace(/```(?:isla|ISLA)[\s\S]*?```/gi, '')
+    // 2. Inline backtick directives: `!isla ...` or `!@...`
+    .replace(/`!(?:isla\s+|ISLA\s+|i\s+)?[^`\n]+`/gi, '')
+    // 3. Bracket embeds: ![[...]] or ![...]
+    .replace(/!\[(?:\[)?[\s\S]*?\](?:\])?/g, '')
+    // 4. Line-level directives starting with `!` or dangling directive triggers
+    .replace(/(?:^|\n)\s*![^\n]*/g, '')
+    // 5. Standalone ISLA command lines (e.g. ^ => ..., @Joh ..., search(...), top(...), stats())
+    .replace(/(?:^|\n)\s*(?:\^\s*=>|@\w+|\?\s*["'/]|(?:search|range|read|stats|top|count|ttr|themes|suggest)\s*\()[^\n]*/gi, '')
+    .trim();
+}
+

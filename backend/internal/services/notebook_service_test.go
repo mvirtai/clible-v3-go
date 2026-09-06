@@ -856,6 +856,41 @@ func TestNotebookService_ExecuteCellCommand(t *testing.T) {
 		}
 	})
 
+	t.Run("executes DSL count words ignoring embedded ISLA directives in markdown context", func(t *testing.T) {
+		cellID1 := uuid.New().String()
+		cellID2 := uuid.New().String()
+		cells := []models.Cell{
+			{
+				ID:         cellID1,
+				NotebookID: nb.ID,
+				Type:       models.CellTypeMarkdown,
+				Content:    "! Hes 1:26-28\nAlussa loi Jumala taivaan ja maan.\n! @Joh 3:16 => count",
+				Position:   0,
+			},
+			{
+				ID:         cellID2,
+				NotebookID: nb.ID,
+				Type:       models.CellTypeCode,
+				Content:    "! ^ => count(words)",
+				Position:   1,
+			},
+		}
+		if err := notebookRepo.SaveCells(ctx, nb.ID, cells); err != nil {
+			t.Fatalf("failed to save cells: %v", err)
+		}
+
+		res, err := notebookService.ExecuteCellCommand(ctx, nb.ID, cellID2, userID, "web")
+		if err != nil {
+			t.Fatalf("ExecuteCellCommand failed: %v", err)
+		}
+		if res.Type != "count" {
+			t.Errorf("expected type 'count', got %s", res.Type)
+		}
+		if res.Data["count"] != 6 {
+			t.Errorf("expected count 6 (only prose words), got %v", res.Data["count"])
+		}
+	})
+
 	t.Run("rejects unsupported cell content format", func(t *testing.T) {
 		cellID := uuid.New().String()
 		cells := []models.Cell{

@@ -6,6 +6,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { ISLABlock } from '../isla/ISLABlock';
 import { getISLASuggestions } from '../isla/islaIntellisense';
 import { isISLALine, tokenizeISLALine } from '../isla/islaLexer';
+import { stripISLAFromText } from '../isla/islaUtils';
 
 /**
  * Properties for {@link MarkdownCell}.
@@ -132,7 +133,7 @@ export function MarkdownCell({
    * Combines preceding notebook markdown cells with any text in the current cell preceding this query.
    */
   const getContextForQuery = (query: string): string => {
-    const precedingCellsText = (contextText || '').trim();
+    const cleanPreceding = stripISLAFromText(contextText || '');
 
     const rawContent = cell.content || '';
     const idx = rawContent.indexOf(query);
@@ -151,16 +152,12 @@ export function MarkdownCell({
       currentCellPreceding = precedingLines.join('\n');
     }
 
-    const cleanCurrent = currentCellPreceding
-      .replace(/```isla[\s\S]*?```/g, '')
-      .replace(/!\[[\s\S]*?\]/g, '')
-      .replace(/(?:^|\n)\s*![^\n]*/g, '')
-      .trim();
+    const cleanCurrent = stripISLAFromText(currentCellPreceding);
 
-    if (cleanCurrent && precedingCellsText) {
-      return `${precedingCellsText}\n\n${cleanCurrent}`;
+    if (cleanCurrent && cleanPreceding) {
+      return `${cleanPreceding}\n\n${cleanCurrent}`;
     }
-    return cleanCurrent || precedingCellsText;
+    return cleanCurrent || cleanPreceding;
   };
 
   const markdownComponents = {

@@ -11,6 +11,7 @@ import {
   updateSingleGuestNotebook,
   saveGuestCells,
 } from '../../utils/guestNotebookStorage';
+import { stripISLAFromText } from './isla/islaUtils';
 
 /**
  * Props for the {@link NotebookEditor} component.
@@ -431,7 +432,8 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
             const precedingCellsText = cells
               .slice(0, index)
               .filter((c) => c.type === 'markdown' && c.content.trim() !== '')
-              .map((c) => c.content)
+              .map((c) => stripISLAFromText(c.content))
+              .filter((text) => text.trim() !== '')
               .join('\n\n');
 
             return (

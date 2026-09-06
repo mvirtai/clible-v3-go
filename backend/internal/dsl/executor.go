@@ -393,7 +393,7 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 			}
 		}
 		if _, isScope := n.Left.(*ScopeNode); isScope {
-			return executeThemesOnText(ctx, ctx.ContextText, limit)
+			return executeThemesOnText(ctx, StripISLAFromText(ctx.ContextText), limit)
 		}
 		res, err := Execute(ctx, n.Left)
 		if err != nil {
@@ -419,7 +419,7 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		if ctx.SuggestFinder == nil {
 			return nil, errors.New("suggest finder dependency not configured")
 		}
-		targetText := ctx.ContextText
+		targetText := StripISLAFromText(ctx.ContextText)
 		if _, isScope := n.Left.(*ScopeNode); !isScope {
 			if res, err := Execute(ctx, n.Left); err == nil {
 				if verses, ok := res.Data["verses"].([]models.Verse); ok && len(verses) > 0 {
@@ -634,6 +634,45 @@ func aggregateCount(verses []models.Verse, unit string) int {
 	}
 }
 
+// StripISLAFromText strips all ISLA directives, code blocks, embeds, and triggers from text,
+// leaving only the user's natural language notes and narrative prose.
+func StripISLAFromText(text string) string {
+	if text == "" {
+		return ""
+	}
+	lines := strings.Split(text, "\n")
+	var kept []string
+	inISLABlock := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		lower := strings.ToLower(trimmed)
+		if strings.HasPrefix(lower, "```isla") {
+			inISLABlock = true
+			continue
+		}
+		if inISLABlock {
+			if strings.HasPrefix(trimmed, "```") {
+				inISLABlock = false
+			}
+			continue
+		}
+		// Skip directive lines starting with ! or isla
+		if strings.HasPrefix(trimmed, "!") || strings.HasPrefix(lower, "isla ") {
+			continue
+		}
+		// Skip standalone DSL triggers
+		if strings.HasPrefix(trimmed, "^") && strings.Contains(trimmed, "=>") {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "@") || strings.HasPrefix(trimmed, "?") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "~") {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	return strings.TrimSpace(strings.Join(kept, "\n"))
+}
+
 func executeCountPipe(ctx *ExecutionContext, left Node, unit string) (*models.CLIResult, error) {
 	if unit == "" {
 		unit = "verses"
@@ -786,7 +825,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node, unit string) (*models.CL
 		return nil, fmt.Errorf("unsupported piped count target: %T", target)
 
 	case *ScopeNode:
-		text := ctx.ContextText
+		text := StripISLAFromText(ctx.ContextText)
 		count := 0
 		switch unit {
 		case "words":
@@ -991,7 +1030,7 @@ func applyActionToResult(_ *ExecutionContext, res *models.CLIResult, action *Act
 
 func extractTargetContent(ctx *ExecutionContext, left Node) ([]models.Verse, string, error) {
 	if _, isScope := left.(*ScopeNode); isScope {
-		return nil, ctx.ContextText, nil
+		return nil, StripISLAFromText(ctx.ContextText), nil
 	}
 
 	res, err := Execute(ctx, left)

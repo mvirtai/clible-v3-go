@@ -349,4 +349,54 @@ describe('MarkdownCell', () => {
     expect(capturedBody?.query).toBe('^ => count(words)');
     expect(capturedBody?.contextText).toBe('Tämä on muistiinpanoni tekstiä.');
   });
+
+  it('strips all embedded and preceding ISLA directives from contextText', async () => {
+    const calls: Array<{ query?: string; contextText?: string }> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((_url, init) => {
+        if (init?.body) {
+          calls.push(JSON.parse(init.body as string));
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              type: 'count',
+              data: {
+                target_type: 'context',
+                count: 8,
+                unit: 'words',
+              },
+            }),
+        });
+      })
+    );
+
+    const cell = {
+      id: 'cell-m8',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '! Hes 1:26-28\nTämä on oikeaa muistiinpanotekstiä.\n! ^ => count(words)',
+    };
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell
+            cell={cell}
+            onChange={() => {}}
+            contextText={'! @Joh 3:16\nEdellisen solun muistiinpano.'}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const countCall = calls.find((c) => c.query === '^ => count(words)');
+    expect(countCall?.contextText).toBe(
+      'Edellisen solun muistiinpano.\n\nTämä on oikeaa muistiinpanotekstiä.'
+    );
+  });
 });
+

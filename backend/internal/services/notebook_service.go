@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/dsl"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
 
@@ -126,18 +127,22 @@ func ResolveCellContext(cells []models.Cell, targetCellID string, cmd *CLIComman
 
 	if scopeOpts.Direction == "all" {
 		for i, c := range cells {
-			if i != targetIdx && c.Type == models.CellTypeMarkdown && strings.TrimSpace(c.Content) != "" {
-				selectedTexts = append(selectedTexts, c.Content)
+			if i != targetIdx && c.Type == models.CellTypeMarkdown {
+				if cleaned := dsl.StripISLAFromText(c.Content); cleaned != "" {
+					selectedTexts = append(selectedTexts, cleaned)
+				}
 			}
 		}
 	} else if scopeOpts.Direction == "up" {
 		var upCells []string
 		for i := targetIdx - 1; i >= 0; i-- {
 			c := cells[i]
-			if c.Type == models.CellTypeMarkdown && strings.TrimSpace(c.Content) != "" {
-				upCells = append(upCells, c.Content)
-				if scopeOpts.Count > 0 && len(upCells) >= scopeOpts.Count {
-					break
+			if c.Type == models.CellTypeMarkdown {
+				if cleaned := dsl.StripISLAFromText(c.Content); cleaned != "" {
+					upCells = append(upCells, cleaned)
+					if scopeOpts.Count > 0 && len(upCells) >= scopeOpts.Count {
+						break
+					}
 				}
 			}
 		}
@@ -148,10 +153,12 @@ func ResolveCellContext(cells []models.Cell, targetCellID string, cmd *CLIComman
 	} else if scopeOpts.Direction == "down" {
 		for i := targetIdx + 1; i < len(cells); i++ {
 			c := cells[i]
-			if c.Type == models.CellTypeMarkdown && strings.TrimSpace(c.Content) != "" {
-				selectedTexts = append(selectedTexts, c.Content)
-				if scopeOpts.Count > 0 && len(selectedTexts) >= scopeOpts.Count {
-					break
+			if c.Type == models.CellTypeMarkdown {
+				if cleaned := dsl.StripISLAFromText(c.Content); cleaned != "" {
+					selectedTexts = append(selectedTexts, cleaned)
+					if scopeOpts.Count > 0 && len(selectedTexts) >= scopeOpts.Count {
+						break
+					}
 				}
 			}
 		}
