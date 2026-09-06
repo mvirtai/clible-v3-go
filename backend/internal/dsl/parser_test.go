@@ -229,28 +229,79 @@ func TestDSLParser_ValidExpressions(t *testing.T) {
 
 func TestParser_CountAction(t *testing.T) {
 	tests := []struct {
-		input string
+		name         string
+		input        string
+		expectedUnit string
 	}{
-		{`? /opetuslaps.*/ => count`},
-		{`? "rakkaus" => KR92 => count`},
-		{`? armo @Room => KR92 => count`},
-		{`@Joh 3 => count`},
-		{`search("armo") => at(Room) => use(KR92) => count()`},
+		{name: "Default count without parens", input: `? /opetuslaps.*/ => count`, expectedUnit: "verses"},
+		{name: "Default count with empty parens", input: `search("armo") => at(Room) => use(KR92) => count()`, expectedUnit: "verses"},
+		{name: "Count verses explicit ident", input: `? "rakkaus" => count(verses)`, expectedUnit: "verses"},
+		{name: "Count verses string", input: `? "rakkaus" => count("verses")`, expectedUnit: "verses"},
+		{name: "Count v ident", input: `? "rakkaus" => count(v)`, expectedUnit: "verses"},
+		{name: "Count v string", input: `? "rakkaus" => count("v")`, expectedUnit: "verses"},
+		{name: "Count jakeet ident", input: `? "rakkaus" => count(jakeet)`, expectedUnit: "verses"},
+		{name: "Count j ident", input: `? "rakkaus" => count(j)`, expectedUnit: "verses"},
+		{name: "Count j string", input: `? "rakkaus" => count("j")`, expectedUnit: "verses"},
+		{name: "Count chapters ident", input: `? "rakkaus" => count(chapters)`, expectedUnit: "chapters"},
+		{name: "Count chapters string", input: `? "rakkaus" => count("chapters")`, expectedUnit: "chapters"},
+		{name: "Count c ident", input: `? "rakkaus" => count(c)`, expectedUnit: "chapters"},
+		{name: "Count c string", input: `? "rakkaus" => count("c")`, expectedUnit: "chapters"},
+		{name: "Count luvut ident", input: `? "rakkaus" => count(luvut)`, expectedUnit: "chapters"},
+		{name: "Count l ident", input: `? "rakkaus" => count(l)`, expectedUnit: "chapters"},
+		{name: "Count l string", input: `? "rakkaus" => count("l")`, expectedUnit: "chapters"},
+		{name: "Count books ident", input: `? "rakkaus" => count(books)`, expectedUnit: "books"},
+		{name: "Count books string", input: `? "rakkaus" => count("books")`, expectedUnit: "books"},
+		{name: "Count b ident", input: `? "rakkaus" => count(b)`, expectedUnit: "books"},
+		{name: "Count b string", input: `? "rakkaus" => count("b")`, expectedUnit: "books"},
+		{name: "Count kirjat ident", input: `? "rakkaus" => count(kirjat)`, expectedUnit: "books"},
+		{name: "Count k ident", input: `? "rakkaus" => count(k)`, expectedUnit: "books"},
+		{name: "Count k string", input: `? "rakkaus" => count("k")`, expectedUnit: "books"},
+		{name: "Count words ident", input: `? "rakkaus" => count(words)`, expectedUnit: "words"},
+		{name: "Count words string", input: `? "rakkaus" => count("words")`, expectedUnit: "words"},
+		{name: "Count w ident", input: `? "rakkaus" => count(w)`, expectedUnit: "words"},
+		{name: "Count w string", input: `? "rakkaus" => count("w")`, expectedUnit: "words"},
+		{name: "Count sanat ident", input: `? "rakkaus" => count(sanat)`, expectedUnit: "words"},
+		{name: "Count s ident", input: `? "rakkaus" => count(s)`, expectedUnit: "words"},
+		{name: "Count s string", input: `? "rakkaus" => count("s")`, expectedUnit: "words"},
+		{name: "Count colon syntax", input: `? "rakkaus" => count:books`, expectedUnit: "books"},
 	}
 
 	for _, tt := range tests {
-		node, err := Parse(tt.input)
-		if err != nil {
-			t.Fatalf("Parse(%q) failed: %v", tt.input, err)
-		}
-		pipe, ok := node.(*PipeNode)
-		if !ok {
-			t.Fatalf("expected *PipeNode, got %T", node)
-		}
-		action, ok := pipe.Right.(*ActionNode)
-		if !ok || action.Kind != "count" {
-			t.Fatalf("expected Right to be count ActionNode, got %+v", pipe.Right)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+			}
+			pipe, ok := node.(*PipeNode)
+			if !ok {
+				t.Fatalf("expected *PipeNode, got %T", node)
+			}
+			action, ok := pipe.Right.(*ActionNode)
+			if !ok || action.Kind != "count" {
+				t.Fatalf("expected Right to be count ActionNode, got %+v", pipe.Right)
+			}
+			if action.Value != tt.expectedUnit {
+				t.Errorf("expected count unit %q, got %q", tt.expectedUnit, action.Value)
+			}
+		})
+	}
+
+	invalidTests := []struct {
+		name  string
+		input string
+	}{
+		{name: "Invalid unit ident", input: `? "rakkaus" => count(invalid)`},
+		{name: "Invalid unit string", input: `? "rakkaus" => count("foo")`},
+		{name: "Unclosed paren", input: `? "rakkaus" => count(books`},
+	}
+
+	for _, tt := range invalidTests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Parse(tt.input)
+			if err == nil {
+				t.Errorf("expected error for invalid count expression %q, got nil", tt.input)
+			}
+		})
 	}
 }
 

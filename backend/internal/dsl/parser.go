@@ -33,8 +33,8 @@ func init() {
 		"themes":  parseOptionalNumericAction("themes"),
 		"suggest": parseOptionalNumericAction("suggest"),
 
-		// Nullary aggregator
-		"count": parseNullaryAction("count"),
+		// Unit-aware aggregator: count(), count(verses), count(chapters), count(books), count(words)
+		"count": parseCountAction,
 
 		// Required-numeric limit
 		"limit": parseLimitAction,
@@ -120,16 +120,58 @@ func parseOptionalNumericAction(kind string) actionParserFn {
 	}
 }
 
-// parseNullaryAction returns a parser for zero-argument actions.
+// parseCountAction parses count() or count(UNIT) or count:UNIT.
+// Supported units:
+//   - books: "books", "book", "b", "kirjat", "kirja", "k"
+//   - chapters: "chapters", "chapter", "c", "luvut", "luku", "l"
+//   - verses: "verses", "verse", "v", "jakeet", "jae", "j" (default)
+//   - words: "words", "word", "w", "sanat", "sana", "s"
 //
-//	count(), count
-func parseNullaryAction(kind string) actionParserFn {
-	return func(p *Parser) (*ActionNode, error) {
-		if p.current().Type == TokenParenOpen {
+// Arguments are supported both with and without quotes: count("books"), count(b), count('w').
+func parseCountAction(p *Parser) (*ActionNode, error) {
+	unit := "verses"
+	if p.current().Type == TokenParenOpen {
+		p.next()
+		if p.current().Type == TokenIdent || p.current().Type == TokenString {
+			raw := strings.ToLower(strings.TrimSpace(p.current().Literal))
 			p.next()
-			p.consumeOptional(TokenParenClose)
+			normalized, err := normalizeCountUnit(raw)
+			if err != nil {
+				return nil, err
+			}
+			unit = normalized
 		}
-		return &ActionNode{Kind: kind}, nil
+		if p.current().Type != TokenParenClose {
+			return nil, fmt.Errorf("expected ')' after count unit, got %s at pos %d", p.current().Type, p.current().Pos)
+		}
+		p.next()
+	} else if p.current().Type == TokenColon {
+		p.next()
+		if p.current().Type == TokenIdent || p.current().Type == TokenString {
+			raw := strings.ToLower(strings.TrimSpace(p.current().Literal))
+			p.next()
+			normalized, err := normalizeCountUnit(raw)
+			if err != nil {
+				return nil, err
+			}
+			unit = normalized
+		}
+	}
+	return &ActionNode{Kind: "count", Value: unit}, nil
+}
+
+func normalizeCountUnit(raw string) (string, error) {
+	switch raw {
+	case "b", "book", "books", "k", "kirja", "kirjat":
+		return "books", nil
+	case "c", "chapter", "chapters", "l", "luku", "luvut":
+		return "chapters", nil
+	case "v", "verse", "verses", "j", "jae", "jakeet":
+		return "verses", nil
+	case "w", "word", "words", "s", "sana", "sanat":
+		return "words", nil
+	default:
+		return "", fmt.Errorf("invalid count unit %q: expected 'verses' ('v', 'j'), 'chapters' ('c', 'l'), 'books' ('b', 'k'), or 'words' ('w', 's')", raw)
 	}
 }
 

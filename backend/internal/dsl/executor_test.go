@@ -496,6 +496,67 @@ func TestDSLExecutor(t *testing.T) {
 			t.Errorf("expected searcher scope ('book', 'ROM'), got (%q, %q)", searcher.lastScope, searcher.lastValue)
 		}
 
+		// 5. Unit-aware count on search: books, chapters, verses, words
+		unitTests := []struct {
+			query         string
+			expectedCount int
+			expectedUnit  string
+		}{
+			{query: `? "love" => count(verses)`, expectedCount: 2, expectedUnit: "verses"},
+			{query: `? "love" => count(books)`, expectedCount: 2, expectedUnit: "books"},
+			{query: `? "love" => count("b")`, expectedCount: 2, expectedUnit: "books"},
+			{query: `? "love" => count(k)`, expectedCount: 2, expectedUnit: "books"},
+			{query: `? "love" => count(chapters)`, expectedCount: 2, expectedUnit: "chapters"},
+			{query: `? "love" => count("c")`, expectedCount: 2, expectedUnit: "chapters"},
+			{query: `? "love" => count(l)`, expectedCount: 2, expectedUnit: "chapters"},
+			{query: `? "love" => count(words)`, expectedCount: 7, expectedUnit: "words"},
+			{query: `? "love" => count("w")`, expectedCount: 7, expectedUnit: "words"},
+			{query: `? "love" => count(sanat)`, expectedCount: 7, expectedUnit: "words"},
+			{query: `? "love" => count("s")`, expectedCount: 7, expectedUnit: "words"},
+		}
+
+		for _, ut := range unitTests {
+			nodeU, err := Parse(ut.query)
+			if err != nil {
+				t.Fatalf("parse failed for %q: %v", ut.query, err)
+			}
+			resU, err := Execute(ctx, nodeU)
+			if err != nil {
+				t.Fatalf("execute failed for %q: %v", ut.query, err)
+			}
+			if resU.Data["count"] != ut.expectedCount {
+				t.Errorf("query %q: expected count %d, got %v", ut.query, ut.expectedCount, resU.Data["count"])
+			}
+			if resU.Data["unit"] != ut.expectedUnit {
+				t.Errorf("query %q: expected unit %q, got %v", ut.query, ut.expectedUnit, resU.Data["unit"])
+			}
+		}
+
+		// 6. Unit-aware count on range
+		rangeWordNode, err := Parse(`range(Joh 1:1, Joh 1:5) => count(words)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resRangeWords, err := Execute(ctx, rangeWordNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resRangeWords.Data["count"] != 30 || resRangeWords.Data["unit"] != "words" {
+			t.Errorf("expected 30 words, got %+v", resRangeWords.Data)
+		}
+
+		rangeBooksNode, err := Parse(`range(Joh 1:1, Joh 1:5) => count(books)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resRangeBooks, err := Execute(ctx, rangeBooksNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resRangeBooks.Data["count"] != 1 || resRangeBooks.Data["unit"] != "books" {
+			t.Errorf("expected 1 book, got %+v", resRangeBooks.Data)
+		}
+
 		// 5. Scoped Search with testament NT/UT: ? "love" @UT
 		nodeUT, err := Parse(`? "love" @UT`)
 		if err != nil {

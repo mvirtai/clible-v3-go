@@ -286,7 +286,7 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 
 	// 1. Count aggregator => count()
 	if action.Kind == "count" {
-		return executeCountPipe(ctx, n.Left)
+		return executeCountPipe(ctx, n.Left, action.Value)
 	}
 
 	// 2. Parallel comparison vs(A, B) or compare(A, B)
@@ -559,7 +559,44 @@ func extractPipedSearchOptions(n Node, defaultTid string) (string, string) {
 	return tid, scopeVal
 }
 
-func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, error) {
+func aggregateCount(verses []models.Verse, unit string) int {
+	switch unit {
+	case "books":
+		uniqueBooks := make(map[string]struct{})
+		for _, v := range verses {
+			if v.BookID != "" {
+				uniqueBooks[v.BookID] = struct{}{}
+			}
+		}
+		return len(uniqueBooks)
+	case "chapters":
+		uniqueChapters := make(map[string]struct{})
+		for _, v := range verses {
+			if v.BookID != "" && v.Chapter > 0 {
+				key := fmt.Sprintf("%s-%d", v.BookID, v.Chapter)
+				uniqueChapters[key] = struct{}{}
+			}
+		}
+		return len(uniqueChapters)
+	case "words":
+		totalWords := 0
+		for _, v := range verses {
+			if v.Text != "" {
+				totalWords += len(strings.Fields(v.Text))
+			}
+		}
+		return totalWords
+	case "verses":
+		fallthrough
+	default:
+		return len(verses)
+	}
+}
+
+func executeCountPipe(ctx *ExecutionContext, left Node, unit string) (*models.CLIResult, error) {
+	if unit == "" {
+		unit = "verses"
+	}
 	defaultTid := parsers.ResolveTranslationID(ctx.DefaultTrans)
 	if defaultTid == "" {
 		defaultTid = "web"
@@ -576,6 +613,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 		if err != nil {
 			return nil, fmt.Errorf("failed to search verses for count: %w", err)
 		}
+		count := aggregateCount(verses, unit)
 		return &models.CLIResult{
 			Type: "count",
 			Data: map[string]interface{}{
@@ -583,7 +621,8 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 				"query":       target.Query,
 				"is_regex":    target.IsRegex,
 				"scope_book":  target.ScopeBook,
-				"count":       len(verses),
+				"count":       count,
+				"unit":        unit,
 				"translation": searchTid,
 			},
 		}, nil
@@ -596,12 +635,14 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch verses for count: %w", err)
 		}
+		count := aggregateCount(verses, unit)
 		return &models.CLIResult{
 			Type: "count",
 			Data: map[string]interface{}{
 				"target_type": "reference",
 				"reference":   target.Reference,
-				"count":       len(verses),
+				"count":       count,
+				"unit":        unit,
 				"translation": defaultTid,
 			},
 		}, nil
@@ -613,7 +654,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 		}
 		count := 0
 		if verses, ok := res.Data["verses"].([]models.Verse); ok {
-			count = len(verses)
+			count = aggregateCount(verses, unit)
 		}
 		return &models.CLIResult{
 			Type: "count",
@@ -621,6 +662,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 				"target_type": "range",
 				"reference":   fmt.Sprintf("%s – %s", target.Start, target.End),
 				"count":       count,
+				"unit":        unit,
 				"translation": res.Data["translation"],
 			},
 		}, nil
@@ -640,6 +682,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 			if err != nil {
 				return nil, fmt.Errorf("failed to search verses for count: %w", err)
 			}
+			count := aggregateCount(verses, unit)
 			return &models.CLIResult{
 				Type: "count",
 				Data: map[string]interface{}{
@@ -647,7 +690,8 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 					"query":       searchNode.Query,
 					"is_regex":    searchNode.IsRegex,
 					"scope_book":  searchNode.ScopeBook,
-					"count":       len(verses),
+					"count":       count,
+					"unit":        unit,
 					"translation": tid,
 				},
 			}, nil
@@ -660,12 +704,14 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 			if err != nil {
 				return nil, fmt.Errorf("failed to fetch verses for count: %w", err)
 			}
+			count := aggregateCount(verses, unit)
 			return &models.CLIResult{
 				Type: "count",
 				Data: map[string]interface{}{
 					"target_type": "reference",
 					"reference":   refNode.Reference,
-					"count":       len(verses),
+					"count":       count,
+					"unit":        unit,
 					"translation": tid,
 				},
 			}, nil
@@ -683,7 +729,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 			}
 			count := 0
 			if verses, ok := res.Data["verses"].([]models.Verse); ok {
-				count = len(verses)
+				count = aggregateCount(verses, unit)
 			}
 			return &models.CLIResult{
 				Type: "count",
@@ -691,6 +737,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 					"target_type": "range",
 					"reference":   fmt.Sprintf("%s – %s", rangeNode.Start, rangeNode.End),
 					"count":       count,
+					"unit":        unit,
 					"translation": tid,
 				},
 			}, nil
