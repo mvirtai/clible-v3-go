@@ -46,7 +46,7 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
   let markdown = "";
   const tr = translation.toUpperCase();
 
-  if ((type === "read" || type === "search") && data.verses && data.verses.length > 0) {
+  if ((type === "read" || type === "search" || type === "range") && data.verses && data.verses.length > 0) {
     const first = data.verses[0];
     const last = data.verses[data.verses.length - 1];
     const firstBook = bookCitationAbbrevFi(first.bookId);

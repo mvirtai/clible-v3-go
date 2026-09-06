@@ -116,7 +116,7 @@ export function MarkdownCell({
     });
 
     // 4. Transform line and mid-line directives: `! @...`, `! ?...`, `! search(...)`, `! at(...)`, `! ^...`, `!isla ...`
-    processed = processed.replace(/(?:^|[ \t]+)(!(?![[])(?:isla\b|ISLA\b|\s*(?:search|read|at|use|vs|compare)\(|\s*[@?#~^]|\s*[A-Za-z0-9])[^\n`]*)/gm, (_, fullDirective) => {
+    processed = processed.replace(/(?:^|[ \t]+)(!(?![[])(?:isla\b|ISLA\b|\s*(?:search|read|at|use|vs|compare|range|from)\s*\(|\s*[@?#~^]|\s*[A-Za-z0-9])[^\n`]*)/gm, (_, fullDirective) => {
       const query = normalizeISLAQuery(fullDirective);
       return `\n\n\`\`\`isla\n${query}\n\`\`\`\n\n`;
     });

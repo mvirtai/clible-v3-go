@@ -55,11 +55,26 @@ function ISLAContent({ code, translation }: { code: string; translation: string 
             selectable={false}
           />
         )}
-        {(result.type === 'verses' || result.type === 'read' || result.type === 'search' || result.type === 'refs' || result.type === 'suggest') && (
+        {(result.type === 'verses' || result.type === 'read' || result.type === 'search' || result.type === 'refs' || result.type === 'suggest' || result.type === 'range') && (
           <CellVersesResult
             data={result.data as VersesResultData}
             selectable={false}
           />
+        )}
+        {result.type === 'themes' && (
+          <div className="space-y-2 font-sans w-full max-w-full">
+            <div className="flex flex-wrap gap-1.5">
+              {((result.data as { themes?: Array<{ word: string; count: number }> })?.themes || []).map((t) => (
+                <span
+                  key={t.word}
+                  className="inline-flex items-center gap-1 text-xs font-mono bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-full shadow-2xs"
+                >
+                  <span className="font-semibold">#{t.word}</span>
+                  <span className="text-[10px] opacity-75 font-sans">({t.count})</span>
+                </span>
+              ))}
+            </div>
+          </div>
         )}
         {result.type === 'count' && (
           <CellCountResult data={result.data as CountResultData} />

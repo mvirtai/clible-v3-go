@@ -227,6 +227,18 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     hasArgs: true,
     isPrimary: true,
   },
+  {
+    keyword: 'read',
+    label: { fi: 'Jaeviittaus (alias)', en: 'Verse Reference (alias)' },
+    description: {
+      fi: '`read(viite)` on funktioaliastyyppi jakeen tai jaejakson lukemiseen.',
+      en: '`read(ref)` is a function alias for reading a verse or passage.',
+    },
+    syntax: 'read(VERSE_REF)',
+    example: '! read(Joh 3:16) => use(KR92)',
+    hasArgs: true,
+    isPrimary: true,
+  },
 
   // ── Pipeline / Modifier Commands ─────────────────────────────────────────
   {
@@ -271,6 +283,17 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     },
     syntax: 'vs(TRANS_A, TRANS_B)',
     example: '! at(Joh 3:16) => vs(KR92, KR38)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'compare',
+    label: { fi: 'Rinnakkaisvertailu (alias)', en: 'Parallel Comparison (alias)' },
+    description: {
+      fi: 'Alias komennolle `vs(...)`. Näyttää jakeen tai jaksorajan rinnakkain kahdella käännöksellä.',
+      en: 'Alias for `vs(...)`. Renders the verse or passage side-by-side in two translations.',
+    },
+    syntax: 'compare(TRANS_A, TRANS_B)',
+    example: '! at(Joh 3:16) => compare(KR92, KJV)',
     hasArgs: true,
   },
   {

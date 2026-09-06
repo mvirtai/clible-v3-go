@@ -200,6 +200,8 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
         lower === 'use' ||
         lower === 'at' ||
         lower === 'search' ||
+        lower === 'range' ||
+        lower === 'from' ||
         lower === 'read' ||
         lower === 'vs' ||
         lower === 'compare' ||

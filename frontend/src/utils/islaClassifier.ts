@@ -17,13 +17,26 @@ export interface ContentCounts {
 export function classifyISLAQuery(rawQuery: string): 'search' | 'verse' | 'compare' | 'count' | 'refs' {
   const q = rawQuery.trim();
 
-  // 1. Cross-references (~ @Joh 3:16 or refs @Joh 3:16)
-  if (q.startsWith('~') || q.startsWith('!~') || q.toLowerCase().startsWith('/refs') || q.toLowerCase().startsWith('refs ')) {
+  // 1. Cross-references (~ @Joh 3:16, refs @Joh 3:16, refs(...), or => refs)
+  if (
+    q.startsWith('~') ||
+    q.startsWith('!~') ||
+    q.toLowerCase().startsWith('/refs') ||
+    q.toLowerCase().startsWith('refs ') ||
+    q.toLowerCase().startsWith('refs(') ||
+    /=>\s*refs\b/i.test(q)
+  ) {
     return 'refs';
   }
 
-  // 2. Count metrics
-  if (q.includes('=> count') || q.startsWith('#') || q.startsWith('!#')) {
+  // 2. Count metrics (=> count, # "...", !#, count(...))
+  if (
+    q.includes('=> count') ||
+    q.startsWith('#') ||
+    q.startsWith('!#') ||
+    q.toLowerCase().startsWith('count(') ||
+    q.toLowerCase().startsWith('/count')
+  ) {
     return 'count';
   }
 
@@ -31,19 +44,31 @@ export function classifyISLAQuery(rawQuery: string): 'search' | 'verse' | 'compa
   if (
     (q.includes(' ? ') && q.includes(' : ')) ||
     /\s\+\s/.test(q) ||
-    /\b(?:vs\.?|cmp)\b/i.test(q) ||
-    q.toLowerCase().startsWith('/compare')
+    /\b(?:vs\.?|cmp|compare)\b/i.test(q) ||
+    q.toLowerCase().startsWith('/compare') ||
+    /=>\s*(?:vs|compare)\b/i.test(q)
   ) {
     return 'compare';
   }
 
   // 4. Search query
-  if (q.startsWith('?') || q.startsWith('!?') || q.toLowerCase().startsWith('/search')) {
+  if (
+    q.startsWith('?') ||
+    q.startsWith('!?') ||
+    q.toLowerCase().startsWith('/search') ||
+    /^!?\s*search\s*\(/i.test(q)
+  ) {
     return 'search';
   }
 
   // 5. Verse lookup
-  if (q.startsWith('@') || q.startsWith('!@') || q.toLowerCase().startsWith('/read') || /^[a-zA-Z0-9åäöÅÄÖ\s]+\s+\d+:\d+/i.test(q)) {
+  if (
+    q.startsWith('@') ||
+    q.startsWith('!@') ||
+    q.toLowerCase().startsWith('/read') ||
+    /^!?\s*(?:range|read|from|at)\s*\(/i.test(q) ||
+    /^[a-zA-Z0-9åäöÅÄÖ\s]+\s+\d+:\d+/i.test(q)
+  ) {
     return 'verse';
   }
 
@@ -70,8 +95,8 @@ export function stripMarkdown(raw: string): string {
   return raw
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`([^`]+)`/g, '$1')
-    .replace(/!\[\[(.*?)\]\]/g, '$1')
-    .replace(/\[\[(.*?)\]\]/g, '$1')
+    .replace(/!\[(?:\[)?(.*?)(?:\])?\]/g, '$1')
+    .replace(/\[(?:\[)?(.*?)(?:\])?\]/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/[#*_~>]/g, '')
     .replace(/\s+/g, ' ')
@@ -93,8 +118,8 @@ export function classifyCell(cell: Cell): CellClassification {
     return ' ';
   });
 
-  // 2. Extract wikilink embeds ![[...]]
-  remaining = remaining.replace(/!\[\[(?:isla\s+|ISLA\s+|i\s+)?([\s\S]*?)\]\]/gi, (_, query) => {
+  // 2. Extract wikilink / markdown embeds ![[...]] or ![...]
+  remaining = remaining.replace(/!\[(?:\[)?(?:isla\s+|ISLA\s+|i\s+)?([\s\S]*?)\](?:\])?/gi, (_, query) => {
     const q = query.trim();
     if (q) detected.push(classifyISLAQuery(q));
     return ' ';
@@ -107,8 +132,8 @@ export function classifyCell(cell: Cell): CellClassification {
     return ' ';
   });
 
-  // 4. Extract line-level directives & shorthands (!isla, !@, !?, !#, !~, @..., ?..., ~..., # "...")
-  remaining = remaining.replace(/(?:^|\n)[ \t]*(?:!(?:isla\b|ISLA\b|i[@?#~]|[@?#~]|\s+@|\s+\?|\s+#|\s+~)|[@?~]|#(?:[ \t]*["'@?]))[^\n`]*/gm, (match) => {
+  // 4. Extract line-level directives & shorthands (!isla, !@, !?, !#, !~, @..., ?..., ~..., # "...", ! at(...), ! range(...), etc.)
+  remaining = remaining.replace(/(?:^|\n)[ \t]*(?:!(?:isla\b|ISLA\b|\s*(?:search|read|at|use|vs|compare|range|from)\s*\(|i[@?#~]|[@?#~^]|\s+[@?#~^])|[@?~^]|#(?:[ \t]*["'@?]))[^\n`]*/gm, (match) => {
     const q = match.trim();
     if (q) detected.push(classifyISLAQuery(q));
     return ' ';
