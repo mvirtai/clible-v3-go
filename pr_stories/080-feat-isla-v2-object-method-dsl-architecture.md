@@ -94,6 +94,33 @@ graph TD
     AST --> Exec["new_dsl.Executor -> models.CLIResult"]
 ```
 
+### 3. Query Anatomy: The Three-Phase Pipeline (v2 Clarity vs. v1 Chaos)
+
+The diagram below maps a real-world research task — *"find all New Testament verses mentioning both 'grace' and 'faith', count unique words, save results below"* — against the ISLA v1 syntax that would have been needed, and contrasts it with the clean three-phase pipeline of v2.
+
+```mermaid
+flowchart LR
+    subgraph V1["❌ ISLA v1 — Four different conventions for one task"]
+        direction TB
+        V1A["Scope:  =&gt; at(kirjeet)"]
+        V1B["Filter: ! search(&quot;armo&quot; AND &quot;usko&quot;)"]
+        V1C["Transl: =&gt; use(KR92)"]
+        V1D["Metric: =&gt; count(uw)"]
+        V1E["Output: always inline, no routing"]
+        V1B --> V1A --> V1C --> V1D --> V1E
+    end
+
+    subgraph V2["✅ ISLA v2 — One grammar, three phases"]
+        direction TB
+        OBJ["① Object\n search(&quot;armo&quot; AND &quot;usko&quot;)\n — the typed data source"]
+        MTH["② Methods (dot-chained)\n .at(kirjeet).use(KR92).count(verses)\n — composable transforms"]
+        OUT["③ Output operator\n &gt;&gt; #armo-ja-usko\n — destination routing"]
+        OBJ --> MTH --> OUT
+    end
+```
+
+Every ISLA v2 expression reads left-to-right like a sentence: *start with a data source → transform it → route the result*. Adding a new capability (e.g. `.greek()`, `.similar()`) never requires inventing a new symbol — it is simply a new method in Phase ②.
+
 ---
 
 ## Architectural & UX Changes
@@ -140,7 +167,33 @@ type ISLAExpression struct {
 
 ### 7. Language Extensibility & Future Evolution (The Object-Method Horizon)
 
-The greatest architectural victory of ISLA v2 is not just cleaner syntax today, but **frictionless extensibility tomorrow**. In v1, introducing a new query concept required inventing new ASCII symbols, leading to parser conflicts. In ISLA v2, every domain capability is simply a new typed method attached to an existing object AST node:
+### 8. Syntax Simplification & Unified Object‑Method Model
+
+**Before ISLA v1** – the DSL mixed many unrelated syntactic forms:
+- Ternary comparison (`!@Joh 3:16 ? KR92 : KJV`)
+- Prefix tags (`# "valkeus" @ut`)
+- Arrow‑chaining for arguments (`! search("armo") => at(ROM) => use(KR92)`)
+- Overloaded output operator `=>` that both passed parameters and dictated rendering.
+
+These fragments forced users to memorize multiple mental models and made parser extensions error‑prone.
+
+**After ISLA v2** – every expression follows the uniform pattern **Object.method(...).method(... ) [output‑operator]**:
+- An **Object** (`@(...)`, `search(...)`, `range(...)`) is the immutable entry point.
+- **Methods** are chained with `.` and accept arguments in parentheses.
+- A single **output operator** (`=>`, `>`, `>>`) determines rendering location.
+
+The result is a predictable AST, enabling easy addition of new capabilities and more expressive, composable queries.
+
+```mermaid
+flowchart TD
+    A[Old fragmented DSL] --> B[Multiple parsers & symbols]
+    B --> C[Confusing mental model]
+    C --> D[Hard to extend]
+    E[New unified DSL] --> F[Single lexer/parser]
+    F --> G[Deterministic AST]
+    G --> H[Easy to add new methods]
+    H --> I[Creative, logical queries]
+```
 
 1. **Original Language & Morphological Analysis:**
    ```isla
