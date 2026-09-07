@@ -165,65 +165,50 @@ type ISLAExpression struct {
 - Updated `ISLABlock.tsx` to display output operator tags (`#slug` badge, `↑ Yläpuolelle`, `↓ Alapuolelle`).
 - Localized all operator text across English and Finnish in `frontend/src/utils/i18n.ts`.
 
-### 7. Language Extensibility & Future Evolution (The Object-Method Horizon)
-
-### 8. Syntax Simplification & Unified Object‑Method Model
+### 7. Syntax Simplification & Unified Object‑Method Model
 
 **Before ISLA v1** – the DSL mixed many unrelated syntactic forms:
+
 - Ternary comparison (`!@Joh 3:16 ? KR92 : KJV`)
 - Prefix tags (`# "valkeus" @ut`)
 - Arrow‑chaining for arguments (`! search("armo") => at(ROM) => use(KR92)`)
-- Overloaded output operator `=>` that both passed parameters and dictated rendering.
+- Overloaded output operator `=>` that both passed parameters AND dictated rendering.
 
 These fragments forced users to memorize multiple mental models and made parser extensions error‑prone.
 
-**After ISLA v2** – every expression follows the uniform pattern **Object.method(...).method(... ) [output‑operator]**:
-- An **Object** (`@(...)`, `search(...)`, `range(...)`) is the immutable entry point.
-- **Methods** are chained with `.` and accept arguments in parentheses.
-- A single **output operator** (`=>`, `>`, `>>`) determines rendering location.
+**After ISLA v2** – every expression follows the uniform pattern **`Object.method(...).method(...) [output-operator]`**:
 
-The result is a predictable AST, enabling easy addition of new capabilities and more expressive, composable queries.
+- An **Object** (`@(...)`, `search(...)`, `range(...)`, `^`) is the typed, immutable entry point.
+- **Methods** are dot-chained and accept arguments in parentheses — *composable transforms on the object stream*.
+- A single **Output Operator** (`=>` inline, `>` above, `>>` below) determines where the result is rendered in the notebook.
+
+The result is a deterministic, single-grammar AST. Every new analytical capability is just a new method in Phase ② — no new symbols, no parser conflicts.
 
 ```mermaid
 flowchart TD
-    A[Old fragmented DSL] --> B[Multiple parsers & symbols]
-    B --> C[Confusing mental model]
-    C --> D[Hard to extend]
-    E[New unified DSL] --> F[Single lexer/parser]
-    F --> G[Deterministic AST]
-    G --> H[Easy to add new methods]
-    H --> I[Creative, logical queries]
+    A["Old fragmented DSL"] --> B["Multiple parsers & symbols"]
+    B --> C["Confusing mental model"]
+    C --> D["Hard to extend safely"]
+    E["New unified DSL"] --> F["Single lexer / parser"]
+    F --> G["Deterministic AST"]
+    G --> H["Add new method = add new capability"]
+    H --> I["Creative, composable queries"]
 ```
 
-1. **Original Language & Morphological Analysis:**
-   ```isla
-   ! search("logos").at(Joh).greek().morphology() >> #logos-analyysi
-   ```
-   Because `search(...)` yields a sequence of verses, adding `.greek()` can immediately project Greek lemma annotations, Strong's concordance numbers, and grammatical tense/mood/case tags into the stream.
+### 8. Language Extensibility Horizon
 
-2. **Set Operations (Unions, Intersections, Differences):**
-   ```isla
-   ! search("valkeus").intersect(search("elämä")).at(Joh) >> #valkeus-ja-elama
-   ```
-   Objects can be combined algebraically using fluent set operations before scoping and projection.
+> **⚠️ The capabilities listed below are NOT YET IMPLEMENTED.** They are architectural possibilities
+> enabled by the ISLA v2 object-method foundation — each requires a dedicated development sprint.
+> Full design, prioritization, and acceptance criteria for each frontier are tracked in
+> [`.visions/01-isla-language-horizon.md`](file:///home/vivaldev/code/clible-v3-go/.visions/01-isla-language-horizon.md).
 
-3. **Semantic AI Similarity Search (Vector Embeddings):**
-   ```isla
-   ! search("armolahjat seurakunnassa").similar(threshold: 0.82).at(1Kor) >> #armolahjat-semantiikka
-   ```
-   The `.similar()` method can transparently tap into pgvector embeddings in Neon PostgreSQL to discover concept matches beyond simple lexical keyword hits.
-
-4. **Visual Analytics & Chart Projections:**
-   ```isla
-   ! range(GEN, MAL).themes(10).chart(kind: bar) >> #ot-thematic-distribution
-   ```
-   Instead of just returning textual theme badges, an analytical pipeline can render high-resolution bar charts or chronological heatmaps.
-
-5. **Cross-Cell Graph Querying (Notebook as a Knowledge Graph):**
-   ```isla
-   ! cell(#tooran-teemat).filter(count > 10).suggest(5) >> #jatkotutkimus
-   ```
-   Because cells can now be named with `#slug` anchors, downstream cells can treat preceding analysis cards as queryable data sources, turning Clible notebooks into reactive research workbenches.
+| # | Future Method | Example expression | Status |
+| :- | :--- | :--- | :---: |
+| 1 | `.greek()` / `.morphology()` | `search("logos").at(Joh).greek().morphology() >> #logos-analyysi` | 🔲 Planned |
+| 2 | `.intersect()` / `.union()` | `search("valkeus").intersect(search("elämä")).at(Joh) >> #valkeus-ja-elama` | 🔲 Planned |
+| 3 | `.similar(threshold: N)` | `search("armolahjat").similar(threshold: 0.82).at(1Kor) >> #semantiikka` | 🔲 Planned |
+| 4 | `.chart(kind: bar)` | `range(GEN, MAL).themes(10).chart(kind: bar) >> #thematic-chart` | 🔲 Planned |
+| 5 | `cell(#slug).filter()` | `cell(#tooran-teemat).filter(count > 10).suggest(5) >> #jatko` | 🔲 Planned |
 
 ---
 
