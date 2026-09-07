@@ -132,22 +132,36 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
       }
     }
 
-    // 5. Multi-character operators: `=>`
+    // 5. Multi-character operators: `=>`, `>>`
     if (line.startsWith('=>', index)) {
       tokens.push({ type: 'operator', text: '=>' });
       index += 2;
       continue;
     }
+    if (line.startsWith('>>', index)) {
+      tokens.push({ type: 'operator', text: '>>' });
+      index += 2;
+      continue;
+    }
 
-    // 6. Single character operators: `?`, `:`, `^`
-    if (char === '?' || char === ':' || char === '^') {
+    // 6. Single character operators: `?`, `:`, `^`, `>`, `.`
+    if (char === '?' || char === ':' || char === '^' || char === '>' || char === '.') {
       tokens.push({ type: 'operator', text: char });
       index++;
       continue;
     }
 
-    // 7. Scripture References and Scopes: `@Joh 3:16`, `@Room`, `@NT` or reference immediately following `!@`
+    // 7. Scripture References and Scopes: `@(Joh 3:16)`, `@Joh 3:16`, `@Room`, `@NT`
     if (char === '@') {
+      if (line.startsWith('@(', index)) {
+        const closeIdx = line.indexOf(')', index + 2);
+        if (closeIdx !== -1) {
+          const refText = line.slice(index, closeIdx + 1);
+          tokens.push({ type: 'reference', text: refText });
+          index = closeIdx + 1;
+          continue;
+        }
+      }
       const match = line.slice(index).match(/^@[A-Za-z0-9äöåÄÖÅ]+(?:\s+\d+(?::\d+(?:-\d+)?)?)?/);
       if (match) {
         tokens.push({ type: 'reference', text: match[0] });
@@ -169,7 +183,7 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
       }
     }
 
-    // 8. Functions / tags: `#themes`, `#count`, `#refs`, `#suggest`
+    // 8. Functions / tags / slugs: `#themes`, `#count`, `#refs`, `#suggest`, `#slug`
     if (char === '#') {
       const match = line.slice(index).match(/^#[A-Za-z0-9_-]+/);
       if (match) {
@@ -211,7 +225,12 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
         lower === 'themes' ||
         lower === 'refs' ||
         lower === 'suggest' ||
-        lower === 'limit'
+        lower === 'limit' ||
+        lower === 'top' ||
+        lower === 'words' ||
+        lower === 'stats' ||
+        lower === 'ttr' ||
+        lower === 'verses'
       ) {
         tokens.push({ type: 'function', text: word });
       } else {
