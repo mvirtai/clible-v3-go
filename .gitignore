@@ -50,6 +50,9 @@ git-diffs.txt
 .plans/
 .plans/**
 .notes/
+# Vision documents (long-term architectural planning, not for commit)
+.visions/
+.visions/**
 
 demos/02-spring-physics-ui.html
 demos/03-3d-spatial-mindmap-architecture-and-guide.md

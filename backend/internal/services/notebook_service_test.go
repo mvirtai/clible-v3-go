@@ -891,6 +891,89 @@ func TestNotebookService_ExecuteCellCommand(t *testing.T) {
 		}
 	})
 
+	t.Run("executes ISLA v2 DSL command with output operator >> #slug", func(t *testing.T) {
+		cellID := uuid.New().String()
+		cells := []models.Cell{
+			{
+				ID:         cellID,
+				NotebookID: nb.ID,
+				Type:       models.CellTypeCode,
+				Content:    `! @(JHN 3:16) >> #joh-verse`,
+				Position:   0,
+			},
+		}
+		if err := notebookRepo.SaveCells(ctx, nb.ID, cells); err != nil {
+			t.Fatalf("failed to save cell: %v", err)
+		}
+
+		res, err := notebookService.ExecuteCellCommand(ctx, nb.ID, cellID, userID, "web")
+		if err != nil {
+			t.Fatalf("ExecuteCellCommand failed for ISLA v2 >>: %v", err)
+		}
+		if res.Type != "read" {
+			t.Errorf("expected type 'read', got %s", res.Type)
+		}
+		outputOp, ok := res.Data["output_op"].(map[string]interface{})
+		if !ok || outputOp["kind"] != "cell_below" {
+			t.Errorf("expected output_op kind 'cell_below', got %v", outputOp)
+		}
+
+		// Verify that a new cell was inserted into the notebook
+		loadedCells, err := notebookRepo.GetCells(ctx, nb.ID)
+		if err != nil {
+			t.Fatalf("failed to get cells: %v", err)
+		}
+		if len(loadedCells) != 2 {
+			t.Fatalf("expected 2 cells in notebook after >>, got %d", len(loadedCells))
+		}
+		if loadedCells[1].Content != "### #joh-verse" {
+			t.Errorf("expected new cell content '### #joh-verse', got '%s'", loadedCells[1].Content)
+		}
+		if len(loadedCells[1].ResultJSON) == 0 {
+			t.Errorf("expected new cell to contain ResultJSON, got empty")
+		}
+	})
+
+	t.Run("executes ISLA v2 DSL command with output operator > 'Above Title'", func(t *testing.T) {
+		cellID := uuid.New().String()
+		cells := []models.Cell{
+			{
+				ID:         cellID,
+				NotebookID: nb.ID,
+				Type:       models.CellTypeCode,
+				Content:    `! @(JHN 3:16) > "Above Title"`,
+				Position:   0,
+			},
+		}
+		if err := notebookRepo.SaveCells(ctx, nb.ID, cells); err != nil {
+			t.Fatalf("failed to save cell: %v", err)
+		}
+
+		res, err := notebookService.ExecuteCellCommand(ctx, nb.ID, cellID, userID, "web")
+		if err != nil {
+			t.Fatalf("ExecuteCellCommand failed for ISLA v2 >: %v", err)
+		}
+		outputOp, ok := res.Data["output_op"].(map[string]interface{})
+		if !ok || outputOp["kind"] != "cell_above" {
+			t.Errorf("expected output_op kind 'cell_above', got %v", outputOp)
+		}
+
+		// Verify that a new cell was inserted ABOVE the target cell (position 0)
+		loadedCells, err := notebookRepo.GetCells(ctx, nb.ID)
+		if err != nil {
+			t.Fatalf("failed to get cells: %v", err)
+		}
+		if len(loadedCells) != 2 {
+			t.Fatalf("expected 2 cells in notebook after >, got %d", len(loadedCells))
+		}
+		if loadedCells[0].Content != "### Above Title" {
+			t.Errorf("expected top cell content '### Above Title', got '%s'", loadedCells[0].Content)
+		}
+		if loadedCells[1].ID != cellID {
+			t.Errorf("expected original cell to be at index 1, got id %s", loadedCells[1].ID)
+		}
+	})
+
 	t.Run("rejects unsupported cell content format", func(t *testing.T) {
 		cellID := uuid.New().String()
 		cells := []models.Cell{

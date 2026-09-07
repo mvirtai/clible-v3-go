@@ -5,6 +5,7 @@ import { CellCountResult, type CountResultData } from '../results/CellCountResul
 import { CellWordFreqResult, type WordFreqResultData } from '../results/CellWordFreqResult';
 import { CellStatsResult, type StatsResultData } from '../results/CellStatsResult';
 import { fetchISLAResult } from './islaCache';
+import { useLanguage } from '../../../context/LanguageContext';
 
 function ISLASkeleton({ code }: { code: string }) {
   return (
@@ -33,6 +34,7 @@ function ISLAContent({
   translation: string;
   contextText?: string;
 }) {
+  const { strings } = useLanguage();
   const result = use(fetchISLAResult(code, translation, contextText));
 
   if (result.type === 'error') {
@@ -47,6 +49,8 @@ function ISLAContent({
     );
   }
 
+  const outputOp = (result.data as { output_op?: { kind: string; name?: string; raw?: string } })?.output_op;
+
   return (
     <div
       className="group relative my-4 block w-full max-w-full rounded-xl border border-amber-500/30 dark:border-amber-500/25 bg-amber-500/5 dark:bg-[var(--surface)] p-4 shadow-xs hover:shadow-md transition-all not-prose text-[var(--text)] whitespace-normal break-words"
@@ -58,8 +62,31 @@ function ISLAContent({
         </span>
       </div>
 
+      {/* Output operator slug / direction indicator */}
+      {outputOp && (outputOp.name || outputOp.kind === 'cell_above' || outputOp.kind === 'cell_below') && (
+        <div className="mb-3 pb-2 border-b border-amber-500/15 flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            {outputOp.name && (
+              <span className="font-mono font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-[11px]">
+                {outputOp.name}
+              </span>
+            )}
+            {outputOp.kind === 'cell_above' && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-sans text-amber-600 dark:text-amber-400 font-medium">
+                <span>↑</span> {strings.islaOutputAbove}
+              </span>
+            )}
+            {outputOp.kind === 'cell_below' && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-sans text-amber-600 dark:text-amber-400 font-medium">
+                <span>↓</span> {strings.islaOutputBelow}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-full">
-        {result.type === 'compare' && (
+        {(result.type === 'compare' || result.type === 'comparison') && (
           <CellCompareResult
             data={result.data as CompareResultData}
             selectable={false}
@@ -89,7 +116,7 @@ function ISLAContent({
         {result.type === 'count' && (
           <CellCountResult data={result.data as CountResultData} />
         )}
-        {result.type === 'words' && (
+        {(result.type === 'words' || result.type === 'top_words') && (
           <CellWordFreqResult data={result.data as WordFreqResultData} />
         )}
         {result.type === 'stats' && (

@@ -510,5 +510,65 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 		return nil, fmt.Errorf("failed to save execution result: %w", err)
 	}
 
+	// 5. If output_op is cell_above or cell_below, create and insert a new cell
+	if cliResult.Data != nil {
+		if outputOp, ok := cliResult.Data["output_op"].(map[string]interface{}); ok {
+			kind, _ := outputOp["kind"].(string)
+			name, _ := outputOp["name"].(string)
+			if kind == "cell_above" || kind == "cell_below" {
+				newCellID := uuid.New().String()
+				var newContent string
+				if name != "" {
+					newContent = "### " + name
+				}
+				newCell := models.Cell{
+					ID:         newCellID,
+					NotebookID: notebookID,
+					Type:       models.CellTypeMarkdown,
+					Content:    newContent,
+					ResultJSON: json.RawMessage(resultBytes),
+					CreatedAt:  time.Now(),
+					UpdatedAt:  time.Now(),
+				}
+
+				targetIdx := -1
+				for i := range notebook.Cells {
+					if notebook.Cells[i].ID == cellID {
+						targetIdx = i
+						break
+					}
+				}
+
+				if targetIdx != -1 {
+					insertIdx := targetIdx
+					if kind == "cell_below" {
+						insertIdx = targetIdx + 1
+					}
+
+					var updatedCells []models.Cell
+					for i, c := range notebook.Cells {
+						if i == insertIdx {
+							updatedCells = append(updatedCells, newCell)
+						}
+						updatedCells = append(updatedCells, c)
+					}
+					if insertIdx >= len(notebook.Cells) {
+						updatedCells = append(updatedCells, newCell)
+					}
+
+					for i := range updatedCells {
+						updatedCells[i].Position = i
+					}
+
+					if saveErr := s.repo.SaveCells(ctx, notebookID, updatedCells); saveErr != nil {
+						return nil, fmt.Errorf("failed to save cells after inserting output cell: %w", saveErr)
+					}
+
+					cliResult.Data["new_cell_id"] = newCellID
+				}
+			}
+		}
+	}
+
 	return cliResult, nil
 }

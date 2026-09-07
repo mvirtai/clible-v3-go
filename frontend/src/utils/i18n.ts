@@ -191,6 +191,9 @@ export interface Messages {
   emptyNotebookText: string;
   addMarkdownCellLabel: string;
   addCodeCellLabel: string;
+  islaOutputAbove: string;
+  islaOutputBelow: string;
+  islaOutputInline: string;
   appendMarkdownCellLabel: string;
   appendCodeCellLabel: string;
   savedLabel: string;
@@ -521,6 +524,9 @@ export const strings: Record<UILanguage, Messages> = {
     emptyNotebookText: 'This notebook has no cells yet.',
     addMarkdownCellLabel: '+ Add cell',
     addCodeCellLabel: '+ Add cell',
+    islaOutputAbove: 'Cell above',
+    islaOutputBelow: 'Cell below',
+    islaOutputInline: 'This cell',
     appendMarkdownCellLabel: '+ Add cell to end',
     appendCodeCellLabel: '+ Add cell to end',
     savedLabel: 'Saved',
@@ -836,6 +842,9 @@ export const strings: Record<UILanguage, Messages> = {
     emptyNotebookText: 'Tässä muistikirjassa ei ole vielä soluja.',
     addMarkdownCellLabel: '+ Lisää solu',
     addCodeCellLabel: '+ Lisää solu',
+    islaOutputAbove: 'Yläpuolelle',
+    islaOutputBelow: 'Alapuolelle',
+    islaOutputInline: 'Tähän soluun',
     appendMarkdownCellLabel: '+ Lisää solu loppuun',
     appendCodeCellLabel: '+ Lisää solu loppuun',
     savedLabel: 'Tallennettu',

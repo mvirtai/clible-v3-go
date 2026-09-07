@@ -103,6 +103,66 @@ describe('islaLexer', () => {
         { type: 'plain', text: ')' },
       ]);
     });
+
+    it('tokenizes ISLA v2 verse ref with dot chaining and inline output: ! @(Joh 3:16).use(KR92) =>', () => {
+      const tokens = tokenizeISLALine('! @(Joh 3:16).use(KR92) =>');
+      expect(tokens).toEqual([
+        { type: 'directive', text: '! ' },
+        { type: 'reference', text: '@(Joh 3:16)' },
+        { type: 'operator', text: '.' },
+        { type: 'function', text: 'use' },
+        { type: 'plain', text: '(' },
+        { type: 'translation', text: 'KR92' },
+        { type: 'plain', text: ')' },
+        { type: 'plain', text: ' ' },
+        { type: 'operator', text: '=>' },
+      ]);
+    });
+
+    it('tokenizes ISLA v2 range with dot chaining and cell below output: ! range(GEN, DEU).themes(5) >> #tooran-teemat', () => {
+      const tokens = tokenizeISLALine('! range(GEN, DEU).themes(5) >> #tooran-teemat');
+      expect(tokens).toEqual([
+        { type: 'directive', text: '! ' },
+        { type: 'function', text: 'range' },
+        { type: 'plain', text: '(' },
+        { type: 'plain', text: 'GEN' },
+        { type: 'plain', text: ',' },
+        { type: 'plain', text: ' ' },
+        { type: 'plain', text: 'DEU' },
+        { type: 'plain', text: ')' },
+        { type: 'operator', text: '.' },
+        { type: 'function', text: 'themes' },
+        { type: 'plain', text: '(' },
+        { type: 'plain', text: '5' },
+        { type: 'plain', text: ')' },
+        { type: 'plain', text: ' ' },
+        { type: 'operator', text: '>>' },
+        { type: 'plain', text: ' ' },
+        { type: 'function', text: '#tooran-teemat' },
+      ]);
+    });
+
+    it('tokenizes ISLA v2 search with count and cell above output: ! search("armo").at(UT).count() >', () => {
+      const tokens = tokenizeISLALine('! search("armo").at(UT).count() >');
+      expect(tokens).toEqual([
+        { type: 'directive', text: '! ' },
+        { type: 'function', text: 'search' },
+        { type: 'plain', text: '(' },
+        { type: 'string', text: '"armo"' },
+        { type: 'plain', text: ')' },
+        { type: 'operator', text: '.' },
+        { type: 'function', text: 'at' },
+        { type: 'plain', text: '(' },
+        { type: 'plain', text: 'UT' },
+        { type: 'plain', text: ')' },
+        { type: 'operator', text: '.' },
+        { type: 'function', text: 'count' },
+        { type: 'plain', text: '(' },
+        { type: 'plain', text: ')' },
+        { type: 'plain', text: ' ' },
+        { type: 'operator', text: '>' },
+      ]);
+    });
   });
 
   describe('getTokenClassName', () => {
