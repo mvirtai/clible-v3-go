@@ -5,6 +5,7 @@
 Interactive document workspaces (such as the Bible study notebook canvas) require seamless, expressive, and high-performance text analysis capabilities. Prior to this enhancement, the ISLA (*Interactive Scripture & Layout Analyzer*) domain-specific language was largely constrained to point verse lookups, basic keyword searches, and rudimentary counts.
 
 To realize the core vision of ISLA as a **declarative relational pipeline language** (`Stream[Verse] -> Stream[Token] -> models.CLIResult`), the system required fundamental architectural enhancements:
+
 1. **Unbounded Pipeline Composition (`=>`):** Users must be able to freely pipe search queries, verse ranges, and document contexts into linguistic transforms and analytical sinks without arbitrary syntactic boundaries.
 2. **Multi-Unit Statistical Aggregations:** Extending the `count` command from a scalar integer into a unit-aware aggregation engine capable of quantifying verses, chapters, books, total words, and unique vocabulary across languages (`verses`, `chapters`, `books`, `words`, `unique_words` with aliases `uw`, `uniques`, `uniq`, `uniikit`, `uniikit_sanat`, `us`).
 3. **Continuous Text Range Ingestion & Exegesis:** Enabling syntax like `range(Joh 1:1, Joh 1:14)` and piping ranges directly into multi-version comparisons (`=> vs(KR92, KJV)`).
@@ -79,6 +80,7 @@ graph TD
 ### 1. Extended DSL Parser and Pipeline Composition
 
 The DSL parser in [`backend/internal/dsl/parser.go`](file:///home/vivaldev/code/clible-v3-go/backend/internal/dsl/parser.go) was significantly expanded to support unit-aware syntax and pipeline shorthand actions:
+
 - **Unit Parameterization:** `count([unit])` accepts identifier or string tokens for `verses` (`v`, `j`), `chapters` (`c`, `l`), `books` (`b`, `k`), `words` (`w`, `s`), and `unique_words` (`sanasto`, `vocab`, `eri`).
 - **Bilingual Shorthands:** Users can pipe directly into unit tokens without wrapping them in `count(...)`:
   - `=> unique_words`, `=> uw`, `=> uniques`, `=> uniq`, `=> uniikit`, `=> uniikit_sanat`, `=> us`.
@@ -95,6 +97,7 @@ The DSL parser in [`backend/internal/dsl/parser.go`](file:///home/vivaldev/code/
 ### 2. Lexical Analytics Integration in DSL Executor
 
 In [`backend/internal/dsl/executor.go`](file:///home/vivaldev/code/clible-v3-go/backend/internal/dsl/executor.go), the executor seamlessly coordinates between `VerseRepository` for database retrievals and `AnalyticService` for in-memory tokenization, stopword filtering, and Type-Token Ratio (TTR) analysis:
+
 - **`top(N)` & `words(N)`:** Extracts word frequencies, discards stopwords via embedded [`stopwords.json`](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/stopwords.json), and structures a `CellWordFreqResult` payload.
 - **`stats` & `ttr`:** Computes total tokens, unique vocabulary, average word length, and TTR percentage, rendering a `CellStatsResult` payload.
 - **`count(words)` & `count(unique_words)`:** Computes scalar or distinct word frequencies for verse lists or notebook context text.
@@ -102,12 +105,14 @@ In [`backend/internal/dsl/executor.go`](file:///home/vivaldev/code/clible-v3-go/
 ### 3. Notebook Context Sanitization
 
 In [`backend/internal/services/notebook_service.go`](file:///home/vivaldev/code/clible-v3-go/backend/internal/services/notebook_service.go) and [`frontend/src/utils/markdown.ts`](file:///home/vivaldev/code/clible-v3-go/frontend/src/utils/markdown.ts):
+
 - Context text extraction now strips all ISLA directive lines (e.g. `! search(...)`, `! ^ => count`) and fenced code blocks (` ```isla ... ``` `).
 - Prevents circular counting where the word count of `^` would include the keywords inside the ISLA command itself.
 
 ### 4. Real-Time SQL Query Observability
 
 In [`backend/internal/db/verse_repo.go`](file:///home/vivaldev/code/clible-v3-go/backend/internal/db/verse_repo.go) and [`backend/internal/api/dsl_handler.go`](file:///home/vivaldev/code/clible-v3-go/backend/internal/api/dsl_handler.go):
+
 - Integrated `logISLASQL(query string, args ...any)` into every verse query method (`SearchByKeywords`, `GetByReference`, `Search`, `GetByChapter`, `GetByBook`).
 - Cleaned string formatting removes extraneous whitespace and newlines, outputting compact, copyable single-line logs into stdout:
   - `INFO ⚡ [ISLA Command] query="..." translationId="..."`
@@ -125,25 +130,25 @@ In [`backend/internal/db/verse_repo.go`](file:///home/vivaldev/code/clible-v3-go
 
 ## 📈 Improvement Metrics & Key Figures
 
-* **Backend Statement Coverage:** Reached **78.8%** across all internal packages (`.cov/backend/coverage.txt`).
-* **DSL Parsing Latency:** Sub-millisecond AST construction for chained pipelines of 4+ stages.
-* **Database Efficiency:** Strict parameterized queries with indexed FTS vector evaluation (`to_tsvector('finnish', text) @@ to_tsquery('finnish', $1)`).
-* **Memory Invariant:** Zero heap copies for static stopwords via Go 1.16+ `//go:embed`.
+- **Backend Statement Coverage:** Reached **78.8%** across all internal packages (`.cov/backend/coverage.txt`).
+- **DSL Parsing Latency:** Sub-millisecond AST construction for chained pipelines of 4+ stages.
+- **Database Efficiency:** Strict parameterized queries with indexed FTS vector evaluation (`to_tsvector('finnish', text) @@ to_tsquery('finnish', $1)`).
+- **Memory Invariant:** Zero heap copies for static stopwords via Go 1.16+ `//go:embed`.
 
 ---
 
 ## Security & Compliance
 
-* **SQL Injection Prevention:** 100% of generated database queries use PostgreSQL parameterized variables (`$1, $2, ...`). No raw string interpolation is allowed in `verse_repo.go`.
-* **Resource Attribution & Boundary Protection:** Regex search parameters enforce strict bounds and timeout cancellation via context propagation (`ctx context.Context`).
-* **Error Sanitization:** All internal database errors are wrapped cleanly and prevented from leaking database credentials or connection pool internals to the API caller.
+- **SQL Injection Prevention:** 100% of generated database queries use PostgreSQL parameterized variables (`$1, $2, ...`). No raw string interpolation is allowed in `verse_repo.go`.
+- **Resource Attribution & Boundary Protection:** Regex search parameters enforce strict bounds and timeout cancellation via context propagation (`ctx context.Context`).
+- **Error Sanitization:** All internal database errors are wrapped cleanly and prevented from leaking database credentials or connection pool internals to the API caller.
 
 ---
 
 ## Files Changed
 
 | File | Change Summary |
-|------|----------------|
+| ------ | ---------------- |
 | `backend/internal/api/dsl_handler.go` | Added `⚡ [ISLA Command]` logging before evaluating DSL queries. |
 | `backend/internal/db/verse_repo.go` | Added `logISLASQL` helper and hooked into all verse repository query methods. |
 | `backend/internal/dsl/lexer.go` | Added lexer support for additional pipeline punctuation and units. |
@@ -199,8 +204,8 @@ PASS: src/utils/markdown.test.ts
 
 ## Manual Verification Checklist
 
-* [x] Verified `! search("armo") => count(books)` renders a metric card indicating book count.
-* [x] Verified `! search("armo") => count(uw)` correctly computes and renders unique words.
-* [x] Verified `! range(Joh 1:1, Joh 1:14) => vs(KR92, KJV)` renders parallel comparison cards.
-* [x] Verified writing text in a markdown cell followed by `! ^ => count(words)` excludes the ISLA command itself.
-* [x] Verified server console outputs `INFO ⚡ [ISLA Command]` and `INFO 🔍 [ISLA SQL]` with query and bound arguments.
+- [x] Verified `! search("armo") => count(books)` renders a metric card indicating book count.
+- [x] Verified `! search("armo") => count(uw)` correctly computes and renders unique words.
+- [x] Verified `! range(Joh 1:1, Joh 1:14) => vs(KR92, KJV)` renders parallel comparison cards.
+- [x] Verified writing text in a markdown cell followed by `! ^ => count(words)` excludes the ISLA command itself.
+- [x] Verified server console outputs `INFO ⚡ [ISLA Command]` and `INFO 🔍 [ISLA SQL]` with query and bound arguments.
