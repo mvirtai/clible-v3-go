@@ -288,6 +288,46 @@ tasks:
       - 'echo "PR created successfully! Cleaning up intermediate assets..."'
       - rm temp_pr_story.md
 
+  git:pr-body:
+    desc: Update existing GitHub PR body with the latest (or specified) PR story from ./pr_stories/. Usage task git:pr-body [FILE=story.md] [PR=84]
+    vars:
+      CURRENT_BRANCH:
+        sh: git branch --show-current
+      STORY_FILE:
+        sh: |
+          if [ -n "{{.FILE}}" ]; then
+            F="{{.FILE}}"
+            F="${F#pr_stories/}"
+            if [[ "$F" != *.md ]]; then
+              F="${F}.md"
+            fi
+            echo "$F"
+          else
+            find pr_stories -maxdepth 1 -name '[0-9]*.md' -type f 2>/dev/null | sort -V | tail -n 1 | xargs -n 1 basename 2>/dev/null
+          fi
+      STORY_PATH: "pr_stories/{{.STORY_FILE}}"
+    preconditions:
+      - sh: command -v gh >/dev/null 2>&1
+        msg: "GitHub CLI (gh) is required but not installed. Run 'brew install gh' or equivalent."
+      - sh: 'test -n "{{.STORY_FILE}}"'
+        msg: "No PR story file found or specified. Usage: task git:pr-body [FILE=your-story.md] [PR=number]"
+      - sh: 'test -f "{{.STORY_PATH}}"'
+        msg: "The story file '{{.STORY_PATH}}' does not exist. Ensure it is placed in the ./pr_stories/ directory."
+    cmds:
+      - 'echo "Updating PR body using: {{.STORY_PATH}}..."'
+      - |
+        PR_NUM="{{.PR}}"
+        if [ -z "$PR_NUM" ]; then
+          PR_NUM=$(gh api "repos/:owner/:repo/pulls?state=open" --jq '.[] | select(.head.ref == "{{.CURRENT_BRANCH}}") | .number' 2>/dev/null | head -n 1)
+        fi
+        if [ -z "$PR_NUM" ]; then
+          echo "Error: Could not find open pull request for branch '{{.CURRENT_BRANCH}}'. Please specify PR number manually: task git:pr-body PR=<number>"
+          exit 1
+        fi
+        echo "Target PR: #$PR_NUM"
+        gh api -X PATCH "repos/:owner/:repo/pulls/$PR_NUM" -F "body=@{{.STORY_PATH}}" >/dev/null
+      - 'echo "PR body updated successfully!"'
+
   git:commit:
     desc: 'Stage changes and create a formatted conventional commit. Usage: task git:commit TYPE=feat SCOPE=setup MSG="add config loader" [FILES="file1"] [SKIP_CHECK=1]'
     cmds:

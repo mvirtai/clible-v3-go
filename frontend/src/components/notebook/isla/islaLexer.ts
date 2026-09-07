@@ -42,6 +42,7 @@ export function isISLALine(line: string): boolean {
     trimmed.startsWith('!?') ||
     trimmed.startsWith('!#') ||
     trimmed.startsWith('!~') ||
+    trimmed.startsWith('!^') ||
     trimmed.startsWith('!isla') ||
     trimmed.startsWith('!ISLA') ||
     trimmed.startsWith('! ') ||
@@ -200,6 +201,8 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
         lower === 'use' ||
         lower === 'at' ||
         lower === 'search' ||
+        lower === 'range' ||
+        lower === 'from' ||
         lower === 'read' ||
         lower === 'vs' ||
         lower === 'compare' ||

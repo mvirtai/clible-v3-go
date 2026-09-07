@@ -229,28 +229,215 @@ func TestDSLParser_ValidExpressions(t *testing.T) {
 
 func TestParser_CountAction(t *testing.T) {
 	tests := []struct {
-		input string
+		name         string
+		input        string
+		expectedUnit string
 	}{
-		{`? /opetuslaps.*/ => count`},
-		{`? "rakkaus" => KR92 => count`},
-		{`? armo @Room => KR92 => count`},
-		{`@Joh 3 => count`},
-		{`search("armo") => at(Room) => use(KR92) => count()`},
+		{name: "Default count without parens", input: `? /opetuslaps.*/ => count`, expectedUnit: "verses"},
+		{name: "Default count with empty parens", input: `search("armo") => at(Room) => use(KR92) => count()`, expectedUnit: "verses"},
+		{name: "Count verses explicit ident", input: `? "rakkaus" => count(verses)`, expectedUnit: "verses"},
+		{name: "Count verses string", input: `? "rakkaus" => count("verses")`, expectedUnit: "verses"},
+		{name: "Count v ident", input: `? "rakkaus" => count(v)`, expectedUnit: "verses"},
+		{name: "Count v string", input: `? "rakkaus" => count("v")`, expectedUnit: "verses"},
+		{name: "Count jakeet ident", input: `? "rakkaus" => count(jakeet)`, expectedUnit: "verses"},
+		{name: "Count j ident", input: `? "rakkaus" => count(j)`, expectedUnit: "verses"},
+		{name: "Count j string", input: `? "rakkaus" => count("j")`, expectedUnit: "verses"},
+		{name: "Count chapters ident", input: `? "rakkaus" => count(chapters)`, expectedUnit: "chapters"},
+		{name: "Count chapters string", input: `? "rakkaus" => count("chapters")`, expectedUnit: "chapters"},
+		{name: "Count c ident", input: `? "rakkaus" => count(c)`, expectedUnit: "chapters"},
+		{name: "Count c string", input: `? "rakkaus" => count("c")`, expectedUnit: "chapters"},
+		{name: "Count luvut ident", input: `? "rakkaus" => count(luvut)`, expectedUnit: "chapters"},
+		{name: "Count l ident", input: `? "rakkaus" => count(l)`, expectedUnit: "chapters"},
+		{name: "Count l string", input: `? "rakkaus" => count("l")`, expectedUnit: "chapters"},
+		{name: "Count books ident", input: `? "rakkaus" => count(books)`, expectedUnit: "books"},
+		{name: "Count books string", input: `? "rakkaus" => count("books")`, expectedUnit: "books"},
+		{name: "Count b ident", input: `? "rakkaus" => count(b)`, expectedUnit: "books"},
+		{name: "Count b string", input: `? "rakkaus" => count("b")`, expectedUnit: "books"},
+		{name: "Count kirjat ident", input: `? "rakkaus" => count(kirjat)`, expectedUnit: "books"},
+		{name: "Count k ident", input: `? "rakkaus" => count(k)`, expectedUnit: "books"},
+		{name: "Count k string", input: `? "rakkaus" => count("k")`, expectedUnit: "books"},
+		{name: "Count words ident", input: `? "rakkaus" => count(words)`, expectedUnit: "words"},
+		{name: "Count words string", input: `? "rakkaus" => count("words")`, expectedUnit: "words"},
+		{name: "Count w ident", input: `? "rakkaus" => count(w)`, expectedUnit: "words"},
+		{name: "Count w string", input: `? "rakkaus" => count("w")`, expectedUnit: "words"},
+		{name: "Count sanat ident", input: `? "rakkaus" => count(sanat)`, expectedUnit: "words"},
+		{name: "Count s ident", input: `? "rakkaus" => count(s)`, expectedUnit: "words"},
+		{name: "Count s string", input: `? "rakkaus" => count("s")`, expectedUnit: "words"},
+		{name: "Count colon syntax", input: `? "rakkaus" => count:books`, expectedUnit: "books"},
+		{name: "Count unique_words ident", input: `? "rakkaus" => count(unique_words)`, expectedUnit: "unique_words"},
+		{name: "Count unique ident", input: `? "rakkaus" => count(unique)`, expectedUnit: "unique_words"},
+		{name: "Count vocab ident", input: `? "rakkaus" => count(vocab)`, expectedUnit: "unique_words"},
+		{name: "Count sanasto ident", input: `? "rakkaus" => count(sanasto)`, expectedUnit: "unique_words"},
+		{name: "Count eri ident", input: `? "rakkaus" => count(eri)`, expectedUnit: "unique_words"},
+		{name: "Count uw ident", input: `? "rakkaus" => count(uw)`, expectedUnit: "unique_words"},
+		{name: "Count uw string", input: `? "rakkaus" => count("uw")`, expectedUnit: "unique_words"},
+		{name: "Count uniques ident", input: `? "rakkaus" => count(uniques)`, expectedUnit: "unique_words"},
+		{name: "Count uniques string", input: `? "rakkaus" => count("uniques")`, expectedUnit: "unique_words"},
+		{name: "Count uniq ident", input: `? "rakkaus" => count(uniq)`, expectedUnit: "unique_words"},
+		{name: "Count uniq string", input: `? "rakkaus" => count("uniq")`, expectedUnit: "unique_words"},
+		{name: "Count uniikit ident", input: `? "rakkaus" => count(uniikit)`, expectedUnit: "unique_words"},
+		{name: "Count uniikit string", input: `? "rakkaus" => count("uniikit")`, expectedUnit: "unique_words"},
+		{name: "Count uniikit_sanat ident", input: `? "rakkaus" => count(uniikit_sanat)`, expectedUnit: "unique_words"},
+		{name: "Count uniikit_sanat string", input: `? "rakkaus" => count("uniikit_sanat")`, expectedUnit: "unique_words"},
+		{name: "Count us ident", input: `? "rakkaus" => count(us)`, expectedUnit: "unique_words"},
+		{name: "Count us string", input: `? "rakkaus" => count("us")`, expectedUnit: "unique_words"},
+		{name: "Direct unique_words action", input: `? "rakkaus" => unique_words`, expectedUnit: "unique_words"},
+		{name: "Direct uw action", input: `? "rakkaus" => uw`, expectedUnit: "unique_words"},
+		{name: "Direct uniques action", input: `? "rakkaus" => uniques`, expectedUnit: "unique_words"},
+		{name: "Direct uniq action", input: `? "rakkaus" => uniq`, expectedUnit: "unique_words"},
+		{name: "Direct uniikit action", input: `? "rakkaus" => uniikit`, expectedUnit: "unique_words"},
+		{name: "Direct uniikit_sanat action", input: `? "rakkaus" => uniikit_sanat`, expectedUnit: "unique_words"},
+		{name: "Direct us action", input: `? "rakkaus" => us`, expectedUnit: "unique_words"},
 	}
 
 	for _, tt := range tests {
-		node, err := Parse(tt.input)
-		if err != nil {
-			t.Fatalf("Parse(%q) failed: %v", tt.input, err)
-		}
-		pipe, ok := node.(*PipeNode)
-		if !ok {
-			t.Fatalf("expected *PipeNode, got %T", node)
-		}
-		action, ok := pipe.Right.(*ActionNode)
-		if !ok || action.Kind != "count" {
-			t.Fatalf("expected Right to be count ActionNode, got %+v", pipe.Right)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+			}
+			pipe, ok := node.(*PipeNode)
+			if !ok {
+				t.Fatalf("expected *PipeNode, got %T", node)
+			}
+			action, ok := pipe.Right.(*ActionNode)
+			if !ok || action.Kind != "count" {
+				t.Fatalf("expected Right to be count ActionNode, got %+v", pipe.Right)
+			}
+			if action.Value != tt.expectedUnit {
+				t.Errorf("expected count unit %q, got %q", tt.expectedUnit, action.Value)
+			}
+		})
+	}
+
+	invalidTests := []struct {
+		name  string
+		input string
+	}{
+		{name: "Invalid unit ident", input: `? "rakkaus" => count(invalid)`},
+		{name: "Invalid unit string", input: `? "rakkaus" => count("foo")`},
+		{name: "Unclosed paren", input: `? "rakkaus" => count(books`},
+	}
+
+	for _, tt := range invalidTests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Parse(tt.input)
+			if err == nil {
+				t.Errorf("expected error for invalid count expression %q, got nil", tt.input)
+			}
+		})
+	}
+}
+
+func TestParser_TopAction(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedKind  string
+		expectedValue string
+	}{
+		{name: "Top default without parens", input: `? "valo" => top`, expectedKind: "top", expectedValue: "10"},
+		{name: "Top explicit 10", input: `? "valo" => top(10)`, expectedKind: "top", expectedValue: "10"},
+		{name: "Top words alias 5", input: `? "valo" => words(5)`, expectedKind: "top", expectedValue: "5"},
+		{name: "Top words alias without parens", input: `? "valo" => words`, expectedKind: "top", expectedValue: "10"},
+		{name: "Top_words alias 20", input: `? "valo" => top_words(20)`, expectedKind: "top", expectedValue: "20"},
+		{name: "Top colon syntax", input: `? "valo" => top:15`, expectedKind: "top", expectedValue: "15"},
+		{name: "Top clamped to max 1000", input: `? "valo" => top(2000)`, expectedKind: "top", expectedValue: "1000"},
+		{name: "Top clamped to min 1", input: `? "valo" => top(0)`, expectedKind: "top", expectedValue: "1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+			}
+			pipe, ok := node.(*PipeNode)
+			if !ok {
+				t.Fatalf("expected *PipeNode, got %T", node)
+			}
+			action, ok := pipe.Right.(*ActionNode)
+			if !ok {
+				t.Fatalf("expected *ActionNode, got %T", pipe.Right)
+			}
+			if action.Kind != tt.expectedKind || action.Value != tt.expectedValue {
+				t.Errorf("Parse(%q): expected (%s, %s), got (%s, %s)", tt.input, tt.expectedKind, tt.expectedValue, action.Kind, action.Value)
+			}
+		})
+	}
+}
+
+func TestParser_StatsAction(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedKind  string
+		expectedValue string
+	}{
+		{name: "Stats default without parens", input: `@Joh 1:1-5 => stats`, expectedKind: "stats", expectedValue: "all"},
+		{name: "Stats with parens", input: `@Joh 1:1-5 => stats()`, expectedKind: "stats", expectedValue: "all"},
+		{name: "Stats with ttr ident", input: `@Joh 1:1-5 => stats(ttr)`, expectedKind: "stats", expectedValue: "ttr"},
+		{name: "Stats with ttr string", input: `@Joh 1:1-5 => stats("ttr")`, expectedKind: "stats", expectedValue: "ttr"},
+		{name: "TTR action alias without parens", input: `@Joh 1:1-5 => ttr`, expectedKind: "stats", expectedValue: "all"},
+		{name: "TTR action alias with parens", input: `@Joh 1:1-5 => ttr()`, expectedKind: "stats", expectedValue: "all"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+			}
+			pipe, ok := node.(*PipeNode)
+			if !ok {
+				t.Fatalf("expected *PipeNode, got %T", node)
+			}
+			action, ok := pipe.Right.(*ActionNode)
+			if !ok {
+				t.Fatalf("expected *ActionNode, got %T", pipe.Right)
+			}
+			if action.Kind != tt.expectedKind || action.Value != tt.expectedValue {
+				t.Errorf("Parse(%q): expected (%s, %s), got (%s, %s)", tt.input, tt.expectedKind, tt.expectedValue, action.Kind, action.Value)
+			}
+		})
+	}
+}
+
+func TestParser_QuickHashPrefix(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedQuery string
+		expectedScope string
+		isRegex       bool
+	}{
+		{name: "Quick hash search string", input: `# "armo"`, expectedQuery: "armo", expectedScope: "", isRegex: false},
+		{name: "Quick hash search with scope", input: `# "armo" @Joh`, expectedQuery: "armo", expectedScope: "Joh", isRegex: false},
+		{name: "Quick hash regex search", input: `# /arm.*/`, expectedQuery: "arm.*", expectedScope: "", isRegex: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := Parse(tt.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) failed: %v", tt.input, err)
+			}
+			pipe, ok := node.(*PipeNode)
+			if !ok {
+				t.Fatalf("expected *PipeNode, got %T", node)
+			}
+			search, ok := pipe.Left.(*SearchNode)
+			if !ok {
+				t.Fatalf("expected Left to be *SearchNode, got %T", pipe.Left)
+			}
+			if search.Query != tt.expectedQuery || search.ScopeBook != tt.expectedScope || search.IsRegex != tt.isRegex {
+				t.Errorf("SearchNode mismatch: query=%q, scope=%q, regex=%v", search.Query, search.ScopeBook, search.IsRegex)
+			}
+			action, ok := pipe.Right.(*ActionNode)
+			if !ok || action.Kind != "count" || action.Value != "verses" {
+				t.Errorf("expected Right to be count(verses), got %#v", pipe.Right)
+			}
+		})
 	}
 }
 

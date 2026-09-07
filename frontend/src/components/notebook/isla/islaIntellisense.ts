@@ -111,6 +111,50 @@ export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
     kind: 'snippet',
   },
   {
+    label: '! range(Joh 1:1, Joh 1:18) => top(10)',
+    insertText: '! range(Joh 1:1, Joh 1:18) => top(10)',
+    detail: 'Top Word Frequencies',
+    documentation: {
+      fi: 'Yleisimmät sanat: laskee ja visualisoi tekstin useimmin esiintyvät sanat vaakapalkeilla.',
+      en: 'Top word frequencies: calculates and visualizes most frequent words as a bar chart.',
+    },
+    example: '! range(Joh 1:1, Joh 1:18) => top(10)',
+    kind: 'snippet',
+  },
+  {
+    label: '! @Room 8:1-39 => stats()',
+    insertText: '! @Room 8:1-39 => stats()',
+    detail: 'Text Statistics & TTR',
+    documentation: {
+      fi: 'Tekstitilastot ja sanaston rikkaus (Type-Token Ratio TTR, uniikit sanat ja keskipituus).',
+      en: 'Text statistics and lexical diversity (Type-Token Ratio TTR, unique words and average length).',
+    },
+    example: '! @Room 8:1-39 => stats()',
+    kind: 'snippet',
+  },
+  {
+    label: '! ^ => count(words)',
+    insertText: '! ^ => count(words)',
+    detail: 'Context Word Count',
+    documentation: {
+      fi: 'Muistiinpanon sanalaskenta: laskee edellisten solujen sanamäärän.',
+      en: 'Note context word count: counts words from preceding notebook cells.',
+    },
+    example: '! ^ => count(words)',
+    kind: 'snippet',
+  },
+  {
+    label: '!# "armo"',
+    insertText: '!# "armo"',
+    detail: 'Quick Count Prefix',
+    documentation: {
+      fi: 'Pikalaskuri (#): laskee hakutulokset tai jakeet välittömästi ilman putkikomentoa.',
+      en: 'Quick count prefix (#): immediately counts search results or verses without pipeline suffix.',
+    },
+    example: '!# "armo" @Joh',
+    kind: 'snippet',
+  },
+  {
     label: '! search("valkeus") => at(Joh) => limit(5)',
     insertText: '! search("valkeus") => at(Joh) => limit(5)',
     detail: 'Scoped Search',
@@ -300,7 +344,182 @@ export function getISLASuggestions(
     return [...groupOptions, ...bookOptions];
   }
 
-  // 3. Pipeline operators after `=>` — driven by COMMAND_REGISTRY for maintainability
+  // 3. Count unit suggestions when typing inside `count(...)`
+  const countParenMatch = textBeforeCursor.match(/count\(\s*["']?([A-Za-z0-9äöåÄÖÅ_]*)$/i);
+  if (countParenMatch) {
+    const prefix = countParenMatch[1].toLowerCase();
+    const countUnits: ISLASuggestion[] = [
+      {
+        label: 'verses',
+        insertText: 'verses)',
+        detail: 'Jakeet / Verses (oletus)',
+        documentation: {
+          fi: 'Laskee jakeiden kokonaismäärän tulosjoukossa.',
+          en: 'Calculates the total number of verses in the result set.',
+        },
+        example: '! search("armo") => count(verses)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'chapters',
+        insertText: 'chapters)',
+        detail: 'Luvut / Chapters',
+        documentation: {
+          fi: 'Laskee uniikkien lukujen määrän tulosjoukossa.',
+          en: 'Calculates the number of unique chapters in the result set.',
+        },
+        example: '! search("armo") => count(chapters)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'books',
+        insertText: 'books)',
+        detail: 'Kirjat / Books',
+        documentation: {
+          fi: 'Laskee uniikkien kirjojen määrän tulosjoukossa.',
+          en: 'Calculates the number of unique books in the result set.',
+        },
+        example: '! search("armo") => count(books)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'words',
+        insertText: 'words)',
+        detail: 'Sanat / Words',
+        documentation: {
+          fi: 'Laskee sanojen kokonaismäärän tulosjoukon jakeissa.',
+          en: 'Calculates the total number of words across all result verses.',
+        },
+        example: '! search("armo") => count(words)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'sanat',
+        insertText: 'sanat)',
+        detail: 'Sanat (fi)',
+        documentation: {
+          fi: 'Laskee sanojen kokonaismäärän tulosjoukon jakeissa.',
+          en: 'Calculates total word count across result verses.',
+        },
+        example: '! search("armo") => count(sanat)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'kirjat',
+        insertText: 'kirjat)',
+        detail: 'Kirjat (fi)',
+        documentation: {
+          fi: 'Laskee uniikkien kirjojen määrän tulosjoukossa.',
+          en: 'Calculates unique book count.',
+        },
+        example: '! search("armo") => count(kirjat)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'luvut',
+        insertText: 'luvut)',
+        detail: 'Luvut (fi)',
+        documentation: {
+          fi: 'Laskee uniikkien lukujen määrän tulosjoukossa.',
+          en: 'Calculates unique chapter count.',
+        },
+        example: '! search("armo") => count(luvut)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'jakeet',
+        insertText: 'jakeet)',
+        detail: 'Jakeet (fi)',
+        documentation: {
+          fi: 'Laskee jakeiden määrän tulosjoukossa.',
+          en: 'Calculates verse count.',
+        },
+        example: '! search("armo") => count(jakeet)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'unique_words',
+        insertText: 'unique_words)',
+        detail: 'Uniikit sanat / Unique Words',
+        documentation: {
+          fi: 'Laskee eri (uniikkien) sanojen määrän tulosjoukossa.',
+          en: 'Calculates the number of unique distinct words in the result set.',
+        },
+        example: '! search("armo") => count(unique_words)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uw',
+        insertText: 'uw)',
+        detail: 'Uniikit sanat (alias: uw)',
+        documentation: {
+          fi: 'Alias yksikölle unique_words (uniikit sanat).',
+          en: 'Alias for unique_words.',
+        },
+        example: '! search("armo") => count(uw)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uniques',
+        insertText: 'uniques)',
+        detail: 'Uniikit sanat (alias: uniques)',
+        documentation: {
+          fi: 'Alias yksikölle unique_words (uniikit sanat).',
+          en: 'Alias for unique_words.',
+        },
+        example: '! search("armo") => count(uniques)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uniq',
+        insertText: 'uniq)',
+        detail: 'Uniikit sanat (alias: uniq)',
+        documentation: {
+          fi: 'Alias yksikölle unique_words (uniikit sanat).',
+          en: 'Alias for unique_words.',
+        },
+        example: '! search("armo") => count(uniq)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uniikit',
+        insertText: 'uniikit)',
+        detail: 'Uniikit sanat (fi: uniikit)',
+        documentation: {
+          fi: 'Laskee eri (uniikkien) sanojen määrän tulosjoukossa.',
+          en: 'Calculates unique distinct words in the result set.',
+        },
+        example: '! search("armo") => count(uniikit)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'uniikit_sanat',
+        insertText: 'uniikit_sanat)',
+        detail: 'Uniikit sanat (fi: uniikit_sanat)',
+        documentation: {
+          fi: 'Laskee eri (uniikkien) sanojen määrän tulosjoukossa.',
+          en: 'Calculates unique distinct words in the result set.',
+        },
+        example: '! search("armo") => count(uniikit_sanat)',
+        kind: 'function' as const,
+      },
+      {
+        label: 'us',
+        insertText: 'us)',
+        detail: 'Uniikit sanat (alias: us)',
+        documentation: {
+          fi: 'Alias yksikölle unique_words (uniikit sanat).',
+          en: 'Alias for unique_words.',
+        },
+        example: '! search("armo") => count(us)',
+        kind: 'function' as const,
+      },
+    ];
+
+    return countUnits.filter((u) => !prefix || u.label.toLowerCase().startsWith(prefix));
+  }
+
+  // 4. Pipeline operators after `=>` — driven by COMMAND_REGISTRY for maintainability
   const pipeMatch = textBeforeCursor.match(/=>\s*([A-Za-z0-9_#()-]*)$/);
   if (pipeMatch) {
     const prefix = pipeMatch[1].toLowerCase();

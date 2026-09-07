@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -21,16 +22,27 @@ type VerseSearcher interface {
 	SearchVerses(ctx context.Context, query string, isRegex bool, translationID, searchScope, scopeValue string) ([]models.Verse, error)
 }
 
+// AnalyticsData contains aggregated lexical and linguistic metrics.
+type AnalyticsData struct {
+	TokenCount        int                `json:"token_count"`
+	UniqueTokenCount  int                `json:"unique_token_count"`
+	TypeTokenRatio    float64            `json:"type_token_ratio"`
+	CharacterCount    int                `json:"character_count"`
+	AverageWordLength float64            `json:"avg_word_length"`
+	TopWords          []models.ThemeItem `json:"top_words"`
+}
+
 // ExecutionContext is the runtime context for AST evaluation.
 type ExecutionContext struct {
-	Ctx            context.Context
-	DefaultTrans   string
-	ContextText    string
-	VerseFetcher   VerseFetcher
-	VerseSearcher  VerseSearcher
-	ThemeExtractor func(text string, limit int) []models.ThemeItem
-	RefsFinder     func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
-	SuggestFinder  func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
+	Ctx             context.Context
+	DefaultTrans    string
+	ContextText     string
+	VerseFetcher    VerseFetcher
+	VerseSearcher   VerseSearcher
+	ThemeExtractor  func(text string, limit int) []models.ThemeItem
+	RefsFinder      func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
+	SuggestFinder   func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
+	AnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
 }
 
 // Execute evaluates an AST Node and returns a structured CLIResult.
@@ -82,6 +94,7 @@ func executeVerseRef(ctx *ExecutionContext, n *VerseRefNode, transID string) (*m
 			"reference":   n.Reference,
 			"translation": tid,
 			"verses":      verses,
+			"count":       len(verses),
 		},
 	}, nil
 }
@@ -204,14 +217,45 @@ func executeSearch(ctx *ExecutionContext, n *SearchNode, transID string, limit i
 	}, nil
 }
 
-// executeRange fetches all verses between Start and End references (inclusive)
-// by retrieving each boundary and returning them as a combined passage result.
-// Both references are resolved with the default translation.
+// executeRange fetches all verses between Start and End references (inclusive).
+// If both references belong to the same chapter of the same book, it fetches all verses
+// in the range (e.g. range(Joh 1:1, Joh 1:5) -> verses 1..5).
+// Otherwise, it retrieves the boundaries and combines them.
 func executeRange(ctx *ExecutionContext, n *RangeNode) (*models.CLIResult, error) {
 	if ctx.VerseFetcher == nil {
 		return nil, errors.New("verse fetcher dependency is not configured")
 	}
 	tid := parsers.ResolveTranslationID(ctx.DefaultTrans)
+
+	// Check if both start and end references are within the same chapter of the same book
+	pStart, errStart := parsers.ParseReference(n.Start)
+	pEnd, errEnd := parsers.ParseReference(n.End)
+	if errStart == nil && errEnd == nil &&
+		pStart.BookName != "" && pStart.BookName == pEnd.BookName &&
+		pStart.Chapter > 0 && pStart.Chapter == pEnd.Chapter &&
+		pStart.Scope == parsers.ScopeVerse && pEnd.Scope == parsers.ScopeVerse {
+		endVerse := pEnd.VerseEnd
+		if endVerse == 0 {
+			endVerse = pEnd.VerseStart
+		}
+		if pStart.VerseStart > 0 && endVerse >= pStart.VerseStart {
+			combinedRef := fmt.Sprintf("%s %d:%d-%d", pStart.BookName, pStart.Chapter, pStart.VerseStart, endVerse)
+			verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, combinedRef, tid)
+			if err == nil && len(verses) > 0 {
+				return &models.CLIResult{
+					Type: "range",
+					Data: map[string]interface{}{
+						"start":       n.Start,
+						"end":         n.End,
+						"reference":   fmt.Sprintf("%s – %s", n.Start, n.End),
+						"translation": tid,
+						"verses":      verses,
+						"count":       len(verses),
+					},
+				}, nil
+			}
+		}
+	}
 
 	startVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.Start, tid)
 	if err != nil {
@@ -222,8 +266,7 @@ func executeRange(ctx *ExecutionContext, n *RangeNode) (*models.CLIResult, error
 		return nil, fmt.Errorf("range(): failed to fetch end reference %q: %w", n.End, err)
 	}
 
-	// Combine: start verses + end verses deduplicated (simple boundary fetch).
-	// Full between-query support requires a GetVerseRange repo method (future work).
+	// Combine: start verses + end verses deduplicated (boundary fetch).
 	seen := make(map[string]struct{}, len(startVerses)+len(endVerses))
 	all := make([]models.Verse, 0, len(startVerses)+len(endVerses))
 	for _, v := range append(startVerses, endVerses...) {
@@ -239,6 +282,7 @@ func executeRange(ctx *ExecutionContext, n *RangeNode) (*models.CLIResult, error
 		Data: map[string]interface{}{
 			"start":       n.Start,
 			"end":         n.End,
+			"reference":   fmt.Sprintf("%s – %s", n.Start, n.End),
 			"translation": tid,
 			"verses":      all,
 			"count":       len(all),
@@ -254,17 +298,42 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 
 	// 1. Count aggregator => count()
 	if action.Kind == "count" {
-		return executeCountPipe(ctx, n.Left)
+		return executeCountPipe(ctx, n.Left, action.Value)
+	}
+
+	// 2. Top word frequencies => top(10), words(10), top_words
+	if action.Kind == "top" || action.Kind == "words" || action.Kind == "top_words" {
+		limit := 10
+		if action.Value != "" {
+			if parsedLim, err := strconv.Atoi(action.Value); err == nil && parsedLim > 0 {
+				limit = parsedLim
+			}
+		}
+		return executeTopPipe(ctx, n.Left, limit)
+	}
+
+	// 3. Text statistics & Type-Token Ratio => stats(), ttr()
+	if action.Kind == "stats" || action.Kind == "ttr" {
+		return executeStatsPipe(ctx, n.Left, action.Value)
 	}
 
 	// 2. Parallel comparison vs(A, B) or compare(A, B)
 	if action.Kind == "vs" || action.Kind == "compare" {
-		if refNode, ok := n.Left.(*VerseRefNode); ok && len(action.Args) >= 2 {
-			return executeComparison(ctx, &ComparisonNode{
-				Target: refNode,
-				Left:   &ActionNode{Kind: "translation", Value: action.Args[0]},
-				Right:  &ActionNode{Kind: "translation", Value: action.Args[1]},
-			})
+		if len(action.Args) >= 2 {
+			if refNode, ok := n.Left.(*VerseRefNode); ok {
+				return executeComparison(ctx, &ComparisonNode{
+					Target: refNode,
+					Left:   &ActionNode{Kind: "translation", Value: action.Args[0]},
+					Right:  &ActionNode{Kind: "translation", Value: action.Args[1]},
+				})
+			}
+			if rangeNode, ok := n.Left.(*RangeNode); ok {
+				return executeComparison(ctx, &ComparisonNode{
+					Target: rangeNode,
+					Left:   &ActionNode{Kind: "translation", Value: action.Args[0]},
+					Right:  &ActionNode{Kind: "translation", Value: action.Args[1]},
+				})
+			}
 		}
 	}
 
@@ -284,13 +353,17 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		transID := ctx.DefaultTrans
 		if refNode, ok := n.Left.(*VerseRefNode); ok {
 			refStr = refNode.Reference
+		} else if rangeNode, ok := n.Left.(*RangeNode); ok {
+			refStr = rangeNode.Start
 		} else if pipeNode, ok := n.Left.(*PipeNode); ok {
-			// Pipeline chaining: @Joh 3:16 => use(KR92) => refs(3)
+			// Pipeline chaining: @Joh 3:16 => use(KR92) => refs(3) or range(...) => use(KR92) => refs(3)
 			if innerAct, isAct := pipeNode.Right.(*ActionNode); isAct && (innerAct.Kind == "use" || innerAct.Kind == "in" || innerAct.Kind == "translation") {
 				transID = innerAct.Value
 			}
-			if innerRef, isRef := pipeNode.Left.(*VerseRefNode); isRef {
+			if innerRef := extractRootVerseRefNode(pipeNode); innerRef != nil {
 				refStr = innerRef.Reference
+			} else if innerRange := extractRootRangeNode(pipeNode); innerRange != nil {
+				refStr = innerRange.Start
 			}
 		}
 
@@ -319,22 +392,21 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 				limit = parsedLim
 			}
 		}
-		if refNode, ok := n.Left.(*VerseRefNode); ok {
-			res, err := executeVerseRef(ctx, refNode, ctx.DefaultTrans)
-			if err != nil {
-				return nil, err
-			}
-			var sb strings.Builder
-			if verses, ok := res.Data["verses"].([]models.Verse); ok {
-				for _, v := range verses {
-					sb.WriteString(v.Text + " ")
-				}
-			}
-			return executeThemesOnText(ctx, sb.String(), limit)
-		}
 		if _, isScope := n.Left.(*ScopeNode); isScope {
-			return executeThemesOnText(ctx, ctx.ContextText, limit)
+			return executeThemesOnText(ctx, StripISLAFromText(ctx.ContextText), limit)
 		}
+		res, err := Execute(ctx, n.Left)
+		if err != nil {
+			return nil, err
+		}
+		var sb strings.Builder
+		if verses, ok := res.Data["verses"].([]models.Verse); ok {
+			for _, v := range verses {
+				sb.WriteString(v.Text)
+				sb.WriteString(" ")
+			}
+		}
+		return executeThemesOnText(ctx, sb.String(), limit)
 	}
 
 	// 5. Suggestions => suggest(3)
@@ -348,12 +420,16 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		if ctx.SuggestFinder == nil {
 			return nil, errors.New("suggest finder dependency not configured")
 		}
-		targetText := ctx.ContextText
-		if refNode, ok := n.Left.(*VerseRefNode); ok {
-			res, err := executeVerseRef(ctx, refNode, ctx.DefaultTrans)
-			if err == nil {
+		targetText := StripISLAFromText(ctx.ContextText)
+		if _, isScope := n.Left.(*ScopeNode); !isScope {
+			if res, err := Execute(ctx, n.Left); err == nil {
 				if verses, ok := res.Data["verses"].([]models.Verse); ok && len(verses) > 0 {
-					targetText = verses[0].Text
+					var sb strings.Builder
+					for _, v := range verses {
+						sb.WriteString(v.Text)
+						sb.WriteString(" ")
+					}
+					targetText = strings.TrimSpace(sb.String())
 				}
 			}
 		}
@@ -412,6 +488,20 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 		}
 		return applyActionToResult(ctx, res, action)
 
+	case *RangeNode:
+		if action.Kind == "use" || action.Kind == "in" || action.Kind == "translation" {
+			prevTrans := ctx.DefaultTrans
+			ctx.DefaultTrans = action.Value
+			res, err := executeRange(ctx, src)
+			ctx.DefaultTrans = prevTrans
+			return res, err
+		}
+		res, err := executeRange(ctx, src)
+		if err != nil {
+			return nil, err
+		}
+		return applyActionToResult(ctx, res, action)
+
 	case *PipeNode:
 		if action.Kind == "use" || action.Kind == "in" || action.Kind == "translation" {
 			if refNode := extractRootVerseRefNode(src); refNode != nil {
@@ -424,21 +514,17 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 				}
 				return executeSearch(ctx, searchNode, action.Value, 0)
 			}
+			if rangeNode := extractRootRangeNode(src); rangeNode != nil {
+				prevTrans := ctx.DefaultTrans
+				ctx.DefaultTrans = action.Value
+				res, err := executeRange(ctx, rangeNode)
+				ctx.DefaultTrans = prevTrans
+				return res, err
+			}
 		}
 		res, err := executePipe(ctx, src)
 		if err != nil {
 			return nil, err
-		}
-		if action.Kind == "limit" {
-			lim, _ := strconv.Atoi(action.Value)
-			if verses, ok := res.Data["verses"].([]models.Verse); ok && lim > 0 && len(verses) > lim {
-				res.Data["verses"] = verses[:lim]
-				res.Data["count"] = lim
-			}
-			if refs, ok := res.Data["references"].([]models.Verse); ok && lim > 0 && len(refs) > lim {
-				res.Data["references"] = refs[:lim]
-				res.Data["count"] = lim
-			}
 		}
 		return applyActionToResult(ctx, res, action)
 
@@ -469,6 +555,17 @@ func extractRootVerseRefNode(n Node) *VerseRefNode {
 	}
 }
 
+func extractRootRangeNode(n Node) *RangeNode {
+	switch t := n.(type) {
+	case *RangeNode:
+		return t
+	case *PipeNode:
+		return extractRootRangeNode(t.Left)
+	default:
+		return nil
+	}
+}
+
 func extractPipedSearchOptions(n Node, defaultTid string) (string, string) {
 	tid := defaultTid
 	scopeVal := ""
@@ -492,7 +589,96 @@ func extractPipedSearchOptions(n Node, defaultTid string) (string, string) {
 	return tid, scopeVal
 }
 
-func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, error) {
+func aggregateCount(verses []models.Verse, unit string) int {
+	switch unit {
+	case "books":
+		uniqueBooks := make(map[string]struct{})
+		for _, v := range verses {
+			if v.BookID != "" {
+				uniqueBooks[v.BookID] = struct{}{}
+			}
+		}
+		return len(uniqueBooks)
+	case "chapters":
+		uniqueChapters := make(map[string]struct{})
+		for _, v := range verses {
+			if v.BookID != "" && v.Chapter > 0 {
+				key := fmt.Sprintf("%s-%d", v.BookID, v.Chapter)
+				uniqueChapters[key] = struct{}{}
+			}
+		}
+		return len(uniqueChapters)
+	case "words":
+		totalWords := 0
+		for _, v := range verses {
+			if v.Text != "" {
+				totalWords += len(strings.Fields(v.Text))
+			}
+		}
+		return totalWords
+	case "unique_words":
+		seen := make(map[string]struct{})
+		for _, v := range verses {
+			if v.Text != "" {
+				for _, w := range strings.Fields(v.Text) {
+					cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-")
+					if cleaned != "" {
+						seen[cleaned] = struct{}{}
+					}
+				}
+			}
+		}
+		return len(seen)
+	case "verses":
+		fallthrough
+	default:
+		return len(verses)
+	}
+}
+
+// StripISLAFromText strips all ISLA directives, code blocks, embeds, and triggers from text,
+// leaving only the user's natural language notes and narrative prose.
+func StripISLAFromText(text string) string {
+	if text == "" {
+		return ""
+	}
+	lines := strings.Split(text, "\n")
+	var kept []string
+	inISLABlock := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		lower := strings.ToLower(trimmed)
+		if strings.HasPrefix(lower, "```isla") {
+			inISLABlock = true
+			continue
+		}
+		if inISLABlock {
+			if strings.HasPrefix(trimmed, "```") {
+				inISLABlock = false
+			}
+			continue
+		}
+		// Skip directive lines starting with ! or isla
+		if strings.HasPrefix(trimmed, "!") || strings.HasPrefix(lower, "isla ") {
+			continue
+		}
+		// Skip standalone DSL triggers
+		if strings.HasPrefix(trimmed, "^") && strings.Contains(trimmed, "=>") {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "@") || strings.HasPrefix(trimmed, "?") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "~") {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	return strings.TrimSpace(strings.Join(kept, "\n"))
+}
+
+func executeCountPipe(ctx *ExecutionContext, left Node, unit string) (*models.CLIResult, error) {
+	if unit == "" {
+		unit = "verses"
+	}
 	defaultTid := parsers.ResolveTranslationID(ctx.DefaultTrans)
 	if defaultTid == "" {
 		defaultTid = "web"
@@ -509,6 +695,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 		if err != nil {
 			return nil, fmt.Errorf("failed to search verses for count: %w", err)
 		}
+		count := aggregateCount(verses, unit)
 		return &models.CLIResult{
 			Type: "count",
 			Data: map[string]interface{}{
@@ -516,7 +703,8 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 				"query":       target.Query,
 				"is_regex":    target.IsRegex,
 				"scope_book":  target.ScopeBook,
-				"count":       len(verses),
+				"count":       count,
+				"unit":        unit,
 				"translation": searchTid,
 			},
 		}, nil
@@ -529,13 +717,35 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch verses for count: %w", err)
 		}
+		count := aggregateCount(verses, unit)
 		return &models.CLIResult{
 			Type: "count",
 			Data: map[string]interface{}{
 				"target_type": "reference",
 				"reference":   target.Reference,
-				"count":       len(verses),
+				"count":       count,
+				"unit":        unit,
 				"translation": defaultTid,
+			},
+		}, nil
+
+	case *RangeNode:
+		res, err := executeRange(ctx, target)
+		if err != nil {
+			return nil, err
+		}
+		count := 0
+		if verses, ok := res.Data["verses"].([]models.Verse); ok {
+			count = aggregateCount(verses, unit)
+		}
+		return &models.CLIResult{
+			Type: "count",
+			Data: map[string]interface{}{
+				"target_type": "range",
+				"reference":   fmt.Sprintf("%s – %s", target.Start, target.End),
+				"count":       count,
+				"unit":        unit,
+				"translation": res.Data["translation"],
 			},
 		}, nil
 
@@ -554,6 +764,7 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 			if err != nil {
 				return nil, fmt.Errorf("failed to search verses for count: %w", err)
 			}
+			count := aggregateCount(verses, unit)
 			return &models.CLIResult{
 				Type: "count",
 				Data: map[string]interface{}{
@@ -561,7 +772,8 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 					"query":       searchNode.Query,
 					"is_regex":    searchNode.IsRegex,
 					"scope_book":  searchNode.ScopeBook,
-					"count":       len(verses),
+					"count":       count,
+					"unit":        unit,
 					"translation": tid,
 				},
 			}, nil
@@ -574,17 +786,97 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 			if err != nil {
 				return nil, fmt.Errorf("failed to fetch verses for count: %w", err)
 			}
+			count := aggregateCount(verses, unit)
 			return &models.CLIResult{
 				Type: "count",
 				Data: map[string]interface{}{
 					"target_type": "reference",
 					"reference":   refNode.Reference,
-					"count":       len(verses),
+					"count":       count,
+					"unit":        unit,
+					"translation": tid,
+				},
+			}, nil
+		}
+		if rangeNode := extractRootRangeNode(target); rangeNode != nil {
+			if tid == "" {
+				tid = defaultTid
+			}
+			prevDefault := ctx.DefaultTrans
+			ctx.DefaultTrans = tid
+			res, err := executeRange(ctx, rangeNode)
+			ctx.DefaultTrans = prevDefault
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch range for count: %w", err)
+			}
+			count := 0
+			if verses, ok := res.Data["verses"].([]models.Verse); ok {
+				count = aggregateCount(verses, unit)
+			}
+			return &models.CLIResult{
+				Type: "count",
+				Data: map[string]interface{}{
+					"target_type": "range",
+					"reference":   fmt.Sprintf("%s – %s", rangeNode.Start, rangeNode.End),
+					"count":       count,
+					"unit":        unit,
 					"translation": tid,
 				},
 			}, nil
 		}
 		return nil, fmt.Errorf("unsupported piped count target: %T", target)
+
+	case *ScopeNode:
+		text := StripISLAFromText(ctx.ContextText)
+		count := 0
+		switch unit {
+		case "words":
+			if text != "" {
+				total := 0
+				for _, w := range strings.Fields(text) {
+					cleaned := strings.Trim(w, ".,;:!?\"'()[]{}«»—–-#*`_~")
+					if cleaned != "" {
+						total++
+					}
+				}
+				count = total
+			}
+		case "unique_words":
+			if text != "" {
+				seen := make(map[string]struct{})
+				for _, w := range strings.Fields(text) {
+					cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-#*`_~")
+					if cleaned != "" {
+						seen[cleaned] = struct{}{}
+					}
+				}
+				count = len(seen)
+			}
+		case "verses":
+			if text != "" {
+				lines := strings.Split(strings.TrimSpace(text), "\n")
+				count = len(lines)
+			}
+		default:
+			if text != "" {
+				total := 0
+				for _, w := range strings.Fields(text) {
+					cleaned := strings.Trim(w, ".,;:!?\"'()[]{}«»—–-#*`_~")
+					if cleaned != "" {
+						total++
+					}
+				}
+				count = total
+			}
+		}
+		return &models.CLIResult{
+			Type: "count",
+			Data: map[string]interface{}{
+				"target_type": "context",
+				"count":       count,
+				"unit":        unit,
+			},
+		}, nil
 
 	default:
 		return nil, fmt.Errorf("cannot count elements for node type %T", left)
@@ -592,11 +884,6 @@ func executeCountPipe(ctx *ExecutionContext, left Node) (*models.CLIResult, erro
 }
 
 func executeComparison(ctx *ExecutionContext, n *ComparisonNode) (*models.CLIResult, error) {
-	refNode, ok := n.Target.(*VerseRefNode)
-	if !ok {
-		return nil, fmt.Errorf("comparison target must be a verse reference, got %T", n.Target)
-	}
-
 	leftTrans := parsers.ResolveTranslationID(ctx.DefaultTrans)
 	if leftAct, ok := n.Left.(*ActionNode); ok && leftAct.Value != "" {
 		leftTrans = parsers.ResolveTranslationID(leftAct.Value)
@@ -611,30 +898,74 @@ func executeComparison(ctx *ExecutionContext, n *ComparisonNode) (*models.CLIRes
 		return nil, errors.New("verse fetcher dependency not configured")
 	}
 
-	leftVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, leftTrans)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch left verses %q: %w", leftTrans, err)
+	if refNode, ok := n.Target.(*VerseRefNode); ok {
+		leftVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, leftTrans)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch left verses %q: %w", leftTrans, err)
+		}
+
+		rightVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, rightTrans)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch right verses %q: %w", rightTrans, err)
+		}
+
+		return &models.CLIResult{
+			Type: "compare",
+			Data: map[string]interface{}{
+				"reference": refNode.Reference,
+				"left": map[string]interface{}{
+					"translation": leftTrans,
+					"verses":      leftVerses,
+				},
+				"right": map[string]interface{}{
+					"translation": rightTrans,
+					"verses":      rightVerses,
+				},
+			},
+		}, nil
 	}
 
-	rightVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, refNode.Reference, rightTrans)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch right verses %q: %w", rightTrans, err)
+	if rangeNode, ok := n.Target.(*RangeNode); ok {
+		prevTrans := ctx.DefaultTrans
+		ctx.DefaultTrans = leftTrans
+		leftRes, err := executeRange(ctx, rangeNode)
+		ctx.DefaultTrans = prevTrans
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch left verses %q: %w", leftTrans, err)
+		}
+		var leftVerses []models.Verse
+		if v, ok := leftRes.Data["verses"].([]models.Verse); ok {
+			leftVerses = v
+		}
+
+		ctx.DefaultTrans = rightTrans
+		rightRes, err := executeRange(ctx, rangeNode)
+		ctx.DefaultTrans = prevTrans
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch right verses %q: %w", rightTrans, err)
+		}
+		var rightVerses []models.Verse
+		if v, ok := rightRes.Data["verses"].([]models.Verse); ok {
+			rightVerses = v
+		}
+
+		return &models.CLIResult{
+			Type: "compare",
+			Data: map[string]interface{}{
+				"reference": fmt.Sprintf("%s – %s", rangeNode.Start, rangeNode.End),
+				"left": map[string]interface{}{
+					"translation": leftTrans,
+					"verses":      leftVerses,
+				},
+				"right": map[string]interface{}{
+					"translation": rightTrans,
+					"verses":      rightVerses,
+				},
+			},
+		}, nil
 	}
 
-	return &models.CLIResult{
-		Type: "compare",
-		Data: map[string]interface{}{
-			"reference": refNode.Reference,
-			"left": map[string]interface{}{
-				"translation": leftTrans,
-				"verses":      leftVerses,
-			},
-			"right": map[string]interface{}{
-				"translation": rightTrans,
-				"verses":      rightVerses,
-			},
-		},
-	}, nil
+	return nil, fmt.Errorf("comparison target must be a verse reference or range, got %T", n.Target)
 }
 
 func executeScope(ctx *ExecutionContext, _ *ScopeNode) (*models.CLIResult, error) {
@@ -666,6 +997,27 @@ func executeThemesOnText(ctx *ExecutionContext, text string, limit int) (*models
 }
 
 func applyActionToResult(_ *ExecutionContext, res *models.CLIResult, action *ActionNode) (*models.CLIResult, error) {
+	if action.Kind == "limit" {
+		lim, _ := strconv.Atoi(action.Value)
+		if lim > 0 && res.Data != nil {
+			if verses, ok := res.Data["verses"].([]models.Verse); ok && len(verses) > lim {
+				res.Data["verses"] = verses[:lim]
+				res.Data["count"] = lim
+			}
+			if refs, ok := res.Data["references"].([]models.Verse); ok && len(refs) > lim {
+				res.Data["references"] = refs[:lim]
+				res.Data["count"] = lim
+			}
+			if suggs, ok := res.Data["suggestions"].([]models.Verse); ok && len(suggs) > lim {
+				res.Data["suggestions"] = suggs[:lim]
+				res.Data["count"] = lim
+			}
+			if themes, ok := res.Data["themes"].([]models.ThemeItem); ok && len(themes) > lim {
+				res.Data["themes"] = themes[:lim]
+				res.Data["count"] = lim
+			}
+		}
+	}
 	if action.Kind == "style" || action.Kind == "card" || action.Kind == "cards" {
 		if res.Data == nil {
 			res.Data = make(map[string]interface{})
@@ -676,4 +1028,172 @@ func applyActionToResult(_ *ExecutionContext, res *models.CLIResult, action *Act
 		}
 	}
 	return res, nil
+}
+
+func extractTargetContent(ctx *ExecutionContext, left Node) ([]models.Verse, string, error) {
+	if _, isScope := left.(*ScopeNode); isScope {
+		return nil, StripISLAFromText(ctx.ContextText), nil
+	}
+
+	res, err := Execute(ctx, left)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if verses, ok := res.Data["verses"].([]models.Verse); ok && len(verses) > 0 {
+		return verses, "", nil
+	}
+
+	if text, ok := res.Data["text"].(string); ok && text != "" {
+		return nil, text, nil
+	}
+
+	return nil, "", nil
+}
+
+func defaultAnalytics(verses []models.Verse, text string, topN int) AnalyticsData {
+	if topN <= 0 {
+		topN = 10
+	}
+	if topN > 1000 {
+		topN = 1000
+	}
+
+	var combinedText strings.Builder
+	if text != "" {
+		combinedText.WriteString(text)
+	} else if len(verses) > 0 {
+		for i, v := range verses {
+			if i > 0 {
+				combinedText.WriteString(" ")
+			}
+			combinedText.WriteString(v.Text)
+		}
+	}
+
+	content := strings.TrimSpace(combinedText.String())
+	if content == "" {
+		return AnalyticsData{
+			TopWords: []models.ThemeItem{},
+		}
+	}
+
+	rawWords := strings.Fields(content)
+	tokenCount := len(rawWords)
+	totalCharCount := len([]rune(content))
+
+	freqMap := make(map[string]int)
+	cleanCharSum := 0
+	cleanWordCount := 0
+
+	for _, w := range rawWords {
+		cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-")
+		if cleaned == "" {
+			continue
+		}
+		freqMap[cleaned]++
+		cleanCharSum += len([]rune(cleaned))
+		cleanWordCount++
+	}
+
+	uniqueCount := len(freqMap)
+	ttr := 0.0
+	if tokenCount > 0 {
+		ttr = float64(uniqueCount) / float64(tokenCount)
+	}
+
+	avgWordLen := 0.0
+	if cleanWordCount > 0 {
+		avgWordLen = float64(cleanCharSum) / float64(cleanWordCount)
+		avgWordLen = float64(int(avgWordLen*100+0.5)) / 100
+	}
+
+	type wordFreq struct {
+		word  string
+		count int
+	}
+	var sortedList []wordFreq
+	for w, c := range freqMap {
+		sortedList = append(sortedList, wordFreq{word: w, count: c})
+	}
+	sort.Slice(sortedList, func(i, j int) bool {
+		if sortedList[i].count == sortedList[j].count {
+			return sortedList[i].word < sortedList[j].word
+		}
+		return sortedList[i].count > sortedList[j].count
+	})
+
+	if len(sortedList) > topN {
+		sortedList = sortedList[:topN]
+	}
+
+	topWords := make([]models.ThemeItem, len(sortedList))
+	for i, item := range sortedList {
+		topWords[i] = models.ThemeItem{
+			Word:  item.word,
+			Count: item.count,
+		}
+	}
+
+	return AnalyticsData{
+		TokenCount:        tokenCount,
+		UniqueTokenCount:  uniqueCount,
+		TypeTokenRatio:    ttr,
+		CharacterCount:    totalCharCount,
+		AverageWordLength: avgWordLen,
+		TopWords:          topWords,
+	}
+}
+
+func executeTopPipe(ctx *ExecutionContext, left Node, limit int) (*models.CLIResult, error) {
+	verses, text, err := extractTargetContent(ctx, left)
+	if err != nil {
+		return nil, err
+	}
+
+	var data AnalyticsData
+	if ctx.AnalyticsFinder != nil {
+		data = ctx.AnalyticsFinder(verses, text, limit)
+	} else {
+		data = defaultAnalytics(verses, text, limit)
+	}
+
+	return &models.CLIResult{
+		Type: "words",
+		Data: map[string]interface{}{
+			"words":            data.TopWords,
+			"limit":            limit,
+			"count":            len(data.TopWords),
+			"token_count":      data.TokenCount,
+			"unique_tokens":    data.UniqueTokenCount,
+			"type_token_ratio": data.TypeTokenRatio,
+		},
+	}, nil
+}
+
+func executeStatsPipe(ctx *ExecutionContext, left Node, mode string) (*models.CLIResult, error) {
+	verses, text, err := extractTargetContent(ctx, left)
+	if err != nil {
+		return nil, err
+	}
+
+	var data AnalyticsData
+	if ctx.AnalyticsFinder != nil {
+		data = ctx.AnalyticsFinder(verses, text, 10)
+	} else {
+		data = defaultAnalytics(verses, text, 10)
+	}
+
+	return &models.CLIResult{
+		Type: "stats",
+		Data: map[string]interface{}{
+			"mode":             mode,
+			"token_count":      data.TokenCount,
+			"unique_tokens":    data.UniqueTokenCount,
+			"type_token_ratio": data.TypeTokenRatio,
+			"character_count":  data.CharacterCount,
+			"avg_word_length":  data.AverageWordLength,
+			"top_words":        data.TopWords,
+		},
+	}, nil
 }

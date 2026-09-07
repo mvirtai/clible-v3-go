@@ -112,6 +112,44 @@ describe('islaClassifier', () => {
       expect(result.primaryCategory).toBe('search');
       expect(result.categories).toEqual(['search']);
     });
+
+    it('classifies functional commands and pipelines', () => {
+      expect(classifyISLAQuery('search("armo")')).toBe('search');
+      expect(classifyISLAQuery('range(Joh 1:1, Joh 1:5)')).toBe('verse');
+      expect(classifyISLAQuery('at(Joh 3:16) => use(KR92)')).toBe('verse');
+      expect(classifyISLAQuery('at(Joh 3:16) => refs(3)')).toBe('refs');
+      expect(classifyISLAQuery('range(Joh 1:1, Joh 1:5) => vs(KR92, KJV)')).toBe('compare');
+      expect(classifyISLAQuery('range(Joh 1:1, Joh 1:5) => count()')).toBe('count');
+    });
+
+    it('classifies single-bracket markdown embeds', () => {
+      const cell: Cell = {
+        id: '6',
+        notebookId: 'nb-1',
+        type: 'markdown',
+        content: 'Lukujakso:\n![range(Joh 1:1, Joh 1:5)]\nLopuksi pohdintaa.',
+      };
+
+      const result = classifyCell(cell);
+      expect(result.isISLA).toBe(true);
+      expect(result.primaryCategory).toBe('verse');
+      expect(result.categories).toContain('verse');
+      expect(result.categories).toContain('text');
+    });
+
+    it('classifies line directives with functional commands', () => {
+      const cell: Cell = {
+        id: '7',
+        notebookId: 'nb-1',
+        type: 'markdown',
+        content: '! range(Joh 1:1, Joh 1:5)',
+      };
+
+      const result = classifyCell(cell);
+      expect(result.isISLA).toBe(true);
+      expect(result.primaryCategory).toBe('verse');
+      expect(result.categories).toEqual(['verse']);
+    });
   });
 
   describe('classifyNotebookContent', () => {

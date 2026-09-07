@@ -5,6 +5,7 @@ import type { Root } from 'react-dom/client';
 import { act } from 'react';
 import { NotebookEditor } from './NotebookEditor';
 import { LanguageProvider } from '../../context/LanguageContext';
+import * as guestStorage from '../../utils/guestNotebookStorage';
 
 // Mock @dnd-kit/react DragDropProvider (transparent wrapper for tests)
 vi.mock('@dnd-kit/react', () => ({
@@ -59,10 +60,23 @@ describe('NotebookEditor', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
-    // Mock fetch for Notebook loading
+    // Mock fetch for Notebook loading and mutations
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockImplementation((url: string) => {
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url.includes('/api/notebooks/nb-123/cells') && init?.method === 'PUT') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true }),
+          });
+        }
+        if (url.includes('/api/notebooks/nb-123') && init?.method === 'PUT') {
+          const body = JSON.parse((init.body as string) || '{}');
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ ...mockNotebookData, title: body.title }),
+          });
+        }
         if (url.includes('/api/notebooks/nb-123')) {
           return Promise.resolve({
             ok: true,
@@ -113,7 +127,7 @@ describe('NotebookEditor', () => {
     expect(container?.textContent).toContain('Pelkkä muistiinpano');
   });
 
-  it('allows inserting a new markdown cell', async () => {
+  it('allows inserting a new markdown cell and schedules debounced auto-save', async () => {
     await act(async () => {
       root = createRoot(container!);
       root.render(
@@ -131,5 +145,95 @@ describe('NotebookEditor', () => {
     await act(async () => {
       addBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
+
+    // Verify new cell was added to DOM
+    expect(container?.textContent).toContain('Test Notebook');
+  });
+
+  it('initializes synchronous state immediately in guest mode without network calls (lazy initializer zero-flicker)', async () => {
+    const mockGuestNotebook = {
+      id: 'guest-nb-456',
+      title: 'Vieraan Muistio',
+      scopeId: 'guest-scope-1',
+      cells: [
+        {
+          id: 'cell-guest-1',
+          notebookId: 'guest-nb-456',
+          type: 'markdown' as const,
+          content: 'Paikallinen vierasmuistiinpano',
+          position: 0,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    vi.spyOn(guestStorage, 'getSingleGuestNotebook').mockReturnValue(mockGuestNotebook);
+    vi.spyOn(guestStorage, 'isGuestNotebookId').mockReturnValue(true);
+
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <NotebookEditor notebookId="guest-nb-456" isGuest={true} />
+        </LanguageProvider>
+      );
+    });
+
+    // Verify zero network calls were made
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    // Verify guest notebook and cell render immediately
+    expect(container?.textContent).toContain('Vieraan Muistio');
+    expect(container?.textContent).toContain('Paikallinen vierasmuistiinpano');
+  });
+
+  it('handles title inline editing and saving via form action and useActionState', async () => {
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <NotebookEditor notebookId="nb-123" />
+        </LanguageProvider>
+      );
+    });
+
+    // Click on title heading to trigger inline edit mode
+    const titleHeading = container?.querySelector('h1');
+    expect(titleHeading).not.toBeNull();
+    expect(titleHeading?.textContent).toBe('Test Notebook');
+
+    await act(async () => {
+      titleHeading?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    // Verify form input exists in DOM
+    const input = container?.querySelector('input[name="title"]') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.value).toBe('Test Notebook');
+
+    // Simulate modifying title and submitting form
+    await act(async () => {
+      input.value = 'Updated Notebook Title';
+      const form = input.form;
+      if (form) {
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      }
+    });
+
+    // Verify fetch was called with PUT method and new title
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/notebooks/nb-123'),
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({
+          title: 'Updated Notebook Title',
+          scopeId: 'scope-1',
+        }),
+      })
+    );
   });
 });

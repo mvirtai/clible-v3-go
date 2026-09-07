@@ -6,6 +6,8 @@ export * from './cells/MarkdownCell';
 export { CellVersesResult, type VersesResultData } from './results/CellVersesResult';
 export { CellCompareResult, type CompareResultData } from './results/CellCompareResult';
 export * from './results/CellCountResult';
+export * from './results/CellWordFreqResult';
+export * from './results/CellStatsResult';
 export * from './grid/GridOverlay';
 export * from './grid/useResizableCard';
 export * from './grid/useResizableCell';

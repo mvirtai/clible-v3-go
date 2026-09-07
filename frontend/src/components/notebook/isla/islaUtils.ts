@@ -227,6 +227,18 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     hasArgs: true,
     isPrimary: true,
   },
+  {
+    keyword: 'read',
+    label: { fi: 'Jaeviittaus (alias)', en: 'Verse Reference (alias)' },
+    description: {
+      fi: '`read(viite)` on funktioaliastyyppi jakeen tai jaejakson lukemiseen.',
+      en: '`read(ref)` is a function alias for reading a verse or passage.',
+    },
+    syntax: 'read(VERSE_REF)',
+    example: '! read(Joh 3:16) => use(KR92)',
+    hasArgs: true,
+    isPrimary: true,
+  },
 
   // ── Pipeline / Modifier Commands ─────────────────────────────────────────
   {
@@ -274,6 +286,17 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     hasArgs: true,
   },
   {
+    keyword: 'compare',
+    label: { fi: 'Rinnakkaisvertailu (alias)', en: 'Parallel Comparison (alias)' },
+    description: {
+      fi: 'Alias komennolle `vs(...)`. Näyttää jakeen tai jaksorajan rinnakkain kahdella käännöksellä.',
+      en: 'Alias for `vs(...)`. Renders the verse or passage side-by-side in two translations.',
+    },
+    syntax: 'compare(TRANS_A, TRANS_B)',
+    example: '! at(Joh 3:16) => compare(KR92, KJV)',
+    hasArgs: true,
+  },
+  {
     keyword: 'refs',
     label: { fi: 'Ristiinviitteet', en: 'Cross References' },
     description: {
@@ -310,11 +333,55 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     keyword: 'count',
     label: { fi: 'Laskuri', en: 'Result Counter' },
     description: {
-      fi: 'Laskee putken tulosten kokonaismäärän ja esittää sen mittarikortilla.',
-      en: 'Aggregates the total number of results and presents it as a metric card.',
+      fi: 'Laskee tulosten määrän (jakeet, luvut, kirjat, sanat tai uniikit sanat) mittarikortilla. Valinnainen yksikkö: count(verses), count(chapters), count(books), count(words), count(unique_words) [aliakset: uw, uniques, uniq, uniikit, uniikit_sanat, us].',
+      en: 'Aggregates result count (verses, chapters, books, words, or unique words) on a metric card. Optional unit: count(verses), count(chapters), count(books), count(words), count(unique_words) [aliases: uw, uniques, uniq, uniikit, uniikit_sanat, us].',
     },
-    syntax: 'count()',
-    example: '! search("armo") => at(kirjeet) => count()',
+    syntax: 'count([unit])',
+    example: '! search("armo") => at(kirjeet) => count(uw)',
+    hasArgs: false,
+  },
+  {
+    keyword: 'top',
+    label: { fi: 'Yleisimmät sanat', en: 'Top Word Frequencies' },
+    description: {
+      fi: 'Laskee ja visualisoi tekstin yleisimmät sanat pylväskaaviona. Oletus top(10), valinnainen määrä esim. top(20).',
+      en: 'Calculates and visualizes most frequent words as a horizontal bar chart. Default top(10), optional count e.g. top(20).',
+    },
+    syntax: 'top(N?) | words(N?)',
+    example: '! range(Joh 1:1, Joh 1:18) => top(10)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'words',
+    label: { fi: 'Yleisimmät sanat (alias)', en: 'Word Frequencies (alias)' },
+    description: {
+      fi: 'Alias komennolle `top(...)`. Näyttää yleisimpien sanojen frekvenssit.',
+      en: 'Alias for `top(...)`. Displays top word frequencies.',
+    },
+    syntax: 'words(N?)',
+    example: '! search("valo") => words(5)',
+    hasArgs: true,
+  },
+  {
+    keyword: 'stats',
+    label: { fi: 'Tekstitilastot & TTR', en: 'Text Statistics & TTR' },
+    description: {
+      fi: 'Laskee tekstin leksikaaliset metriikat: Type-Token Ratio (TTR), sanaston rikkauden, kokonaissanamäärän ja keskipituuden.',
+      en: 'Calculates lexical metrics: Type-Token Ratio (TTR), vocabulary richness, word counts, and average length.',
+    },
+    syntax: 'stats() | ttr()',
+    example: '! @Room 8:1-39 => stats()',
+    hasArgs: false,
+  },
+  {
+    keyword: 'ttr',
+    label: { fi: 'Sanaston rikkaus (TTR)', en: 'Type-Token Ratio (TTR)' },
+    description: {
+      fi: 'Alias komennolle `stats()`. Laskee sanaston rikkaussuhteen (Type-Token Ratio).',
+      en: 'Alias for `stats()`. Calculates lexical diversity ratio (Type-Token Ratio).',
+    },
+    syntax: 'ttr()',
+    example: '! ^ => ttr()',
     hasArgs: false,
   },
   {
@@ -339,3 +406,24 @@ export function getCommandMeta(keyword: string): ISLACommandMeta | undefined {
     (c) => c.keyword.toLowerCase() === keyword.toLowerCase()
   );
 }
+
+/**
+ * Strips all ISLA code blocks, embed widgets, inline directives, and command lines from markdown text.
+ * Leaves only user narrative notes, headings, and natural language prose.
+ */
+export function stripISLAFromText(text: string): string {
+  if (!text) return '';
+  return text
+    // 1. Triple-backtick ISLA code blocks: ```isla ... ``` or ```ISLA ... ```
+    .replace(/```(?:isla|ISLA)[\s\S]*?```/gi, '')
+    // 2. Inline backtick directives: `!isla ...` or `!@...`
+    .replace(/`!(?:isla\s+|ISLA\s+|i\s+)?[^`\n]+`/gi, '')
+    // 3. Bracket embeds: ![[...]] or ![...]
+    .replace(/!\[(?:\[)?[\s\S]*?\](?:\])?/g, '')
+    // 4. Line-level directives starting with `!` or dangling directive triggers
+    .replace(/(?:^|\n)\s*![^\n]*/g, '')
+    // 5. Standalone ISLA command lines (e.g. ^ => ..., @Joh ..., search(...), top(...), stats())
+    .replace(/(?:^|\n)\s*(?:\^\s*=>|@\w+|\?\s*["'/]|(?:search|range|read|stats|top|count|ttr|themes|suggest)\s*\()[^\n]*/gi, '')
+    .trim();
+}
+

@@ -17,17 +17,22 @@ export function clearISLAPromiseCache(): void {
  *
  * @param query - The ISLA DSL query command string (e.g. `COUNT "light"` or `COMPARE "John 3:16" kjv web`).
  * @param translationId - Active Bible translation identifier.
+ * @param contextText - Optional notebook text context for caret (^) scope operations.
  * @returns Promise resolving to the cell execution result payload.
  */
-export function fetchISLAResult(query: string, translationId: string): Promise<CellResult> {
-  const cacheKey = `${translationId}:${query}`;
+export function fetchISLAResult(
+  query: string,
+  translationId: string,
+  contextText: string = ''
+): Promise<CellResult> {
+  const cacheKey = `${translationId}:${query}:${contextText}`;
   const existing = islaPromiseCache.get(cacheKey);
   if (existing) return existing;
 
   const promise = fetch('/api/dsl/eval', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, translationId }),
+    body: JSON.stringify({ query, translationId, contextText }),
   })
     .then(async (res) => {
       if (!res.ok) {

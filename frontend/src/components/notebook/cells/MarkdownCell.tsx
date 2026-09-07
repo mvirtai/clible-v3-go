@@ -6,6 +6,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { ISLABlock } from '../isla/ISLABlock';
 import { getISLASuggestions } from '../isla/islaIntellisense';
 import { isISLALine, tokenizeISLALine } from '../isla/islaLexer';
+import { stripISLAFromText } from '../isla/islaUtils';
 
 /**
  * Properties for {@link MarkdownCell}.
@@ -21,6 +22,8 @@ export interface MarkdownCellProps {
   onSelectVerse?: (ref: string) => void;
   /** Active translation identifier for embedded ISLA blocks */
   translation?: string;
+  /** Optional notebook text context from preceding markdown cells */
+  contextText?: string;
 }
 
 /**
@@ -36,6 +39,7 @@ export function MarkdownCell({
   isEditable = true,
   onSelectVerse,
   translation = 'WEB',
+  contextText = '',
 }: MarkdownCellProps) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -98,12 +102,12 @@ export function MarkdownCell({
    */
   const preprocessContent = (text: string) => {
     // 1. Transform `![@...]` or `![[...]]` embeds into ISLA code blocks
-    let processed = text.replace(/!\[(?:\[)?(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|search\(.*?\)|read\(.*?\)|.*?)\](?:\])?/g, (_, g1) => {
+    let processed = text.replace(/!\[(?:\[)?(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|\^.*?|search\(.*?\)|read\(.*?\)|.*?)\](?:\])?/g, (_, g1) => {
       return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
     });
 
     // 2. Transform inline `!isla ...` or `!@...` or `!?...` into ISLA blocks (breaks out of inline <p><code>)
-    processed = processed.replace(/`!(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|search\(.*?\)|read\(.*?\)|.*?)`/g, (_, g1) => {
+    processed = processed.replace(/`!(?:isla\s+|ISLA\s+|i\s+)?(@.*?|\?.*?|#.*?|~.*?|\^.*?|search\(.*?\)|read\(.*?\)|.*?)`/g, (_, g1) => {
       return `\n\n\`\`\`isla\n${normalizeISLAQuery(g1)}\n\`\`\`\n\n`;
     });
 
@@ -116,12 +120,44 @@ export function MarkdownCell({
     });
 
     // 4. Transform line and mid-line directives: `! @...`, `! ?...`, `! search(...)`, `! at(...)`, `! ^...`, `!isla ...`
-    processed = processed.replace(/(?:^|[ \t]+)(!(?![[])(?:isla\b|ISLA\b|\s*(?:search|read|at|use|vs|compare)\(|\s*[@?#~^]|\s*[A-Za-z0-9])[^\n`]*)/gm, (_, fullDirective) => {
+    processed = processed.replace(/(?:^|[ \t]+)(!(?![[])(?:isla\b|ISLA\b|\s*(?:search|read|at|use|vs|compare|range|from)\s*\(|\s*[@?#~^]|\s*[A-Za-z0-9])[^\n`]*)/gm, (_, fullDirective) => {
       const query = normalizeISLAQuery(fullDirective);
       return `\n\n\`\`\`isla\n${query}\n\`\`\`\n\n`;
     });
 
     return processed;
+  };
+
+  /**
+   * Resolves the text context for a caret (^) scope operation:
+   * Combines preceding notebook markdown cells with any text in the current cell preceding this query.
+   */
+  const getContextForQuery = (query: string): string => {
+    const cleanPreceding = stripISLAFromText(contextText || '');
+
+    const rawContent = cell.content || '';
+    const idx = rawContent.indexOf(query);
+    let currentCellPreceding: string;
+    if (idx > 0) {
+      currentCellPreceding = rawContent.slice(0, idx);
+    } else {
+      const lines = rawContent.split('\n');
+      const precedingLines: string[] = [];
+      for (const line of lines) {
+        if (line.includes(query) || (query.startsWith('^') && (line.trim().startsWith('!') || line.trim().startsWith('^')))) {
+          break;
+        }
+        precedingLines.push(line);
+      }
+      currentCellPreceding = precedingLines.join('\n');
+    }
+
+    const cleanCurrent = stripISLAFromText(currentCellPreceding);
+
+    if (cleanCurrent && cleanPreceding) {
+      return `${cleanPreceding}\n\n${cleanCurrent}`;
+    }
+    return cleanCurrent || cleanPreceding;
   };
 
   const markdownComponents = {
@@ -163,10 +199,13 @@ export function MarkdownCell({
       const language = match ? match[1] : '';
 
       if (language === 'isla' || language === 'magic') {
+        const rawCode = String(children).replace(/\n$/, '');
+        const normalizedCode = normalizeISLAQuery(rawCode);
         return (
           <ISLABlock
-            code={String(children).replace(/\n$/, '')}
+            code={normalizedCode}
             translation={translation}
+            contextText={getContextForQuery(rawCode)}
           />
         );
       }

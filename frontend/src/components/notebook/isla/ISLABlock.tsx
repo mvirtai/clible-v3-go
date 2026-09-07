@@ -2,6 +2,8 @@ import { Suspense, use } from 'react';
 import { CellCompareResult, type CompareResultData } from '../results/CellCompareResult';
 import { CellVersesResult, type VersesResultData } from '../results/CellVersesResult';
 import { CellCountResult, type CountResultData } from '../results/CellCountResult';
+import { CellWordFreqResult, type WordFreqResultData } from '../results/CellWordFreqResult';
+import { CellStatsResult, type StatsResultData } from '../results/CellStatsResult';
 import { fetchISLAResult } from './islaCache';
 
 function ISLASkeleton({ code }: { code: string }) {
@@ -22,8 +24,16 @@ function ISLASkeleton({ code }: { code: string }) {
   );
 }
 
-function ISLAContent({ code, translation }: { code: string; translation: string }) {
-  const result = use(fetchISLAResult(code, translation));
+function ISLAContent({
+  code,
+  translation,
+  contextText = '',
+}: {
+  code: string;
+  translation: string;
+  contextText?: string;
+}) {
+  const result = use(fetchISLAResult(code, translation, contextText));
 
   if (result.type === 'error') {
     const errorMsg = (result.data as { message?: string })?.message || 'Unknown ISLA error';
@@ -55,14 +65,35 @@ function ISLAContent({ code, translation }: { code: string; translation: string 
             selectable={false}
           />
         )}
-        {(result.type === 'verses' || result.type === 'read' || result.type === 'search' || result.type === 'refs' || result.type === 'suggest') && (
+        {(result.type === 'verses' || result.type === 'read' || result.type === 'search' || result.type === 'refs' || result.type === 'suggest' || result.type === 'range') && (
           <CellVersesResult
             data={result.data as VersesResultData}
             selectable={false}
           />
         )}
+        {result.type === 'themes' && (
+          <div className="space-y-2 font-sans w-full max-w-full">
+            <div className="flex flex-wrap gap-1.5">
+              {((result.data as { themes?: Array<{ word: string; count: number }> })?.themes || []).map((t) => (
+                <span
+                  key={t.word}
+                  className="inline-flex items-center gap-1 text-xs font-mono bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-full shadow-2xs"
+                >
+                  <span className="font-semibold">#{t.word}</span>
+                  <span className="text-[10px] opacity-75 font-sans">({t.count})</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         {result.type === 'count' && (
           <CellCountResult data={result.data as CountResultData} />
+        )}
+        {result.type === 'words' && (
+          <CellWordFreqResult data={result.data as WordFreqResultData} />
+        )}
+        {result.type === 'stats' && (
+          <CellStatsResult data={result.data as StatsResultData} />
         )}
       </div>
     </div>
@@ -77,6 +108,8 @@ export interface ISLABlockProps {
   code: string;
   /** Active Bible translation identifier for resolving text data. */
   translation: string;
+  /** Optional notebook text context for caret (^) scope operations. */
+  contextText?: string;
 }
 
 /**
@@ -85,13 +118,13 @@ export interface ISLABlockProps {
  * @param props - Component properties conforming to {@link ISLABlockProps}.
  * @returns Suspended interactive ISLA query visualization.
  */
-export function ISLABlock({ code, translation }: ISLABlockProps) {
+export function ISLABlock({ code, translation, contextText = '' }: ISLABlockProps) {
   const cleanQuery = code.trim();
   if (!cleanQuery) return null;
 
   return (
     <Suspense fallback={<ISLASkeleton code={code} />}>
-      <ISLAContent code={cleanQuery} translation={translation} />
+      <ISLAContent code={cleanQuery} translation={translation} contextText={contextText} />
     </Suspense>
   );
 }

@@ -50,6 +50,23 @@ func TestDSLExecutor(t *testing.T) {
 			"Joh 3:16@fin-1992": {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "Sillä niin on Jumala maailmaa rakastanut"}},
 			"Joh 3:16@kjv":      {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world"}},
 			"Joh 3:16@web":      {{BookID: "JHN", Chapter: 3, Verse: 16, Text: "For God so loved the world (WEB)"}},
+			"JHN 1:1-5@fin-1992": {
+				{BookID: "JHN", Chapter: 1, Verse: 1, Text: "Alussa oli Sana"},
+				{BookID: "JHN", Chapter: 1, Verse: 2, Text: "Sana oli Jumalan luona"},
+			},
+			"JHN 1:1-5@kjv": {
+				{BookID: "JHN", Chapter: 1, Verse: 1, Text: "In the beginning was the Word"},
+				{BookID: "JHN", Chapter: 1, Verse: 2, Text: "The same was in the beginning with God"},
+			},
+			"JHN 1:1-5@web": {
+				{BookID: "JHN", Chapter: 1, Verse: 1, Text: "In the beginning was the Word"},
+				{BookID: "JHN", Chapter: 1, Verse: 2, Text: "The same was in the beginning with God"},
+				{BookID: "JHN", Chapter: 1, Verse: 3, Text: "All things were made through him"},
+				{BookID: "JHN", Chapter: 1, Verse: 4, Text: "In him was life"},
+				{BookID: "JHN", Chapter: 1, Verse: 5, Text: "The light shines in the darkness"},
+			},
+			"Joh 1:1@web": {{BookID: "JHN", Chapter: 1, Verse: 1, Text: "In the beginning was the Word"}},
+			"Joh 1:5@web": {{BookID: "JHN", Chapter: 1, Verse: 5, Text: "The light shines in the darkness"}},
 		},
 	}
 	searcher := &mockVerseSearcher{
@@ -67,6 +84,12 @@ func TestDSLExecutor(t *testing.T) {
 		VerseSearcher: searcher,
 		ThemeExtractor: func(text string, limit int) []models.ThemeItem {
 			return []models.ThemeItem{{Word: "rakkaus", Count: 2}}
+		},
+		RefsFinder: func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error) {
+			return []models.Verse{{BookID: "1JN", Chapter: 4, Verse: 8, Text: "God is love"}}, nil
+		},
+		SuggestFinder: func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error) {
+			return []models.Verse{{BookID: "1JN", Chapter: 4, Verse: 8, Text: "God is love"}}, []string{"rakkaus"}, nil
 		},
 	}
 
@@ -125,6 +148,149 @@ func TestDSLExecutor(t *testing.T) {
 		}
 		if res.Type != "compare" {
 			t.Errorf("expected type 'compare', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Range Expression Same Chapter", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5)")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "range" {
+			t.Errorf("expected type 'range', got %q", res.Type)
+		}
+		verses, ok := res.Data["verses"].([]models.Verse)
+		if !ok || len(verses) != 5 {
+			t.Fatalf("expected 5 verses in range, got %d", len(verses))
+		}
+		if ref, ok := res.Data["reference"].(string); !ok || ref != "Joh 1:1 – Joh 1:5" {
+			t.Errorf("unexpected reference in data: %v", ref)
+		}
+	})
+
+	t.Run("Execute Range with Count Pipeline", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => count()")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "count" {
+			t.Errorf("expected type 'count', got %q", res.Type)
+		}
+		if count, ok := res.Data["count"].(int); !ok || count != 5 {
+			t.Errorf("expected count 5, got %v", count)
+		}
+	})
+
+	t.Run("Execute Range with Themes Pipeline", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => themes(5)")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "themes" {
+			t.Errorf("expected type 'themes', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Range with Ternary Comparison", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) ? KR92 : KJV")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "compare" {
+			t.Errorf("expected type 'compare', got %q", res.Type)
+		}
+		if ref, ok := res.Data["reference"].(string); !ok || ref != "Joh 1:1 – Joh 1:5" {
+			t.Errorf("unexpected reference in comparison: %v", ref)
+		}
+	})
+
+	t.Run("Execute Range with vs() Comparison Pipeline", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => vs(KR92, KJV)")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "compare" {
+			t.Errorf("expected type 'compare', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Range Chained Pipeline use and count", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => use(KR92) => count()")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "count" || res.Data["count"] != 2 {
+			t.Errorf("unexpected count result: %+v", res)
+		}
+	})
+
+	t.Run("Execute Range with Refs Pipeline", func(t *testing.T) {
+		node, err := Parse("range(Joh 1:1, Joh 1:5) => refs(3)")
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "refs" {
+			t.Errorf("expected type 'refs', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Search with Themes Pipeline", func(t *testing.T) {
+		node, err := Parse(`search("love") => themes(5)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		if res.Type != "themes" {
+			t.Errorf("expected type 'themes', got %q", res.Type)
+		}
+	})
+
+	t.Run("Execute Verse Reference with Limit Pipeline", func(t *testing.T) {
+		node, err := Parse(`@JHN 1:1-5 => limit(2)`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+		res, err := Execute(ctx, node)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+		verses, ok := res.Data["verses"].([]models.Verse)
+		if !ok || len(verses) != 2 {
+			t.Errorf("expected 2 verses due to limit, got %d", len(verses))
+		}
+		if count, ok := res.Data["count"].(int); !ok || count != 2 {
+			t.Errorf("expected count 2 in res.Data, got %v", count)
 		}
 	})
 
@@ -328,6 +494,129 @@ func TestDSLExecutor(t *testing.T) {
 		}
 		if searcher.lastScope != "book" || searcher.lastValue != "ROM" {
 			t.Errorf("expected searcher scope ('book', 'ROM'), got (%q, %q)", searcher.lastScope, searcher.lastValue)
+		}
+
+		// 5. Unit-aware count on search: books, chapters, verses, words
+		unitTests := []struct {
+			query         string
+			expectedCount int
+			expectedUnit  string
+		}{
+			{query: `? "love" => count(verses)`, expectedCount: 2, expectedUnit: "verses"},
+			{query: `? "love" => count(books)`, expectedCount: 2, expectedUnit: "books"},
+			{query: `? "love" => count("b")`, expectedCount: 2, expectedUnit: "books"},
+			{query: `? "love" => count(k)`, expectedCount: 2, expectedUnit: "books"},
+			{query: `? "love" => count(chapters)`, expectedCount: 2, expectedUnit: "chapters"},
+			{query: `? "love" => count("c")`, expectedCount: 2, expectedUnit: "chapters"},
+			{query: `? "love" => count(l)`, expectedCount: 2, expectedUnit: "chapters"},
+			{query: `? "love" => count(words)`, expectedCount: 7, expectedUnit: "words"},
+			{query: `? "love" => count("w")`, expectedCount: 7, expectedUnit: "words"},
+			{query: `? "love" => count(sanat)`, expectedCount: 7, expectedUnit: "words"},
+			{query: `? "love" => count("s")`, expectedCount: 7, expectedUnit: "words"},
+			{query: `? "love" => count(unique_words)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(unique)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(sanasto)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(vocab)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(eri)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(uw)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count("uniques")`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(uniq)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(uniikit)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(uniikit_sanat)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => count(us)`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => uw`, expectedCount: 7, expectedUnit: "unique_words"},
+			{query: `? "love" => uniikit`, expectedCount: 7, expectedUnit: "unique_words"},
+		}
+
+		for _, ut := range unitTests {
+			nodeU, err := Parse(ut.query)
+			if err != nil {
+				t.Fatalf("parse failed for %q: %v", ut.query, err)
+			}
+			resU, err := Execute(ctx, nodeU)
+			if err != nil {
+				t.Fatalf("execute failed for %q: %v", ut.query, err)
+			}
+			if resU.Data["count"] != ut.expectedCount {
+				t.Errorf("query %q: expected count %d, got %v", ut.query, ut.expectedCount, resU.Data["count"])
+			}
+			if resU.Data["unit"] != ut.expectedUnit {
+				t.Errorf("query %q: expected unit %q, got %v", ut.query, ut.expectedUnit, resU.Data["unit"])
+			}
+		}
+
+		// 6. Unit-aware count on range
+		rangeWordNode, err := Parse(`range(Joh 1:1, Joh 1:5) => count(words)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resRangeWords, err := Execute(ctx, rangeWordNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resRangeWords.Data["count"] != 30 || resRangeWords.Data["unit"] != "words" {
+			t.Errorf("expected 30 words, got %+v", resRangeWords.Data)
+		}
+
+		rangeBooksNode, err := Parse(`range(Joh 1:1, Joh 1:5) => count(books)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resRangeBooks, err := Execute(ctx, rangeBooksNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resRangeBooks.Data["count"] != 1 || resRangeBooks.Data["unit"] != "books" {
+			t.Errorf("expected 1 book, got %+v", resRangeBooks.Data)
+		}
+
+		// 7. Context counting with ScopeNode
+		contextWordNode, err := Parse(`^ => count(words)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCtxWords, err := Execute(ctx, contextWordNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCtxWords.Data["count"] != 5 || resCtxWords.Data["unit"] != "words" {
+			t.Errorf("expected 5 context words, got %+v", resCtxWords.Data)
+		}
+
+		contextUniqueNode, err := Parse(`^ => count(unique_words)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCtxUnique, err := Execute(ctx, contextUniqueNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCtxUnique.Data["count"] != 5 || resCtxUnique.Data["unit"] != "unique_words" {
+			t.Errorf("expected 5 unique context words, got %+v", resCtxUnique.Data)
+		}
+
+		ctxUwNode, err := Parse(`^ => count(uw)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCtxUw, err := Execute(ctx, ctxUwNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCtxUw.Data["count"] != 5 || resCtxUw.Data["unit"] != "unique_words" {
+			t.Errorf("expected 5 unique context words for count(uw), got %+v", resCtxUw.Data)
+		}
+
+		ctxUniikitNode, err := Parse(`^ => count(uniikit)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCtxUniikit, err := Execute(ctx, ctxUniikitNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCtxUniikit.Data["count"] != 5 || resCtxUniikit.Data["unit"] != "unique_words" {
+			t.Errorf("expected 5 unique context words for count(uniikit), got %+v", resCtxUniikit.Data)
 		}
 
 		// 5. Scoped Search with testament NT/UT: ? "love" @UT
@@ -659,6 +948,54 @@ func TestDSLExecutor_FunctionalPipelines(t *testing.T) {
 		}
 		if res4.Data["translation"] != "kjv" || searcher.lastTrans != "kjv" {
 			t.Errorf("expected translation kjv for explicit override, got res=%v lastTrans=%v", res4.Data["translation"], searcher.lastTrans)
+		}
+	})
+
+	t.Run("Execute Top and Stats Actions", func(t *testing.T) {
+		// Top words on search results
+		topNode, err := Parse(`? "köyhät" => top(5)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resTop, err := Execute(ctx, topNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resTop.Type != "words" {
+			t.Errorf("expected type 'words', got %q", resTop.Type)
+		}
+		words, ok := resTop.Data["words"].([]models.ThemeItem)
+		if !ok || len(words) == 0 {
+			t.Fatalf("expected non-empty words list, got %+v", resTop.Data["words"])
+		}
+
+		// Stats on search results
+		statsNode, err := Parse(`? "köyhät" => stats()`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resStats, err := Execute(ctx, statsNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resStats.Type != "stats" {
+			t.Errorf("expected type 'stats', got %q", resStats.Type)
+		}
+		if ttr, ok := resStats.Data["type_token_ratio"].(float64); !ok || ttr <= 0 {
+			t.Errorf("expected positive type_token_ratio, got %v", resStats.Data["type_token_ratio"])
+		}
+
+		// Quick hash syntax: # "köyhät"
+		hashNode, err := Parse(`# "köyhät"`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resHash, err := Execute(ctx, hashNode)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resHash.Type != "count" || resHash.Data["count"] != 2 {
+			t.Errorf("expected count 2 for # \"köyhät\", got %+v", resHash.Data)
 		}
 	})
 }

@@ -163,4 +163,88 @@ describe('ISLABlock', () => {
     expect(container?.textContent).toContain('Sillä niin on Jumala maailmaa rakastanut');
     expect(container?.textContent).toContain('For God so loved the world');
   });
+
+  it('renders range result correctly', async () => {
+    const mockRangeResult = {
+      type: 'range',
+      data: {
+        start: 'Joh 1:1',
+        end: 'Joh 1:5',
+        reference: 'Joh 1:1 – Joh 1:5',
+        translation: 'web',
+        verses: [
+          {
+            id: 'web:JHN:1:1',
+            translationId: 'web',
+            bookId: 'JHN',
+            chapter: 1,
+            verse: 1,
+            text: 'In the beginning was the Word.',
+          },
+          {
+            id: 'web:JHN:1:5',
+            translationId: 'web',
+            bookId: 'JHN',
+            chapter: 1,
+            verse: 5,
+            text: 'The light shines in the darkness.',
+          },
+        ],
+      },
+    };
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockRangeResult),
+      })
+    );
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <ISLABlock code="range(Joh 1:1, Joh 1:5)" translation="web" />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('In the beginning was the Word.');
+    expect(container?.textContent).toContain('The light shines in the darkness.');
+  });
+
+  it('renders themes result correctly', async () => {
+    const mockThemesResult = {
+      type: 'themes',
+      data: {
+        themes: [
+          { word: 'rakkaus', count: 5 },
+          { word: 'valkeus', count: 3 },
+        ],
+      },
+    };
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockThemesResult),
+      })
+    );
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <ISLABlock code="! ^ => themes(5)" translation="web" />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('#rakkaus');
+    expect(container?.textContent).toContain('(5)');
+    expect(container?.textContent).toContain('#valkeus');
+    expect(container?.textContent).toContain('(3)');
+  });
 });

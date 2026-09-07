@@ -261,4 +261,3 @@ func TestTranslationHandler_Endpoints(t *testing.T) {
 		}
 	})
 }
-

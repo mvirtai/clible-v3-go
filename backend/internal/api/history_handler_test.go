@@ -140,4 +140,3 @@ func TestHistoryHandler_Endpoints(t *testing.T) {
 		}
 	})
 }
-

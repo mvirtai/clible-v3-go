@@ -16,6 +16,8 @@ export interface CLIResultData {
   is_regex?: boolean;
   /** Total count metric */
   count?: number;
+  /** Aggregation unit: 'verses' | 'chapters' | 'books' | 'words' */
+  unit?: 'verses' | 'chapters' | 'books' | 'words' | string;
   /** Translation identifier */
   translation?: string;
   /** Verses list */
@@ -28,6 +30,14 @@ export interface CLIResultData {
   keywords?: string[];
   /** Themes list */
   themes?: Array<{ word: string; count: number }>;
+  /** Word frequency list */
+  words?: Array<{ word: string; count: number }>;
+  /** Token statistics */
+  unique_tokens?: number;
+  token_count?: number;
+  type_token_ratio?: number;
+  character_count?: number;
+  avg_word_length?: number;
   /** Left translation dataset for comparison */
   left?: { translation?: string; verses?: Array<{ id: string; translationId?: string; bookId: string; chapter: number; verse: number; text: string }> };
   /** Right translation dataset for comparison */
@@ -46,7 +56,7 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
   let markdown = "";
   const tr = translation.toUpperCase();
 
-  if ((type === "read" || type === "search") && data.verses && data.verses.length > 0) {
+  if ((type === "read" || type === "search" || type === "range") && data.verses && data.verses.length > 0) {
     const first = data.verses[0];
     const last = data.verses[data.verses.length - 1];
     const firstBook = bookCitationAbbrevFi(first.bookId);
@@ -98,11 +108,56 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
 
   else if (type === 'count') {
     const count = data.count ?? 0;
-    const matchLabel = count === 1 ? 'osuma' : 'osumaa';
+    const unit = data.unit;
+    let unitLabel = count === 1 ? 'jae' : 'jaetta';
+    if (unit === 'books') {
+      unitLabel = count === 1 ? 'kirja' : 'kirjaa';
+    } else if (unit === 'chapters') {
+      unitLabel = count === 1 ? 'luku' : 'lukua';
+    } else if (unit === 'words') {
+      unitLabel = count === 1 ? 'sana' : 'sanaa';
+    } else if (unit === 'unique_words') {
+      unitLabel = count === 1 ? 'uniikki sana' : 'uniikkia sanaa';
+    } else if (unit === 'verses') {
+      unitLabel = count === 1 ? 'jae' : 'jaetta';
+    } else if (!unit && data.target_type === 'search') {
+      unitLabel = count === 1 ? 'osuma' : 'osumaa';
+    }
     const target = data.target_type === 'search'
       ? `Hakutulokset haulle ${data.is_regex ? `/${data.query}/` : `"${data.query}"`}`
+      : data.target_type === 'context'
+      ? 'Muistiinpanon konteksti'
       : `Jakeet viitteelle ${data.reference}`;
-    markdown = `> **${target} (${tr})**: ${count} ${matchLabel}\n`;
+    const trSuffix = data.target_type === 'context' ? '' : ` (${tr})`;
+    markdown = `> **${target}${trSuffix}**: ${count} ${unitLabel}\n`;
+  }
+
+  else if (type === 'words') {
+    const words = data.words || [];
+    if (words.length === 0) return 'Ei sanatiheyksiä.';
+
+    let md = `### Sanatiheydet\n\n`;
+    md += `| # | Sana | Esiintymät |\n`;
+    md += `| :--- | :--- | :--- |\n`;
+    words.forEach((w, idx) => {
+      md += `| ${idx + 1} | **${w.word}** | ${w.count} |\n`;
+    });
+    markdown = md;
+  }
+
+  else if (type === 'stats') {
+    const ttr = ((data.type_token_ratio ?? 0) * 100).toFixed(1);
+    let md = `### Tekstitilastot\n\n`;
+    md += `- **Sanaston rikkaus (TTR)**: ${ttr} %\n`;
+    md += `- **Uniikkeja sanoja**: ${data.unique_tokens ?? 0}\n`;
+    md += `- **Sanoja yhteensä**: ${data.token_count ?? 0}\n`;
+    if (data.avg_word_length) {
+      md += `- **Sanan keskipituus**: ${data.avg_word_length}\n`;
+    }
+    if (data.character_count) {
+      md += `- **Merkkejä**: ${data.character_count}\n`;
+    }
+    markdown = md;
   }
 
   else if (type === 'compare') {

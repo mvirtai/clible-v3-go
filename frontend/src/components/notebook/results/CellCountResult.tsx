@@ -17,6 +17,8 @@ export interface CountResultData {
   scope_book?: string;
   /** Total matching count. */
   count: number;
+  /** Aggregation unit: 'verses' | 'chapters' | 'books' | 'words' */
+  unit?: 'verses' | 'chapters' | 'books' | 'words' | string;
   /** Translation identifier used for the calculation. */
   translation?: string;
 }
@@ -38,6 +40,26 @@ export interface CellCountResultProps {
 export function CellCountResult({ data }: CellCountResultProps) {
   const { strings } = useLanguage();
 
+  const getUnitLabel = () => {
+    switch (data.unit) {
+      case 'books':
+        return data.count === 1 ? strings.countUnitBooksSingular : strings.countUnitBooksPlural;
+      case 'chapters':
+        return data.count === 1 ? strings.countUnitChaptersSingular : strings.countUnitChaptersPlural;
+      case 'words':
+        return data.count === 1 ? strings.countUnitWordsSingular : strings.countUnitWordsPlural;
+      case 'unique_words':
+        return data.count === 1 ? strings.countUnitUniqueWordsSingular : strings.countUnitUniqueWordsPlural;
+      case 'verses':
+        return data.count === 1 ? strings.countUnitVersesSingular : strings.countUnitVersesPlural;
+      default:
+        if (data.target_type === 'search') {
+          return data.count === 1 ? strings.countMatchSingular : strings.countMatchPlural;
+        }
+        return data.count === 1 ? strings.countUnitVersesSingular : strings.countUnitVersesPlural;
+    }
+  };
+
   return (
     <div className="flex items-center gap-3.5 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 dark:border-amber-500/20 text-amber-950 dark:text-amber-100 shadow-xs">
       <div className="p-2.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 flex-shrink-0">
@@ -57,6 +79,13 @@ export function CellCountResult({ data }: CellCountResultProps) {
                 </span>
               )}
             </span>
+          ) : data.target_type === 'context' ? (
+            <span>
+              {strings.countResultsForContext}{' '}
+              <code className="px-1.5 py-0.5 rounded bg-amber-900/10 dark:bg-black/40 text-amber-950 dark:text-amber-200 border border-amber-500/20 font-mono">
+                ^
+              </code>
+            </span>
           ) : (
             <span>
               {strings.countVersesForRef}{' '}
@@ -67,10 +96,10 @@ export function CellCountResult({ data }: CellCountResultProps) {
         <div className="text-2xl font-bold text-amber-950 dark:text-amber-100 mt-0.5 tracking-tight">
           {data.count}{' '}
           <span className="text-xs font-medium text-amber-800/90 dark:text-amber-300/80">
-            {data.count === 1 ? strings.countMatchSingular : strings.countMatchPlural} ({data.translation || strings.defaultTranslationLabel})
+            {getUnitLabel()}{data.translation ? ` (${data.translation})` : ''}
           </span>
         </div>
       </div>
     </div>
   );
-};
+}

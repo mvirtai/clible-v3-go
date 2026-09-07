@@ -166,6 +166,42 @@ describe('islaIntellisense', () => {
     });
   });
 
+  describe('Count unit suggestions inside count(...)', () => {
+    it('suggests count units when typing inside count(', () => {
+      const suggestions = getISLASuggestions('!search("armo") => count(', 25);
+      expect(suggestions.some((s) => s.label === 'verses')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'chapters')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'books')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'words')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'sanat')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'kirjat')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'unique_words')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'uw')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'uniques')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'uniq')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'uniikit')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'uniikit_sanat')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'us')).toBe(true);
+    });
+
+    it('filters count units by prefix inside count(', () => {
+      const suggestions = getISLASuggestions('!search("armo") => count(bo', 27);
+      expect(suggestions).toHaveLength(1);
+      expect(suggestions[0].label).toBe('books');
+      expect(suggestions[0].insertText).toBe('books)');
+
+      const uwSuggestions = getISLASuggestions('!search("armo") => count(uw', 27);
+      expect(uwSuggestions).toHaveLength(1);
+      expect(uwSuggestions[0].label).toBe('uw');
+      expect(uwSuggestions[0].insertText).toBe('uw)');
+
+      const uniikitSanatSuggestions = getISLASuggestions('!search("armo") => count(uniikit_', 33);
+      expect(uniikitSanatSuggestions).toHaveLength(1);
+      expect(uniikitSanatSuggestions[0].label).toBe('uniikit_sanat');
+      expect(uniikitSanatSuggestions[0].insertText).toBe('uniikit_sanat)');
+    });
+  });
+
   describe('Fallback behavior', () => {
     it('returns empty array when text does not trigger any IntelliSense rules', () => {
       expect(getISLASuggestions('Regular text in a markdown cell', 15)).toEqual([]);

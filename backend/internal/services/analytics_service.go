@@ -16,6 +16,7 @@ import (
 
 // stopwordsRaw bakes the entire JSON file directly into the application binary at compile time.
 // This completely eliminates runtime file path errors and path resolution issues.
+//
 //go:embed stopwords.json
 var stopwordsRaw []byte
 

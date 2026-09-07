@@ -33,8 +33,26 @@ func init() {
 		"themes":  parseOptionalNumericAction("themes"),
 		"suggest": parseOptionalNumericAction("suggest"),
 
-		// Nullary aggregator
-		"count": parseNullaryAction("count"),
+		// Unit-aware aggregator: count(), count(verses), count(chapters), count(books), count(words), count(unique_words)
+		"count": parseCountAction,
+
+		// Shorthand actions for unique words count
+		"unique_words":  parseCountUnitAction("unique_words"),
+		"uw":            parseCountUnitAction("unique_words"),
+		"uniques":       parseCountUnitAction("unique_words"),
+		"uniq":          parseCountUnitAction("unique_words"),
+		"uniikit":       parseCountUnitAction("unique_words"),
+		"uniikit_sanat": parseCountUnitAction("unique_words"),
+		"us":            parseCountUnitAction("unique_words"),
+
+		// Top word frequencies: top(10), top, words(10), words
+		"top":        parseTopAction,
+		"words":      parseTopAction,
+		"top_words":  parseTopAction,
+
+		// Text statistics & Type-Token Ratio: stats(), stats, ttr(), ttr
+		"stats": parseStatsAction,
+		"ttr":   parseStatsAction,
 
 		// Required-numeric limit
 		"limit": parseLimitAction,
@@ -120,17 +138,133 @@ func parseOptionalNumericAction(kind string) actionParserFn {
 	}
 }
 
-// parseNullaryAction returns a parser for zero-argument actions.
+// parseCountAction parses count() or count(UNIT) or count:UNIT.
+// Supported units:
+//   - books: "books", "book", "b", "kirjat", "kirja", "k"
+//   - chapters: "chapters", "chapter", "c", "luvut", "luku", "l"
+//   - verses: "verses", "verse", "v", "jakeet", "jae", "j" (default)
+//   - words: "words", "word", "w", "sanat", "sana", "s"
 //
-//	count(), count
-func parseNullaryAction(kind string) actionParserFn {
+// Arguments are supported both with and without quotes: count("books"), count(b), count('w').
+func parseCountAction(p *Parser) (*ActionNode, error) {
+	unit := "verses"
+	if p.current().Type == TokenParenOpen {
+		p.next()
+		if p.current().Type == TokenIdent || p.current().Type == TokenString {
+			raw := strings.ToLower(strings.TrimSpace(p.current().Literal))
+			p.next()
+			normalized, err := normalizeCountUnit(raw)
+			if err != nil {
+				return nil, err
+			}
+			unit = normalized
+		}
+		if p.current().Type != TokenParenClose {
+			return nil, fmt.Errorf("expected ')' after count unit, got %s at pos %d", p.current().Type, p.current().Pos)
+		}
+		p.next()
+	} else if p.current().Type == TokenColon {
+		p.next()
+		if p.current().Type == TokenIdent || p.current().Type == TokenString {
+			raw := strings.ToLower(strings.TrimSpace(p.current().Literal))
+			p.next()
+			normalized, err := normalizeCountUnit(raw)
+			if err != nil {
+				return nil, err
+			}
+			unit = normalized
+		}
+	}
+	return &ActionNode{Kind: "count", Value: unit}, nil
+}
+
+// parseCountUnitAction returns a parser for direct pipeline count unit actions, e.g. => unique_words, => uw.
+func parseCountUnitAction(unit string) actionParserFn {
 	return func(p *Parser) (*ActionNode, error) {
 		if p.current().Type == TokenParenOpen {
 			p.next()
 			p.consumeOptional(TokenParenClose)
 		}
-		return &ActionNode{Kind: kind}, nil
+		return &ActionNode{Kind: "count", Value: unit}, nil
 	}
+}
+
+func normalizeCountUnit(raw string) (string, error) {
+	switch raw {
+	case "b", "book", "books", "k", "kirja", "kirjat":
+		return "books", nil
+	case "c", "chapter", "chapters", "l", "luku", "luvut":
+		return "chapters", nil
+	case "v", "verse", "verses", "j", "jae", "jakeet":
+		return "verses", nil
+	case "w", "word", "words", "s", "sana", "sanat":
+		return "words", nil
+	case "unique_words", "unique words", "unique", "uniques", "uniq", "uw", "vocab", "sanasto", "eri", "uniikit", "uniikit_sanat", "uniikit sanat", "eri_sanat", "eri sanat", "us":
+		return "unique_words", nil
+	default:
+		return "", fmt.Errorf("invalid count unit %q: expected 'verses' ('v', 'j'), 'chapters' ('c', 'l'), 'books' ('b', 'k'), 'words' ('w', 's'), or 'unique_words' ('uw', 'uniques', 'uniq', 'uniikit', 'uniikit_sanat', 'us', 'sanasto', 'unique')", raw)
+	}
+}
+
+// parseTopAction handles top(10), top, words(10), words. Default is 10, max 1000.
+func parseTopAction(p *Parser) (*ActionNode, error) {
+	limit := 10
+	if p.current().Type == TokenParenOpen {
+		p.next()
+		if p.current().Type == TokenNumber {
+			val, err := strconv.Atoi(p.current().Literal)
+			if err != nil {
+				return nil, fmt.Errorf("invalid number for top: %w", err)
+			}
+			if val > 1000 {
+				val = 1000
+			} else if val < 1 {
+				val = 1
+			}
+			limit = val
+			p.next()
+		}
+		if p.current().Type != TokenParenClose {
+			return nil, fmt.Errorf("expected ')' after top limit, got %s at pos %d", p.current().Type, p.current().Pos)
+		}
+		p.next()
+	} else if p.current().Type == TokenColon {
+		p.next()
+		if p.current().Type == TokenNumber {
+			val, err := strconv.Atoi(p.current().Literal)
+			if err != nil {
+				return nil, fmt.Errorf("invalid number for top: %w", err)
+			}
+			if val > 1000 {
+				val = 1000
+			} else if val < 1 {
+				val = 1
+			}
+			limit = val
+			p.next()
+		}
+	}
+	return &ActionNode{Kind: "top", Value: strconv.Itoa(limit)}, nil
+}
+
+// parseStatsAction handles stats(), stats, ttr(), ttr.
+func parseStatsAction(p *Parser) (*ActionNode, error) {
+	mode := "all"
+	if p.current().Type == TokenParenOpen {
+		p.next()
+		if p.current().Type == TokenIdent || p.current().Type == TokenString {
+			raw := strings.ToLower(strings.TrimSpace(p.current().Literal))
+			p.next()
+			if raw == "ttr" {
+				mode = "ttr"
+			}
+		}
+		if p.current().Type != TokenParenClose {
+			return nil, fmt.Errorf("expected ')' after stats argument, got %s at pos %d", p.current().Type, p.current().Pos)
+		}
+		p.next()
+	}
+	return &ActionNode{Kind: "stats", Value: mode}, nil
 }
 
 // parseLimitAction handles limit(5) or limit:5.
@@ -320,6 +454,41 @@ func (p *Parser) parsePrimary() (Node, error) {
 			p.next()
 		}
 		return &ScopeNode{Count: count, All: all}, nil
+
+	case TokenHash:
+		p.next()
+		var inner Node
+		if p.current().Type == TokenString || p.current().Type == TokenRegex {
+			queryTok := p.current()
+			p.next()
+			scopeBook := ""
+			if p.current().Type == TokenAt {
+				p.next()
+				var sb strings.Builder
+				for {
+					cur := p.current()
+					if cur.Type == TokenIdent || cur.Type == TokenNumber || cur.Type == TokenColon || cur.Type == TokenDash || cur.Type == TokenComma {
+						appendCitationToken(&sb, cur)
+						p.next()
+					} else {
+						break
+					}
+				}
+				scopeBook = sb.String()
+			}
+			inner = &SearchNode{
+				Query:     queryTok.Literal,
+				IsRegex:   queryTok.Type == TokenRegex,
+				ScopeBook: scopeBook,
+			}
+		} else {
+			var err error
+			inner, err = p.parsePrimary()
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &PipeNode{Left: inner, Right: &ActionNode{Kind: "count", Value: "verses"}}, nil
 
 	case TokenIdent:
 		// ── search(...) ────────────────────────────────────────────────────────
