@@ -18,6 +18,33 @@ By providing an isolated, highly-tested `new_dsl` package alongside non-destruct
 
 ---
 
+### The Problem: Syntactic Fragmentation in ISLA v1
+
+In Clible's early iterations, DSL features were added organically to satisfy immediate user needs. Over time, this caused syntactic fragmentation where the user had to memorize completely different mental models depending on the command type:
+
+* **Ternary Hack for Comparison:** Comparison borrowed C-style ternary syntax (`!@Joh 3:16 ? KR92 : KJV`) that did not scale beyond two translations.
+* **Prefix Shorthands:** Metric counting required a leading hash symbol (`# "valkeus" @ut`), conflicting with markdown headings.
+* **Arrow-Chaining for Arguments:** Arguments were chained using fat arrows (`=>`), e.g. `! search("armo") => at(ROM) => use(KR92) => count`. Here, `=>` was overloaded to mean both "pass parameter" AND "render output", making it impossible for the parser or the reader to know where input ended and output destination began.
+* **Lack of Output Destination Control:** Every v1 execution blindly rendered into the calling cell, forcing users to manually copy-paste results when building complex, multi-cell notebook study workflows.
+
+---
+
+### The Solution: The ISLA v2 Object-Method Model
+
+ISLA v2 solves this by adopting a classic, cohesive **Object-Method** mental model followed by a single Unix-inspired **Output Operator**. The table below highlights the dramatic clarification in syntax:
+
+| Intent / Use Case | ISLA v1 (Fragmented & Ad-Hoc) | ISLA v2 (Unified Object-Method Pipeline) | Cognitive Benefit |
+| :--- | :--- | :--- | :--- |
+| **Passage Lookup** | `! @Joh 3:16 => in(KR92)` or `!read(Joh 3:16)` | `! @(Joh 3:16).use(KR92) =>` | Consistent `@(...)` object + `.use()` method + `=>` inline output. |
+| **Translation Comparison** | `! @Joh 3:16 ? KR92 : KJV` (ternary hack) | `! @(Joh 3:16).vs(KR92, KJV) =>` | Extensible to N translations (e.g. `.vs(KR92, KR38, KJV)`). |
+| **Cross-Reference Discovery** | `! ~ @Joh 3:16` or `!refs @Joh 3:16` | `! @(Joh 3:16).refs(5) >> #joh-viitteet` | Explicit object method returning cross-refs into a new dedicated cell below. |
+| **Scoped Term Search** | `! ? "armo" @ut => limit:5` | `! search("armo").at(UT).limit(5) =>` | Clear string target with chained scope and limit modifiers. |
+| **Keyword Count Metric** | `# "armo" @ut` or `!? "armo" @ut => count` | `! search("armo").at(UT).count(verses) >> #armo-maara` | Unambiguous method call; outputs into a persistent, linkable `#slug` card below. |
+| **Scripture Range Themes** | `! range(GEN, DEU) => themes(5)` | `! range(GEN, DEU).themes(5) >> #tooran-teemat` | Explicit range object with thematic extractor and output routing. |
+| **Notebook Context Analytics** | `! ^ => count(words)` or `!^ => #themes` | `! ^.stats =>` or `! ^3.themes(5) >> "Yhteenveto"` | Clear caret context object with lexical analysis methods. |
+
+---
+
 ## Architectural & Process Flows
 
 ### 1. End-to-End ISLA v2 Evaluation & Output Routing
@@ -111,6 +138,40 @@ type ISLAExpression struct {
 - Updated `ISLABlock.tsx` to display output operator tags (`#slug` badge, `↑ Yläpuolelle`, `↓ Alapuolelle`).
 - Localized all operator text across English and Finnish in `frontend/src/utils/i18n.ts`.
 
+### 7. Language Extensibility & Future Evolution (The Object-Method Horizon)
+
+The greatest architectural victory of ISLA v2 is not just cleaner syntax today, but **frictionless extensibility tomorrow**. In v1, introducing a new query concept required inventing new ASCII symbols, leading to parser conflicts. In ISLA v2, every domain capability is simply a new typed method attached to an existing object AST node:
+
+1. **Original Language & Morphological Analysis:**
+   ```isla
+   ! search("logos").at(Joh).greek().morphology() >> #logos-analyysi
+   ```
+   Because `search(...)` yields a sequence of verses, adding `.greek()` can immediately project Greek lemma annotations, Strong's concordance numbers, and grammatical tense/mood/case tags into the stream.
+
+2. **Set Operations (Unions, Intersections, Differences):**
+   ```isla
+   ! search("valkeus").intersect(search("elämä")).at(Joh) >> #valkeus-ja-elama
+   ```
+   Objects can be combined algebraically using fluent set operations before scoping and projection.
+
+3. **Semantic AI Similarity Search (Vector Embeddings):**
+   ```isla
+   ! search("armolahjat seurakunnassa").similar(threshold: 0.82).at(1Kor) >> #armolahjat-semantiikka
+   ```
+   The `.similar()` method can transparently tap into pgvector embeddings in Neon PostgreSQL to discover concept matches beyond simple lexical keyword hits.
+
+4. **Visual Analytics & Chart Projections:**
+   ```isla
+   ! range(GEN, MAL).themes(10).chart(kind: bar) >> #ot-thematic-distribution
+   ```
+   Instead of just returning textual theme badges, an analytical pipeline can render high-resolution bar charts or chronological heatmaps.
+
+5. **Cross-Cell Graph Querying (Notebook as a Knowledge Graph):**
+   ```isla
+   ! cell(#tooran-teemat).filter(count > 10).suggest(5) >> #jatkotutkimus
+   ```
+   Because cells can now be named with `#slug` anchors, downstream cells can treat preceding analysis cards as queryable data sources, turning Clible notebooks into reactive research workbenches.
+
 ---
 
 ## 📈 Improvement Metrics & Key Figures
@@ -125,9 +186,12 @@ type ISLAExpression struct {
 
 ## Security & Compliance
 
-* **DoS & Memory Protection (CWE-400, CWE-770):** Stream inputs are bounded by `http.MaxBytesReader(w, r.Body, 1<<20)`. AST parsing and dot chaining enforce finite loop bounds and token offset tracking.
-* **SQL Injection Prevention (CWE-89):** All scripture references, ranges, search terms, and scope arguments pass through parameterized SQL queries via repository methods.
-* **Ownership & Access Control:** Cell execution in `NotebookService.ExecuteCellCommand` verifies user ownership of the parent notebook before reading or modifying cells.
+* **Formal Security Audit (`SECOPS-2026-09-08-001`):** Completed a pre-merge security review documented in [`.security_audits/security-audit-2026-09-08-isla-v2-object-method-dsl.md`](file:///home/vivaldev/code/clible-v3-go/.security_audits/security-audit-2026-09-08-isla-v2-object-method-dsl.md). Result: **PASSED (0 critical, 0 high, 0 medium)**.
+* **DoS & Memory Protection (CWE-400, CWE-770):** Stream inputs are bounded by `http.MaxBytesReader(w, r.Body, 1<<20)`. AST parsing and dot chaining enforce finite loop bounds and token offset tracking without recursive call stacks.
+* **ReDoS Prevention (CWE-1333):** Regex literal matching utilizes Go's standard `regexp` library (RE2 engine) guaranteeing linear $O(N)$ execution time and zero catastrophic backtracking.
+* **SQL Injection Prevention (CWE-89):** All scripture references, ranges, search terms, and scope arguments pass through parameterized SQL queries via repository methods (`$1`, `$2`, ...).
+* **Ownership & Access Control (CWE-285, CWE-862):** Cell execution in `NotebookService.ExecuteCellCommand` strictly verifies user ownership of the parent notebook before reading, inserting, or modifying cells.
+* **XSS & Output Sanitization (CWE-79, CWE-116):** Output operator slugs and titles (`#slug`, `"Title"`) are rendered as safe text nodes in React (`ISLABlock.tsx`) and sanitized through ReactMarkdown without raw HTML injection vectors.
 
 ---
 
@@ -135,6 +199,7 @@ type ISLAExpression struct {
 
 | File | Change Summary |
 |------|----------------|
+| `.security_audits/security-audit-2026-09-08-isla-v2-object-method-dsl.md` | Formal security audit report `SECOPS-2026-09-08-001` (PASSED). |
 | `backend/new_dsl/ast.go` | Added ISLA v2 AST node interfaces and struct definitions (`ISLAExpression`, `ObjectNode`, `MethodCall`, `OutputOp`). |
 | `backend/new_dsl/ast_test.go` | Added unit tests for AST structure and string serialization. |
 | `backend/new_dsl/token.go` | Added v2 token definitions (`TokenAtOpen`, `TokenDot`, `TokenOutputInline`, `TokenOutputAbove`, `TokenOutputBelow`). |
