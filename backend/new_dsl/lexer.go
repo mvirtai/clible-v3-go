@@ -111,6 +111,9 @@ func (l *Lexer) NextToken() Token {
 	case ch == ',':
 		l.pos++
 		return Token{Type: TokenComma, Literal: ",", Pos: start}
+	case ch == ':':
+		l.pos++
+		return Token{Type: TokenColon, Literal: ":", Pos: start}
 	case ch == '-':
 		l.pos++
 		return Token{Type: TokenDash, Literal: "-", Pos: start}

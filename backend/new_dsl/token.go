@@ -19,6 +19,7 @@ const (
 	TokenParenOpen  TokenType = "("
 	TokenParenClose TokenType = ")"
 	TokenComma      TokenType = ","
+	TokenColon      TokenType = ":" // Chapter/verse separator: 1:1, 3:16
 	TokenDash       TokenType = "-" // Verse range separator: 3:16-18
 
 	// TokenDot is the chain-call separator (method.call or method.cell)

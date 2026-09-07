@@ -33,7 +33,7 @@ func TestAllTokenTypes_NonEmpty(t *testing.T) {
 	types := []TokenType{
 		TokenEOF, TokenIllegal,
 		TokenAtOpen, TokenParenOpen, TokenParenClose,
-		TokenComma, TokenDash, TokenDot,
+		TokenComma, TokenColon, TokenDash, TokenDot,
 		TokenOutputInline, TokenOutputAbove, TokenOutputBelow,
 		TokenSearch, TokenCaret, TokenHash,
 		TokenIdent, TokenString, TokenNumber, TokenRegex,
