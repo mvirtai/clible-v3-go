@@ -306,12 +306,12 @@ describe('MarkdownCell', () => {
   });
 
   it('renders ISLABlock with context count: ! ^ => count(words) and passes contextText', async () => {
-    let capturedBody: { query?: string; contextText?: string } | null = null;
+    const calls: Array<{ query?: string; contextText?: string }> = [];
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((_url, init) => {
         if (init?.body) {
-          capturedBody = JSON.parse(init.body as string);
+          calls.push(JSON.parse(init.body as string));
         }
         return Promise.resolve({
           ok: true,
@@ -346,8 +346,8 @@ describe('MarkdownCell', () => {
 
     expect(container?.textContent).toContain('6');
     expect(container?.textContent).toContain('sanaa');
-    expect(capturedBody?.query).toBe('^ => count(words)');
-    expect(capturedBody?.contextText).toBe('Tämä on muistiinpanoni tekstiä.');
+    expect(calls[0]?.query).toBe('^ => count(words)');
+    expect(calls[0]?.contextText).toBe('Tämä on muistiinpanoni tekstiä.');
   });
 
   it('strips all embedded and preceding ISLA directives from contextText', async () => {
