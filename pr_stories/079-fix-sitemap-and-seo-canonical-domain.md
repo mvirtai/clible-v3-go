@@ -1,4 +1,4 @@
-# Pull Request Story: 077 – Fix Sitemap and SEO Canonical Domain (`clible.fi`)
+# Pull Request Story: 079 – Fix Sitemap and SEO Canonical Domain (`clible.fi`)
 
 ## Overview & Business Context
 
