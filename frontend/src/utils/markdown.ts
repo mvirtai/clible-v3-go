@@ -32,6 +32,8 @@ export interface CLIResultData {
   themes?: Array<{ word: string; count: number }>;
   /** Word frequency list */
   words?: Array<{ word: string; count: number }>;
+  /** Top words alias */
+  top_words?: Array<{ word: string; count: number }>;
   /** Token statistics */
   unique_tokens?: number;
   token_count?: number;
