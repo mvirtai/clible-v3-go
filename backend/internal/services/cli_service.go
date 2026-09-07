@@ -14,6 +14,7 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/dsl"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/parsers"
+	newdsl "github.com/mvirtai/clible-v3-go/new_dsl"
 )
 
 // ThemeItem represents an extracted themeword and its appearance count.
@@ -43,6 +44,101 @@ func (s *CLIService) ExecuteDSL(ctx context.Context, input string, defaultTrans 
 			return nil, errors.New("missing reference after '~'")
 		}
 		return s.executeRefsCommand(ctx, &CLICommand{Name: "/refs", Args: []string{refStr}}, defaultTrans)
+	}
+
+	// 1. Try parsing and executing with ISLA v2 engine (object-method syntax)
+	if v2Expr, v2Err := newdsl.ParseISLA(trimmedInput); v2Err == nil {
+		v2ExecCtx := &newdsl.ExecutionContext{
+			Ctx:           ctx,
+			DefaultTrans:  defaultTrans,
+			ContextText:   contextText,
+			VerseFetcher:  s.verseService,
+			VerseSearcher: s.verseService,
+			ThemeExtractor: func(text string, limit int) []models.ThemeItem {
+				items := ExtractThemes(text, limit)
+				var res []models.ThemeItem
+				for _, item := range items {
+					res = append(res, models.ThemeItem{Word: item.Word, Count: item.Count})
+				}
+				return res
+			},
+			RefsFinder: func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error) {
+				if limit <= 0 {
+					limit = 5
+				}
+				verses, err := s.verseService.GetVerses(ctx, ref, translationID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to fetch source verse: %w", err)
+				}
+				if len(verses) == 0 {
+					return nil, fmt.Errorf("source verse not found for reference: %s", ref)
+				}
+				keywords := ExtractKeywords(verses[0].Text)
+				if len(keywords) == 0 {
+					return []models.Verse{}, nil
+				}
+				tid := parsers.ResolveTranslationID(translationID)
+				refs, err := s.verseRepo.SearchByKeywords(ctx, keywords, tid, limit+2)
+				if err != nil {
+					return nil, fmt.Errorf("failed to search cross-references: %w", err)
+				}
+				var filtered []models.Verse
+				for _, r := range refs {
+					if r.BookID != verses[0].BookID || r.Chapter != verses[0].Chapter || r.Verse != verses[0].Verse {
+						filtered = append(filtered, r)
+					}
+				}
+				if len(filtered) > limit {
+					filtered = filtered[:limit]
+				}
+				return filtered, nil
+			},
+			SuggestFinder: func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error) {
+				if limit <= 0 {
+					limit = 5
+				}
+				trimmed := strings.TrimSpace(contextText)
+				if trimmed == "" {
+					return []models.Verse{}, []string{}, nil
+				}
+				keywords := ExtractKeywords(trimmed)
+				if len(keywords) == 0 {
+					return []models.Verse{}, []string{}, nil
+				}
+				tid := parsers.ResolveTranslationID(translationID)
+				suggestions, err := s.verseRepo.SearchByKeywords(ctx, keywords, tid, limit)
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to search suggestions: %w", err)
+				}
+				return suggestions, keywords, nil
+			},
+		}
+
+		if s.analyticService != nil {
+			v2ExecCtx.AnalyticsFinder = func(verses []models.Verse, text string, topN int) newdsl.AnalyticsData {
+				var targetVerses []models.Verse
+				if len(verses) > 0 {
+					targetVerses = verses
+				} else if text != "" {
+					targetVerses = []models.Verse{{Text: text}}
+				}
+				res := s.analyticService.AnalyzeVerses(targetVerses, topN)
+				var topWords []models.ThemeItem
+				for _, tw := range res.TopWords {
+					topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
+				}
+				return newdsl.AnalyticsData{
+					TokenCount:        res.TokenCount,
+					UniqueTokenCount:  res.UniqueTokenCount,
+					TypeTokenRatio:    res.TypeTokenRatio,
+					CharacterCount:    res.CharacterCount,
+					AverageWordLength: res.AverageWordLength,
+					TopWords:          topWords,
+				}
+			}
+		}
+
+		return newdsl.Execute(v2ExecCtx, v2Expr)
 	}
 
 	node, err := dsl.Parse(trimmedInput)

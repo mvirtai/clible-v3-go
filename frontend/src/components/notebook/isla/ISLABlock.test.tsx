@@ -247,4 +247,41 @@ describe('ISLABlock', () => {
     expect(container?.textContent).toContain('#valkeus');
     expect(container?.textContent).toContain('(3)');
   });
+
+  it('renders output operator slug and direction indicator when present', async () => {
+    const mockOutputOpResult = {
+      type: 'count',
+      data: {
+        count: 42,
+        metric: 'verses',
+        output_op: {
+          kind: 'cell_below',
+          name: '#armo-count',
+          raw: '>> #armo-count',
+        },
+      },
+    };
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockOutputOpResult),
+      })
+    );
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <ISLABlock code='search("armo").count(verses) >> #armo-count' translation="web" />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('#armo-count');
+    expect(container?.textContent).toContain('Alapuolelle');
+    expect(container?.textContent).toContain('42');
+  });
 });
+

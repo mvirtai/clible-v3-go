@@ -611,4 +611,33 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 			t.Errorf("expected 6 words, got %v", res.Data["count"])
 		}
 	})
+
+	t.Run("execute ISLA v2 verse ref with inline output @(JHN 3:16) =>", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(ctx, "! @(JHN 3:16) =>", "web", "")
+		if err != nil {
+			t.Fatalf("ExecuteDSL v2 failed: %v", err)
+		}
+		if res.Type != "read" {
+			t.Errorf("expected type 'read', got %s", res.Type)
+		}
+		outputOp, ok := res.Data["output_op"].(map[string]interface{})
+		if !ok || outputOp["kind"] != "inline" {
+			t.Errorf("expected output_op kind 'inline', got %v", outputOp)
+		}
+	})
+
+	t.Run("execute ISLA v2 search with count and below output >> #sinners-count", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(ctx, `! search("sinners").count(verses) >> #sinners-count`, "web", "")
+		if err != nil {
+			t.Fatalf("ExecuteDSL v2 search failed: %v", err)
+		}
+		if res.Type != "count" {
+			t.Errorf("expected type 'count', got %s", res.Type)
+		}
+		outputOp, ok := res.Data["output_op"].(map[string]interface{})
+		if !ok || outputOp["kind"] != "cell_below" || outputOp["name"] != "#sinners-count" {
+			t.Errorf("expected output_op kind 'cell_below' and name '#sinners-count', got %v", outputOp)
+		}
+	})
 }
+
