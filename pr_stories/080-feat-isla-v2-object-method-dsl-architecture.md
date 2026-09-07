@@ -60,7 +60,7 @@ sequenceDiagram
     participant DSL as new_dsl Engine (Lexer/Parser/Executor)
     participant DB as Verse / Translation Repositories
 
-    User->>Frontend: Writes "! range(GEN, DEU).themes(5) >> #tooran-teemat"
+    User->>Frontend: Writes '! range(GEN, DEU).themes(5) >> #tooran-teemat'
     Frontend->>API: POST /api/dsl/eval { query, translationId, contextText }
     API->>Svc: CLIService.ExecuteDSL(ctx, query, translation, context)
     Svc->>DSL: newdsl.ParseISLA(query)
@@ -68,10 +68,10 @@ sequenceDiagram
     Svc->>DSL: newdsl.Execute(execCtx, expr)
     DSL->>DB: Fetch verses / keywords / themes
     DB-->>DSL: Verse records & lexical statistics
-    DSL-->>Svc: *models.CLIResult (Data["output_op"] populated)
+    DSL-->>Svc: *models.CLIResult (Data['output_op'] populated)
     Svc-->>API: CLIResult with output_op metadata
     API-->>Frontend: HTTP 200 OK JSON
-    Frontend-->>User: Renders thematic cards + "#tooran-teemat" badge (↓ Alapuolelle)
+    Frontend-->>User: Renders thematic cards + '#tooran-teemat' badge (Alapuolelle)
 ```
 
 ### 2. ISLA v2 Parsing & Semantic Validation Pipeline
@@ -102,19 +102,19 @@ The diagram below maps a real-world research task — *"find all New Testament v
 flowchart LR
     subgraph V1["❌ ISLA v1 — Four different conventions for one task"]
         direction TB
-        V1A["Scope:  =&gt; at(kirjeet)"]
-        V1B["Filter: ! search(&quot;armo&quot; AND &quot;usko&quot;)"]
-        V1C["Transl: =&gt; use(KR92)"]
-        V1D["Metric: =&gt; count(uw)"]
+        V1A["Scope: => at(kirjeet)"]
+        V1B["Filter: ! search('armo' AND 'usko')"]
+        V1C["Transl: => use(KR92)"]
+        V1D["Metric: => count(uw)"]
         V1E["Output: always inline, no routing"]
         V1B --> V1A --> V1C --> V1D --> V1E
     end
 
     subgraph V2["✅ ISLA v2 — One grammar, three phases"]
         direction TB
-        OBJ["① Object\n search(&quot;armo&quot; AND &quot;usko&quot;)\n — the typed data source"]
-        MTH["② Methods (dot-chained)\n .at(kirjeet).use(KR92).count(verses)\n — composable transforms"]
-        OUT["③ Output operator\n &gt;&gt; #armo-ja-usko\n — destination routing"]
+        OBJ["① Object<br/>search('armo' AND 'usko')<br/>— the typed data source"]
+        MTH["② Methods (dot-chained)<br/>.at(kirjeet).use(KR92).count(verses)<br/>— composable transforms"]
+        OUT["③ Output operator<br/>>> #armo-ja-usko<br/>— destination routing"]
         OBJ --> MTH --> OUT
     end
 ```
