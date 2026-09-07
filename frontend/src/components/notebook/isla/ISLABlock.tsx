@@ -86,7 +86,7 @@ function ISLAContent({
       )}
 
       <div className="w-full max-w-full">
-        {result.type === 'compare' && (
+        {(result.type === 'compare' || result.type === 'comparison') && (
           <CellCompareResult
             data={result.data as CompareResultData}
             selectable={false}
@@ -116,7 +116,7 @@ function ISLAContent({
         {result.type === 'count' && (
           <CellCountResult data={result.data as CountResultData} />
         )}
-        {result.type === 'words' && (
+        {(result.type === 'words' || result.type === 'top_words') && (
           <CellWordFreqResult data={result.data as WordFreqResultData} />
         )}
         {result.type === 'stats' && (

@@ -132,8 +132,8 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
     markdown = `> **${target}${trSuffix}**: ${count} ${unitLabel}\n`;
   }
 
-  else if (type === 'words') {
-    const words = data.words || [];
+  else if (type === 'words' || type === 'top_words') {
+    const words = data.words || data.top_words || [];
     if (words.length === 0) return 'Ei sanatiheyksiä.';
 
     let md = `### Sanatiheydet\n\n`;
@@ -160,7 +160,7 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
     markdown = md;
   }
 
-  else if (type === 'compare') {
+  else if (type === 'compare' || type === 'comparison') {
     const leftTrans = data.left?.translation?.toUpperCase() || 'L';
     const rightTrans = data.right?.translation?.toUpperCase() || 'R';
     const ref = data.reference || '';

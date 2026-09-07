@@ -387,19 +387,26 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 			if ctx.AnalyticsFinder != nil {
 				analytics := ctx.AnalyticsFinder(verses, text, limit)
 				currentRes = &models.CLIResult{
-					Type: "top_words",
+					Type: "words",
 					Data: map[string]interface{}{
-						"top_words": analytics.TopWords,
-						"limit":     limit,
+						"words":            analytics.TopWords,
+						"top_words":        analytics.TopWords,
+						"limit":            limit,
+						"count":            len(analytics.TopWords),
+						"token_count":      analytics.TokenCount,
+						"unique_tokens":    analytics.UniqueTokenCount,
+						"type_token_ratio": analytics.TypeTokenRatio,
 					},
 				}
 			} else {
 				items := extractTopFrequencies(aggregateText(verses, text), limit)
 				currentRes = &models.CLIResult{
-					Type: "top_words",
+					Type: "words",
 					Data: map[string]interface{}{
+						"words":     items,
 						"top_words": items,
 						"limit":     limit,
+						"count":     len(items),
 					},
 				}
 			}
@@ -499,7 +506,7 @@ func executeComparison(ctx *ExecutionContext, ref, trans1, trans2 string) (*mode
 	}
 
 	return &models.CLIResult{
-		Type: "comparison",
+		Type: "compare",
 		Data: map[string]interface{}{
 			"reference": ref,
 			"left": map[string]interface{}{

@@ -114,8 +114,8 @@ func TestExecute_CellContextTopAndStats(t *testing.T) {
 		t.Fatalf("Execute error: %v", err)
 	}
 
-	if resTop.Type != "top_words" {
-		t.Errorf("resTop.Type = %q, want 'top_words'", resTop.Type)
+	if resTop.Type != "words" {
+		t.Errorf("resTop.Type = %q, want 'words'", resTop.Type)
 	}
 	outputOp, ok := resTop.Data["output_op"].(map[string]interface{})
 	if !ok || outputOp["kind"] != "cell_above" || outputOp["name"] != "Top sanat" {
@@ -167,8 +167,8 @@ func TestExecute_Comparison(t *testing.T) {
 		t.Fatalf("Execute error: %v", err)
 	}
 
-	if res.Type != "comparison" {
-		t.Errorf("res.Type = %q, want 'comparison'", res.Type)
+	if res.Type != "compare" {
+		t.Errorf("res.Type = %q, want 'compare'", res.Type)
 	}
 }
 

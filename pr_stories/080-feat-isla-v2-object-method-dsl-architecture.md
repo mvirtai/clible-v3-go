@@ -254,8 +254,9 @@ flowchart TD
 | `backend/internal/services/notebook_service_test.go` | Added integration tests verifying `>` and `>>` output operator cell creation. |
 | `frontend/src/components/notebook/isla/islaLexer.ts` | Updated frontend tokenizer for `.`, `@(...)`, `>>`, `>`, and analytical method names. |
 | `frontend/src/components/notebook/isla/islaLexer.test.ts` | Added unit tests for frontend v2 syntax highlighting. |
-| `frontend/src/components/notebook/isla/ISLABlock.tsx` | Added visual badges and direction indicators for output operators. |
+| `frontend/src/components/notebook/isla/ISLABlock.tsx` | Added visual badges and direction indicators for output operators; aligned result type aliases (`compare`/`comparison`, `words`/`top_words`). |
 | `frontend/src/components/notebook/isla/ISLABlock.test.tsx` | Added component tests verifying output operator slug rendering. |
+| `frontend/src/utils/markdown.ts` | Added support for `compare`/`comparison` and `words`/`top_words` aliases in markdown exporter. |
 | `frontend/src/utils/i18n.ts` | Added localization strings `islaOutputAbove`, `islaOutputBelow`, and `islaOutputInline` in Finnish and English. |
 
 ---
