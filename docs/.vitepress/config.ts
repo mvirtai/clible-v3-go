@@ -4,7 +4,7 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "clible-v3",
   description:
-    "Modern, web-native Bible study, text analytics, and 2D canvas research platform.",
+    "Web-native Bible study and textual research platform: ISLA v2 query language, 2D canvas research notebooks, full-text analytics, comparative translation matrices, and Google Gemini AI integration.",
   lang: "en-US",
   cleanUrls: true,
   lastUpdated: true,

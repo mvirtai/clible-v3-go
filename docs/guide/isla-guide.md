@@ -1,182 +1,471 @@
-# ISLA Language Guide & Hybrid Cells
+# ISLA v2 Language Guide
 
-> **ISLA** — *Inline Structure & Logic Architecture*  
-> (Also: *Interactive Scripture & Layout Analyzer*)  
-> *A comprehensive guide to ISLA syntax, quick line directives (!isla, ! @), hybrid notebook workflows, and reactive Markdown blocks.*
-
----
-
-## 1. Overview & Vision
-
-In traditional computational notebooks and study environments, researchers are often forced to choose between two extremes:
-
-1. **Static Narrative (Markdown)**: Ideal for reading and publishing, but unable to dynamically update or compare scriptures across different translations without tedious copy-pasting.
-2. **Command Cells (CLI / REPL)**: Powerful for querying, but produce fragmented, cell-heavy documents that cannot be read smoothly as continuous articles, commentaries, or sermon manuscripts.
-
-**ISLA bridges this gap with a unified hybrid architecture:**
-You write clean, standard Markdown text and seamlessly embed fast **ISLA quick directives** (such as `! at(Joh 3:16) => vs(KR92, KJV)` or `! search("armo") => at(evankeliumit) => use(KR92) => count()`). The execution engine parses them into deterministic ASTs and renders responsive, live scripture comparison cards directly within your narrative flow.
+> **ISLA** — *Inline Structure & Logic Architecture*
+> *(Also: Interactive Scripture & Layout Analyzer)*
+>
+> A complete guide to the ISLA v2 object-method query language — covering syntax,
+> every object type, method reference, output operators, smart scopes,
+> and the Monaco IntelliSense engine.
 
 ---
 
-## 2. Conceptual Roles: CLI Cells vs. Markdown vs. ISLA Blocks
+## 1. Overview & Design Philosophy
+
+ISLA is a purpose-built, ergonomic query language that lives directly inside your Markdown
+research documents. It bridges the gap between two extremes that most study environments
+force you to choose between:
+
+1. **Static Narrative (Markdown)**: Ideal for reading and publishing, but unable to
+   dynamically query or compare scriptures without tedious copy-pasting.
+2. **Command Cells (CLI / REPL)**: Powerful for querying, but produce fragmented,
+   cell-heavy documents that cannot be read smoothly as continuous commentaries.
+
+**ISLA unifies both** with a hybrid architecture: you write clean, standard Markdown
+and seamlessly embed fast ISLA directives that render as live scripture comparison cards,
+analytics summaries, or keyword clouds directly within your narrative flow.
+
+### The `!` and `!isla` Trigger Prefix
+
+When authoring research notes in a **Notebook Markdown Cell**, an ISLA directive begins with the
+`!` or `!isla ` trigger prefix. This tells the editor and markdown renderer that the line is not
+plain text, but an executable ISLA directive:
+
+```isla
+! @(Joh 3:16).vs(KR92, KJV) =>
+! search("grace").at(ROM) =>
+!isla range(GEN, DEU).count(words) >> Pentateuch Word Count
+```
+
+> [!TIP]
+> The trigger prefix `!` (or `!isla `) is stripped automatically by the lexer before AST parsing,
+> ensuring clean execution whether commands are invoked inside Markdown notes, via the REST API,
+> or in interactive input widgets.
+
+### The ISLA v2 Object-Method Paradigm
+
+ISLA v2 introduces a uniform expression structure:
+
+```text
+[!] Object  .method1().method2()  OutputOperator
+```
+
+Every valid ISLA expression consists of:
+
+1. **Trigger prefix** (`!` or `!isla ` in Markdown cells) — signals code execution.
+2. **One source Object** — defines *what* data is loaded.
+3. **Zero or more chained Methods** — transform or analyze the data.
+4. **One Output Operator** — defines *where* the result is rendered.
+
+```mermaid
+flowchart LR
+    subgraph Expression ["ISLA v2 Expression in Notebook"]
+        TRG["⓪ Trigger\n!\n!isla"]
+        OBJ["① Object\n@(Joh 3:16)\nrange(GEN, DEU)\nsearch('grace')\n^3"]
+        MTH["② Methods\n.use(KR92)\n.vs(KR92, KJV)\n.themes(5)\n.stats()"]
+        OUT["③ Output\n=> inline\n> new cell above\n>> new cell below"]
+    end
+    TRG --> OBJ --> MTH --> OUT
+```
+
+---
+
+## 2. The Four Source Objects
+
+### `@(Citation)` — Verse Reference
+
+Loads a single verse, verse range, or chapter:
+
+```isla
+@(Joh 3:16) =>
+@(Rom 8:28-30) =>
+@(1 Kor 13:4-8) =>
+@(Ps 23) =>
+```
+
+The parentheses are required and may contain spaces, colons, and verse ranges using
+standard `Book chapter:verse-verse` notation.
+
+### `range(start, end)` — Passage Range
+
+Loads a contiguous span of text from a starting reference to an ending reference.
+Both arguments may be books, chapters, or specific verses:
+
+```isla
+range(Joh 1:1, Joh 1:18) =>
+range(GEN, DEU) =>
+range(ROM, GAL) =>
+range(Ps 1:1, Ps 23:6) =>
+```
+
+### `search("query")` — Full-Text & Boolean Search
+
+Executes a full-text or regex search against the database:
+
+```isla
+search("grace") =>
+search("armo" AND "rauha") =>
+search("kuolema" OR "elämä") =>
+search(/righteous.*/) =>
+```
+
+Multi-term boolean mode defaults to **AND** when terms are given without an explicit
+operator between them. Regex patterns are wrapped in `/slashes/`.
+
+### `^[n|all]` — Cell Context
+
+References the text content of preceding notebook cells. Useful for running analytics
+or semantic queries against the narrative you have already written:
+
+```isla
+^ =>          — previous one cell
+^3 =>         — previous three cells
+^all =>       — all preceding cells in this notebook
+```
+
+Cell context objects are resolved server-side: the surrounding notebook cell text is
+sent in the API request, stripped of any existing ISLA directives, and passed to the
+execution engine.
+
+---
+
+## 3. Method Reference
+
+Methods are chained after the object using dot notation: `.methodName(args)`.
+They are applied in order, left to right.
+
+### `.use(translationID)` — Translation Override
+
+Forces a specific translation, overriding any smart-scope inference:
+
+```isla
+@(Joh 3:16).use(KR92) =>
+@(Joh 3:16).use(KJV) =>
+search("grace").use(WEB).limit(5) =>
+```
+
+**Allowed on:** `@()`, `range()`, `search()`
+
+### `.vs(trans1, trans2)` — Parallel Comparison
+
+Renders the passage in two translations side-by-side in a synchronized comparison matrix:
+
+```isla
+@(Joh 3:16).vs(KR92, KJV) =>
+@(Rom 5:1).vs(KR92, KR38) =>
+@(Ps 23).vs(WEB, KJV) >>
+```
+
+**Allowed on:** `@()` only
+
+### `.refs(n)` — Cross-References
+
+Fetches up to `n` canonical cross-references for the given verse from the database
+(default: 5):
+
+```isla
+@(Joh 3:16).refs(3) =>
+@(Rom 8:28).refs() >>
+```
+
+**Allowed on:** `@()` only
+
+### `.at(scope)` — Scope Filter
+
+Restricts a search to a specific book or genre group (see [Smart Scopes](#5-smart-scopes)):
+
+```isla
+search("armo").at(epistolat) =>
+search("grace").at(epistles).limit(10) =>
+search("kuningas").at(historia) >>
+```
+
+**Allowed on:** `search()` only
+
+### `.limit(n)` — Result Limit
+
+Truncates the result set to at most `n` verses:
+
+```isla
+search("light").at(gospels).limit(5) =>
+search("armo").limit(20) >>
+```
+
+**Allowed on:** `search()` only
+
+### `.count([unit])` — Count Aggregator
+
+Counts the matched results. The optional `unit` parameter controls the counting dimension:
+
+| Unit | Aliases | Counts |
+|---|---|---|
+| `verses` *(default)* | `verse`, `v`, `jakeet`, `jae` | Total matching verses |
+| `words` | `word`, `w`, `sanat`, `sana` | Total word tokens |
+| `unique_words` | `uw`, `uniques`, `uniikit`, `sanasto` | Unique word types |
+| `chapters` | `chapter`, `c`, `luvut`, `luku` | Unique chapters represented |
+| `books` | `book`, `b`, `kirjat`, `kirja` | Unique books represented |
+
+```isla
+search("armo" AND "rauha").at(epistolat).count() =>
+range(GEN, DEU).count(words) =>
+search("grace").at(NT).count(books) >>
+```
+
+**Allowed on:** All objects
+
+### `.top(n)` — Word Frequency Rankings
+
+Extracts the `n` most frequent words from the matched text corpus, returning a ranked
+frequency list. Includes full analytics: token count, unique token count, and TTR:
+
+```isla
+range(ROM, GAL).top(15) =>
+search("armo").at(epistolat).top(10) >>
+^all.top(20) =>
+```
+
+**Allowed on:** All objects
+
+### `.stats()` — Lexical Analytics
+
+Computes comprehensive lexical statistics for the matched corpus:
+
+| Metric | Description |
+|---|---|
+| `token_count` | Total word tokens |
+| `unique_token_count` | Unique word types |
+| `type_token_ratio` | Lexical diversity (TTR): unique / total |
+| `character_count` | Total characters |
+| `avg_word_length` | Mean word length in characters |
+
+```isla
+@(Rom 8:1-39).stats() =>
+range(GEN, DEU).stats() >>
+^all.stats() =>
+```
+
+**Allowed on:** All objects (alias: `.ttr()`)
+
+### `.themes(n)` — Thematic Keyword Extraction
+
+Extracts the `n` most prominent thematic keywords from the matched corpus,
+rendered as a styled keyword cloud:
+
+```isla
+@(Joh 3:16).themes(5) =>
+range(Joh 1:1, Joh 1:18).themes(8) >>
+^all.themes(10) =>
+```
+
+**Allowed on:** All objects
+
+### `.suggest(n)` — Contextual Scripture Suggestions
+
+Returns up to `n` thematically related scripture passages based on keyword extraction
+from the cell text or matched verse corpus:
+
+```isla
+@(Joh 3:16).suggest(3) =>
+^.suggest(5) =>
+^all.suggest(10) >>
+```
+
+**Allowed on:** All objects
+
+---
+
+## 4. Output Operators
+
+Every ISLA expression must end with an output operator that specifies where the result
+is rendered.
+
+### `=>` — Inline (Current Cell)
+
+Renders the result within the current notebook cell, replacing the raw command text
+in reading mode:
+
+```isla
+@(Joh 3:16).vs(KR92, KJV) =>
+search("grace").at(epistles).count() =>
+```
+
+### `>` — New Cell Above
+
+Creates a new result cell **directly above** the current cell. An optional name or
+`#slug` identifier can follow the operator:
+
+```isla
+range(ROM, GAL).top(15) > Epistle Word Frequencies
+@(Joh 3:16).refs() > #joh316-refs
+search("grace").count(books) >
+```
+
+### `>>` — New Cell Below
+
+Creates a new result cell **directly below** the current cell:
+
+```isla
+search("armo" AND "rauha").at(epistolat).stats() >> Epistle Analytics
+^all.themes(10) >> #notebook-themes
+range(GEN, DEU).count(words) >>
+```
+
+> [!TIP]
+> Named cells (e.g. `>> #results` or `>> My Analysis`) display their name in a styled
+> header badge above the result card, making complex multi-cell notebooks easier to
+> navigate and reference.
+
+---
+
+## 5. Smart Scopes
+
+When `.at(scope)` is used with a genre group identifier (or when a Finnish/English alias
+is detected), ISLA automatically infers the appropriate Bible translation:
+
+| Scope Identifier | Books | Auto-Inferred Translation | Example |
+|---|---|---|---|
+| `epistolat` / `kirjeet` | Paul & General Epistles (ROM..JUD) | **KR92** | `search("armo").at(epistolat)` |
+| `epistles` / `letters` | Paul & General Epistles (ROM..JUD) | **WEB** | `search("grace").at(epistles)` |
+| `evankeliumit` / `evankeliumi` | Gospels (MAT, MRK, LUK, JHN) | **KR92** | `search("valkeus").at(evankeliumit)` |
+| `gospels` / `gospel` | Gospels (MAT, MRK, LUK, JHN) | **WEB** | `search("light").at(gospels)` |
+| `toora` / `laki` | Pentateuch (GEN..DEU) | **KR92** | `search("liitto").at(toora)` |
+| `torah` / `law` | Pentateuch (GEN..DEU) | **WEB** | `search("covenant").at(torah)` |
+| `viisaus` / `wisdom` | Wisdom literature (JOB..SNG) | Language-matched | `search("viisaus").at(viisaus)` |
+| `profeetat` / `prophets` | Major & Minor Prophets (ISA..MAL) | Language-matched | `search("herra").at(profeetat)` |
+| `historia` / `history` | Historical books (JOS..EST) | Language-matched | `search("kuningas").at(historia)` |
+| `VT` / `OT` | Old Testament | Language-matched | `search("armo").at(VT).count()` |
+| `UT` / `NT` | New Testament | Language-matched | `search("armo").at(UT).count()` |
+
+Individual book identifiers (`Joh`, `ROM`, `Ps`, `GEN`, etc.) are also valid scope values.
+
+> [!TIP]
+> **Explicit override:** Append `.use(translationID)` after `.at(scope)` to force a specific
+> translation regardless of scope inference:
+> `search("grace").at(epistolat).use(KJV) =>`
+
+---
+
+## 6. Notebook Integration & Hybrid Cell Workflows
+
+ISLA expressions are embedded directly inside **Markdown Cells** in a Clible Notebook:
+
+```markdown
+Paul's understanding of justification centers on faith:
+
+@(Rom 5:1).vs(KR92, KJV) =>
+
+The word "armo" (grace/mercy) dominates this section:
+
+search("armo" AND "rauha").at(epistolat).top(8) >>
+```
+
+In **reading mode** (outside edit mode):
+
+1. **Clean Typography**: The raw ISLA syntax is hidden; elegant serif scripture cards
+   are rendered in its place.
+2. **Hover Inspection**: Hovering over any result card reveals a floating
+   `✦ @(Rom 5:1).vs(KR92, KJV) =>` badge in the top-right corner.
+
+### CLI Scratchpad Workflow
+
+The CLI scratchpad cell (prefix: `$ clible`) provides an interactive exploration
+environment that complements ISLA narrative embeds:
+
+1. Execute `$ clible search "grace" --scope=ROM` to browse results.
+2. Use the interactive checkboxes to select relevant verses.
+3. Click **Freeze** — selected verses are appended as a formatted Markdown cell, and
+   the CLI prompt resets instantly to `$ clible` for the next query.
 
 ```mermaid
 flowchart TD
-    subgraph Layer1 ["1. Scratchpad & Query Workspace (CLI CodeCell)"]
-        CLI["$ clible read Joh 3:16 --compare=KJV"]
-        CHECK["Interactive Checkboxes: Pick relevant verses"]
+    subgraph Scratchpad ["CLI Scratchpad (CodeCell)"]
+        CLI["$ clible search ..."]
+        PICK["☑ Interactive verse selection"]
         FREEZE["Click: Freeze"]
-        CLI --> CHECK --> FREEZE
+        CLI --> PICK --> FREEZE
     end
 
-    subgraph Layer2 ["2. Permanent Narrative (MarkdownCell)"]
-        NARRATIVE["Permanent study notes, articles, and commentary"]
-        FROZEN["Frozen static verses inserted seamlessly"]
-        NARRATIVE --- FROZEN
+    subgraph Narrative ["Permanent Narrative (MarkdownCell)"]
+        PROSE["Commentary & exegesis text"]
+        STATIC["Frozen verse quotes"]
+        ISLA["@(ref).method() => embedded live cards"]
     end
 
-    subgraph Layer3 ["3. Dynamic Reactive Embed (ISLA Directives)"]
-        EMBED["! at(Joh 3:16) => vs(KR92, KJV) or ! search(...)"]
-        LIVE["Live, side-by-side comparative scripture card (hidden command, visible on hover)"]
-        EMBED --> LIVE
-    end
-
-    FREEZE -->|"Appends Markdown & resets CLI prompt"| NARRATIVE
-    NARRATIVE -.->|"Can be enriched with"| EMBED
-```
-
-### Role Matrix
-
-| Component | UI Entity | Primary Purpose | When to Use |
-| --- | --- | --- | --- |
-| **CLI Scratchpad** | `CodeCell` (`$ clible`) | Fast exploration, ad-hoc queries, filtering verses via checkboxes | When searching and discovering material before committing to text. |
-| **Static Narrative** | `MarkdownCell` | Main reading text, headings, commentary, and permanent references | When authoring the final document or notes. |
-| **Reactive Embed** | `ISLABlock` (`!isla`, `! at(...)`, `! @`, `! ?`) | Live, dynamic queries and side-by-side translation matrices | When you want a permanent live card that reacts to translation changes. |
-
-> [!TIP]
-> **Why do CLI cells persist after freezing?**  
-> In Clible-v3, a CLI cell acts as a persistent "workbench". When you click **Freeze**, the selected verses are converted into a Markdown cell below/above, and the CLI input **instantly resets back to a pristine `$ clible` prompt**. You do not need to create 50 separate CLI cells; one or two cells serve as continuous scratchpads throughout your session.
-
----
-
-## 3. Fast Embedding Shortcuts in Markdown
-
-ISLA supports 4 fast embedding patterns:
-
-### Method 1: Standard Quick Aliases `! at(...)`, `! @`, `! ?`, `! search(...)`, `! range(...)` (Recommended)
-
-Place an exclamation mark followed by a space directly before the source expression:
-
-```markdown
-Key comparative passage:
-! at(Joh 3:16) => vs(KR92, KJV)
-
-Passage range study:
-! range(Joh 1:1, Joh 3:36) => themes(5)
-
-Boolean text search with smart scope:
-! search("armo" AND "rauha") @epistolat => count()
-
-Alternative search with named parameters:
-! search("armo", scope: epistolat, limit: 5)
-```
-
-### Method 2: Direct Line Directive `!isla ...` or `! ...`
-
-```markdown
-! at(Joh 3:16) => use(KR92)
-! at(Rom 8:28-30) => vs(KR92, KJV)
-! range(GEN, DEU) => count()
-```
-
-### Method 3: Inline Shortcut `` `! @...` `` or `` `!isla ...` ``
-
-Embed live verses directly inside paragraph sentences:
-
-```markdown
-The cornerstone verse `! at(Joh 3:16) => vs(KR92, KJV)` anchors the entire chapter.
-```
-
-### Method 4: Standard Markdown Embed `![...]` and Link `[...]`
-
-Utilizes standard single bracket Markdown embed and link syntax:
-
-```markdown
-Inline clickable reference: [@Joh 3:16]
-Live embedded scripture card: ![at(Joh 3:16) => vs(KR92, KJV)]
-Live cross-references: ![from(Joh 3:16) => refs(3)]
-Live passage range: ![range(Joh 1:1, Joh 3:36) => themes(5)]
+    FREEZE -->|"Appends Markdown & resets prompt"| STATIC
+    PROSE --- STATIC
+    PROSE -..-> ISLA
 ```
 
 ---
 
-## 4. Smart Scopes & Automatic Translation Inference
+## 7. Monaco IntelliSense
 
-When executing searches across smart book groups, ISLA automatically selects the matching Bible translation based on the scope language (unless an explicit `=> use(...)` pipe is provided):
+ISLA features a rich language intelligence layer integrated into the notebook editor:
 
-| Scope Identifier | Target Books | Inferred Translation | Example Query |
-| --- | --- | --- | --- |
-| `@epistolat` / `@kirjeet` | Paul & General Epistles (ROM..JUD) | **KR92** (`fin-1992`) | `! search("armo") @epistolat` |
-| `@epistles` / `@letters` | Paul & General Epistles (ROM..JUD) | **WEB** (`web`) | `! search("grace") @epistles` |
-| `@evankeliumit` | Gospels (MAT, MRK, LUK, JHN) | **KR92** (`fin-1992`) | `! search("valkeus") @evankeliumit` |
-| `@gospels` | Gospels (MAT, MRK, LUK, JHN) | **WEB** (`web`) | `! search("light") @gospels` |
-| `@toora` / `@laki` | Pentateuch (GEN..DEU) | **KR92** (`fin-1992`) | `! search("liitto") @toora` |
-| `@torah` / `@law` | Pentateuch (GEN..DEU) | **WEB** (`web`) | `! search("covenant") @torah` |
-| `@viisaus` / `@wisdom` | Wisdom literature (JOB..SNG) | Language-matched | `! search("viisaus") @viisaus` |
-| `@profeetat` / `@prophets` | Major & Minor Prophets (ISA..MAL) | Language-matched | `! search("herra") @profeetat` |
-| `@historia` / `@history` | Historical books (JOS..EST) | Language-matched | `! search("kuningas") @historia` |
-| `@VT` / `@OT` | Old Testament (Genesis–Malachi) | Language-matched | `! search("armo") @VT => count()` |
-| `@UT` / `@NT` | New Testament (Matthew–Revelation) | Language-matched | `! search("armo") @UT => count()` |
+### Autocompletion Triggers
 
-> [!TIP]
-> **Explicit override:** To search a specific translation regardless of the scope language, append `=> use(...)`:  
-> `! search("grace") @epistolat => use(KJV)`
+| Typed text | Completion offered |
+|---|---|
+| `@(` | Book name suggestions (`Joh`, `ROM`, `GEN`, ...) |
+| `search(` | Query templates: string literal, boolean, regex |
+| `range(` | Book and chapter reference patterns |
+| `.` | All valid methods for the current object type |
+| `.at(` | All scope identifiers and book names |
+| `.use(` | All installed translation IDs |
+| `.vs(` | Two-translation pair templates |
 
----
+### Hover Documentation
 
-## 5. Visual Polish: Command Syntax Hidden in Reading Mode
+Hovering over any ISLA keyword or method name in the editor displays an inline
+documentation card showing the method signature, description, and a working example.
 
-When exiting edit mode (`Esc` or `Ctrl + Enter`):
+### Levenshtein Diagnostic Errors
 
-1. **Clean Typography**: The technical query syntax (`! at(Joh 3:16) => vs(KR92, KJV)`) is hidden, presenting clean, distraction-free Lora serif scripture cards.
-2. **Hover Inspection**: Hovering over any card reveals a floating `✦ at(Joh 3:16) => vs(KR92, KJV)` badge in the top-right corner to inspect the underlying query.
+The parser performs Levenshtein distance matching on unrecognized method names and
+returns structured correction suggestions:
 
----
+```
+isla: unknown method .cnt()
+      Did you mean: .count() ?
+```
 
-## 6. Monaco Intellisense & Diagnostic Engine
-
-ISLA features rich language intelligence integrated into notebook editors:
-
-- **Autocompletion Triggers**:
-  - `! ` — Presents quick action snippets (verse lookup, range, boolean search, comparison).
-  - `@` — Triggers book and smart scope completions (`@epistolat`, `@evankeliumit`, `@toora`, `@viisaus`, `@profeetat`, etc.).
-  - `=>` — Suggests pipeline actions (`use()`, `vs()`, `refs()`, `themes()`, `suggest()`, `count()`, `limit()`).
-  - `?` — Suggests boolean search and regex patterns.
-- **Hover Documentation**: Hovering over any ISLA keyword or citation in the editor displays inline markdown documentation with parameter descriptions and examples.
-- **Levenshtein Distance Diagnostics**: If you mistype an action (such as `! at(Joh 3:16) => cnt()`), the parser returns a structured diagnostic error with a helpful correction:
-  `Unknown action 'cnt'. Did you mean 'count'?`
+```
+isla: unknown method .thems()
+      Did you mean: .themes() ?
+```
 
 ---
 
-## 7. ISLA Syntax Reference & Cheat Sheet
+## 8. ISLA v2 Syntax Cheat Sheet
 
-| Query Pattern | Syntax Example | Rendered View | Description |
-| --- | --- | --- | --- |
-| **Passage Lookup** | `! at(Joh 3:16)`<br>`! @Joh 3:16` | Verse Card | Retrieves passage in default translation |
-| **Passage Range** | `! range(Joh 1:1, Joh 1:5)`<br>`! range(GEN, DEU)` | Verse Collection | Fetches contiguous text passage from start to end |
-| **Translation Projection** | `! at(Joh 3:16) => use(KR92)`<br>`! @Joh 3:16 => in(KR92)` | Verse Card | Projects passage into specified translation |
-| **Comparative Matrix** | `! at(Joh 3:16) => vs(KR92, KJV)`<br>`! @Joh 3:16 ? KR92 : KJV` | 2-Column Matrix | Synchronized side-by-side comparative layout |
-| **Cross-References** | `! at(Joh 3:16) => refs(3)`<br>`! ~ @Joh 3:16` | Verse Collection | Related cross-references from the database |
-| **Thematic Extraction** | `! at(Joh 3:16) => themes(5)`<br>`! range(Joh 1:1, Joh 1:5) => themes(5)`<br>`! ^ => themes(10)` | Keyword Cloud | Extracted thematic keywords and frequencies |
-| **Contextual Suggestions** | `! ^ => suggest(3)`<br>`! at(Joh 3:16) => suggest(5)` | Verse Collection | Content-driven related scripture suggestions |
-| **Full-Text Search** | `! search("love")`<br>`! ? "love"` | Verse List | Full-text database search |
-| **Boolean AND Search** | `! search("armo" AND "rauha")` | Verse List | Verses matching all specified search terms |
-| **Boolean OR Search** | `! search("kuolema" OR "elämä")` | Verse List | Verses matching at least one specified term |
-| **Named Parameter Search** | `! search("armo", scope: epistolat, limit: 5)` | Verse List | Structured search with inline scope and limit |
-| **Scoped Search** | `! search("light") @Joh`<br>`! search("valkeus") => at(Joh)` | Verse List | Search restricted to specific biblical book |
-| **Genre & Group Scopes** | `! search("armo") @epistolat`<br>`! search("grace") @epistles`<br>`! search("valkeus") @evankeliumit`<br>`! search("laki") @toora` | Verse List | Search restricted to smart genre group with auto-inferred translation |
-| **Regex Query** | `! ? /righteous.*/ @Rom` | Verse List | Morphological pattern match |
-| **Count Aggregator** | `! search("armo" AND "rauha") @epistolat => count()`<br>`! range(Joh 1:1, Joh 1:5) => count()` | Metric Card | Match count metric card |
-| **Chained Pipeline** | `! search("armo") => at(epistolat) => use(KR92) => count()` | Result Card | Sequential multi-stage evaluation |
+| Query Pattern | Expression | Result Type |
+|---|---|---|
+| **Verse lookup, default translation** | `@(Joh 3:16) =>` | Verse card |
+| **Force translation** | `@(Joh 3:16).use(KR92) =>` | Verse card |
+| **Side-by-side comparison** | `@(Joh 3:16).vs(KR92, KJV) =>` | Comparison matrix |
+| **Passage range** | `range(Joh 1:1, Joh 1:18) =>` | Verse collection |
+| **Cross-references** | `@(Joh 3:16).refs(5) =>` | Verse collection |
+| **Thematic keywords** | `@(Joh 3:16).themes(5) =>` | Keyword cloud |
+| **Contextual suggestions** | `^.suggest(5) =>` | Verse collection |
+| **Single-term search** | `search("grace") =>` | Verse list |
+| **Boolean AND search** | `search("armo" AND "rauha") =>` | Verse list |
+| **Boolean OR search** | `search("kuolema" OR "elämä") =>` | Verse list |
+| **Regex search** | `search(/righteous.*/).at(ROM) =>` | Verse list |
+| **Scoped search** | `search("light").at(gospels) =>` | Verse list |
+| **Scoped search with limit** | `search("armo").at(epistolat).limit(5) =>` | Verse list |
+| **Verse count** | `search("grace").at(NT).count() =>` | Count metric |
+| **Word count** | `range(GEN, DEU).count(words) =>` | Count metric |
+| **Lexical analytics** | `range(ROM, GAL).stats() =>` | Stats card |
+| **Word frequencies** | `range(ROM, GAL).top(15) =>` | Frequency list |
+| **Output to new cell below** | `search("armo").at(epistolat).stats() >>` | Named result cell |
+| **Output to new cell above** | `@(Joh 3:16).refs() > Cross-References` | Named result cell |
+| **Cell context analytics** | `^all.themes(10) =>` | Keyword cloud |
+| **Chained multi-method** | `search("armo").at(epistolat).limit(10).top(5) =>` | Frequency list |
 
+---
 
+## 9. Naming & Dedication
+
+The name **ISLA** honors *Isla Aurora*, symbolizing brightness, clarity, and elegant structure.
+
+Every query executed by the ISLA engine represents a commitment to clean code, joyful
+engineering, and lasting open-source value.

@@ -44,7 +44,7 @@ flowchart TD
 The navigation bar at the top of the screen gives you one-click access to all primary research tools:
 
 | View | Icon / Key | Primary Function |
-|---|---|---|
+| --- | --- | --- |
 | **Reader** | 📖 `Reader` | Chapter-by-chapter scripture reading, verse selection, and translation switching. |
 | **Search** | 🔎 `Search` | Full-text, phrase, and regular expression searches across custom book/testament scopes. |
 | **Compare** | ⚖️ `Compare` | Parallel side-by-side translation comparison with visual word difference diffing. |
@@ -92,14 +92,18 @@ Follow this quick walkthrough to explore the core capabilities of the web applic
 1. Navigate to **Notebooks** and click **New Notebook**.
 2. Add a **Markdown Cell** to write your commentary and insights.
 3. Embed a live ISLA directive inside your markdown notes:
+
    ```markdown
    Key comparative passage:
-   ! at(Joh 3:16) => vs(KR92, KJV)
+   ! @(Joh 3:16).vs(KR92, KJV) =>
    ```
+
 4. Add a **CLI Scratchpad Cell** (`$ clible`) to test queries dynamically:
+
    ```bash
-   $ clible search "grace" --scope=ROM
+   clible search "grace" --scope=ROM
    ```
+
 5. Select the relevant verses using the checkboxes and click **Freeze** to append them as permanent Markdown commentary.
 6. Resize and position the notebook cards on the 24-column grid canvas to create your custom visual study layout.
 
