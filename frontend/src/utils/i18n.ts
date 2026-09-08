@@ -201,6 +201,8 @@ export interface Messages {
   islaKeyNavigate: string;
   islaKeySelect: string;
   islaKeyClose: string;
+  islaModeLabel: string;
+  markdownModeLabel: string;
   appendMarkdownCellLabel: string;
   appendCodeCellLabel: string;
   savedLabel: string;
@@ -541,6 +543,8 @@ export const strings: Record<UILanguage, Messages> = {
     islaKeyNavigate: 'navigate',
     islaKeySelect: 'select',
     islaKeyClose: 'close',
+    islaModeLabel: 'ISLA DSL',
+    markdownModeLabel: 'Markdown',
     appendMarkdownCellLabel: '+ Add cell to end',
     appendCodeCellLabel: '+ Add cell to end',
     savedLabel: 'Saved',
@@ -866,6 +870,8 @@ export const strings: Record<UILanguage, Messages> = {
     islaKeyNavigate: 'navigoi',
     islaKeySelect: 'valitse',
     islaKeyClose: 'sulje',
+    islaModeLabel: 'ISLA DSL',
+    markdownModeLabel: 'Markdown',
     appendMarkdownCellLabel: '+ Lisää solu loppuun',
     appendCodeCellLabel: '+ Lisää solu loppuun',
     savedLabel: 'Tallennettu',

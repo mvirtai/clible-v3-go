@@ -398,5 +398,45 @@ describe('MarkdownCell', () => {
       'Edellisen solun muistiinpano.\n\nTämä on oikeaa muistiinpanotekstiä.'
     );
   });
+
+  it('opens ISLAEditor with syntax layer and execute button when editing an ISLA cell', async () => {
+    const cell = {
+      id: 'cell-isla-1',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '! @Joh 3:16 => web',
+    };
+    const onChange = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={onChange} />
+        </LanguageProvider>
+      );
+    });
+
+    // Double click to open edit mode
+    const markdownDiv = container?.querySelector('div.prose');
+    if (markdownDiv) {
+      await act(async () => {
+        markdownDiv.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+      });
+    }
+
+    // ISLAEditor is rendered
+    expect(container?.querySelector('div.group\\/isla-editor')).not.toBeNull();
+    expect(container?.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    const executeBtn = container?.querySelector('button[aria-label="Suorita ISLA-komento"]');
+    expect(executeBtn).not.toBeNull();
+
+    // Clicking execute calls onChange and exits edit mode
+    await act(async () => {
+      (executeBtn as HTMLButtonElement)?.click();
+    });
+    expect(onChange).toHaveBeenCalledWith('! @Joh 3:16 => web');
+    expect(container?.querySelector('div.group\\/isla-editor')).toBeNull();
+  });
 });
 

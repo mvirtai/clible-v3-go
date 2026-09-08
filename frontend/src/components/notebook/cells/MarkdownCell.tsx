@@ -4,8 +4,8 @@ import remarkGfm from 'remark-gfm';
 import type { Cell } from '../types';
 import { useLanguage } from '../../../context/LanguageContext';
 import { ISLABlock } from '../isla/ISLABlock';
-import { getISLASuggestions } from '../isla/islaIntellisense';
-import { isISLALine, tokenizeISLALine } from '../isla/islaLexer';
+import { ISLAEditor } from '../isla/ISLAEditor';
+import { isISLALine } from '../isla/islaLexer';
 import { stripISLAFromText } from '../isla/islaUtils';
 
 /**
@@ -42,6 +42,21 @@ export function MarkdownCell({
   contextText = '',
 }: MarkdownCellProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [editorMode, setEditorMode] = useState<'auto' | 'isla' | 'markdown'>('auto');
+
+  // Sync / reset mode when exiting editing without useEffect
+  const [prevEditing, setPrevEditing] = useState(isEditing);
+  if (prevEditing !== isEditing) {
+    setPrevEditing(isEditing);
+    if (!isEditing) {
+      setEditorMode('auto');
+    }
+  }
+
+  const isISLAContent = isISLALine(cell.content.trim());
+  const activeMode = editorMode === 'auto'
+    ? (isISLAContent ? 'isla' : 'markdown')
+    : editorMode;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
@@ -234,26 +249,85 @@ export function MarkdownCell({
     const val = e.target.value;
     onChange(val);
 
-    // Live debug logging for ISLA IntelliSense and Lexer in browser console
-    const cursor = e.target.selectionStart ?? val.length;
-    const lines = val.slice(0, cursor).split('\n');
-    const currentLine = lines[lines.length - 1] || '';
-    const lineOffset = currentLine.length;
-
-    if (isISLALine(currentLine)) {
-      const suggestions = getISLASuggestions(currentLine, lineOffset);
-      const tokens = tokenizeISLALine(currentLine);
-      console.log(`[ISLA IntelliSense] Line: "${currentLine}" | Offset: ${lineOffset}`, {
-        suggestionsCount: suggestions.length,
-        suggestions: suggestions.map((s) => ({ label: s.label, kind: s.kind, detail: s.detail })),
-        tokens,
-      });
+    if (editorMode === 'auto' && isISLALine(val.trim())) {
+      setEditorMode('isla');
     }
   };
 
   if (isEditing) {
+    if (activeMode === 'isla') {
+      return (
+        <div className="w-full relative space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-amber-500 flex items-center gap-1">
+                <span>✦</span> {strings.islaModeLabel}
+              </span>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setEditorMode('markdown')}
+                className="text-[10px] text-[var(--muted)] hover:text-[var(--text)] cursor-pointer px-1.5 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+                title={strings.markdownModeLabel}
+              >
+                {strings.markdownModeLabel}
+              </button>
+            </div>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setIsEditing(false)}
+              className="text-[10px] text-[var(--muted)] hover:text-[var(--text)] cursor-pointer px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+            >
+              Esc / {strings.islaKeyClose}
+            </button>
+          </div>
+          <ISLAEditor
+            initialCode={cell.content}
+            translationId={translation}
+            contextText={contextText}
+            onExecute={(code) => {
+              onChange(code);
+              setIsEditing(false);
+            }}
+            onChange={onChange}
+            onCancel={() => setIsEditing(false)}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="w-full relative">
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[var(--muted)]">
+              {strings.markdownModeLabel}
+            </span>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setEditorMode('isla');
+                if (!cell.content.trim()) {
+                  onChange('! ');
+                }
+              }}
+              className="text-[10px] font-mono font-bold text-amber-500 hover:text-amber-400 cursor-pointer px-1.5 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors flex items-center gap-1"
+              title={strings.islaModeLabel}
+            >
+              <span>✦</span> {strings.islaModeLabel}
+            </button>
+          </div>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setIsEditing(false)}
+            className="text-[10px] text-[var(--muted)] hover:text-[var(--text)] cursor-pointer px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+          >
+            Esc / {strings.islaKeyClose}
+          </button>
+        </div>
         <textarea
           ref={(node) => {
             if (node) {

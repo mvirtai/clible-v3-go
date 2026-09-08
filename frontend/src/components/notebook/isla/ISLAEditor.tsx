@@ -46,6 +46,16 @@ export interface ISLAEditorProps {
    * @param code - The current code text after each change.
    */
   onChange?: (code: string) => void;
+
+  /**
+   * Called when the user cancels editing (e.g. by pressing Escape when autocomplete is closed).
+   */
+  onCancel?: () => void;
+
+  /**
+   * Called when focus moves outside of the editor component.
+   */
+  onBlur?: () => void;
 }
 
 /**
@@ -91,15 +101,25 @@ export function ISLAEditor({
   translationId,
   onExecute,
   onChange,
+  onCancel,
+  onBlur,
 }: ISLAEditorProps): JSX.Element {
   const { strings } = useLanguage();
 
   // Lazy state initialization for initial code and caret position
-  const [code, setCode] = useState(() => initialCode.trim());
-  const [cursorOffset, setCursorOffset] = useState(() => initialCode.trim().length);
+  const [code, setCode] = useState(() => initialCode);
+  const [cursorOffset, setCursorOffset] = useState(() => initialCode.length);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [hoveredKeyword, setHoveredKeyword] = useState<string | null>(null);
+
+  // Sync state if initialCode prop changes from parent without useEffect
+  const [prevInitialCode, setPrevInitialCode] = useState(initialCode);
+  if (prevInitialCode !== initialCode) {
+    setPrevInitialCode(initialCode);
+    setCode(initialCode);
+    setCursorOffset(initialCode.length);
+  }
 
   // Single DOM ref strictly used for imperative element focus
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -169,6 +189,7 @@ export function ISLAEditor({
     if (e.key === 'Escape') {
       setShowAutocomplete(false);
       setHoveredKeyword(null);
+      onCancel?.();
     }
   }
 
@@ -197,10 +218,12 @@ export function ISLAEditor({
     }
   }
 
-  function handleBlur() {
-    // Autocomplete options use onMouseDown e.preventDefault() so they can be clicked without blur
+  function handleBlur(e: React.FocusEvent<HTMLTextAreaElement>) {
     setShowAutocomplete(false);
     setHoveredKeyword(null);
+    if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) {
+      onBlur?.();
+    }
   }
 
   return (
@@ -213,7 +236,16 @@ export function ISLAEditor({
 
       {/* Transparent textarea underneath overlay */}
       <textarea
-        ref={textareaRef}
+        ref={(node) => {
+          textareaRef.current = node;
+          if (node && !node.dataset.focused) {
+            node.dataset.focused = 'true';
+            node.focus();
+            const len = node.value.length;
+            node.setSelectionRange(len, len);
+          }
+        }}
+        autoFocus
         value={code}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
@@ -238,6 +270,7 @@ export function ISLAEditor({
           'font-mono text-sm leading-relaxed',
           'px-3 py-2 pr-9',
           'text-transparent caret-amber-400 dark:caret-amber-300',
+          'placeholder:text-[var(--muted)]/50',
           'border border-amber-500/30 rounded-lg focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50',
           'whitespace-pre-wrap overflow-hidden transition-all',
         ].join(' ')}
@@ -248,6 +281,7 @@ export function ISLAEditor({
       {/* Inline run button */}
       <button
         type="button"
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => {
           setShowAutocomplete(false);
           onExecute(code);

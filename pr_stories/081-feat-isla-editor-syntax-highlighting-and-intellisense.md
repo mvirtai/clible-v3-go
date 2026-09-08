@@ -141,8 +141,9 @@ export function ISLAEditor({
 | `frontend/src/components/notebook/isla/ISLAHoverCard.test.tsx` | Unit tests for keyword documentation lookup and unknown command handling. |
 | `frontend/src/components/notebook/isla/ISLAEditor.tsx` | Main interactive editor binding overlay, textarea, autocomplete, and hover documentation. |
 | `frontend/src/components/notebook/isla/ISLAEditor.test.tsx` | Comprehensive integration tests verifying typing, keyboard execution, and autocomplete cycles. |
-| `frontend/src/utils/i18n.ts` | Added 7 localized bilingual strings (`en` and `fi`) for ISLA editor placeholders, labels, and shortcuts. |
-| `.plans/muistiot/isla-editor-syntaksikorostus-ja-autotaydennys-opas.md` | In-depth educational Finnish architecture guide explaining the overlay pattern and React 19.2 paradigms. |
+| `frontend/src/components/notebook/cells/MarkdownCell.tsx` | Integrated `ISLAEditor` into notebook cells with automatic detection and mode switching. |
+| `frontend/src/components/notebook/cells/MarkdownCell.test.tsx` | Added integration tests verifying `ISLAEditor` rendering, execution, and mode toggle in cells. |
+| `frontend/src/utils/i18n.ts` | Added 9 localized bilingual strings (`en` and `fi`) for ISLA editor placeholders, labels, and mode tags. |
 
 ---
 
@@ -153,7 +154,7 @@ export function ISLAEditor({
 #### Frontend (Vitest Suite)
 
 * **Command:** `pnpm exec vitest run`
-* **Result:** 34 test files passed, 221 tests passed (0 failures).
+* **Result:** 34 test files passed, 222 tests passed (0 failures).
 * **Lint & Typecheck:** `eslint .` (0 errors, 0 warnings), `tsc -b --noEmit` (0 errors).
 
 #### Backend (Go Test Suite)
