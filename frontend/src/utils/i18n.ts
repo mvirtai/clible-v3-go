@@ -194,6 +194,13 @@ export interface Messages {
   islaOutputAbove: string;
   islaOutputBelow: string;
   islaOutputInline: string;
+  islaEditorPlaceholder: string;
+  islaExecuteAriaLabel: string;
+  islaAutocompleteLabel: string;
+  islaHoverExample: string;
+  islaKeyNavigate: string;
+  islaKeySelect: string;
+  islaKeyClose: string;
   appendMarkdownCellLabel: string;
   appendCodeCellLabel: string;
   savedLabel: string;
@@ -527,6 +534,13 @@ export const strings: Record<UILanguage, Messages> = {
     islaOutputAbove: 'Cell above',
     islaOutputBelow: 'Cell below',
     islaOutputInline: 'This cell',
+    islaEditorPlaceholder: 'Type an ISLA command… (e.g. ! @Joh 3:16 =>)',
+    islaExecuteAriaLabel: 'Execute ISLA command',
+    islaAutocompleteLabel: 'ISLA autocomplete suggestions',
+    islaHoverExample: 'e.g.',
+    islaKeyNavigate: 'navigate',
+    islaKeySelect: 'select',
+    islaKeyClose: 'close',
     appendMarkdownCellLabel: '+ Add cell to end',
     appendCodeCellLabel: '+ Add cell to end',
     savedLabel: 'Saved',
@@ -845,6 +859,13 @@ export const strings: Record<UILanguage, Messages> = {
     islaOutputAbove: 'Yläpuolelle',
     islaOutputBelow: 'Alapuolelle',
     islaOutputInline: 'Tähän soluun',
+    islaEditorPlaceholder: 'Kirjoita ISLA-komento... (esim. ! @Joh 3:16 =>)',
+    islaExecuteAriaLabel: 'Suorita ISLA-komento',
+    islaAutocompleteLabel: 'ISLA-täydennykset',
+    islaHoverExample: 'esim.',
+    islaKeyNavigate: 'navigoi',
+    islaKeySelect: 'valitse',
+    islaKeyClose: 'sulje',
     appendMarkdownCellLabel: '+ Lisää solu loppuun',
     appendCodeCellLabel: '+ Lisää solu loppuun',
     savedLabel: 'Tallennettu',
