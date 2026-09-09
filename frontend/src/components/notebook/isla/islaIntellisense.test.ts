@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getISLASuggestions,
   ISLA_MAIN_SNIPPETS,
+  applyISLASuggestion,
 } from './islaIntellisense';
 
 describe('islaIntellisense', () => {
@@ -202,6 +203,148 @@ describe('islaIntellisense', () => {
     });
   });
 
+  describe('Dot method chaining suggestions (.)', () => {
+    it('suggests verse-appropriate methods after typing dot on verse reference', () => {
+      const suggestions = getISLASuggestions('! @(Joh 3:16).', 14);
+      expect(suggestions.some((s) => s.label === 'use(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'vs(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'refs(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'stats()')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'top(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'count(...)')).toBe(true);
+      // at and limit are only for search
+      expect(suggestions.some((s) => s.label === 'at(...)')).toBe(false);
+      expect(suggestions.some((s) => s.label === 'limit(...)')).toBe(false);
+    });
+
+    it('suggests search-appropriate methods after typing dot on search query', () => {
+      const suggestions = getISLASuggestions('! search("armo").', 17);
+      expect(suggestions.some((s) => s.label === 'at(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'limit(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'count(...)')).toBe(true);
+      // vs and refs are only for verse references
+      expect(suggestions.some((s) => s.label === 'vs(...)')).toBe(false);
+      expect(suggestions.some((s) => s.label === 'refs(...)')).toBe(false);
+    });
+
+    it('suggests cell-context appropriate methods after typing dot on caret (^)', () => {
+      const suggestions = getISLASuggestions('! ^.', 4);
+      expect(suggestions.some((s) => s.label === 'suggest(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'themes(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'count(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'use(...)')).toBe(false);
+      expect(suggestions.some((s) => s.label === 'at(...)')).toBe(false);
+    });
+
+    it('filters dot methods by prefix (e.g. ".us" or ".st")', () => {
+      const suggestions = getISLASuggestions('! @(Joh 3:16).us', 16);
+      expect(suggestions).toHaveLength(1);
+      expect(suggestions[0].label).toBe('use(...)');
+
+      const statsSuggestions = getISLASuggestions('! @(Joh 3:16).st', 16);
+      expect(statsSuggestions).toHaveLength(1);
+      expect(statsSuggestions[0].label).toBe('stats()');
+    });
+  });
+
+  describe('Call parameter completions inside use(...) and at(...)', () => {
+    it('suggests translations inside use(', () => {
+      const suggestions = getISLASuggestions('! @(Joh 3:16).use(', 18);
+      expect(suggestions.some((s) => s.label === 'KR92')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'KR38')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'KJV')).toBe(true);
+    });
+
+    it('suggests smart groups and books inside at(', () => {
+      const suggestions = getISLASuggestions('! search("armo").at(', 20);
+      expect(suggestions.some((s) => s.label === 'kirjeet')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'evankeliumit')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'Joh')).toBe(true);
+    });
+  });
+
+  describe('applyISLASuggestion helper', () => {
+    it('applies dot method insertion without wiping preceding code', () => {
+      const { newCode, newCursorOffset } = applyISLASuggestion(
+        '! @(Joh 3:16).',
+        14,
+        {
+          label: 'use(...)',
+          insertText: 'use(',
+          detail: 'Valitse käännös',
+          documentation: { fi: '', en: '' },
+          kind: 'function',
+        }
+      );
+      expect(newCode).toBe('! @(Joh 3:16).use(');
+      expect(newCursorOffset).toBe(18);
+    });
+
+    it('replaces prefix when completing dot method', () => {
+      const { newCode, newCursorOffset } = applyISLASuggestion(
+        '! @(Joh 3:16).us',
+        16,
+        {
+          label: 'use(...)',
+          insertText: 'use(',
+          detail: 'Valitse käännös',
+          documentation: { fi: '', en: '' },
+          kind: 'function',
+        }
+      );
+      expect(newCode).toBe('! @(Joh 3:16).use(');
+      expect(newCursorOffset).toBe(18);
+    });
+
+    it('applies pipeline operator suggestion without wiping preceding code', () => {
+      const { newCode, newCursorOffset } = applyISLASuggestion(
+        '! @Joh 3:16 => ',
+        15,
+        {
+          label: 'use(...)',
+          insertText: 'use(',
+          detail: 'Valitse käännös',
+          documentation: { fi: '', en: '' },
+          kind: 'function',
+        }
+      );
+      expect(newCode).toBe('! @Joh 3:16 => use(');
+      expect(newCursorOffset).toBe(19);
+    });
+
+    it('applies translation inside use( and automatically appends closing paren', () => {
+      const { newCode, newCursorOffset } = applyISLASuggestion(
+        '! @(Joh 3:16).use(',
+        18,
+        {
+          label: 'KR92',
+          insertText: 'KR92 ',
+          detail: 'Pyhä Raamattu 1992',
+          documentation: { fi: '', en: '' },
+          kind: 'translation',
+        }
+      );
+      expect(newCode).toBe('! @(Joh 3:16).use(KR92)');
+      expect(newCursorOffset).toBe(23);
+    });
+
+    it('does not duplicate closing paren if already present in buffer', () => {
+      const { newCode, newCursorOffset } = applyISLASuggestion(
+        '! @(Joh 3:16).use()',
+        18,
+        {
+          label: 'KR92',
+          insertText: 'KR92 ',
+          detail: 'Pyhä Raamattu 1992',
+          documentation: { fi: '', en: '' },
+          kind: 'translation',
+        }
+      );
+      expect(newCode).toBe('! @(Joh 3:16).use(KR92)');
+      expect(newCursorOffset).toBe(22);
+    });
+  });
+
   describe('Fallback behavior', () => {
     it('returns empty array when text does not trigger any IntelliSense rules', () => {
       expect(getISLASuggestions('Regular text in a markdown cell', 15)).toEqual([]);
@@ -209,3 +352,4 @@ describe('islaIntellisense', () => {
     });
   });
 });
+

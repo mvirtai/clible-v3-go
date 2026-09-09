@@ -5,6 +5,7 @@ import { ISLAAutocomplete } from './ISLAAutocomplete';
 import { ISLAHoverCard } from './ISLAHoverCard';
 import {
   type ISLASuggestion,
+  applyISLASuggestion,
   getHoverDocumentation,
   getISLASuggestions,
 } from './islaIntellisense';
@@ -110,6 +111,7 @@ export function ISLAEditor({
   const [code, setCode] = useState(() => initialCode);
   const [cursorOffset, setCursorOffset] = useState(() => initialCode.length);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [hasNavigated, setHasNavigated] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [hoveredKeyword, setHoveredKeyword] = useState<string | null>(null);
 
@@ -138,6 +140,7 @@ export function ISLAEditor({
     setCursorOffset(offset);
     setShowAutocomplete(true);
     setActiveIndex(0);
+    setHasNavigated(false);
 
     const word = getKeywordAtOffset(value, offset);
     if (word && getHoverDocumentation(word)) {
@@ -154,15 +157,17 @@ export function ISLAEditor({
     if (showAutocomplete && visibleSuggestions.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
+        setHasNavigated(true);
         setActiveIndex((i) => Math.min(i + 1, visibleSuggestions.length - 1));
         return;
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
+        setHasNavigated(true);
         setActiveIndex((i) => Math.max(i - 1, 0));
         return;
       }
-      if (e.key === 'Enter' || e.key === 'Tab') {
+      if (e.key === 'Tab') {
         e.preventDefault();
         const selected = visibleSuggestions[activeIndex];
         if (selected) {
@@ -170,9 +175,35 @@ export function ISLAEditor({
           return;
         }
       }
+      if (e.key === 'Enter') {
+        const textBeforeCursor = code.slice(0, cursorOffset);
+        const hasTypedFilter =
+          /=>\s*[A-Za-z0-9_#()-]+$/.test(textBeforeCursor) ||
+          /\.\s*[a-zA-Z0-9_]+$/.test(textBeforeCursor) ||
+          /@[A-Za-z0-9äöåÄÖÅ]+$/.test(textBeforeCursor) ||
+          /count\(\s*["']?[A-Za-z0-9äöåÄÖÅ_]+$/i.test(textBeforeCursor) ||
+          /(?:use|in|vs)\(\s*["']?[A-Za-z0-9_-]+$/i.test(textBeforeCursor) ||
+          /at\(\s*@?[A-Za-z0-9äöåÄÖÅ_]+$/i.test(textBeforeCursor) ||
+          /[?:]\s*[A-Za-z0-9_-]+$/.test(textBeforeCursor);
+
+        if (hasNavigated || hasTypedFilter) {
+          e.preventDefault();
+          const selected = visibleSuggestions[activeIndex];
+          if (selected) {
+            handleSelectSuggestion(selected);
+            return;
+          }
+        } else {
+          // Autocomplete opened on trigger without user navigating or typing filter query.
+          // Dismiss popup so Enter executes without destructive accidental replacement.
+          setShowAutocomplete(false);
+          setHasNavigated(false);
+        }
+      }
       if (e.key === 'Escape') {
         e.preventDefault();
         setShowAutocomplete(false);
+        setHasNavigated(false);
         setHoveredKeyword(null);
         return;
       }
@@ -182,12 +213,14 @@ export function ISLAEditor({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       setShowAutocomplete(false);
+      setHasNavigated(false);
       onExecute(code);
       return;
     }
 
     if (e.key === 'Escape') {
       setShowAutocomplete(false);
+      setHasNavigated(false);
       setHoveredKeyword(null);
       onCancel?.();
     }
@@ -206,20 +239,22 @@ export function ISLAEditor({
   }
 
   function handleSelectSuggestion(suggestion: ISLASuggestion) {
-    setCode(suggestion.insertText);
-    setCursorOffset(suggestion.insertText.length);
+    const { newCode, newCursorOffset } = applyISLASuggestion(code, cursorOffset, suggestion);
+    setCode(newCode);
+    setCursorOffset(newCursorOffset);
     setShowAutocomplete(false);
-    onChange?.(suggestion.insertText);
+    setHasNavigated(false);
+    onChange?.(newCode);
 
     if (textareaRef.current) {
       textareaRef.current.focus();
-      const len = suggestion.insertText.length;
-      textareaRef.current.setSelectionRange(len, len);
+      textareaRef.current.setSelectionRange(newCursorOffset, newCursorOffset);
     }
   }
 
   function handleBlur(e: React.FocusEvent<HTMLTextAreaElement>) {
     setShowAutocomplete(false);
+    setHasNavigated(false);
     setHoveredKeyword(null);
     if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) {
       onBlur?.();
@@ -301,8 +336,14 @@ export function ISLAEditor({
           availableTranslations={availableTranslations}
           activeIndex={activeIndex}
           onSelect={handleSelectSuggestion}
-          onClose={() => setShowAutocomplete(false)}
-          onHighlight={(idx) => setActiveIndex(idx)}
+          onClose={() => {
+            setShowAutocomplete(false);
+            setHasNavigated(false);
+          }}
+          onHighlight={(idx) => {
+            setActiveIndex(idx);
+            setHasNavigated(true);
+          }}
         />
       )}
     </div>

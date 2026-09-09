@@ -180,4 +180,114 @@ describe('ISLAEditor', () => {
 
     expect(container?.querySelector('[role="listbox"]')).toBeNull();
   });
+
+  it('does not accidentally overwrite buffer when Enter is pressed on bare pipeline operator', () => {
+    const onExecute = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode=""
+            translationId="KR92"
+            onExecute={onExecute}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    act(() => {
+      if (textarea) {
+        simulateInput(textarea, '! @Joh 3:16 => ');
+      }
+    });
+
+    // Autocomplete dropdown is visible with suggestions
+    expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
+
+    // User hits Enter directly without navigating
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', shiftKey: false, bubbles: true, cancelable: true })
+      );
+    });
+
+    // onExecute must be called with the intact code, NOT replaced by the first suggestion
+    expect(onExecute).toHaveBeenCalledWith('! @Joh 3:16 => ');
+    expect(textarea?.value).toBe('! @Joh 3:16 => ');
+  });
+
+  it('selects suggestion and appends to existing text when navigated with ArrowDown and Enter', () => {
+    const onExecute = vi.fn();
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode=""
+            translationId="KR92"
+            onExecute={onExecute}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    act(() => {
+      if (textarea) {
+        simulateInput(textarea, '! @Joh 3:16 => ');
+      }
+    });
+
+    // Press ArrowDown to explicitly choose a suggestion
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+      );
+    });
+
+    // Press Enter to confirm the navigated selection
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+      );
+    });
+
+    // Textarea must contain the pipeline trigger PLUS the inserted suggestion
+    expect(textarea?.value).toContain('! @Joh 3:16 => ');
+    expect(textarea?.value.length).toBeGreaterThan('! @Joh 3:16 => '.length);
+    expect(onExecute).not.toHaveBeenCalled();
+  });
+
+  it('selects suggestion when Tab is pressed without wiping preceding text', () => {
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode=""
+            translationId="KR92"
+            onExecute={vi.fn()}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    act(() => {
+      if (textarea) {
+        simulateInput(textarea, '! @(Joh 3:16).');
+      }
+    });
+
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+      );
+    });
+
+    // Must preserve object and dot: '! @(Joh 3:16).use('
+    expect(textarea?.value).toBe('! @(Joh 3:16).use(');
+  });
 });
+

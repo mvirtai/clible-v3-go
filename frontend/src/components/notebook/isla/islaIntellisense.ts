@@ -222,6 +222,119 @@ export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
   },
 ];
 
+export const ISLA_METHOD_SUGGESTIONS: ISLASuggestion[] = [
+  {
+    label: 'use(...)',
+    insertText: 'use(',
+    detail: 'Valitse käännös / Use translation',
+    documentation: {
+      fi: 'Asettaa käytettävän raamatunkäännöksen (esim. KR92, KR38, KJV, WEB).',
+      en: 'Specifies the Bible translation to use for text rendering (e.g. KR92, KR38, KJV, WEB).',
+    },
+    example: '@(Joh 3:16).use(KR92)',
+    kind: 'function',
+  },
+  {
+    label: 'vs(...)',
+    insertText: 'vs(',
+    detail: 'Rinnakkaisvertailu / Parallel comparison',
+    documentation: {
+      fi: 'Rinnakkaisvertailu kahden eri käännöksen välillä rinnakkaisnäkymässä.',
+      en: 'Side-by-side parallel comparison between two translations.',
+    },
+    example: '@(Joh 3:16).vs(KR92, KR38)',
+    kind: 'function',
+  },
+  {
+    label: 'at(...)',
+    insertText: 'at(',
+    detail: 'Rajaus / Target scope',
+    documentation: {
+      fi: 'Rajaa haun tiettyyn kirjaan tai kirjaryhmään (esim. at(kirjeet), at(evankeliumit), at(Joh)).',
+      en: 'Restricts search scope to a specific book or book group (e.g. at(kirjeet), at(evankeliumit), at(Joh)).',
+    },
+    example: 'search("armo").at(kirjeet)',
+    kind: 'function',
+  },
+  {
+    label: 'count(...)',
+    insertText: 'count(',
+    detail: 'Laskuri / Count metric',
+    documentation: {
+      fi: 'Laskee jakeet, luvut, kirjat tai sanat (esim. count(verses), count(words)).',
+      en: 'Counts verses, chapters, books, or words (e.g. count(verses), count(words)).',
+    },
+    example: 'search("armo").count(verses)',
+    kind: 'function',
+  },
+  {
+    label: 'top(...)',
+    insertText: 'top(',
+    detail: 'Yleisimmät sanat / Top word frequencies',
+    documentation: {
+      fi: 'Laskee ja visualisoi useimmin esiintyvät sanat vaakapylväillä.',
+      en: 'Calculates and visualizes most frequent words as a horizontal bar chart.',
+    },
+    example: '@(Joh 1:1-18).top(10)',
+    kind: 'function',
+  },
+  {
+    label: 'stats()',
+    insertText: 'stats()',
+    detail: 'Tekstitilastot / Text statistics & TTR',
+    documentation: {
+      fi: 'Laskee sanaston rikkauden (Type-Token Ratio TTR), uniikit sanat ja keskipituuden.',
+      en: 'Calculates lexical diversity (Type-Token Ratio TTR), unique word counts, and average length.',
+    },
+    example: '@(Room 8:1-39).stats()',
+    kind: 'function',
+  },
+  {
+    label: 'themes(...)',
+    insertText: 'themes(',
+    detail: 'Teemat / Extracted themes',
+    documentation: {
+      fi: 'Poimii jakeesta tai kontekstista keskeiset teemat ja avainsanat.',
+      en: 'Extracts prominent thematic keywords and topics.',
+    },
+    example: '@(Joh 3:16).themes(5)',
+    kind: 'function',
+  },
+  {
+    label: 'refs(...)',
+    insertText: 'refs(',
+    detail: 'Ristiinviitteet / Cross references',
+    documentation: {
+      fi: 'Etsii ristiinviitteet ja rinnakkaiset raamatunjakeet.',
+      en: 'Finds cross-references and parallel biblical passages.',
+    },
+    example: '@(Joh 3:16).refs(3)',
+    kind: 'function',
+  },
+  {
+    label: 'suggest(...)',
+    insertText: 'suggest(',
+    detail: 'Jakesuositukset / Verse suggestions',
+    documentation: {
+      fi: 'Ehdottaa kontekstiin tai jakeeseen sopivia jakeita.',
+      en: 'Recommends contextually relevant scripture verses.',
+    },
+    example: '^.suggest(3)',
+    kind: 'function',
+  },
+  {
+    label: 'limit(...)',
+    insertText: 'limit(',
+    detail: 'Rajoitus / Limit result count',
+    documentation: {
+      fi: 'Rajoittaa hakutulosten enimmäismäärää.',
+      en: 'Limits the maximum number of search results.',
+    },
+    example: 'search("valo").limit(5)',
+    kind: 'function',
+  },
+];
+
 
 /**
  * Builds translation suggestions based on actual application translations or optional active IDs.
@@ -292,59 +405,35 @@ export function getISLASuggestions(
     return ISLA_MAIN_SNIPPETS.filter((s) => s.label.startsWith('! ^'));
   }
 
-  // 2. Typing book reference or smart group after `@` (e.g. `@`, `@Joh`, `@1Moos`, `@evankeliumit`, `@toora`)
-  const atMatch = textBeforeCursor.match(/@([A-Za-z0-9äöåÄÖÅ]*)$/);
-  if (atMatch) {
-    const prefix = atMatch[1].toLowerCase();
+  // 2. Method call chaining after '.' (e.g. '@(Joh 3:16).', 'search("armo").', '^.')
+  const dotMatch = textBeforeCursor.match(/\.\s*([a-zA-Z0-9_]*)$/);
+  if (dotMatch) {
+    const prefix = dotMatch[1].toLowerCase();
+    const textBeforeDot = textBeforeCursor.slice(0, dotMatch.index);
+    const isSearch = /search\s*\(/i.test(textBeforeDot);
+    const isCellCtx = /\^\s*$/.test(textBeforeDot);
+    const isVerseRef = /@/.test(textBeforeDot) || /range\s*\(/i.test(textBeforeDot);
 
-    // 2.1 Smart book groups (@evankeliumit, @gospels, @toora, @kirjeet, @epistolat jne.)
-    const groupOptions: ISLASuggestion[] = SMART_BOOK_GROUPS
-      .filter(
-        (g) =>
-          g.id.toLowerCase().startsWith(prefix) ||
-          g.nameFi.toLowerCase().startsWith(prefix) ||
-          g.nameEn.toLowerCase().startsWith(prefix) ||
-          g.aliasEn.toLowerCase().startsWith(prefix) ||
-          ((g as { aliasFi?: string }).aliasFi && (g as { aliasFi?: string }).aliasFi!.toLowerCase().startsWith(prefix))
-      )
-      .map((g) => ({
-        label: `@${g.id}`,
-        insertText: `@${g.id} `,
-        detail: `${g.nameFi} (${g.nameEn})`,
-        documentation: {
-          fi: `Älykäs kirjakokonaisuus: ${g.nameFi}. Rajaa haun automaattisesti tähän kirjaryhmään.`,
-          en: `Smart book group: ${g.nameEn}. Restricts the search scope to these biblical books.`,
-        },
-        example: `! search("armo") => @${g.id} => count()`,
-        kind: 'reference' as const,
-      }));
+    let methods = ISLA_METHOD_SUGGESTIONS;
+    if (isCellCtx) {
+      methods = methods.filter(
+        (m) => !['use(', 'vs(', 'refs(', 'at(', 'limit('].includes(m.insertText)
+      );
+    } else if (isSearch) {
+      methods = methods.filter((m) => !['vs(', 'refs('].includes(m.insertText));
+    } else if (isVerseRef) {
+      methods = methods.filter((m) => !['at(', 'limit('].includes(m.insertText));
+    }
 
-    // 2.2 Individual biblical books
-    const bookOptions: ISLASuggestion[] = BIBLE_BOOKS
-      .filter(
-        (b) =>
-          b.abbr.toLowerCase().startsWith(prefix) ||
-          b.abbrFi.toLowerCase().startsWith(prefix) ||
-          b.nameFi.toLowerCase().startsWith(prefix) ||
-          b.nameEn.toLowerCase().startsWith(prefix) ||
-          b.id.toLowerCase().startsWith(prefix)
-      )
-      .map((b) => ({
-        label: `@${b.abbr}`,
-        insertText: `@${b.abbr} `,
-        detail: b.nameFi,
-        documentation: {
-          fi: `Raamatun kirja: ${b.nameFi} (${b.testament === 'OT' ? 'Vanha testamentti' : 'Uusi testamentti'})`,
-          en: `Biblical book: ${b.nameEn} (${b.testament === 'OT' ? 'Old Testament' : 'New Testament'})`,
-        },
-        example: `@${b.abbr} 1:1`,
-        kind: 'reference' as const,
-      }));
-
-    return [...groupOptions, ...bookOptions];
+    return methods.filter(
+      (m) =>
+        !prefix ||
+        m.label.toLowerCase().startsWith(prefix) ||
+        m.insertText.toLowerCase().startsWith(prefix)
+    );
   }
 
-  // 3. Count unit suggestions when typing inside `count(...)`
+  // 3. Count unit suggestions when typing inside count(...)
   const countParenMatch = textBeforeCursor.match(/count\(\s*["']?([A-Za-z0-9äöåÄÖÅ_]*)$/i);
   if (countParenMatch) {
     const prefix = countParenMatch[1].toLowerCase();
@@ -519,7 +608,120 @@ export function getISLASuggestions(
     return countUnits.filter((u) => !prefix || u.label.toLowerCase().startsWith(prefix));
   }
 
-  // 4. Pipeline operators after `=>` — driven by COMMAND_REGISTRY for maintainability
+  // 4. Scope and book suggestions inside at(...)
+  const atParenMatch = textBeforeCursor.match(/at\(\s*@?([A-Za-z0-9äöåÄÖÅ_]*)$/i);
+  if (atParenMatch) {
+    const prefix = atParenMatch[1].toLowerCase();
+    const groupOptions: ISLASuggestion[] = SMART_BOOK_GROUPS
+      .filter(
+        (g) =>
+          g.id.toLowerCase().startsWith(prefix) ||
+          g.nameFi.toLowerCase().startsWith(prefix) ||
+          g.nameEn.toLowerCase().startsWith(prefix)
+      )
+      .map((g) => ({
+        label: g.id,
+        insertText: `${g.id})`,
+        detail: `${g.nameFi} (${g.nameEn})`,
+        documentation: {
+          fi: `Älykäs kirjakokonaisuus: ${g.nameFi}. Rajaa haun automaattisesti tähän kirjaryhmään.`,
+          en: `Smart book group: ${g.nameEn}. Restricts search scope to this group.`,
+        },
+        example: `search("armo").at(${g.id})`,
+        kind: 'reference' as const,
+      }));
+
+    const bookOptions: ISLASuggestion[] = BIBLE_BOOKS
+      .filter(
+        (b) =>
+          b.abbr.toLowerCase().startsWith(prefix) ||
+          b.abbrFi.toLowerCase().startsWith(prefix) ||
+          b.nameFi.toLowerCase().startsWith(prefix) ||
+          b.nameEn.toLowerCase().startsWith(prefix) ||
+          b.id.toLowerCase().startsWith(prefix)
+      )
+      .map((b) => ({
+        label: b.abbr,
+        insertText: `${b.abbr})`,
+        detail: b.nameFi,
+        documentation: {
+          fi: `Raamatun kirja: ${b.nameFi} (${b.testament === 'OT' ? 'Vanha testamentti' : 'Uusi testamentti'})`,
+          en: `Biblical book: ${b.nameEn} (${b.testament === 'OT' ? 'Old Testament' : 'New Testament'})`,
+        },
+        example: `search("valo").at(${b.abbr})`,
+        kind: 'reference' as const,
+      }));
+
+    return [...groupOptions, ...bookOptions];
+  }
+
+  // 5. Translation suggestions inside use(...), in(...), vs(...)
+  const trCallMatch = textBeforeCursor.match(/(?:use|in|vs)\(\s*([^)]*)$/i);
+  if (trCallMatch) {
+    const inside = trCallMatch[1];
+    const commaMatch = inside.match(/,\s*["']?([A-Za-z0-9_-]*)$/);
+    if (commaMatch) {
+      return buildTranslationSuggestions(commaMatch[1], availableTranslations);
+    }
+    const singleMatch = inside.match(/^["']?([A-Za-z0-9_-]*)$/);
+    if (singleMatch) {
+      return buildTranslationSuggestions(singleMatch[1], availableTranslations);
+    }
+  }
+
+  // 6. Typing book reference or smart group after `@` (e.g. `@`, `@Joh`, `@1Moos`, `@evankeliumit`, `@toora`)
+  const atMatch = textBeforeCursor.match(/@([A-Za-z0-9äöåÄÖÅ]*)$/);
+  if (atMatch) {
+    const prefix = atMatch[1].toLowerCase();
+
+    // 6.1 Smart book groups (@evankeliumit, @gospels, @toora, @kirjeet, @epistolat jne.)
+    const groupOptions: ISLASuggestion[] = SMART_BOOK_GROUPS
+      .filter(
+        (g) =>
+          g.id.toLowerCase().startsWith(prefix) ||
+          g.nameFi.toLowerCase().startsWith(prefix) ||
+          g.nameEn.toLowerCase().startsWith(prefix) ||
+          g.aliasEn.toLowerCase().startsWith(prefix) ||
+          ((g as { aliasFi?: string }).aliasFi && (g as { aliasFi?: string }).aliasFi!.toLowerCase().startsWith(prefix))
+      )
+      .map((g) => ({
+        label: `@${g.id}`,
+        insertText: `@${g.id} `,
+        detail: `${g.nameFi} (${g.nameEn})`,
+        documentation: {
+          fi: `Älykäs kirjakokonaisuus: ${g.nameFi}. Rajaa haun automaattisesti tähän kirjaryhmään.`,
+          en: `Smart book group: ${g.nameEn}. Restricts the search scope to these biblical books.`,
+        },
+        example: `! search("armo") => @${g.id} => count()`,
+        kind: 'reference' as const,
+      }));
+
+    // 6.2 Individual biblical books
+    const bookOptions: ISLASuggestion[] = BIBLE_BOOKS
+      .filter(
+        (b) =>
+          b.abbr.toLowerCase().startsWith(prefix) ||
+          b.abbrFi.toLowerCase().startsWith(prefix) ||
+          b.nameFi.toLowerCase().startsWith(prefix) ||
+          b.nameEn.toLowerCase().startsWith(prefix) ||
+          b.id.toLowerCase().startsWith(prefix)
+      )
+      .map((b) => ({
+        label: `@${b.abbr}`,
+        insertText: `@${b.abbr} `,
+        detail: b.nameFi,
+        documentation: {
+          fi: `Raamatun kirja: ${b.nameFi} (${b.testament === 'OT' ? 'Vanha testamentti' : 'Uusi testamentti'})`,
+          en: `Biblical book: ${b.nameEn} (${b.testament === 'OT' ? 'Old Testament' : 'New Testament'})`,
+        },
+        example: `@${b.abbr} 1:1`,
+        kind: 'reference' as const,
+      }));
+
+    return [...groupOptions, ...bookOptions];
+  }
+
+  // 7. Pipeline operators after `=>` — driven by COMMAND_REGISTRY for maintainability
   const pipeMatch = textBeforeCursor.match(/=>\s*([A-Za-z0-9_#()-]*)$/);
   if (pipeMatch) {
     const prefix = pipeMatch[1].toLowerCase();
@@ -545,7 +747,7 @@ export function getISLASuggestions(
     return [...registryOptions, ...translationOptions];
   }
 
-  // 4. Comparative translation after `?` or `:` (e.g. `! @Joh 3:16 ? KR92 : KJV`)
+  // 8. Comparative translation after `?` or `:` (e.g. `! @Joh 3:16 ? KR92 : KJV`)
   const compareMatch = textBeforeCursor.match(/[?:]\s*([A-Za-z0-9_-]*)$/);
   if (compareMatch) {
     const prefix = compareMatch[1];
@@ -553,6 +755,163 @@ export function getISLASuggestions(
   }
 
   return [];
+}
+
+/**
+ * Applies a selected ISLASuggestion to the current code buffer without replacing
+ * the entire line, replacing only the active token, prefix, or trigger context.
+ *
+ * @param currentCode - Full current editor code.
+ * @param cursorOffset - Current caret position index.
+ * @param suggestion - The chosen suggestion to apply.
+ * @returns Object containing the updated code and new cursor offset.
+ */
+export function applyISLASuggestion(
+  currentCode: string,
+  cursorOffset: number,
+  suggestion: ISLASuggestion
+): { newCode: string; newCursorOffset: number } {
+  const textBeforeCursor = currentCode.slice(0, cursorOffset);
+  const textAfterCursor = currentCode.slice(cursorOffset);
+  const hasClosingParen = textAfterCursor.trimStart().startsWith(')');
+
+  // 1. Full-line snippets: replace entire trigger or line before cursor
+  if (suggestion.kind === 'snippet') {
+    return {
+      newCode: suggestion.insertText + textAfterCursor,
+      newCursorOffset: suggestion.insertText.length,
+    };
+  }
+
+  // Helper to adjust closing paren if suggestion ends with ')' and after cursor already has ')'
+  const sanitizeInsertText = (text: string): string => {
+    if (hasClosingParen && text.endsWith(')')) {
+      return text.slice(0, -1);
+    }
+    return text;
+  };
+
+  // 2. Inside count(...)
+  const countMatch = textBeforeCursor.match(/count\(\s*["']?([A-Za-z0-9äöåÄÖÅ_]*)$/i);
+  if (countMatch) {
+    const prefix = countMatch[1];
+    const prefixStart = cursorOffset - prefix.length;
+    const insert = sanitizeInsertText(suggestion.insertText);
+    return {
+      newCode: currentCode.slice(0, prefixStart) + insert + textAfterCursor,
+      newCursorOffset: prefixStart + insert.length,
+    };
+  }
+
+  // 3. Inside at(...)
+  const atParenMatch = textBeforeCursor.match(/at\(\s*@?([A-Za-z0-9äöåÄÖÅ_]*)$/i);
+  if (atParenMatch) {
+    const prefix = atParenMatch[1];
+    const prefixStart = cursorOffset - prefix.length;
+    let insert = suggestion.insertText.trim();
+    if (!insert.endsWith(')') && !hasClosingParen) {
+      insert += ')';
+    } else if (insert.endsWith(')') && hasClosingParen) {
+      insert = insert.slice(0, -1);
+    }
+    return {
+      newCode: currentCode.slice(0, prefixStart) + insert + textAfterCursor,
+      newCursorOffset: prefixStart + insert.length,
+    };
+  }
+
+  // 4. Inside use(...), in(...), vs(...)
+  const trCallMatch = textBeforeCursor.match(/(?:use|in|vs)\(\s*([^)]*)$/i);
+  if (trCallMatch) {
+    const inside = trCallMatch[1];
+    const commaMatch = inside.match(/,\s*["']?([A-Za-z0-9_-]*)$/);
+    if (commaMatch) {
+      const prefix = commaMatch[1];
+      const prefixStart = cursorOffset - prefix.length;
+      let insert = suggestion.insertText.trim();
+      if (!hasClosingParen) {
+        insert += ')';
+      }
+      return {
+        newCode: currentCode.slice(0, prefixStart) + insert + textAfterCursor,
+        newCursorOffset: prefixStart + insert.length,
+      };
+    }
+    const isVs = /(?:vs)\(\s*["']?([A-Za-z0-9_-]*)$/i.test(textBeforeCursor);
+    const prefix = inside.trim();
+    const prefixStart = cursorOffset - prefix.length;
+    let insert = suggestion.insertText.trim();
+    if (isVs) {
+      insert += ', ';
+    } else if (!hasClosingParen) {
+      insert += ')';
+    }
+    return {
+      newCode: currentCode.slice(0, prefixStart) + insert + textAfterCursor,
+      newCursorOffset: prefixStart + insert.length,
+    };
+  }
+
+  // 5. Method call after dot: e.g. . or .us
+  const dotMatch = textBeforeCursor.match(/\.\s*([a-zA-Z0-9_]*)$/);
+  if (dotMatch) {
+    const prefix = dotMatch[1];
+    const prefixStart = cursorOffset - prefix.length;
+    return {
+      newCode: currentCode.slice(0, prefixStart) + suggestion.insertText + textAfterCursor,
+      newCursorOffset: prefixStart + suggestion.insertText.length,
+    };
+  }
+
+  // 6. Pipe operator after =>
+  const pipeMatch = textBeforeCursor.match(/=>\s*([A-Za-z0-9_#()-]*)$/);
+  if (pipeMatch) {
+    const prefix = pipeMatch[1];
+    const prefixStart = cursorOffset - prefix.length;
+    return {
+      newCode: currentCode.slice(0, prefixStart) + suggestion.insertText + textAfterCursor,
+      newCursorOffset: prefixStart + suggestion.insertText.length,
+    };
+  }
+
+  // 7. Book reference after @: e.g. @ or @Joh
+  const atMatch = textBeforeCursor.match(/@([A-Za-z0-9äöåÄÖÅ]*)$/);
+  if (atMatch) {
+    const prefixWithAt = atMatch[0];
+    const prefixStart = cursorOffset - prefixWithAt.length;
+    return {
+      newCode: currentCode.slice(0, prefixStart) + suggestion.insertText + textAfterCursor,
+      newCursorOffset: prefixStart + suggestion.insertText.length,
+    };
+  }
+
+  // 8. Comparative translation after ? or :
+  const compareMatch = textBeforeCursor.match(/[?:]\s*([A-Za-z0-9_-]*)$/);
+  if (compareMatch) {
+    const prefix = compareMatch[1];
+    const prefixStart = cursorOffset - prefix.length;
+    return {
+      newCode: currentCode.slice(0, prefixStart) + suggestion.insertText + textAfterCursor,
+      newCursorOffset: prefixStart + suggestion.insertText.length,
+    };
+  }
+
+  // 9. Generic word prefix replacement
+  const wordMatch = textBeforeCursor.match(/([A-Za-z0-9äöåÄÖÅ_]+)$/);
+  if (wordMatch) {
+    const prefix = wordMatch[1];
+    const prefixStart = cursorOffset - prefix.length;
+    return {
+      newCode: currentCode.slice(0, prefixStart) + suggestion.insertText + textAfterCursor,
+      newCursorOffset: prefixStart + suggestion.insertText.length,
+    };
+  }
+
+  // 10. Fallback: simple insertion at cursor
+  return {
+    newCode: textBeforeCursor + suggestion.insertText + textAfterCursor,
+    newCursorOffset: cursorOffset + suggestion.insertText.length,
+  };
 }
 
 /**
