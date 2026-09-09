@@ -510,7 +510,7 @@ describe('MarkdownCell', () => {
     // onOutputRoute is triggered automatically and the current cell is formatted with a routing notice
     expect(onOutputRoute).toHaveBeenCalledWith('below', '#uusi-solu', '! @Joh 3:16');
     expect(onChange).toHaveBeenCalledWith(
-      expect.stringContaining('Tulos reititetty uuteen soluun (alapuolelle): `#uusi-solu`')
+      expect.stringContaining('Tulos reititetty uuteen soluun (alapuolelle)*: `#uusi-solu`')
     );
   });
 });
