@@ -145,6 +145,34 @@ func TestLexer_IllegalToken(t *testing.T) {
 	}
 }
 
+func TestLexer_UnterminatedString(t *testing.T) {
+	tokens := tokenStream(t, `search("armo" AND "rauha)`)
+	hasIllegal := false
+	for _, tok := range tokens {
+		if tok.Type == TokenIllegal {
+			hasIllegal = true
+			break
+		}
+	}
+	if !hasIllegal {
+		t.Errorf("expected TokenIllegal for unterminated string, got %v", tokens)
+	}
+}
+
+func TestLexer_UnterminatedRegex(t *testing.T) {
+	tokens := tokenStream(t, `? /unclosed`)
+	hasIllegal := false
+	for _, tok := range tokens {
+		if tok.Type == TokenIllegal {
+			hasIllegal = true
+			break
+		}
+	}
+	if !hasIllegal {
+		t.Errorf("expected TokenIllegal for unterminated regex, got %v", tokens)
+	}
+}
+
 func TestNewLexer_InputTooLong(t *testing.T) {
 	long := make([]byte, MaxInputLength+1)
 	for i := range long {
@@ -155,3 +183,4 @@ func TestNewLexer_InputTooLong(t *testing.T) {
 		t.Error("expected error for overlong input, got nil")
 	}
 }
+

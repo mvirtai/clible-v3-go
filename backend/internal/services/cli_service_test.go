@@ -639,5 +639,45 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 			t.Errorf("expected output_op kind 'cell_below' and name '#sinners-count', got %v", outputOp)
 		}
 	})
+
+	t.Run("execute ISLA v2 expressions without explicit output operator defaulting to inline", func(t *testing.T) {
+		// 1. Bare verse ref without =>
+		resRef, err := cliService.ExecuteDSL(ctx, "! @(JHN 3:16)", "web", "")
+		if err != nil {
+			t.Fatalf("bare verse ref without => failed: %v", err)
+		}
+		if resRef.Type != "read" {
+			t.Errorf("expected type 'read', got %s", resRef.Type)
+		}
+
+		// 2. Chained method without =>
+		resCount, err := cliService.ExecuteDSL(ctx, `! search("sinners").count(verses)`, "web", "")
+		if err != nil {
+			t.Fatalf("chained search.count without => failed: %v", err)
+		}
+		if resCount.Type != "count" {
+			t.Errorf("expected type 'count', got %s", resCount.Type)
+		}
+		outputOp, ok := resCount.Data["output_op"].(map[string]interface{})
+		if !ok || outputOp["kind"] != "inline" {
+			t.Errorf("expected default inline output_op, got %v", outputOp)
+		}
+
+		// 3. Boolean search with scope
+		resBool, err := cliService.ExecuteDSL(ctx, `! search("sinners" AND "righteous").at(nt) =>`, "web", "")
+		if err != nil {
+			t.Fatalf("boolean search with scope failed: %v", err)
+		}
+		if resBool.Type != "search" {
+			t.Errorf("expected type 'search', got %s", resBool.Type)
+		}
+
+		// 4. Unterminated string literal reports clear error instead of internal SQL error
+		_, errUnterminated := cliService.ExecuteDSL(ctx, `! search("armo" AND "rauha).at(ut) =>`, "web", "")
+		if errUnterminated == nil {
+			t.Fatal("expected error for unterminated string literal, got nil")
+		}
+	})
 }
+
 

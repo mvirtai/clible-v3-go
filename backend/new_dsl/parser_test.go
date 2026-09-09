@@ -158,6 +158,17 @@ func TestParseISLA_Search(t *testing.T) {
 				Output: OutputOp{Kind: OutputInline},
 			},
 		},
+		{
+			name:  "omitted output operator defaults to inline",
+			input: `search("armo").count()`,
+			want: &ISLAExpression{
+				Object: &SearchNode{Query: "armo"},
+				Methods: []MethodCall{
+					{Name: "count"},
+				},
+				Output: OutputOp{Kind: OutputInline},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -228,11 +239,6 @@ func TestParseISLA_ValidationErrors(t *testing.T) {
 		input   string
 		wantErr string
 	}{
-		{
-			name:    "missing output operator",
-			input:   `search("armo").count()`,
-			wantErr: "missing output operator",
-		},
 		{
 			name:    "naming with inline output operator",
 			input:   `@(Joh 3:16).use(KR92) => #my-slug`,

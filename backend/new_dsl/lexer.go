@@ -186,9 +186,10 @@ func (l *Lexer) readString(quote rune) Token {
 		sb.WriteRune(l.input[l.pos])
 		l.pos++
 	}
-	if l.pos < len(l.input) {
-		l.pos++ // skip closing quote
+	if l.pos >= len(l.input) {
+		return Token{Type: TokenIllegal, Literal: fmt.Sprintf("unterminated string literal starting with %c", quote), Pos: start}
 	}
+	l.pos++ // skip closing quote
 	return Token{Type: TokenString, Literal: sb.String(), Pos: start}
 }
 
@@ -200,9 +201,10 @@ func (l *Lexer) readRegex() Token {
 		sb.WriteRune(l.input[l.pos])
 		l.pos++
 	}
-	if l.pos < len(l.input) {
-		l.pos++ // skip closing '/'
+	if l.pos >= len(l.input) {
+		return Token{Type: TokenIllegal, Literal: "unterminated regex literal starting with /", Pos: start}
 	}
+	l.pos++ // skip closing '/'
 	return Token{Type: TokenRegex, Literal: sb.String(), Pos: start}
 }
 

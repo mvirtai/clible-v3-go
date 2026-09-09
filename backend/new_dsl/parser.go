@@ -24,6 +24,9 @@ func ParseISLA(input string) (*ISLAExpression, error) {
 	for {
 		tok := lex.NextToken()
 		if tok.Type == TokenIllegal {
+			if strings.HasPrefix(tok.Literal, "unterminated") {
+				return nil, fmt.Errorf("isla: %s at pos %d", tok.Literal, tok.Pos)
+			}
 			return nil, fmt.Errorf("isla: illegal token %q at pos %d", tok.Literal, tok.Pos)
 		}
 		if tok.Type == TokenEOF {
@@ -129,7 +132,8 @@ func (p *Parser) extractOutputOp() (*OutputOp, []Token, error) {
 	}
 
 	if opIdx == -1 {
-		return nil, nil, errors.New("isla: missing output operator (expected =>, >, or >>)")
+		// Output operator is optional: default to inline rendering (=>)
+		return &OutputOp{Kind: OutputInline}, p.tokens, nil
 	}
 
 	opTok := p.tokens[opIdx]
