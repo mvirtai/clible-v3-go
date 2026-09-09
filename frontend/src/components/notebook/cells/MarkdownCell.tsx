@@ -298,6 +298,25 @@ export function MarkdownCell({
             translationId={translation}
             contextText={contextText}
             onExecute={(code) => {
+              // Check if code contains output operator `>>` (cell below) or `>` (cell above)
+              const matchBelow = code.match(/^(.*?)\s*>>\s*([^\n]*)$/);
+              const matchAbove = !matchBelow ? code.match(/^(.*?)\s*>\s*([^\n]*)$/) : null;
+
+              if (onOutputRoute && (matchBelow || matchAbove)) {
+                const isBelow = Boolean(matchBelow);
+                const queryCode = (isBelow ? matchBelow?.[1] : matchAbove?.[1])?.trim() || '';
+                const name = (isBelow ? matchBelow?.[2] : matchAbove?.[2])?.trim();
+                
+                // Clean the current cell so it executes as inline `=>` and doesn't re-trigger
+                const cleanCurrentCode = queryCode.includes('=>') ? queryCode : `${queryCode} =>`;
+                onChange(cleanCurrentCode);
+                setIsEditing(false);
+
+                // Instantly spawn the new cell with the user's routed command & title
+                onOutputRoute(isBelow ? 'below' : 'above', name, queryCode);
+                return;
+              }
+
               onChange(code);
               setIsEditing(false);
             }}

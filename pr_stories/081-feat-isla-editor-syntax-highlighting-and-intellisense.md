@@ -141,9 +141,13 @@ export function ISLAEditor({
 | `frontend/src/components/notebook/isla/ISLAHoverCard.test.tsx` | Unit tests for keyword documentation lookup and unknown command handling. |
 | `frontend/src/components/notebook/isla/ISLAEditor.tsx` | Main interactive editor binding overlay, textarea, autocomplete, and hover documentation. |
 | `frontend/src/components/notebook/isla/ISLAEditor.test.tsx` | Comprehensive integration tests verifying typing, keyboard execution, and autocomplete cycles. |
-| `frontend/src/components/notebook/cells/MarkdownCell.tsx` | Integrated `ISLAEditor` into notebook cells with automatic detection and mode switching. |
-| `frontend/src/components/notebook/cells/MarkdownCell.test.tsx` | Added integration tests verifying `ISLAEditor` rendering, execution, and mode toggle in cells. |
-| `frontend/src/utils/i18n.ts` | Added 9 localized bilingual strings (`en` and `fi`) for ISLA editor placeholders, labels, and mode tags. |
+| `frontend/src/components/notebook/cells/MarkdownCell.tsx` | Integrated `ISLAEditor` into notebook cells with automatic detection and seamless `>` / `>>` cell routing. |
+| `frontend/src/components/notebook/cells/MarkdownCell.test.tsx` | Added integration tests verifying `ISLAEditor` rendering, execution, and automatic output routing. |
+| `frontend/src/components/notebook/NotebookEditor.tsx` | Wired cell insertion handler for output routing (`above` / `below`) across notebook cells. |
+| `frontend/src/components/notebook/NotebookEditor.test.tsx` | Added integration test for automated cell insertion via `onOutputRoute`. |
+| `frontend/src/components/notebook/isla/ISLABlock.tsx` | Streamlined output operator banner by removing redundant manual button in favor of automated execution routing. |
+| `backend/internal/api/dsl_handler_test.go` | Added test case validating `output_op` metadata serialization in `/api/dsl/eval`. |
+| `frontend/src/utils/i18n.ts` | Added localized bilingual strings (`en` and `fi`) for ISLA editor placeholders, labels, and mode tags. |
 
 ---
 
@@ -154,7 +158,7 @@ export function ISLAEditor({
 #### Frontend (Vitest Suite)
 
 * **Command:** `pnpm exec vitest run`
-* **Result:** 34 test files passed, 222 tests passed (0 failures).
+* **Result:** 34 test files passed, 238 tests passed (0 failures).
 * **Lint & Typecheck:** `eslint .` (0 errors, 0 warnings), `tsc -b --noEmit` (0 errors).
 
 #### Backend (Go Test Suite)
@@ -173,3 +177,4 @@ export function ISLAEditor({
 - [x] Caret navigation over recognized command names displays the floating `ISLAHoverCard`.
 - [x] Pressing `Enter` without `Shift` triggers `onExecute` cleanly.
 - [x] Pressing `Escape` closes the autocomplete popover.
+- [x] Executing with `>` or `>>` automatically spawns a new routed cell above or below and formats current cell to inline `=>`.

@@ -29,12 +29,10 @@ function ISLAContent({
   code,
   translation,
   contextText = '',
-  onOutputRoute,
 }: {
   code: string;
   translation: string;
   contextText?: string;
-  onOutputRoute?: (op: { kind: string; name?: string; raw?: string }, code: string) => void;
 }) {
   const { strings } = useLanguage();
   const result = use(fetchISLAResult(code, translation, contextText));
@@ -84,17 +82,6 @@ function ISLAContent({
               </span>
             )}
           </div>
-          {onOutputRoute && (
-            <button
-              type="button"
-              onClick={() => onOutputRoute(outputOp, code)}
-              className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-white dark:text-neutral-900 transition-colors cursor-pointer shadow-xs"
-              title={`${strings.islaRouteToNewCell}: ${outputOp.kind === 'cell_above' ? '↑' : '↓'}`}
-            >
-              <span>{outputOp.kind === 'cell_above' ? '↑' : '↓'}</span>
-              <span>{strings.islaRouteToNewCell}</span>
-            </button>
-          )}
         </div>
       )}
 

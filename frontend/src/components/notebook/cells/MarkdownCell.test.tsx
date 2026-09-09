@@ -476,26 +476,40 @@ describe('MarkdownCell', () => {
       content: '! @Joh 3:16 >> #uusi-solu',
     };
     const onOutputRoute = vi.fn();
+    const onChange = vi.fn();
 
     await act(async () => {
       root = createRoot(container!);
       root.render(
         <LanguageProvider>
-          <MarkdownCell cell={cell} onChange={vi.fn()} onOutputRoute={onOutputRoute} />
+          <MarkdownCell cell={cell} onChange={onChange} onOutputRoute={onOutputRoute} />
         </LanguageProvider>
       );
     });
 
-    const routeBtn = Array.from(container?.querySelectorAll('button') || []).find((b) =>
-      b.textContent?.includes('Luo solu')
-    );
-    expect(routeBtn).toBeDefined();
+    // Verify output badge displays the target slug without manual button
+    expect(container?.textContent).toContain('#uusi-solu');
+    expect(container?.textContent).toContain('Alapuolelle');
 
+    // Double-click into edit mode
+    const proseDiv = container?.querySelector('div.prose');
     await act(async () => {
-      routeBtn?.click();
+      proseDiv?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
     });
 
-    expect(onOutputRoute).toHaveBeenCalledWith('below', '#uusi-solu', '@Joh 3:16 >> #uusi-solu');
+    // Execute ISLA command
+    const runBtn = Array.from(container?.querySelectorAll('button') || []).find(
+      (b) => b.textContent?.trim() === '▶'
+    );
+    expect(runBtn).toBeDefined();
+
+    await act(async () => {
+      runBtn?.click();
+    });
+
+    // onOutputRoute is triggered automatically and the current cell is sanitized to inline =>
+    expect(onOutputRoute).toHaveBeenCalledWith('below', '#uusi-solu', '! @Joh 3:16');
+    expect(onChange).toHaveBeenCalledWith('! @Joh 3:16 =>');
   });
 });
 
