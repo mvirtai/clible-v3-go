@@ -44,6 +44,13 @@ describe('islaIntellisense', () => {
       expect(suggestions.some((s) => s.label.includes('suggest'))).toBe(true);
       expect(suggestions.some((s) => s.label.includes('themes'))).toBe(true);
     });
+
+    it('returns variable templates when line starts with "!#"', () => {
+      const suggestions = getISLASuggestions('!#', 2);
+      expect(suggestions.length).toBeGreaterThanOrEqual(2);
+      expect(suggestions.some((s) => s.label.includes('#muuttuja.count'))).toBe(true);
+      expect(suggestions.some((s) => s.label.includes('#muuttuja.top'))).toBe(true);
+    });
   });
 
   describe('Book reference and smart group suggestions (@)', () => {

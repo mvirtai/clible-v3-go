@@ -304,7 +304,7 @@ export function ISLAEditor({
           'relative z-0 w-full resize-none bg-transparent',
           'font-mono text-sm leading-relaxed',
           'px-3 py-2 pr-9',
-          'text-transparent caret-amber-400 dark:caret-amber-300',
+          'text-transparent caret-amber-600 dark:caret-amber-400',
           'placeholder:text-[var(--muted)]/50',
           'border border-amber-500/30 rounded-lg focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50',
           'whitespace-pre-wrap overflow-hidden transition-all',

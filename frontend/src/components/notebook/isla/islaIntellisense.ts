@@ -100,6 +100,39 @@ export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
     kind: 'snippet',
   },
   {
+    label: '! #muuttuja.count(words)',
+    insertText: '! #muuttuja.count(words)',
+    detail: 'Variable Word Count',
+    documentation: {
+      fi: 'Laskee aiemmin tallennetun muuttujan (#muuttuja) sanamäärän.',
+      en: 'Counts the number of words in a previously stored variable result (#variable).',
+    },
+    example: '! #muuttuja.count(words)',
+    kind: 'snippet',
+  },
+  {
+    label: '! #muuttuja.top(10)',
+    insertText: '! #muuttuja.top(10)',
+    detail: 'Variable Top Words',
+    documentation: {
+      fi: 'Listaa aiemmin tallennetun muuttujan (#muuttuja) yleisimmät sanat.',
+      en: 'Lists top frequent words from a previously stored variable result (#variable).',
+    },
+    example: '! #muuttuja.top(10)',
+    kind: 'snippet',
+  },
+  {
+    label: '! search("armo").at(UT) => #armo',
+    insertText: '! search("armo").at(UT) => #armo',
+    detail: 'Store to Variable',
+    documentation: {
+      fi: 'Tallentaa haun tuloksen muuttujaan (#armo) myöhempää analyysiä varten.',
+      en: 'Stores the search result in a named variable (#variable) for subsequent analysis.',
+    },
+    example: '! search("armo").at(UT) => #armo',
+    kind: 'snippet',
+  },
+  {
     label: '! search("armo") => at(evankeliumit) => count()',
     insertText: '! search("armo") => at(evankeliumit) => count()',
     detail: 'Scoped Count Metric',
@@ -403,6 +436,9 @@ export function getISLASuggestions(
   }
   if (trimmed === '!^') {
     return ISLA_MAIN_SNIPPETS.filter((s) => s.label.startsWith('! ^'));
+  }
+  if (trimmed === '!#') {
+    return ISLA_MAIN_SNIPPETS.filter((s) => s.label.startsWith('! #'));
   }
 
   // 2. Method call chaining after '.' (e.g. '@(Joh 3:16).', 'search("armo").', '^.')

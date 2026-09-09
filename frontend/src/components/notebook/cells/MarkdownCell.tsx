@@ -100,12 +100,18 @@ export function MarkdownCell({
     }
 
     // Shorthand for count queries: `# "armo" @ut` or `# @Joh 3:16` -> `? "armo" @ut => count` or `@Joh 3:16 => count`
+    // #variable refer to variable created earlier in the notebook, that can be used as an object to perform .
     if (q.startsWith('#')) {
       const rest = q.substring(1).trim();
-      if (rest.startsWith('@') || rest.startsWith('?')) {
-        return `${rest} => count`;
+
+      // Jos kyseessä on v2 muuttujakomento (esim. #muuttuja.count, #muuttuja =>, #muuttuja >> tai pelkkä #muuttuja), älä koske!
+      if (/^[a-zA-Z0-9_-]+(\.|\s*=>|\s*>|\s*>>|$)/.test(rest)) {
+        return q;
       }
-      return `? ${rest} => count`;
+      // Vanha v1-yhteensopivuus vain jos perässä on lainausmerkeissä sana:
+      if (rest.startsWith('"') || rest.startsWith("'")) {
+        return `? ${rest} => count`;
+      }
     }
 
     return q;
@@ -323,6 +329,7 @@ export function MarkdownCell({
             }}
             onChange={onChange}
             onCancel={() => setIsEditing(false)}
+            onBlur={() => setIsEditing(false)}
           />
         </div>
       );
