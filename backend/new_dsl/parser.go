@@ -153,9 +153,8 @@ func (p *Parser) extractOutputOp() (*OutputOp, []Token, error) {
 
 	var name string
 	if len(nameTokens) > 0 {
-		if kind == OutputInline {
-			return nil, nil, errors.New("isla: => does not support naming — use > or >>")
-		}
+		name =
+			strings.TrimSpace((nameTokens[0].Literal))
 
 		// Check if it's #slug or string literal or words.
 		if nameTokens[0].Type == TokenHash {
@@ -227,9 +226,19 @@ func (p *Parser) parseObject() (Object, error) {
 		case "search":
 			p.advance()
 			return p.parseSearchBody()
+
 		default:
 			return nil, fmt.Errorf("isla: unknown object identifier %q at pos %d", tok.Literal, tok.Pos)
 		}
+
+	case TokenHash:
+		p.advance() // consume '#'
+		identTok, err := p.expect(TokenIdent)
+		if err != nil {
+			return nil,
+				fmt.Errorf("isla: expected variable name after '#': %w", err)
+		}
+		return &VariableNode{Name: identTok.Literal}, nil
 
 	default:
 		return nil, fmt.Errorf("isla: unexpected token %q (type %s) at start of expression", tok.Literal, tok.Type)

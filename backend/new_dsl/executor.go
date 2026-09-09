@@ -22,6 +22,9 @@ type VerseSearcher interface {
 	SearchVerses(ctx context.Context, query string, isRegex bool, translationID, searchScope, scopeValue string) ([]models.Verse, error)
 }
 
+// VariableResolver defines the interface for retrieving variables by name.
+type VariableResolver func(name string) (*models.CLIResult, error)
+
 // AnalyticsData contains aggregated lexical and linguistic metrics.
 type AnalyticsData struct {
 	TokenCount        int                `json:"token_count"`
@@ -34,23 +37,24 @@ type AnalyticsData struct {
 
 // ExecutionContext is the runtime context for AST evaluation.
 type ExecutionContext struct {
-	Ctx             context.Context
-	DefaultTrans    string
-	ContextText     string
-	VerseFetcher    VerseFetcher
-	VerseSearcher   VerseSearcher
-	ThemeExtractor  func(text string, limit int) []models.ThemeItem
-	RefsFinder      func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
-	SuggestFinder   func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
-	AnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
+	Ctx              context.Context
+	DefaultTrans     string
+	ContextText      string
+	VerseFetcher     VerseFetcher
+	VerseSearcher    VerseSearcher
+	ThemeExtractor   func(text string, limit int) []models.ThemeItem
+	RefsFinder       func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
+	SuggestFinder    func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
+	AnalyticsFinder  func(verses []models.Verse, text string, topN int) AnalyticsData
+	VariableResolver VariableResolver
 }
 
 var (
-	islaLineRegex    = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
-	codeBlockRegex   = regexp.MustCompile("(?s)```.*?```")
-	inlineCodeRegex  = regexp.MustCompile("`[^`]*`")
-	nonAlphaRegex    = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
-	whitespaceRegex  = regexp.MustCompile(`\s+`)
+	islaLineRegex   = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
+	codeBlockRegex  = regexp.MustCompile("(?s)```.*?```")
+	inlineCodeRegex = regexp.MustCompile("`[^`]*`")
+	nonAlphaRegex   = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
+	whitespaceRegex = regexp.MustCompile(`\s+`)
 )
 
 // StripISLAFromText sanitises text by removing ISLA directives, code blocks,
