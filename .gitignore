@@ -63,3 +63,7 @@ isla_ideointi.md
 
 # task outputs
 .task/*
+
+# local demos and keys
+demos/
+agent-ssh-gh*
