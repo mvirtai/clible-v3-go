@@ -106,6 +106,17 @@ func (p *Parser) parseExpression() (*ISLAExpression, error) {
 		methods = append(methods, method)
 	}
 
+	// If object is CellCtxNode and no methods are specified, check if output is => with legacy action names.
+	// In legacy DSL, "^1 => #themes" is an action invocation, not a variable assignment.
+	if _, isCellCtx := obj.(*CellCtxNode); isCellCtx && len(methods) == 0 {
+		if outputOp.Kind == OutputInline {
+			switch outputOp.Name {
+			case "#themes", "#refs", "#suggest", "#stats":
+				return nil, fmt.Errorf("isla: legacy action %s is not supported without method call (use ^.themes() instead)", outputOp.Name)
+			}
+		}
+	}
+
 	return &ISLAExpression{
 		Object:  obj,
 		Methods: methods,
@@ -153,27 +164,43 @@ func (p *Parser) extractOutputOp() (*OutputOp, []Token, error) {
 
 	var name string
 	if len(nameTokens) > 0 {
-		name =
-			strings.TrimSpace((nameTokens[0].Literal))
-
-		// Check if it's #slug or string literal or words.
-		if nameTokens[0].Type == TokenHash {
-			// #slug
+		if kind == OutputInline {
+			// For inline output operator (=>), naming is ONLY supported for variable assignment (#slug).
+			// Title texts and method/function calls (e.g. count(words)) are not allowed.
+			if nameTokens[0].Type != TokenHash {
+				return nil, nil, fmt.Errorf("isla: => only supports variable naming (#slug), got %q", nameTokens[0].Literal)
+			}
+			for _, t := range nameTokens[1:] {
+				if t.Type == TokenParenOpen || t.Type == TokenParenClose || t.Type == TokenComma || t.Type == TokenDot {
+					return nil, nil, fmt.Errorf("isla: invalid variable name token %q", t.Literal)
+				}
+			}
 			var sb strings.Builder
 			sb.WriteString("#")
 			for _, t := range nameTokens[1:] {
 				sb.WriteString(t.Literal)
 			}
 			name = sb.String()
-		} else if len(nameTokens) == 1 && nameTokens[0].Type == TokenString {
-			name = nameTokens[0].Literal
 		} else {
-			// Free title text
-			var words []string
-			for _, t := range nameTokens {
-				words = append(words, t.Literal)
+			// > and >> support #slug, string literal, or free title text.
+			if nameTokens[0].Type == TokenHash {
+				// #slug
+				var sb strings.Builder
+				sb.WriteString("#")
+				for _, t := range nameTokens[1:] {
+					sb.WriteString(t.Literal)
+				}
+				name = sb.String()
+			} else if len(nameTokens) == 1 && nameTokens[0].Type == TokenString {
+				name = nameTokens[0].Literal
+			} else {
+				// Free title text
+				var words []string
+				for _, t := range nameTokens {
+					words = append(words, t.Literal)
+				}
+				name = strings.Join(words, " ")
 			}
-			name = strings.Join(words, " ")
 		}
 	}
 
@@ -238,7 +265,12 @@ func (p *Parser) parseObject() (Object, error) {
 			return nil,
 				fmt.Errorf("isla: expected variable name after '#': %w", err)
 		}
-		return &VariableNode{Name: identTok.Literal}, nil
+		var sb strings.Builder
+		sb.WriteString(identTok.Literal)
+		for p.pos < len(p.tokens) && (p.current().Type == TokenDash || p.current().Type == TokenIdent || p.current().Type == TokenNumber) {
+			sb.WriteString(p.advance().Literal)
+		}
+		return &VariableNode{Name: sb.String()}, nil
 
 	default:
 		return nil, fmt.Errorf("isla: unexpected token %q (type %s) at start of expression", tok.Literal, tok.Type)
@@ -406,6 +438,9 @@ func (p *Parser) parseMethodCall() (MethodCall, error) {
 	if name == "ttr" {
 		name = "stats"
 	}
+	if name == "words" {
+		name = "top"
+	}
 
 	return MethodCall{
 		Name: name,
@@ -420,8 +455,8 @@ func validateMethodForObject(kind ObjectKind, method string) error {
 			return fmt.Errorf("isla: .use() method is not permitted on cell context (^)")
 		}
 	case "vs":
-		if kind != ObjectVerseRef {
-			return fmt.Errorf("isla: .vs() comparison method is only permitted on verse references @()")
+		if kind != ObjectVerseRef && kind != ObjectVariable {
+			return fmt.Errorf("isla: .vs() comparison method is only permitted on verse references @() or variables")
 		}
 	case "at":
 		if kind != ObjectSearch {
@@ -432,8 +467,8 @@ func validateMethodForObject(kind ObjectKind, method string) error {
 			return fmt.Errorf("isla: .limit() method is only permitted on search() objects")
 		}
 	case "refs":
-		if kind != ObjectVerseRef {
-			return fmt.Errorf("isla: .refs() cross-reference method is only permitted on verse references @()")
+		if kind != ObjectVerseRef && kind != ObjectVariable {
+			return fmt.Errorf("isla: .refs() cross-reference method is only permitted on verse references @() or variables")
 		}
 	case "count", "themes", "suggest", "top", "stats":
 		// Allowed on all objects

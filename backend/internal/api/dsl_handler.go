@@ -2,10 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
+	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/services"
+	newdsl "github.com/mvirtai/clible-v3-go/new_dsl"
 )
 
 type DSLHandler struct {
@@ -20,9 +24,10 @@ func NewDSLHandler(cliService *services.CLIService) *DSLHandler {
 }
 
 type DSLEvalRequest struct {
-	Query         string `json:"query"`
-	TranslationID string `json:"translationId,omitempty"`
-	ContextText   string `json:"contextText,omitempty"`
+	Query         string                        `json:"query"`
+	TranslationID string                        `json:"translationId,omitempty"`
+	ContextText   string                        `json:"contextText,omitempty"`
+	Variables     map[string]*models.CLIResult `json:"variables,omitempty"`
 }
 
 // EvalDSL handles POST /api/dsl/eval
@@ -53,7 +58,22 @@ func (h *DSLHandler) EvalDSL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("⚡ [ISLA Command]", "query", req.Query, "translationId", req.TranslationID)
-	result, err := h.cliService.ExecuteDSL(r.Context(), req.Query, req.TranslationID, req.ContextText)
+
+	var varResolver newdsl.VariableResolver
+	if len(req.Variables) > 0 {
+		varResolver = func(name string) (*models.CLIResult, error) {
+			clean := strings.TrimPrefix(name, "#")
+			if res, ok := req.Variables[clean]; ok {
+				return res, nil
+			}
+			if res, ok := req.Variables["#"+clean]; ok {
+				return res, nil
+			}
+			return nil, fmt.Errorf("variable '#%s' not found in request context", clean)
+		}
+	}
+
+	result, err := h.cliService.ExecuteDSLWithResolver(r.Context(), req.Query, req.TranslationID, req.ContextText, varResolver)
 	if err != nil {
 		slog.Warn("DSL evaluation error", "query", req.Query, "error", err)
 		w.Header().Set("Content-Type", "application/json")

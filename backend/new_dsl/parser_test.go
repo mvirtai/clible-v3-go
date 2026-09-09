@@ -240,11 +240,6 @@ func TestParseISLA_ValidationErrors(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "naming with inline output operator",
-			input:   `@(Joh 3:16).use(KR92) => #my-slug`,
-			wantErr: "=> does not support naming",
-		},
-		{
 			name:    "empty expression before output operator",
 			input:   `=>`,
 			wantErr: "expression is empty",
@@ -271,6 +266,55 @@ func TestParseISLA_ValidationErrors(t *testing.T) {
 			_, err := ParseISLA(tt.input)
 			if err == nil {
 				t.Fatalf("ParseISLA(%q) expected error containing %q, got nil", tt.input, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestParseISLA_Variable(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    *ISLAExpression
+		wantErr bool
+	}{
+		{
+			name:  "variable with count words",
+			input: "#johannes.count(words) =>",
+			want: &ISLAExpression{
+				Object:  &VariableNode{Name: "johannes"},
+				Methods: []MethodCall{{Name: "count", Args: []string{"words"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "variable with stats and output below to new slug",
+			input: "#muuttuja.stats >> #uusi-muuttuja",
+			want: &ISLAExpression{
+				Object:  &VariableNode{Name: "muuttuja"},
+				Methods: []MethodCall{{Name: "stats"}},
+				Output:  OutputOp{Kind: OutputNewCellBelow, Name: "#uusi-muuttuja"},
+			},
+		},
+		{
+			name:  "naming with inline output operator => #slug",
+			input: "@(Joh 3:16).use(KR92) => #my-slug",
+			want: &ISLAExpression{
+				Object:  &VerseRefNode{Reference: "Joh 3:16"},
+				Methods: []MethodCall{{Name: "use", Args: []string{"KR92"}}},
+				Output:  OutputOp{Kind: OutputInline, Name: "#my-slug"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseISLA(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ParseISLA(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("\ngot:  %+v\nwant: %+v", got, tt.want)
 			}
 		})
 	}
