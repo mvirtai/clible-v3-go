@@ -306,10 +306,11 @@ export function MarkdownCell({
                 const isBelow = Boolean(matchBelow);
                 const queryCode = (isBelow ? matchBelow?.[1] : matchAbove?.[1])?.trim() || '';
                 const name = (isBelow ? matchBelow?.[2] : matchAbove?.[2])?.trim();
+                const directionLabel = isBelow ? strings.islaOutputBelow : strings.islaOutputAbove;
                 
-                // Clean the current cell so it executes as inline `=>` and doesn't re-trigger
-                const cleanCurrentCode = queryCode.includes('=>') ? queryCode : `${queryCode} =>`;
-                onChange(cleanCurrentCode);
+                // Format original cell with explanatory comment and routing notice without triggering inline execution
+                const noticeText = `> ↳ *${strings.islaOutputRoutedNotice} (${directionLabel.toLowerCase()})*${name ? `: \`${name}\`` : ''}\n\n\`${code.trim()}\``;
+                onChange(noticeText);
                 setIsEditing(false);
 
                 // Instantly spawn the new cell with the user's routed command & title

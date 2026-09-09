@@ -195,6 +195,7 @@ export interface Messages {
   islaOutputBelow: string;
   islaOutputInline: string;
   islaRouteToNewCell: string;
+  islaOutputRoutedNotice: string;
   islaEditorPlaceholder: string;
   islaExecuteAriaLabel: string;
   islaAutocompleteLabel: string;
@@ -538,6 +539,7 @@ export const strings: Record<UILanguage, Messages> = {
     islaOutputBelow: 'Cell below',
     islaOutputInline: 'This cell',
     islaRouteToNewCell: 'Create cell',
+    islaOutputRoutedNotice: 'Result routed to a new cell',
     islaEditorPlaceholder: 'Type an ISLA command… (e.g. ! @Joh 3:16 =>)',
     islaExecuteAriaLabel: 'Execute ISLA command',
     islaAutocompleteLabel: 'ISLA autocomplete suggestions',
@@ -866,6 +868,7 @@ export const strings: Record<UILanguage, Messages> = {
     islaOutputBelow: 'Alapuolelle',
     islaOutputInline: 'Tähän soluun',
     islaRouteToNewCell: 'Luo solu',
+    islaOutputRoutedNotice: 'Tulos reititetty uuteen soluun',
     islaEditorPlaceholder: 'Kirjoita ISLA-komento... (esim. ! @Joh 3:16 =>)',
     islaExecuteAriaLabel: 'Suorita ISLA-komento',
     islaAutocompleteLabel: 'ISLA-täydennykset',
