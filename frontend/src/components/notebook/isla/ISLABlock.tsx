@@ -29,10 +29,12 @@ function ISLAContent({
   code,
   translation,
   contextText = '',
+  onOutputRoute,
 }: {
   code: string;
   translation: string;
   contextText?: string;
+  onOutputRoute?: (op: { kind: string; name?: string; raw?: string }, code: string) => void;
 }) {
   const { strings } = useLanguage();
   const result = use(fetchISLAResult(code, translation, contextText));
@@ -82,6 +84,17 @@ function ISLAContent({
               </span>
             )}
           </div>
+          {onOutputRoute && (
+            <button
+              type="button"
+              onClick={() => onOutputRoute(outputOp, code)}
+              className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-white dark:text-neutral-900 transition-colors cursor-pointer shadow-xs"
+              title={`${strings.islaRouteToNewCell}: ${outputOp.kind === 'cell_above' ? '↑' : '↓'}`}
+            >
+              <span>{outputOp.kind === 'cell_above' ? '↑' : '↓'}</span>
+              <span>{strings.islaRouteToNewCell}</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -137,6 +150,8 @@ export interface ISLABlockProps {
   translation: string;
   /** Optional notebook text context for caret (^) scope operations. */
   contextText?: string;
+  /** Optional callback fired when routing an output to a new cell above or below. */
+  onOutputRoute?: (op: { kind: string; name?: string; raw?: string }, code: string) => void;
 }
 
 /**
@@ -145,13 +160,13 @@ export interface ISLABlockProps {
  * @param props - Component properties conforming to {@link ISLABlockProps}.
  * @returns Suspended interactive ISLA query visualization.
  */
-export function ISLABlock({ code, translation, contextText = '' }: ISLABlockProps) {
+export function ISLABlock({ code, translation, contextText = '', onOutputRoute }: ISLABlockProps) {
   const cleanQuery = code.trim();
   if (!cleanQuery) return null;
 
   return (
     <Suspense fallback={<ISLASkeleton code={code} />}>
-      <ISLAContent code={cleanQuery} translation={translation} contextText={contextText} />
+      <ISLAContent code={cleanQuery} translation={translation} contextText={contextText} onOutputRoute={onOutputRoute} />
     </Suspense>
   );
 }

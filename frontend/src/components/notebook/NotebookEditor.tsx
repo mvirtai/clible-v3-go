@@ -287,14 +287,14 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
     });
   };
 
-  const handleInsertCell = (index: number) => {
+  const handleInsertCell = (index: number, initialContent: string = '') => {
     const cellId = generateCellId();
 
     const newCell: Cell = {
       id: cellId,
       notebookId,
       type: 'markdown',
-      content: '',
+      content: initialContent,
       position: index,
       resultJson: null,
     };
@@ -308,6 +308,23 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
     });
 
     return cellId;
+  };
+
+  const handleOutputRoute = (
+    cellIndex: number,
+    direction: 'above' | 'below',
+    title?: string,
+    queryCode?: string
+  ) => {
+    const targetIndex = direction === 'above' ? cellIndex : cellIndex + 1;
+    let initialContent = '';
+    if (title) {
+      initialContent = `### ${title}\n\n`;
+    }
+    if (queryCode) {
+      initialContent += `! ${queryCode} =>\n`;
+    }
+    handleInsertCell(targetIndex, initialContent);
   };
 
   if (isLoading) {
@@ -471,6 +488,9 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
                     onSelectVerse={onSelectVerse}
                     translation={translation}
                     contextText={precedingCellsText}
+                    onOutputRoute={(direction, title, queryCode) =>
+                      handleOutputRoute(index, direction, title, queryCode)
+                    }
                   />
                 </CellWrapper>
               </React.Fragment>

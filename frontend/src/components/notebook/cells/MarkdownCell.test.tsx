@@ -438,5 +438,64 @@ describe('MarkdownCell', () => {
     expect(onChange).toHaveBeenCalledWith('! @Joh 3:16 => web');
     expect(container?.querySelector('div.group\\/isla-editor')).toBeNull();
   });
+
+  it('triggers onOutputRoute when clicking the route button on an outputOp banner', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            type: 'verses',
+            data: {
+              verses: [
+                {
+                  id: 'v1',
+                  ref: 'Joh 3:16',
+                  book: 'Joh',
+                  chapter: 3,
+                  verse: 16,
+                  translationId: 'kr92',
+                  text: 'Sillä niin on Jumala...',
+                },
+              ],
+              output_op: {
+                kind: 'cell_below',
+                name: '#uusi-solu',
+                raw: '>> #uusi-solu',
+              },
+            },
+          }),
+      })
+    );
+
+    const cell = {
+      id: 'cell-route-1',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '! @Joh 3:16 >> #uusi-solu',
+    };
+    const onOutputRoute = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={vi.fn()} onOutputRoute={onOutputRoute} />
+        </LanguageProvider>
+      );
+    });
+
+    const routeBtn = Array.from(container?.querySelectorAll('button') || []).find((b) =>
+      b.textContent?.includes('Luo solu')
+    );
+    expect(routeBtn).toBeDefined();
+
+    await act(async () => {
+      routeBtn?.click();
+    });
+
+    expect(onOutputRoute).toHaveBeenCalledWith('below', '#uusi-solu', '@Joh 3:16 >> #uusi-solu');
+  });
 });
 

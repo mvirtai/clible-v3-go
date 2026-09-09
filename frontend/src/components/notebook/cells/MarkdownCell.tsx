@@ -24,6 +24,8 @@ export interface MarkdownCellProps {
   translation?: string;
   /** Optional notebook text context from preceding markdown cells */
   contextText?: string;
+  /** Optional callback fired when routing an output to a new cell above or below */
+  onOutputRoute?: (direction: 'above' | 'below', title?: string, code?: string) => void;
 }
 
 /**
@@ -40,6 +42,7 @@ export function MarkdownCell({
   onSelectVerse,
   translation = 'WEB',
   contextText = '',
+  onOutputRoute,
 }: MarkdownCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editorMode, setEditorMode] = useState<'auto' | 'isla' | 'markdown'>('auto');
@@ -221,6 +224,14 @@ export function MarkdownCell({
             code={normalizedCode}
             translation={translation}
             contextText={getContextForQuery(rawCode)}
+            onOutputRoute={
+              onOutputRoute
+                ? (op, queryCode) => {
+                    const dir = op.kind === 'cell_above' ? 'above' : 'below';
+                    onOutputRoute(dir, op.name, queryCode);
+                  }
+                : undefined
+            }
           />
         );
       }
