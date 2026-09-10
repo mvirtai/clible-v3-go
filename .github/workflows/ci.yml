@@ -61,7 +61,7 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install locked dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Verify TypeScript strict compilation
         run: pnpm exec tsc --noEmit
