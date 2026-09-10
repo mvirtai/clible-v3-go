@@ -211,12 +211,26 @@ func (p *Parser) parseObject() (Object, error) {
 	tok := p.current()
 
 	switch tok.Type {
+	case TokenParenOpen:
+		// (start .. end) range syntax shorthand
+		p.advance() // consume '('
+		return p.parseRangeAfterOpenParen()
+
 	case TokenAtOpen:
 		p.advance()
-		// Literal already holds the verse reference string: "Joh 3:16"
+		// Literal already holds the verse reference string: "Joh 3:16" or "MAT .. JOH"
 		ref := strings.TrimSpace(tok.Literal)
 		if ref == "" {
 			return nil, errors.New("isla: empty verse reference in @()")
+		}
+		if strings.Contains(ref, "..") {
+			parts := strings.SplitN(ref, "..", 2)
+			startStr := strings.TrimSpace(parts[0])
+			endStr := strings.TrimSpace(parts[1])
+			if startStr == "" || endStr == "" {
+				return nil, errors.New("isla: range expects start and end around '..'")
+			}
+			return &RangeNode{Start: startStr, End: endStr}, nil
 		}
 		return &VerseRefNode{Reference: ref}, nil
 
@@ -284,16 +298,21 @@ func (p *Parser) parseRange() (*RangeNode, error) {
 	if _, err := p.expect(TokenParenOpen); err != nil {
 		return nil, err
 	}
+	return p.parseRangeAfterOpenParen()
+}
 
+func (p *Parser) parseRangeAfterOpenParen() (*RangeNode, error) {
 	// Read start
 	startStr, err := p.readRangePart()
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := p.expect(TokenComma); err != nil {
-		return nil, errors.New("isla: range() expects two comma-separated arguments: start, end")
+	sep := p.current()
+	if sep.Type != TokenDotDot && sep.Type != TokenComma {
+		return nil, fmt.Errorf("isla: range expects '..' or ',' separator, got %q at pos %d", sep.Literal, sep.Pos)
 	}
+	p.advance() // consume '..' or ','
 
 	// Read end
 	endStr, err := p.readRangePart()
@@ -316,7 +335,7 @@ func (p *Parser) readRangePart() (string, error) {
 	var lastType TokenType
 	for p.pos < len(p.tokens) {
 		t := p.current()
-		if t.Type == TokenComma || t.Type == TokenParenClose || t.Type == TokenEOF {
+		if t.Type == TokenDotDot || t.Type == TokenComma || t.Type == TokenParenClose || t.Type == TokenEOF {
 			break
 		}
 		p.advance()
@@ -332,6 +351,7 @@ func (p *Parser) readRangePart() (string, error) {
 	}
 	return res, nil
 }
+
 
 func (p *Parser) parseAtVerseRef() (*VerseRefNode, error) {
 	if _, err := p.expect(TokenParenOpen); err != nil {

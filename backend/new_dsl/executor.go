@@ -234,6 +234,19 @@ func executeRangeExpr(ctx *ExecutionContext, n *RangeNode, methods []MethodCall)
 		}
 	}
 
+	// Check if both start and end references are ScopeBook (e.g. MAT .. JOH, Genesis .. Deuteronomy)
+	if errStart == nil && errEnd == nil &&
+		pStart.Scope == parsers.ScopeBook && pEnd.Scope == parsers.ScopeBook &&
+		pStart.BookName != "" && pEnd.BookName != "" {
+		bookIDs := parsers.GetBookSpan(pStart.BookName, pEnd.BookName)
+		for _, bID := range bookIDs {
+			bVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, bID, tid)
+			if err == nil && len(bVerses) > 0 {
+				verses = append(verses, bVerses...)
+			}
+		}
+	}
+
 	if len(verses) == 0 {
 		startVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, n.Start, tid)
 		if err != nil {
@@ -253,6 +266,7 @@ func executeRangeExpr(ctx *ExecutionContext, n *RangeNode, methods []MethodCall)
 			}
 		}
 	}
+
 
 	res := &models.CLIResult{
 		Type: "range",

@@ -304,3 +304,76 @@ func TestExecute_Variable(t *testing.T) {
 		}
 	})
 }
+
+func TestExecute_RangeMultiBookSpan(t *testing.T) {
+	matVerses := []models.Verse{{BookID: "MAT", Chapter: 1, Verse: 1, Text: "Jeesuksen Kristuksen, Daavidin pojan..."}}
+	mrkVerses := []models.Verse{{BookID: "MRK", Chapter: 1, Verse: 1, Text: "Jeesuksen Kristuksen, Jumalan Pojan..."}}
+	lukVerses := []models.Verse{{BookID: "LUK", Chapter: 1, Verse: 1, Text: "Koska monet ovat yrittäneet..."}}
+	jhnVerses := []models.Verse{{BookID: "JHN", Chapter: 1, Verse: 1, Text: "Alussa oli Sana, ja Sana oli Jumalan luona..."}}
+
+	execCtx := &ExecutionContext{
+		Ctx: context.Background(),
+		VerseFetcher: &mockVerseFetcherDelegate{
+			fn: func(ctx context.Context, ref, translationID string) ([]models.Verse, error) {
+				switch ref {
+				case "MAT":
+					return matVerses, nil
+				case "MRK":
+					return mrkVerses, nil
+				case "LUK":
+					return lukVerses, nil
+				case "JHN":
+					return jhnVerses, nil
+				default:
+					return nil, nil
+				}
+			},
+		},
+	}
+
+	tests := []struct {
+		name      string
+		query     string
+		wantBooks int
+	}{
+		{
+			name:      "bare parens (MAT .. JOH).count(books)",
+			query:     "! (MAT .. JOH).count(books) =>",
+			wantBooks: 4,
+		},
+		{
+			name:      "explicit range(MAT .. JOH).count(books)",
+			query:     "! range(MAT .. JOH).count(books) =>",
+			wantBooks: 4,
+		},
+		{
+			name:      "at-parens @(MAT .. JOH).count(books)",
+			query:     "! @(MAT .. JOH).count(books) =>",
+			wantBooks: 4,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expr, err := ParseISLA(tt.query)
+			if err != nil {
+				t.Fatalf("Parse error: %v", err)
+			}
+			res, err := Execute(execCtx, expr)
+			if err != nil {
+				t.Fatalf("Execute error: %v", err)
+			}
+			if res.Type != "count" {
+				t.Errorf("res.Type = %q, want 'count'", res.Type)
+			}
+			cnt, ok := res.Data["count"].(int)
+			if !ok {
+				t.Fatalf("count is not int: %v", res.Data["count"])
+			}
+			if cnt != tt.wantBooks {
+				t.Errorf("count = %d, want %d", cnt, tt.wantBooks)
+			}
+		})
+	}
+}
+

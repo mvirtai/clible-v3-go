@@ -100,6 +100,33 @@ func TestParseISLA_Range(t *testing.T) {
 				Output:  OutputOp{Kind: OutputNewCellAbove, Name: "Johanneksen prologin sanat"},
 			},
 		},
+		{
+			name:  "range with dot-dot operator inside range()",
+			input: `! range(MAT .. JOH).count(books) =>`,
+			want: &ISLAExpression{
+				Object:  &RangeNode{Start: "MAT", End: "JOH"},
+				Methods: []MethodCall{{Name: "count", Args: []string{"books"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "bare parens range shorthand (start .. end)",
+			input: `! (MAT .. JOH).count(books) =>`,
+			want: &ISLAExpression{
+				Object:  &RangeNode{Start: "MAT", End: "JOH"},
+				Methods: []MethodCall{{Name: "count", Args: []string{"books"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "at-parens range @(start .. end)",
+			input: `! @(MAT .. JOH).count(books) =>`,
+			want: &ISLAExpression{
+				Object:  &RangeNode{Start: "MAT", End: "JOH"},
+				Methods: []MethodCall{{Name: "count", Args: []string{"books"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
 	}
 
 	for _, tt := range tests {

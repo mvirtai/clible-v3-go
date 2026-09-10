@@ -25,6 +25,10 @@ const (
 	// TokenDot is the chain-call separator (method.call or method.cell)
 	TokenDot TokenType = "."
 
+	// TokenDotDot is the range operator: MAT .. JOH, 1:1 .. 1:18
+	TokenDotDot TokenType = ".."
+
+
 	// -- Output operators -----------------------------------------------------
 
 	// TokenOutputInline renders the result into the current cell (replaces line).
