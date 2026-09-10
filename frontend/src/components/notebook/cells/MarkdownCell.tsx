@@ -193,6 +193,13 @@ export function MarkdownCell({
    * Combines preceding notebook markdown cells with any text in the current cell preceding this query.
    */
   const getContextForQuery = (query: string): string => {
+    // Only caret (^) context queries need preceding markdown context text.
+    // For normal searches, verses, etc. return empty string so typing in other cells
+    // does not cause cache invalidation.
+    if (!query.includes('^')) {
+      return '';
+    }
+
     const cleanPreceding = stripISLAFromText(contextText || '');
 
     const rawContent = cell.content || '';

@@ -46,7 +46,12 @@ export function fetchISLAResult(
     variables[key] = val;
   });
 
-  const cacheKey = `${translationId}:${query}:${contextText}:${Object.keys(variables).sort().join(',')}`;
+  // Only caret (^) context operations depend on preceding cell text.
+  // For normal searches, verse citations, comparisons, etc., ignore contextText
+  // so typing in other notebook cells does not invalidate the cache or hammer the database.
+  const effectiveContext = query.includes('^') ? contextText.trim() : '';
+
+  const cacheKey = `${translationId}:${query}:${effectiveContext}:${Object.keys(variables).sort().join(',')}`;
   const existing = islaPromiseCache.get(cacheKey);
   if (existing) return existing;
 
@@ -56,7 +61,7 @@ export function fetchISLAResult(
     body: JSON.stringify({
       query,
       translationId,
-      contextText,
+      ...(effectiveContext ? { contextText: effectiveContext } : {}),
       ...(Object.keys(variables).length > 0 ? { variables } : {}),
     }),
   })
