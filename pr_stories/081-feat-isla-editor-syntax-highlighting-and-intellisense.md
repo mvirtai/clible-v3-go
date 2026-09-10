@@ -111,7 +111,7 @@ Rather than integrating heavyweight `contenteditable` wrappers or bundling multi
 
 - **Zero `useEffect` Hooks:** All state updates, auto-closing bracket insertions, and popover displays are purely event-driven (`onChange`, `onKeyDown`, `onKeyUp`, `onClick`, `onBlur`).
 - **Render-Time State Adjustment:** In `ISLAAutocomplete`, whenever the cursor offset or line text changes from the parent, the active highlight index is reset during render without effect lag.
-- **Smart Gestures:** Typing `!` in an empty line inserts `! ` with a trailing space; pressing `Backspace` immediately after auto-closing `@()` or `?()` cleanly removes both parenthesis pairs without trapping the cursor.
+- **Smart Gestures:** Typing `!` in an empty line inserts `!` with a trailing space; pressing `Backspace` immediately after auto-closing `@()` or `?()` cleanly removes both parenthesis pairs without trapping the cursor.
 - **Interactive Routing (`>` / `>>`):** Appending `>` or `>>` routes analytical output above or below in the notebook workspace, cleanly splitting cells and preserving local variables.
 
 ### 3. Canonical Multi-Book Range Interpolation (`..`)
@@ -148,33 +148,37 @@ In `frontend/src/App.tsx` and `NotebookEditor.tsx`, translation fallback now ins
 
 ## 📈 Improvement Metrics & Key Figures
 
-* **Application Version:** Bumped to **v3.3.0** across `VERSION`, `frontend/package.json`, and `backend/internal/version/version.go`.
-* **Zero External Editor Dependencies:** Replaced potential multi-MB Monaco/CodeMirror dependencies with pure React 19 TypeScript code (~25 kB).
-* **Zero `useEffect` Overhead:** 0 `useEffect` hooks across `ISLASyntaxLayer`, `ISLAAutocomplete`, `ISLAHoverCard`, and `ISLAEditor`.
-* **Comprehensive Test Suite Expansion:**
-  * **Frontend:** 35 test files, 296 tests passing (100% pass rate).
-  * **Backend:** 78.0% statement coverage (`.cov/backend/coverage.txt`), zero lint issues.
-* **Algorithmic Complexity:** O(1) linear tokenization stream during typing; O(K) canonical book span resolution where K ≤ 66.
-* **Container Hardening:** Base runtime updated to Alpine 3.21 with automated `apk upgrade`, eliminating all base OS vulnerabilities.
+- **Application Version:** Bumped to **v3.3.0** across `VERSION`, `frontend/package.json`, and `backend/internal/version/version.go`.
+- **Zero External Editor Dependencies:** Replaced potential multi-MB Monaco/CodeMirror dependencies with pure React 19 TypeScript code (~25 kB).
+- **Zero `useEffect` Overhead:** 0 `useEffect` hooks across `ISLASyntaxLayer`, `ISLAAutocomplete`, `ISLAHoverCard`, and `ISLAEditor`.
+- **Comprehensive Test Suite Expansion:**
+  - **Frontend:** 35 test files, 296 tests passing (100% pass rate).
+  - **Backend:** 78.0% statement coverage (`.cov/backend/coverage.txt`), zero lint issues.
+- **Algorithmic Complexity:** O(1) linear tokenization stream during typing; O(K) canonical book span resolution where K ≤ 66.
+- **Container Hardening:** Base runtime updated to Alpine 3.21 with automated `apk upgrade`, eliminating all base OS vulnerabilities.
 
 ---
 
 ## Security & Compliance
 
-* **XSS & Injection Protection:** User input in `ISLASyntaxLayer` is rendered purely through React's safe text nodes (`<span>{token.text}</span>`), guaranteeing zero DOM injection risks.
-* **SQL Injection Safety:** Multi-book spans query the database using strictly parameterized SQL statements (`$1, $2`).
-* **Accessibility (a11y):** The visual overlay is strictly marked with `aria-hidden="true"`, ensuring screen readers interact only with standard accessible `<textarea>` elements. Dropdowns use WAI-ARIA `role="listbox"` and `role="option"` with `aria-selected` indicators.
-* **Input Boundary Safety:** Tokenizer, book span resolver, and suggestion routines execute in bounded linear time with zero filesystem or network side-effects.
+- **XSS & Injection Protection:** User input in `ISLASyntaxLayer` is rendered purely through React's safe text nodes (`<span>{token.text}</span>`), guaranteeing zero DOM injection risks.
+- **SQL Injection Safety:** Multi-book spans query the database using strictly parameterized SQL statements (`$1, $2`).
+- **Bounded Request Payloads & DoS Protection:** In `frontend/src/components/notebook/isla/islaCache.ts`, only variables explicitly referenced in the evaluated query string are transmitted across the wire, preventing payload bloat when whole-book verse variables are cached. Backend request body limit in `dsl_handler.go` safely expanded to 10 MB (`10<<20`) to support analytical dataset evaluation.
+- **Accessibility (a11y):** The visual overlay is strictly marked with `aria-hidden="true"`, ensuring screen readers interact only with standard accessible `<textarea>` elements. Dropdowns use WAI-ARIA `role="listbox"` and `role="option"` with `aria-selected` indicators.
+- **Input Boundary Safety:** Tokenizer, book span resolver, and suggestion routines execute in bounded linear time with zero filesystem or network side-effects.
 
 ---
 
 ## Files Changed
 
 | File | Change Summary |
-|------|----------------|
+| ------ | ---------------- |
 | `VERSION` | Bumped application release version to `3.3.0`. |
 | `backend/internal/version/version.go` | Bumped backend version constant to `3.3.0`. |
 | `frontend/package.json` | Bumped frontend package version to `3.3.0`. |
+| `backend/internal/api/dsl_handler.go` | Expanded HTTP body limit to 10 MB and added detailed decoding error logging. |
+| `backend/internal/api/dsl_handler_test.go` | Added unit test verifying 10 MB request limit enforcement. |
+| `frontend/src/components/notebook/isla/islaCache.ts` | Filtered variable payload to only referenced tokens, preventing payload blowup. |
 | `frontend/src/components/notebook/isla/ISLAEditor.tsx` | Main interactive editor binding overlay, textarea, autocomplete, and hover documentation. |
 | `frontend/src/components/notebook/isla/ISLAEditor.test.tsx` | Integration tests verifying typing, keyboard execution, and autocomplete cycles. |
 | `frontend/src/components/notebook/isla/ISLASyntaxLayer.tsx` | Presentational overlay component mapping tokens to Tailwind CSS color classes. |
@@ -192,7 +196,6 @@ In `frontend/src/App.tsx` and `NotebookEditor.tsx`, translation fallback now ins
 | `frontend/src/components/notebook/NotebookEditor.tsx` | Wired cell insertion handler for output routing and language-aware translation fallback. |
 | `frontend/src/components/notebook/NotebookEditor.test.tsx` | Integration tests for automated cell insertion via `onOutputRoute`. |
 | `frontend/src/components/notebook/isla/ISLABlock.tsx` | Streamlined output operator banner and automated execution routing. |
-| `frontend/src/components/notebook/isla/islaCache.ts` | Added variable caching and registry for cross-cell ISLA evaluation. |
 | `backend/new_dsl/lexer.go` | Added `TokenDotDot` (`..`) lexical token recognition. |
 | `backend/new_dsl/lexer_test.go` | Unit tests for `..` range operator tokenization. |
 | `backend/new_dsl/parser.go` | Extended parser to support `(start .. end)`, `@(start .. end)`, and `range(start .. end)`. |
@@ -217,15 +220,15 @@ In `frontend/src/App.tsx` and `NotebookEditor.tsx`, translation fallback now ins
 
 #### Frontend (Vitest Suite)
 
-* **Command:** `task frontend:check`
-* **Result:** 35 test files passed, 296 tests passed (0 failures).
-* **Lint & Typecheck:** `eslint .` (0 errors, 0 warnings), `tsc -b --noEmit` (0 errors).
+- **Command:** `task frontend:check`
+- **Result:** 35 test files passed, 296 tests passed (0 failures).
+- **Lint & Typecheck:** `eslint .` (0 errors, 0 warnings), `tsc -b --noEmit` (0 errors).
 
 #### Backend (Go Test Suite)
 
-* **Command:** `task backend:check`
-* **Coverage:** 78.0% statement coverage (`.cov/backend/coverage.txt`).
-* **Lint:** `golangci-lint` clean with zero issues.
+- **Command:** `task backend:check`
+- **Coverage:** 78.0% statement coverage (`.cov/backend/coverage.txt`).
+- **Lint:** `golangci-lint` clean with zero issues.
 
 ### Manual Verification Checklist
 

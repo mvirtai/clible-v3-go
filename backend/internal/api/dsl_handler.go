@@ -37,16 +37,17 @@ func (h *DSLHandler) EvalDSL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Limit request body to 1 MB to prevent resource exhaustion attacks (CWE-400, CWE-770)
+	// Limit request body to 10 MB to allow analytical datasets while preventing DoS (CWE-400, CWE-770)
 	if r.Body != nil {
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 	}
 
 	var req DSLEvalRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Warn("DSL decode request error", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("invalid request body: %v", err)})
 		return
 	}
 

@@ -98,7 +98,7 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 	})
 
 	t.Run("Rejects request body exceeding max size", func(t *testing.T) {
-		largeBody := bytes.Repeat([]byte("a"), (1<<20)+10)
+		largeBody := bytes.Repeat([]byte("a"), (10<<20)+10)
 		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(largeBody))
 		rr := httptest.NewRecorder()
 

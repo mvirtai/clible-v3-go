@@ -43,10 +43,15 @@ export function fetchISLAResult(
   const currentLang = typeof window !== 'undefined' ? localStorage.getItem('app:lang') || 'fi' : 'fi';
   const effectiveTranslation = translationId || (currentLang === 'fi' ? 'fin-1992' : 'web');
 
-  // Collect currently known variables to send with the request
+  // Collect only the variables actually referenced in this query (e.g. #eva -> eva).
+  // Avoid serializing huge unneeded variable datasets (like whole books of verses) which exceeds HTTP request body limits.
   const variables: Record<string, CellResult> = {};
   islaVariableRegistry.forEach((val, key) => {
-    variables[key] = val;
+    const cleanKey = key.replace(/^#/, '');
+    const varRegex = new RegExp(`(?:^|[^a-zA-Z0-9_])#${cleanKey}(?:[^a-zA-Z0-9_]|$)`);
+    if (varRegex.test(query)) {
+      variables[cleanKey] = val;
+    }
   });
 
   // Only caret (^) context operations depend on preceding cell text.
