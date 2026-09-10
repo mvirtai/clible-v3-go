@@ -175,7 +175,7 @@ export function ISLAEditor({
         }
       });
 
-      if (e.key === '@') {
+      if (e.key === '@' || e.key === '!') {
         setShowAutocomplete(true);
         setActiveIndex(0);
         setHasNavigated(false);

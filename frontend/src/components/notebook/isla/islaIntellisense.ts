@@ -423,7 +423,13 @@ export function getISLASuggestions(
   const trimmed = textBeforeCursor.trimStart();
 
   // 1. Line start or primary trigger aliases: offer matching ISLA templates
-  if (trimmed === '!' || trimmed === '' || trimmed === '!isla' || trimmed === '!ISLA') {
+  if (
+    trimmed === '!' ||
+    trimmed === '! ' ||
+    trimmed === '' ||
+    trimmed === '!isla' ||
+    trimmed === '!ISLA'
+  ) {
     return ISLA_MAIN_SNIPPETS;
   }
 

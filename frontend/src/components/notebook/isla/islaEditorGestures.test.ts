@@ -2,6 +2,41 @@ import { describe, expect, it } from 'vitest';
 import { handleISLAGesture } from './islaEditorGestures';
 
 describe('islaEditorGestures', () => {
+  describe('! gesture', () => {
+    it('inserts "! " and positions caret after space on empty string', () => {
+      const res = handleISLAGesture('!', '', 0, 0);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('! ');
+      expect(res.newCursorOffset).toBe(2);
+    });
+
+    it('inserts "! " when typing at start of line before existing text', () => {
+      const res = handleISLAGesture('!', 'search("armo")', 0, 0);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('! search("armo")');
+      expect(res.newCursorOffset).toBe(2);
+    });
+
+    it('inserts "! " when typing after newline in multiline text', () => {
+      const res = handleISLAGesture('!', '# Heading\n', 10, 10);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('# Heading\n! ');
+      expect(res.newCursorOffset).toBe(12);
+    });
+
+    it('avoids double space when next character is already a space', () => {
+      const res = handleISLAGesture('!', ' search', 0, 0);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('! search');
+      expect(res.newCursorOffset).toBe(2);
+    });
+
+    it('ignores ! when typed within word or string', () => {
+      expect(handleISLAGesture('!', 'test', 2, 2).handled).toBe(false);
+      expect(handleISLAGesture('!', 'search("hello")', 13, 13).handled).toBe(false);
+    });
+  });
+
   describe('@ gesture', () => {
     it('inserts @() and positions caret inside on empty string', () => {
       const res = handleISLAGesture('@', '', 0, 0);
@@ -115,12 +150,20 @@ describe('islaEditorGestures', () => {
   });
 
   describe('pair deletion with Backspace', () => {
-    it('deletes both parentheses when caret is inside @(|)', () => {
+    it('deletes @() completely when caret is inside @(|)', () => {
       const initial = '@()';
       const res = handleISLAGesture('Backspace', initial, 2, 2);
       expect(res.handled).toBe(true);
-      expect(res.newCode).toBe('@');
-      expect(res.newCursorOffset).toBe(1);
+      expect(res.newCode).toBe('');
+      expect(res.newCursorOffset).toBe(0);
+    });
+
+    it('deletes @() completely preserving prefix when caret is inside ! @(|)', () => {
+      const initial = '! @()';
+      const res = handleISLAGesture('Backspace', initial, 4, 4);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('! ');
+      expect(res.newCursorOffset).toBe(2);
     });
 
     it('deletes both parentheses when caret is inside (|)', () => {

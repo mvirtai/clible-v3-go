@@ -12,9 +12,9 @@ describe('islaIntellisense', () => {
       expect(suggestions).toEqual(ISLA_MAIN_SNIPPETS);
     });
 
-    it('returns ISLA_MAIN_SNIPPETS when line contains only "!"', () => {
-      const suggestions = getISLASuggestions('!', 1);
-      expect(suggestions).toEqual(ISLA_MAIN_SNIPPETS);
+    it('returns ISLA_MAIN_SNIPPETS when line contains only "!" or "! "', () => {
+      expect(getISLASuggestions('!', 1)).toEqual(ISLA_MAIN_SNIPPETS);
+      expect(getISLASuggestions('! ', 2)).toEqual(ISLA_MAIN_SNIPPETS);
     });
 
     it('returns ISLA_MAIN_SNIPPETS when line contains "!isla" or "!ISLA"', () => {

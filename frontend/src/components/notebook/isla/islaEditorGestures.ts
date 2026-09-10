@@ -1,11 +1,12 @@
 /**
  * Pure helper module for ISLAEditor typing gestures and auto-closing pairs.
  * Provides Monaco / VS Code-like smart typing behaviors:
- * 1. Smart '@' gesture: automatically creates '@()' and places caret inside '@(|)'.
- * 2. Auto-closing pairs for '(', '"', and '\''.
- * 3. Selection wrapping for '@', '(', '"', and '\''.
- * 4. Leapfrog / Overtype: typing ')', '"', or '\'' when already adjacent skips over the character.
- * 5. Pair deletion on Backspace: removes both opening and closing characters when caret is between them.
+ * 1. Smart '!' gesture: automatically appends a space when starting an ISLA command line.
+ * 2. Smart '@' gesture: automatically creates '@()' and places caret inside '@(|)'.
+ * 3. Auto-closing pairs for '(', '"', and '\''.
+ * 4. Selection wrapping for '@', '(', '"', and '\''.
+ * 5. Leapfrog / Overtype: typing ')', '"', or '\'' when already adjacent skips over the character.
+ * 6. Pair deletion on Backspace: removes both opening and closing characters (including '@' for '@()') when caret is between them.
  */
 
 export interface GestureResult {
@@ -17,7 +18,7 @@ export interface GestureResult {
 /**
  * Evaluates a keyboard event against ISLA smart typing gestures.
  *
- * @param key - The KeyboardEvent.key value (e.g. '@', '(', ')', '"', '\'', 'Backspace').
+ * @param key - The KeyboardEvent.key value (e.g. '!', '@', '(', ')', '"', '\'', 'Backspace').
  * @param code - The current editor text value.
  * @param selectionStart - Start offset of active selection or caret.
  * @param selectionEnd - End offset of active selection or caret.
@@ -29,6 +30,22 @@ export function handleISLAGesture(
   selectionStart: number,
   selectionEnd: number
 ): GestureResult {
+  // 0. Smart '!' gesture: automatically appends a space when starting an ISLA command line
+  if (key === '!') {
+    const textBefore = code.slice(0, selectionStart);
+    const isStartOfLine = selectionStart === 0 || textBefore.endsWith('\n') || /^\s*$/.test(textBefore);
+    if (isStartOfLine) {
+      const hasAdjacentSpace = selectionStart === selectionEnd && code[selectionStart] === ' ';
+      const newCode =
+        code.slice(0, selectionStart) + '! ' + code.slice(selectionEnd + (hasAdjacentSpace ? 1 : 0));
+      return {
+        handled: true,
+        newCode,
+        newCursorOffset: selectionStart + 2,
+      };
+    }
+  }
+
   // 1. Selection wrapping
   if (selectionStart !== selectionEnd) {
     const selectedText = code.slice(selectionStart, selectionEnd);
@@ -78,13 +95,13 @@ export function handleISLAGesture(
     const prevChar = code[selectionStart - 1];
     const nextChar = code[selectionStart];
 
-    // Case A: Caret is inside '@(|)' -> remove both parens and leave '@'
+    // Case A: Caret is inside '@(|)' -> remove both parens and '@' completely
     if (selectionStart >= 2 && code.slice(selectionStart - 2, selectionStart) === '@(' && nextChar === ')') {
-      const newCode = code.slice(0, selectionStart - 1) + code.slice(selectionStart + 1);
+      const newCode = code.slice(0, selectionStart - 2) + code.slice(selectionStart + 1);
       return {
         handled: true,
         newCode,
-        newCursorOffset: selectionStart - 1,
+        newCursorOffset: selectionStart - 2,
       };
     }
 

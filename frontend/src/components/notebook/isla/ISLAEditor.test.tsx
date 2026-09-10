@@ -377,8 +377,37 @@ describe('ISLAEditor', () => {
       );
     });
 
-    expect(textarea?.value).toBe('@');
-    expect(onChange).toHaveBeenCalledWith('@');
+    expect(textarea?.value).toBe('');
+    expect(onChange).toHaveBeenCalledWith('');
+  });
+
+  it('triggers smart ! gesture inserting "! " and opening autocomplete on empty string', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode=""
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '!', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(textarea?.value).toBe('! ');
+    expect(onChange).toHaveBeenCalledWith('! ');
+    expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
   });
 });
 
