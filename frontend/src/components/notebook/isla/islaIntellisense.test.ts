@@ -101,6 +101,18 @@ describe('islaIntellisense', () => {
       const utSuggestions = getISLASuggestions('!? "armo" @ut', 13);
       expect(utSuggestions.some((s) => s.label === '@UT')).toBe(true);
     });
+
+    it('suggests books inside modern @(...) citation', () => {
+      const suggestions = getISLASuggestions('! @(', 4);
+      expect(suggestions.some((s) => s.label === 'Joh')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'Matt')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'evankeliumit')).toBe(true);
+    });
+
+    it('filters book suggestions inside modern @(...) citation by prefix', () => {
+      const suggestions = getISLASuggestions('! @(joh', 7);
+      expect(suggestions.some((s) => s.label === 'Joh')).toBe(true);
+    });
   });
 
   describe('Pipeline suggestions (=>)', () => {
@@ -349,6 +361,22 @@ describe('islaIntellisense', () => {
       );
       expect(newCode).toBe('! @(Joh 3:16).use(KR92)');
       expect(newCursorOffset).toBe(22);
+    });
+
+    it('applies book suggestion inside modern @(...) without wiping preceding code', () => {
+      const { newCode, newCursorOffset } = applyISLASuggestion(
+        '! @()',
+        4,
+        {
+          label: 'Joh',
+          insertText: 'Joh ',
+          detail: 'Johanneksen evankeliumi',
+          documentation: { fi: '', en: '' },
+          kind: 'reference',
+        }
+      );
+      expect(newCode).toBe('! @(Joh )');
+      expect(newCursorOffset).toBe(8);
     });
   });
 

@@ -9,6 +9,7 @@ import {
   getHoverDocumentation,
   getISLASuggestions,
 } from './islaIntellisense';
+import { handleISLAGesture } from './islaEditorGestures';
 import { useLanguage } from '../../../context/LanguageContext';
 
 /**
@@ -153,6 +154,42 @@ export function ISLAEditor({
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    const target = e.currentTarget;
+    const start = target.selectionStart ?? 0;
+    const end = target.selectionEnd ?? 0;
+
+    // Smart typing gestures & auto-closing pairs
+    const gesture = handleISLAGesture(e.key, code, start, end);
+    if (gesture.handled) {
+      e.preventDefault();
+      setCode(gesture.newCode);
+      setCursorOffset(gesture.newCursorOffset);
+      onChange?.(gesture.newCode);
+
+      target.value = gesture.newCode;
+      target.setSelectionRange(gesture.newCursorOffset, gesture.newCursorOffset);
+
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.setSelectionRange(gesture.newCursorOffset, gesture.newCursorOffset);
+        }
+      });
+
+      if (e.key === '@') {
+        setShowAutocomplete(true);
+        setActiveIndex(0);
+        setHasNavigated(false);
+      }
+
+      const word = getKeywordAtOffset(gesture.newCode, gesture.newCursorOffset);
+      if (word && getHoverDocumentation(word)) {
+        setHoveredKeyword(word);
+      } else {
+        setHoveredKeyword(null);
+      }
+      return;
+    }
+
     // Autocomplete keyboard navigation
     if (showAutocomplete && visibleSuggestions.length > 0) {
       if (e.key === 'ArrowDown') {

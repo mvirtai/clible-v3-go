@@ -705,9 +705,12 @@ export function getISLASuggestions(
     }
   }
 
-  // 6. Typing book reference or smart group after `@` (e.g. `@`, `@Joh`, `@1Moos`, `@evankeliumit`, `@toora`)
-  const atMatch = textBeforeCursor.match(/@([A-Za-z0-9äöåÄÖÅ]*)$/);
+  // 6. Typing book reference or smart group inside `@(...)` or after classical `@`
+  const atCitationParenMatch = textBeforeCursor.match(/@\(\s*([A-Za-z0-9äöåÄÖÅ]*)$/);
+  const atClassicalMatch = !atCitationParenMatch ? textBeforeCursor.match(/@([A-Za-z0-9äöåÄÖÅ]*)$/) : null;
+  const atMatch = atCitationParenMatch || atClassicalMatch;
   if (atMatch) {
+    const isParen = Boolean(atCitationParenMatch);
     const prefix = atMatch[1].toLowerCase();
 
     // 6.1 Smart book groups (@evankeliumit, @gospels, @toora, @kirjeet, @epistolat jne.)
@@ -721,14 +724,14 @@ export function getISLASuggestions(
           ((g as { aliasFi?: string }).aliasFi && (g as { aliasFi?: string }).aliasFi!.toLowerCase().startsWith(prefix))
       )
       .map((g) => ({
-        label: `@${g.id}`,
-        insertText: `@${g.id} `,
+        label: isParen ? g.id : `@${g.id}`,
+        insertText: isParen ? `${g.id} ` : `@${g.id} `,
         detail: `${g.nameFi} (${g.nameEn})`,
         documentation: {
           fi: `Älykäs kirjakokonaisuus: ${g.nameFi}. Rajaa haun automaattisesti tähän kirjaryhmään.`,
           en: `Smart book group: ${g.nameEn}. Restricts the search scope to these biblical books.`,
         },
-        example: `! search("armo") => @${g.id} => count()`,
+        example: isParen ? `! @(${g.id}) => count()` : `! search("armo") => @${g.id} => count()`,
         kind: 'reference' as const,
       }));
 
@@ -743,14 +746,14 @@ export function getISLASuggestions(
           b.id.toLowerCase().startsWith(prefix)
       )
       .map((b) => ({
-        label: `@${b.abbr}`,
-        insertText: `@${b.abbr} `,
+        label: isParen ? b.abbr : `@${b.abbr}`,
+        insertText: isParen ? `${b.abbr} ` : `@${b.abbr} `,
         detail: b.nameFi,
         documentation: {
           fi: `Raamatun kirja: ${b.nameFi} (${b.testament === 'OT' ? 'Vanha testamentti' : 'Uusi testamentti'})`,
           en: `Biblical book: ${b.nameEn} (${b.testament === 'OT' ? 'Old Testament' : 'New Testament'})`,
         },
-        example: `@${b.abbr} 1:1`,
+        example: isParen ? `@(${b.abbr} 1:1)` : `@${b.abbr} 1:1`,
         kind: 'reference' as const,
       }));
 
@@ -910,7 +913,17 @@ export function applyISLASuggestion(
     };
   }
 
-  // 7. Book reference after @: e.g. @ or @Joh
+  // 7. Book reference inside @(...) or after classical @
+  const atCitationParenMatch = textBeforeCursor.match(/@\(\s*([A-Za-z0-9äöåÄÖÅ]*)$/);
+  if (atCitationParenMatch) {
+    const prefix = atCitationParenMatch[1];
+    const prefixStart = cursorOffset - prefix.length;
+    return {
+      newCode: currentCode.slice(0, prefixStart) + suggestion.insertText + textAfterCursor,
+      newCursorOffset: prefixStart + suggestion.insertText.length,
+    };
+  }
+
   const atMatch = textBeforeCursor.match(/@([A-Za-z0-9äöåÄÖÅ]*)$/);
   if (atMatch) {
     const prefixWithAt = atMatch[0];
