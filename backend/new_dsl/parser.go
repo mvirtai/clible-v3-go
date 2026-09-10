@@ -447,6 +447,14 @@ func (p *Parser) parseSearchBody() (*SearchNode, error) {
 }
 
 func (p *Parser) parseMethodCall() (MethodCall, error) {
+	if p.current().Type == TokenAtOpen {
+		tok := p.advance()
+		return MethodCall{
+			Name: "at",
+			Args: []string{strings.TrimSpace(tok.Literal)},
+		}, nil
+	}
+
 	tok, err := p.expect(TokenIdent)
 	if err != nil {
 		return MethodCall{}, fmt.Errorf("isla: expected method name after '.', got %s", p.current().Type)

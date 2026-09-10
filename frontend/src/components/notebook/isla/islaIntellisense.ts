@@ -673,7 +673,7 @@ export function getISLASuggestions(
   if (dotMatch) {
     const prefix = dotMatch[1].toLowerCase();
     const textBeforeDot = textBeforeCursor.slice(0, dotMatch.index);
-    const isSearch = /search\s*\(/i.test(textBeforeDot);
+    const isSearch = /(?:search|\?)\s*\(/i.test(textBeforeDot);
     const isCellCtx = /\^\s*$/.test(textBeforeDot);
     const isVerseRef = /@/.test(textBeforeDot) || /range\s*\(/i.test(textBeforeDot);
 
@@ -952,7 +952,7 @@ export function getISLASuggestions(
       )
       .map((g) => ({
         label: isParen ? g.id : `@${g.id}`,
-        insertText: isParen ? `${g.id} ` : `@${g.id} `,
+        insertText: isParen ? g.id : `@${g.id} `,
         detail: `${g.nameFi} (${g.nameEn})`,
         documentation: {
           fi: `Älykäs kirjakokonaisuus: ${g.nameFi}. Rajaa haun automaattisesti tähän kirjaryhmään.`,
@@ -974,7 +974,7 @@ export function getISLASuggestions(
       )
       .map((b) => ({
         label: isParen ? b.abbr : `@${b.abbr}`,
-        insertText: isParen ? `${b.abbr} ` : `@${b.abbr} `,
+        insertText: isParen ? b.abbr : `@${b.abbr} `,
         detail: b.nameFi,
         documentation: {
           fi: `Raamatun kirja: ${b.nameFi} (${b.testament === 'OT' ? 'Vanha testamentti' : 'Uusi testamentti'})`,
@@ -1040,6 +1040,9 @@ export function applyISLASuggestion(
   const textBeforeCursor = currentCode.slice(0, cursorOffset);
   const textAfterCursor = currentCode.slice(cursorOffset);
   const hasClosingParen = textAfterCursor.trimStart().startsWith(')');
+  const cleanedAfterClosingParen = hasClosingParen
+    ? textAfterCursor.replace(/^\s*\)/, ')')
+    : textAfterCursor;
 
   // 1. Full-line snippets: replace entire trigger or line before cursor
   if (suggestion.kind === 'snippet') {
@@ -1065,9 +1068,9 @@ export function applyISLASuggestion(
   if (countMatch) {
     const prefix = countMatch[1];
     const prefixStart = cursorOffset - prefix.length;
-    const insert = sanitizeInsertText(suggestion.insertText);
+    const insert = sanitizeInsertText(suggestion.insertText.trim());
     return {
-      newCode: currentCode.slice(0, prefixStart) + insert + textAfterCursor,
+      newCode: currentCode.slice(0, prefixStart) + insert + cleanedAfterClosingParen,
       newCursorOffset: prefixStart + insert.length,
     };
   }
@@ -1084,7 +1087,7 @@ export function applyISLASuggestion(
       insert = insert.slice(0, -1);
     }
     return {
-      newCode: currentCode.slice(0, prefixStart) + insert + textAfterCursor,
+      newCode: currentCode.slice(0, prefixStart) + insert + cleanedAfterClosingParen,
       newCursorOffset: prefixStart + insert.length,
     };
   }
@@ -1102,7 +1105,7 @@ export function applyISLASuggestion(
         insert += ')';
       }
       return {
-        newCode: currentCode.slice(0, prefixStart) + insert + textAfterCursor,
+        newCode: currentCode.slice(0, prefixStart) + insert + cleanedAfterClosingParen,
         newCursorOffset: prefixStart + insert.length,
       };
     }
@@ -1116,7 +1119,7 @@ export function applyISLASuggestion(
       insert += ')';
     }
     return {
-      newCode: currentCode.slice(0, prefixStart) + insert + textAfterCursor,
+      newCode: currentCode.slice(0, prefixStart) + insert + cleanedAfterClosingParen,
       newCursorOffset: prefixStart + insert.length,
     };
   }
@@ -1148,9 +1151,13 @@ export function applyISLASuggestion(
   if (atCitationParenMatch) {
     const prefix = atCitationParenMatch[1];
     const prefixStart = cursorOffset - prefix.length;
+    let insert = suggestion.insertText.trim();
+    if (!hasClosingParen && !insert.endsWith(')')) {
+      insert += ')';
+    }
     return {
-      newCode: currentCode.slice(0, prefixStart) + suggestion.insertText + textAfterCursor,
-      newCursorOffset: prefixStart + suggestion.insertText.length,
+      newCode: currentCode.slice(0, prefixStart) + insert + cleanedAfterClosingParen,
+      newCursorOffset: prefixStart + insert.length,
     };
   }
 

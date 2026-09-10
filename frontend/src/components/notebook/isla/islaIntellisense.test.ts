@@ -408,7 +408,7 @@ describe('islaIntellisense', () => {
       expect(newCursorOffset).toBe(22);
     });
 
-    it('applies book suggestion inside modern @(...) without wiping preceding code', () => {
+    it('applies book suggestion inside modern @(...) without wiping preceding code and without trailing space', () => {
       const { newCode, newCursorOffset } = applyISLASuggestion(
         '! @()',
         4,
@@ -420,8 +420,24 @@ describe('islaIntellisense', () => {
           kind: 'reference',
         }
       );
-      expect(newCode).toBe('! @(Joh )');
-      expect(newCursorOffset).toBe(8);
+      expect(newCode).toBe('! @(Joh)');
+      expect(newCursorOffset).toBe(7);
+    });
+
+    it('applies smart group evankeliumit inside chained @() without trailing whitespace', () => {
+      const { newCode, newCursorOffset } = applyISLASuggestion(
+        '! ?("Herra").@()',
+        15,
+        {
+          label: 'evankeliumit',
+          insertText: 'evankeliumit',
+          detail: 'Evankeliumit (Gospels)',
+          documentation: { fi: '', en: '' },
+          kind: 'reference',
+        }
+      );
+      expect(newCode).toBe('! ?("Herra").@(evankeliumit)');
+      expect(newCursorOffset).toBe(27);
     });
 
     it('positions cursor strictly inside quotes for ? and search suggestions', () => {

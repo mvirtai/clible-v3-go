@@ -199,6 +199,17 @@ func TestParseISLA_Search(t *testing.T) {
 				Output: OutputOp{Kind: OutputInline},
 			},
 		},
+		{
+			name:  "question mark search with chained .@() scope and output routing above",
+			input: `?("Herra").@(evankeliumit) > #herra`,
+			want: &ISLAExpression{
+				Object: &SearchNode{Query: "Herra"},
+				Methods: []MethodCall{
+					{Name: "at", Args: []string{"evankeliumit"}},
+				},
+				Output: OutputOp{Kind: OutputNewCellAbove, Name: "#herra"},
+			},
+		},
 	}
 
 	for _, tt := range tests {

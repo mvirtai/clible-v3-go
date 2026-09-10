@@ -322,7 +322,8 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
       initialContent = `### ${title}\n\n`;
     }
     if (queryCode) {
-      initialContent += `! ${queryCode} =>\n`;
+      const cleanCode = queryCode.replace(/^!+\s*/, '');
+      initialContent += `! ${cleanCode} =>\n`;
     }
     handleInsertCell(targetIndex, initialContent);
   };
