@@ -40,10 +40,12 @@ export function MarkdownCell({
   onChange,
   isEditable = true,
   onSelectVerse,
-  translation = 'WEB',
+  translation,
   contextText = '',
   onOutputRoute,
 }: MarkdownCellProps) {
+  const { lang } = useLanguage();
+  const effectiveTranslation = translation || (lang === 'fi' ? 'fin-1992' : 'web');
   const [isEditing, setIsEditing] = useState(false);
   const [editorMode, setEditorMode] = useState<'auto' | 'isla' | 'markdown'>('auto');
 
@@ -271,7 +273,7 @@ export function MarkdownCell({
         return (
           <ISLABlock
             code={normalizedCode}
-            translation={translation}
+            translation={effectiveTranslation}
             contextText={getContextForQuery(rawCode)}
             onOutputRoute={
               onOutputRoute

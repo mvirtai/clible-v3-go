@@ -139,6 +139,9 @@ func executeVerseRefExpr(ctx *ExecutionContext, n *VerseRefNode, methods []Metho
 	if tid == "" {
 		tid = parsers.ResolveTranslationID(ctx.DefaultTrans)
 	}
+	if tid == "" {
+		tid = "fin-1992"
+	}
 
 	// Check if comparison .vs(trans1, trans2) is present
 	for _, m := range methods {
@@ -211,6 +214,9 @@ func executeRangeExpr(ctx *ExecutionContext, n *RangeNode, methods []MethodCall)
 	tid := parsers.ResolveTranslationID(transID)
 	if tid == "" {
 		tid = parsers.ResolveTranslationID(ctx.DefaultTrans)
+	}
+	if tid == "" {
+		tid = "fin-1992"
 	}
 
 	var verses []models.Verse
@@ -317,6 +323,9 @@ func executeSearchExpr(ctx *ExecutionContext, n *SearchNode, methods []MethodCal
 	if tid == "" {
 		effectiveTrans := inferTranslationFromScope(scope, ctx.DefaultTrans)
 		tid = parsers.ResolveTranslationID(effectiveTrans)
+	}
+	if tid == "" {
+		tid = "fin-1992"
 	}
 
 	searchScope, scopeValue := resolveSearchScope(scope)
@@ -448,6 +457,9 @@ func executeVariableExpr(ctx *ExecutionContext, n *VariableNode, methods []Metho
 					tid = trans
 				}
 				tid = parsers.ResolveTranslationID(tid)
+				if tid == "" {
+					tid = "fin-1992"
+				}
 				verses, err := ctx.RefsFinder(ctx.Ctx, ref, tid, limit)
 				if err != nil {
 					return nil, err
@@ -866,7 +878,7 @@ func inferTranslationFromScope(scope string, defaultTrans string) string {
 		if defaultTrans != "" {
 			return defaultTrans
 		}
-		return "web"
+		return "fin-1992"
 	}
 }
 

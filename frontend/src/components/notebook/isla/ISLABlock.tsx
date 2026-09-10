@@ -153,12 +153,14 @@ export interface ISLABlockProps {
  * @returns Suspended interactive ISLA query visualization.
  */
 export function ISLABlock({ code, translation, contextText = '', onOutputRoute }: ISLABlockProps) {
+  const { lang } = useLanguage();
+  const effectiveTranslation = translation || (lang === 'fi' ? 'fin-1992' : 'web');
   const cleanQuery = code.trim();
   if (!cleanQuery) return null;
 
   return (
     <Suspense fallback={<ISLASkeleton code={code} />}>
-      <ISLAContent code={cleanQuery} translation={translation} contextText={contextText} onOutputRoute={onOutputRoute} />
+      <ISLAContent code={cleanQuery} translation={effectiveTranslation} contextText={contextText} onOutputRoute={onOutputRoute} />
     </Suspense>
   );
 }

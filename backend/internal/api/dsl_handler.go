@@ -57,7 +57,17 @@ func (h *DSLHandler) EvalDSL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("⚡ [ISLA Command]", "query", req.Query, "translationId", req.TranslationID)
+	effectiveTrans := req.TranslationID
+	if effectiveTrans == "" {
+		acceptLang := r.Header.Get("Accept-Language")
+		if strings.HasPrefix(strings.ToLower(acceptLang), "en") {
+			effectiveTrans = "web"
+		} else {
+			effectiveTrans = "fin-1992"
+		}
+	}
+
+	slog.Info("⚡ [ISLA Command]", "query", req.Query, "translationId", effectiveTrans)
 
 	var varResolver newdsl.VariableResolver
 	if len(req.Variables) > 0 {
@@ -73,7 +83,7 @@ func (h *DSLHandler) EvalDSL(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := h.cliService.ExecuteDSLWithResolver(r.Context(), req.Query, req.TranslationID, req.ContextText, varResolver)
+	result, err := h.cliService.ExecuteDSLWithResolver(r.Context(), req.Query, effectiveTrans, req.ContextText, varResolver)
 	if err != nil {
 		slog.Warn("DSL evaluation error", "query", req.Query, "error", err)
 		w.Header().Set("Content-Type", "application/json")

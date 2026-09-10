@@ -37,9 +37,12 @@ export function registerISLAVariable(name: string, result: CellResult): void {
  */
 export function fetchISLAResult(
   query: string,
-  translationId: string,
+  translationId?: string,
   contextText: string = ''
 ): Promise<CellResult> {
+  const currentLang = typeof window !== 'undefined' ? localStorage.getItem('app:lang') || 'fi' : 'fi';
+  const effectiveTranslation = translationId || (currentLang === 'fi' ? 'fin-1992' : 'web');
+
   // Collect currently known variables to send with the request
   const variables: Record<string, CellResult> = {};
   islaVariableRegistry.forEach((val, key) => {
@@ -51,16 +54,19 @@ export function fetchISLAResult(
   // so typing in other notebook cells does not invalidate the cache or hammer the database.
   const effectiveContext = query.includes('^') ? contextText.trim() : '';
 
-  const cacheKey = `${translationId}:${query}:${effectiveContext}:${Object.keys(variables).sort().join(',')}`;
+  const cacheKey = `${effectiveTranslation}:${query}:${effectiveContext}:${Object.keys(variables).sort().join(',')}`;
   const existing = islaPromiseCache.get(cacheKey);
   if (existing) return existing;
 
   const promise = fetch('/api/dsl/eval', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept-Language': currentLang,
+    },
     body: JSON.stringify({
       query,
-      translationId,
+      translationId: effectiveTranslation,
       ...(effectiveContext ? { contextText: effectiveContext } : {}),
       ...(Object.keys(variables).length > 0 ? { variables } : {}),
     }),
