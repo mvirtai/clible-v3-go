@@ -39,6 +39,24 @@ func TestParseISLA_VerseRef(t *testing.T) {
 				Output:  OutputOp{Kind: OutputNewCellBelow, Name: "#joh316-refs"},
 			},
 		},
+		{
+			name:  "at() syntax parallel to @()",
+			input: "! at(Joh 3:16).use(KR92) =>",
+			want: &ISLAExpression{
+				Object:  &VerseRefNode{Reference: "Joh 3:16"},
+				Methods: []MethodCall{{Name: "use", Args: []string{"KR92"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "from() syntax with comparison",
+			input: "from(1. Kor 13:4-8).vs(KR92, KR38)",
+			want: &ISLAExpression{
+				Object:  &VerseRefNode{Reference: "1. Kor 13:4-8"},
+				Methods: []MethodCall{{Name: "vs", Args: []string{"KR92", "KR38"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -149,6 +167,18 @@ func TestParseISLA_Search(t *testing.T) {
 		{
 			name:  "shorthand question mark search",
 			input: `?"usko".at(UT).count(verses) =>`,
+			want: &ISLAExpression{
+				Object: &SearchNode{Query: "usko"},
+				Methods: []MethodCall{
+					{Name: "at", Args: []string{"UT"}},
+					{Name: "count", Args: []string{"verses"}},
+				},
+				Output: OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "question mark search with parentheses",
+			input: `?("usko").at(UT).count(verses) =>`,
 			want: &ISLAExpression{
 				Object: &SearchNode{Query: "usko"},
 				Methods: []MethodCall{

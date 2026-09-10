@@ -51,6 +51,51 @@ describe('islaIntellisense', () => {
       expect(suggestions.some((s) => s.label.includes('#muuttuja.count'))).toBe(true);
       expect(suggestions.some((s) => s.label.includes('#muuttuja.top'))).toBe(true);
     });
+
+    it('prioritizes ? and search() in the first 8 visible snippets at editor start', () => {
+      const top8 = ISLA_MAIN_SNIPPETS.slice(0, 8);
+      // First two are FTS searches with ? and search()
+      expect(top8.some((s) => s.label.includes('?('))).toBe(true);
+      expect(top8.some((s) => s.label.includes('search('))).toBe(true);
+      // Parallel verse references with @() and at()
+      expect(top8.some((s) => s.label.includes('@('))).toBe(true);
+      expect(top8.some((s) => s.label.includes('at('))).toBe(true);
+      // All top 8 have explicit cursor offsets
+      top8.forEach((s) => {
+        expect(s.cursorOffset).toBeDefined();
+        expect(s.cursorOffset).toBeGreaterThan(0);
+      });
+    });
+
+    it('immediately suggests FTS searches when user types "s", "!s", "search", or "!search"', () => {
+      const suggestionsS = getISLASuggestions('!s', 2);
+      expect(suggestionsS.length).toBeGreaterThanOrEqual(2);
+      expect(suggestionsS.some((s) => s.label.startsWith('search'))).toBe(true);
+      expect(suggestionsS.some((s) => s.label.startsWith('?'))).toBe(true);
+
+      const suggestionsSearch = getISLASuggestions('search', 6);
+      expect(suggestionsSearch.some((s) => s.label.includes('search'))).toBe(true);
+      expect(suggestionsSearch.some((s) => s.label.includes('?'))).toBe(true);
+    });
+
+    it('immediately suggests FTS searches when user types bare "?" or "!?"', () => {
+      const suggestionsBareQ = getISLASuggestions('?', 1);
+      expect(suggestionsBareQ.length).toBeGreaterThanOrEqual(2);
+      expect(suggestionsBareQ.some((s) => s.label.startsWith('?'))).toBe(true);
+      expect(suggestionsBareQ.some((s) => s.label.includes('search'))).toBe(true);
+
+      const suggestionsBangQ = getISLASuggestions('!?', 2);
+      expect(suggestionsBangQ.some((s) => s.label.startsWith('?'))).toBe(true);
+    });
+
+    it('immediately suggests at() and @() when user types "at" or "!at"', () => {
+      const suggestionsAt = getISLASuggestions('!at', 3);
+      expect(suggestionsAt.some((s) => s.label.startsWith('at'))).toBe(true);
+      expect(suggestionsAt.some((s) => s.label.startsWith('@'))).toBe(true);
+
+      const suggestionsBareAt = getISLASuggestions('at', 2);
+      expect(suggestionsBareAt.some((s) => s.label.startsWith('at'))).toBe(true);
+    });
   });
 
   describe('Book reference and smart group suggestions (@)', () => {
@@ -377,6 +422,68 @@ describe('islaIntellisense', () => {
       );
       expect(newCode).toBe('! @(Joh )');
       expect(newCursorOffset).toBe(8);
+    });
+
+    it('positions cursor strictly inside quotes for ? and search suggestions', () => {
+      // 1. Snippet with ?
+      const qSnippet = ISLA_MAIN_SNIPPETS[0];
+      const { newCode: codeQ, newCursorOffset: offsetQ } = applyISLASuggestion('! ', 2, qSnippet);
+      expect(codeQ).toBe('! ?("armo") => at(UT)');
+      expect(offsetQ).toBe(5); // right inside quotes: '! ?("|armo") => at(UT)'
+
+      // 2. Snippet with search()
+      const searchSnippet = ISLA_MAIN_SNIPPETS[1];
+      const { newCode: codeS, newCursorOffset: offsetS } = applyISLASuggestion('! ', 2, searchSnippet);
+      expect(codeS).toBe('! search("armo") => at(evankeliumit) => count()');
+      expect(offsetS).toBe(10); // right inside quotes: '! search("|armo") => ...'
+
+      // 3. Functional search("") from prefix replacement
+      const { newCode: codeFuncS, newCursorOffset: offsetFuncS } = applyISLASuggestion(
+        '! search',
+        8,
+        {
+          label: 'search("...")',
+          insertText: '! search("")',
+          cursorOffset: 10,
+          detail: 'Search',
+          documentation: { fi: '', en: '' },
+          kind: 'function',
+        }
+      );
+      expect(codeFuncS).toBe('! search("")');
+      expect(offsetFuncS).toBe(10); // exactly between quotes: '! search("|")'
+
+      // 4. Functional ?("") from prefix replacement
+      const { newCode: codeFuncQ, newCursorOffset: offsetFuncQ } = applyISLASuggestion(
+        '?',
+        1,
+        {
+          label: '?("...")',
+          insertText: '?("")',
+          cursorOffset: 3,
+          detail: 'Search (?)',
+          documentation: { fi: '', en: '' },
+          kind: 'function',
+        }
+      );
+      expect(codeFuncQ).toBe('?("")');
+      expect(offsetFuncQ).toBe(3); // exactly between quotes: '?("|")'
+
+      // 5. Functional at() with empty parens
+      const { newCode: codeAt, newCursorOffset: offsetAt } = applyISLASuggestion(
+        'at',
+        2,
+        {
+          label: 'at(...)',
+          insertText: 'at()',
+          cursorOffset: 3,
+          detail: 'Verse',
+          documentation: { fi: '', en: '' },
+          kind: 'function',
+        }
+      );
+      expect(codeAt).toBe('at()');
+      expect(offsetAt).toBe(3); // exactly between parentheses: 'at(|)'
     });
   });
 

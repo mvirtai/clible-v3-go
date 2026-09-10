@@ -315,8 +315,59 @@ describe('ISLAEditor', () => {
     });
 
     expect(textarea?.value).toBe('@()');
+    expect(textarea?.selectionStart).toBe(2);
     expect(onChange).toHaveBeenCalledWith('@()');
     expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
+  });
+
+  it('triggers smart ? gesture inserting ?() with cursor inside and opening autocomplete', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="! "
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+    if (textarea) {
+      textarea.selectionStart = 2;
+      textarea.selectionEnd = 2;
+    }
+
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '?', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(textarea?.value).toBe('! ?()');
+    expect(textarea?.selectionStart).toBe(4);
+    expect(onChange).toHaveBeenCalledWith('! ?()');
+    expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
+
+    // Re-rendering with initialCode="! ?()" from parent must NOT reset cursor to end
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="! ?()"
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    expect(textarea?.selectionStart).toBe(4);
   });
 
   it('triggers auto-closing parentheses when typing (', () => {
@@ -347,6 +398,7 @@ describe('ISLAEditor', () => {
     });
 
     expect(textarea?.value).toBe('search()');
+    expect(textarea?.selectionStart).toBe(7);
     expect(onChange).toHaveBeenCalledWith('search()');
   });
 

@@ -54,6 +54,7 @@ export function isISLALine(line: string): boolean {
   if (
     trimmed.startsWith('@') ||
     trimmed.startsWith('^') ||
+    trimmed.startsWith('?') ||
     /^(?:search|range|read|at|use|vs|compare|count|themes|words|stats|ttr)\s*\(/i.test(trimmed) ||
     /^#[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+|\s*=>|\s*>|\s*>>)/.test(trimmed)
   ) {

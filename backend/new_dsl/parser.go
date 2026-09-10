@@ -253,6 +253,9 @@ func (p *Parser) parseObject() (Object, error) {
 		case "search":
 			p.advance()
 			return p.parseSearchBody()
+		case "at", "from", "read":
+			p.advance()
+			return p.parseAtVerseRef()
 
 		default:
 			return nil, fmt.Errorf("isla: unknown object identifier %q at pos %d", tok.Literal, tok.Pos)
@@ -328,6 +331,38 @@ func (p *Parser) readRangePart() (string, error) {
 		return "", errors.New("isla: expected range argument")
 	}
 	return res, nil
+}
+
+func (p *Parser) parseAtVerseRef() (*VerseRefNode, error) {
+	if _, err := p.expect(TokenParenOpen); err != nil {
+		return nil, errors.New("isla: expected '(' after verse reference function")
+	}
+
+	var parts []string
+	var lastType TokenType
+	for p.pos < len(p.tokens) {
+		t := p.current()
+		if t.Type == TokenParenClose || t.Type == TokenEOF {
+			break
+		}
+		p.advance()
+		if len(parts) > 0 && lastType != TokenColon && t.Type != TokenColon && lastType != TokenDash && t.Type != TokenDash && t.Type != TokenDot {
+			parts = append(parts, " ")
+		}
+		parts = append(parts, t.Literal)
+		lastType = t.Type
+	}
+
+	if _, err := p.expect(TokenParenClose); err != nil {
+		return nil, err
+	}
+
+	ref := strings.TrimSpace(strings.Join(parts, ""))
+	if ref == "" {
+		return nil, errors.New("isla: empty verse reference in at()")
+	}
+
+	return &VerseRefNode{Reference: ref}, nil
 }
 
 func (p *Parser) parseSearchBody() (*SearchNode, error) {

@@ -71,6 +71,40 @@ describe('islaEditorGestures', () => {
     });
   });
 
+  describe('? gesture', () => {
+    it('inserts ?() and positions caret inside on empty string', () => {
+      const res = handleISLAGesture('?', '', 0, 0);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('?()');
+      expect(res.newCursorOffset).toBe(2);
+    });
+
+    it('inserts ?() after command prefix "! "', () => {
+      const res = handleISLAGesture('?', '! ', 2, 2);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('! ?()');
+      expect(res.newCursorOffset).toBe(4);
+    });
+
+    it('wraps selected text in ?(...)', () => {
+      const initial = '! "armo" => #v';
+      const start = 2;
+      const end = 8; // '"armo"'
+      const res = handleISLAGesture('?', initial, start, end);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('! ?("armo") => #v');
+      expect(res.newCursorOffset).toBe(start + '"armo"'.length + 3);
+    });
+
+    it('inserts single ? without extra () if immediately preceding an opening paren', () => {
+      const initial = '("armo")';
+      const res = handleISLAGesture('?', initial, 0, 0);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('?("armo")');
+      expect(res.newCursorOffset).toBe(1);
+    });
+  });
+
   describe('auto-closing pairs', () => {
     it('auto-closes parentheses when typing (', () => {
       const res = handleISLAGesture('(', 'search', 6, 6);
@@ -160,6 +194,22 @@ describe('islaEditorGestures', () => {
 
     it('deletes @() completely preserving prefix when caret is inside ! @(|)', () => {
       const initial = '! @()';
+      const res = handleISLAGesture('Backspace', initial, 4, 4);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('! ');
+      expect(res.newCursorOffset).toBe(2);
+    });
+
+    it('deletes ?() completely when caret is inside ?(|)', () => {
+      const initial = '?()';
+      const res = handleISLAGesture('Backspace', initial, 2, 2);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('');
+      expect(res.newCursorOffset).toBe(0);
+    });
+
+    it('deletes ?() completely preserving prefix when caret is inside ! ?(|)', () => {
+      const initial = '! ?()';
       const res = handleISLAGesture('Backspace', initial, 4, 4);
       expect(res.handled).toBe(true);
       expect(res.newCode).toBe('! ');

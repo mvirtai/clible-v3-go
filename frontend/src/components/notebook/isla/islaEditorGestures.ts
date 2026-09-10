@@ -50,8 +50,8 @@ export function handleISLAGesture(
   if (selectionStart !== selectionEnd) {
     const selectedText = code.slice(selectionStart, selectionEnd);
 
-    if (key === '@') {
-      const newCode = code.slice(0, selectionStart) + `@(${selectedText})` + code.slice(selectionEnd);
+    if (key === '@' || key === '?') {
+      const newCode = code.slice(0, selectionStart) + `${key}(${selectedText})` + code.slice(selectionEnd);
       return {
         handled: true,
         newCode,
@@ -95,8 +95,12 @@ export function handleISLAGesture(
     const prevChar = code[selectionStart - 1];
     const nextChar = code[selectionStart];
 
-    // Case A: Caret is inside '@(|)' -> remove both parens and '@' completely
-    if (selectionStart >= 2 && code.slice(selectionStart - 2, selectionStart) === '@(' && nextChar === ')') {
+    // Case A: Caret is inside '@(|)' or '?(|)' -> remove both parens and operator completely
+    if (
+      selectionStart >= 2 &&
+      (code.slice(selectionStart - 2, selectionStart) === '@(' || code.slice(selectionStart - 2, selectionStart) === '?(') &&
+      nextChar === ')'
+    ) {
       const newCode = code.slice(0, selectionStart - 2) + code.slice(selectionStart + 1);
       return {
         handled: true,
@@ -136,17 +140,17 @@ export function handleISLAGesture(
 
   // 4. Auto-closing pairs when no text is selected
   if (selectionStart === selectionEnd) {
-    if (key === '@') {
-      // If caret is already immediately before an opening paren, do not duplicate: '@('
+    if (key === '@' || key === '?') {
+      // If caret is already immediately before an opening paren, do not duplicate: '@(' or '?('
       if (code[selectionStart] === '(') {
-        const newCode = code.slice(0, selectionStart) + '@' + code.slice(selectionEnd);
+        const newCode = code.slice(0, selectionStart) + key + code.slice(selectionEnd);
         return {
           handled: true,
           newCode,
           newCursorOffset: selectionStart + 1,
         };
       }
-      const newCode = code.slice(0, selectionStart) + '@()' + code.slice(selectionEnd);
+      const newCode = code.slice(0, selectionStart) + `${key}()` + code.slice(selectionEnd);
       return {
         handled: true,
         newCode,

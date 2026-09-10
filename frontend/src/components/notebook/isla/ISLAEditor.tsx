@@ -124,19 +124,21 @@ export function ISLAEditor({
   if (prevInitialCode !== initialCode) {
     setPrevInitialCode(initialCode);
     const normalized = initialCode.trim() === '!' ? '! ' : initialCode;
-    setCode(normalized);
-    setCursorOffset(normalized.length);
-    if (normalized.trim() === '!' || normalized === '! ') {
-      setShowAutocomplete(true);
-    }
-    if (normalized !== initialCode) {
-      onChange?.(normalized);
-    }
-    requestAnimationFrame(() => {
-      if (textareaRef.current) {
-        textareaRef.current.setSelectionRange(normalized.length, normalized.length);
+    if (normalized !== code) {
+      setCode(normalized);
+      setCursorOffset(normalized.length);
+      if (normalized.trim() === '!' || normalized === '! ') {
+        setShowAutocomplete(true);
       }
-    });
+      if (normalized !== initialCode) {
+        onChange?.(normalized);
+      }
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.setSelectionRange(normalized.length, normalized.length);
+        }
+      });
+    }
   }
 
   // Single DOM ref strictly used for imperative element focus
@@ -197,7 +199,7 @@ export function ISLAEditor({
         }
       });
 
-      if (e.key === '@' || e.key === '!') {
+      if (e.key === '@' || e.key === '!' || e.key === '?') {
         setShowAutocomplete(true);
         setActiveIndex(0);
         setHasNavigated(false);
@@ -236,6 +238,7 @@ export function ISLAEditor({
       }
       if (e.key === 'Enter') {
         const textBeforeCursor = code.slice(0, cursorOffset);
+        const trimmed = textBeforeCursor.trimStart();
         const hasTypedFilter =
           /=>\s*[A-Za-z0-9_#()-]+$/.test(textBeforeCursor) ||
           /\.\s*[a-zA-Z0-9_]+$/.test(textBeforeCursor) ||
@@ -243,7 +246,8 @@ export function ISLAEditor({
           /count\(\s*["']?[A-Za-z0-9äöåÄÖÅ_]+$/i.test(textBeforeCursor) ||
           /(?:use|in|vs)\(\s*["']?[A-Za-z0-9_-]+$/i.test(textBeforeCursor) ||
           /at\(\s*@?[A-Za-z0-9äöåÄÖÅ_]+$/i.test(textBeforeCursor) ||
-          /[?:]\s*[A-Za-z0-9_-]+$/.test(textBeforeCursor);
+          /[?:]\s*[A-Za-z0-9_-]+$/.test(textBeforeCursor) ||
+          /^(?:!\s*)?[a-zA-Z0-9_?#~^]+$/.test(trimmed);
 
         if (hasNavigated || hasTypedFilter) {
           e.preventDefault();
