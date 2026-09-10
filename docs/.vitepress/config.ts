@@ -1,5 +1,6 @@
 declare const process: any;
 import { defineConfig } from "vitepress";
+import { islaLanguage } from "./isla-grammar";
 
 export default defineConfig({
   title: "clible-v3",
@@ -18,6 +19,11 @@ export default defineConfig({
 
   markdown: {
     lineNumbers: true,
+    languages: [islaLanguage as any],
+    languageAlias: {
+      env: "bash",
+      ebnf: "markdown",
+    },
   },
 
   themeConfig: {

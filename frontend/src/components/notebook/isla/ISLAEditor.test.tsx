@@ -289,5 +289,225 @@ describe('ISLAEditor', () => {
     // Must preserve object and dot: '! @(Joh 3:16).use('
     expect(textarea?.value).toBe('! @(Joh 3:16).use(');
   });
-});
 
+  it('triggers smart @ gesture inserting @() and opening autocomplete', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode=""
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '@', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(textarea?.value).toBe('@()');
+    expect(textarea?.selectionStart).toBe(2);
+    expect(onChange).toHaveBeenCalledWith('@()');
+    expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
+  });
+
+  it('triggers smart ? gesture inserting ?() with cursor inside and opening autocomplete', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="! "
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+    if (textarea) {
+      textarea.selectionStart = 2;
+      textarea.selectionEnd = 2;
+    }
+
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '?', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(textarea?.value).toBe('! ?()');
+    expect(textarea?.selectionStart).toBe(4);
+    expect(onChange).toHaveBeenCalledWith('! ?()');
+    expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
+
+    // Re-rendering with initialCode="! ?()" from parent must NOT reset cursor to end
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="! ?()"
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    expect(textarea?.selectionStart).toBe(4);
+  });
+
+  it('triggers auto-closing parentheses when typing (', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="search"
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    if (textarea) {
+      textarea.selectionStart = 6;
+      textarea.selectionEnd = 6;
+    }
+
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '(', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(textarea?.value).toBe('search()');
+    expect(textarea?.selectionStart).toBe(7);
+    expect(onChange).toHaveBeenCalledWith('search()');
+  });
+
+  it('triggers pair deletion on Backspace inside @(|)', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="@()"
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    if (textarea) {
+      textarea.selectionStart = 2;
+      textarea.selectionEnd = 2;
+    }
+
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(textarea?.value).toBe('');
+    expect(onChange).toHaveBeenCalledWith('');
+  });
+
+  it('triggers smart ! gesture inserting "! " and opening autocomplete on empty string', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode=""
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+
+    act(() => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '!', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(textarea?.value).toBe('! ');
+    expect(onChange).toHaveBeenCalledWith('! ');
+    expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
+  });
+
+  it('normalizes lone "!" initialCode to "! " with open autocomplete and notifies onChange', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="!"
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea?.value).toBe('! ');
+    expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
+  });
+
+  it('deletes both ! and trailing space when pressing Backspace immediately after "! "', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="! "
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea?.value).toBe('! ');
+
+    act(() => {
+      textarea?.setSelectionRange(2, 2);
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(textarea?.value).toBe('');
+    expect(onChange).toHaveBeenCalledWith('');
+  });
+});

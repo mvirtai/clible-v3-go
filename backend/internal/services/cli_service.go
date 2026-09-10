@@ -26,6 +26,10 @@ type ThemeItem struct {
 var nonAlphaRegex = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
 
 func (s *CLIService) ExecuteDSL(ctx context.Context, input string, defaultTrans string, contextText string) (*models.CLIResult, error) {
+	return s.ExecuteDSLWithResolver(ctx, input, defaultTrans, contextText, nil)
+}
+
+func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, defaultTrans string, contextText string, resolver newdsl.VariableResolver) (*models.CLIResult, error) {
 	trimmedInput := strings.TrimSpace(input)
 	if strings.HasPrefix(trimmedInput, "!") {
 		trimmedInput = strings.TrimSpace(strings.TrimPrefix(trimmedInput, "!"))
@@ -49,11 +53,12 @@ func (s *CLIService) ExecuteDSL(ctx context.Context, input string, defaultTrans 
 	// 1. Try parsing and executing with ISLA v2 engine (object-method syntax)
 	if v2Expr, v2Err := newdsl.ParseISLA(trimmedInput); v2Err == nil {
 		v2ExecCtx := &newdsl.ExecutionContext{
-			Ctx:           ctx,
-			DefaultTrans:  defaultTrans,
-			ContextText:   contextText,
-			VerseFetcher:  s.verseService,
-			VerseSearcher: s.verseService,
+			Ctx:              ctx,
+			DefaultTrans:     defaultTrans,
+			ContextText:      contextText,
+			VerseFetcher:     s.verseService,
+			VerseSearcher:    s.verseService,
+			VariableResolver: resolver,
 			ThemeExtractor: func(text string, limit int) []models.ThemeItem {
 				items := ExtractThemes(text, limit)
 				var res []models.ThemeItem

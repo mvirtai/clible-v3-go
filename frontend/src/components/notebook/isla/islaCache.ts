@@ -6,10 +6,25 @@ import type { CellResult } from '../types';
 const islaPromiseCache = new Map<string, Promise<CellResult>>();
 
 /**
+ * In-memory registry of named variable results (e.g. #mat1) from executed ISLA queries.
+ */
+const islaVariableRegistry = new Map<string, CellResult>();
+
+/**
  * Clears the in-memory ISLA evaluation cache.
  */
 export function clearISLAPromiseCache(): void {
   islaPromiseCache.clear();
+  islaVariableRegistry.clear();
+}
+
+/**
+ * Registers an ISLA named variable directly (e.g. from loaded notebook cells).
+ */
+export function registerISLAVariable(name: string, result: CellResult): void {
+  const clean = name.replace(/^#/, '');
+  islaVariableRegistry.set(clean, result);
+  islaVariableRegistry.set(`#${clean}`, result);
 }
 
 /**
@@ -22,17 +37,39 @@ export function clearISLAPromiseCache(): void {
  */
 export function fetchISLAResult(
   query: string,
-  translationId: string,
+  translationId?: string,
   contextText: string = ''
 ): Promise<CellResult> {
-  const cacheKey = `${translationId}:${query}:${contextText}`;
+  const currentLang = typeof window !== 'undefined' ? localStorage.getItem('app:lang') || 'fi' : 'fi';
+  const effectiveTranslation = translationId || (currentLang === 'fi' ? 'fin-1992' : 'web');
+
+  // Collect currently known variables to send with the request
+  const variables: Record<string, CellResult> = {};
+  islaVariableRegistry.forEach((val, key) => {
+    variables[key] = val;
+  });
+
+  // Only caret (^) context operations depend on preceding cell text.
+  // For normal searches, verse citations, comparisons, etc., ignore contextText
+  // so typing in other notebook cells does not invalidate the cache or hammer the database.
+  const effectiveContext = query.includes('^') ? contextText.trim() : '';
+
+  const cacheKey = `${effectiveTranslation}:${query}:${effectiveContext}:${Object.keys(variables).sort().join(',')}`;
   const existing = islaPromiseCache.get(cacheKey);
   if (existing) return existing;
 
   const promise = fetch('/api/dsl/eval', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, translationId, contextText }),
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept-Language': currentLang,
+    },
+    body: JSON.stringify({
+      query,
+      translationId: effectiveTranslation,
+      ...(effectiveContext ? { contextText: effectiveContext } : {}),
+      ...(Object.keys(variables).length > 0 ? { variables } : {}),
+    }),
   })
     .then(async (res) => {
       if (!res.ok) {
@@ -42,7 +79,13 @@ export function fetchISLAResult(
           data: { message: errData.error || `Error ${res.status}: ${res.statusText}` },
         } satisfies CellResult;
       }
-      return res.json();
+      const data = (await res.json()) as CellResult;
+      // If result contains an output_op with a name, register it as a known variable for downstream cells
+      const outputOp = (data?.data as { output_op?: { name?: string } })?.output_op;
+      if (outputOp?.name) {
+        registerISLAVariable(outputOp.name, data);
+      }
+      return data;
     })
     .catch((err: Error) => {
       return {

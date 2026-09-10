@@ -39,6 +39,24 @@ func TestParseISLA_VerseRef(t *testing.T) {
 				Output:  OutputOp{Kind: OutputNewCellBelow, Name: "#joh316-refs"},
 			},
 		},
+		{
+			name:  "at() syntax parallel to @()",
+			input: "! at(Joh 3:16).use(KR92) =>",
+			want: &ISLAExpression{
+				Object:  &VerseRefNode{Reference: "Joh 3:16"},
+				Methods: []MethodCall{{Name: "use", Args: []string{"KR92"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "from() syntax with comparison",
+			input: "from(1. Kor 13:4-8).vs(KR92, KR38)",
+			want: &ISLAExpression{
+				Object:  &VerseRefNode{Reference: "1. Kor 13:4-8"},
+				Methods: []MethodCall{{Name: "vs", Args: []string{"KR92", "KR38"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -80,6 +98,33 @@ func TestParseISLA_Range(t *testing.T) {
 				Object:  &RangeNode{Start: "Joh 1:1", End: "Joh 1:18"},
 				Methods: []MethodCall{{Name: "top", Args: []string{"10"}}},
 				Output:  OutputOp{Kind: OutputNewCellAbove, Name: "Johanneksen prologin sanat"},
+			},
+		},
+		{
+			name:  "range with dot-dot operator inside range()",
+			input: `! range(MAT .. JOH).count(books) =>`,
+			want: &ISLAExpression{
+				Object:  &RangeNode{Start: "MAT", End: "JOH"},
+				Methods: []MethodCall{{Name: "count", Args: []string{"books"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "bare parens range shorthand (start .. end)",
+			input: `! (MAT .. JOH).count(books) =>`,
+			want: &ISLAExpression{
+				Object:  &RangeNode{Start: "MAT", End: "JOH"},
+				Methods: []MethodCall{{Name: "count", Args: []string{"books"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "at-parens range @(start .. end)",
+			input: `! @(MAT .. JOH).count(books) =>`,
+			want: &ISLAExpression{
+				Object:  &RangeNode{Start: "MAT", End: "JOH"},
+				Methods: []MethodCall{{Name: "count", Args: []string{"books"}}},
+				Output:  OutputOp{Kind: OutputInline},
 			},
 		},
 	}
@@ -159,6 +204,18 @@ func TestParseISLA_Search(t *testing.T) {
 			},
 		},
 		{
+			name:  "question mark search with parentheses",
+			input: `?("usko").at(UT).count(verses) =>`,
+			want: &ISLAExpression{
+				Object: &SearchNode{Query: "usko"},
+				Methods: []MethodCall{
+					{Name: "at", Args: []string{"UT"}},
+					{Name: "count", Args: []string{"verses"}},
+				},
+				Output: OutputOp{Kind: OutputInline},
+			},
+		},
+		{
 			name:  "omitted output operator defaults to inline",
 			input: `search("armo").count()`,
 			want: &ISLAExpression{
@@ -167,6 +224,17 @@ func TestParseISLA_Search(t *testing.T) {
 					{Name: "count"},
 				},
 				Output: OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "question mark search with chained .@() scope and output routing above",
+			input: `?("Herra").@(evankeliumit) > #herra`,
+			want: &ISLAExpression{
+				Object: &SearchNode{Query: "Herra"},
+				Methods: []MethodCall{
+					{Name: "at", Args: []string{"evankeliumit"}},
+				},
+				Output: OutputOp{Kind: OutputNewCellAbove, Name: "#herra"},
 			},
 		},
 	}
@@ -240,11 +308,6 @@ func TestParseISLA_ValidationErrors(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "naming with inline output operator",
-			input:   `@(Joh 3:16).use(KR92) => #my-slug`,
-			wantErr: "=> does not support naming",
-		},
-		{
 			name:    "empty expression before output operator",
 			input:   `=>`,
 			wantErr: "expression is empty",
@@ -271,6 +334,55 @@ func TestParseISLA_ValidationErrors(t *testing.T) {
 			_, err := ParseISLA(tt.input)
 			if err == nil {
 				t.Fatalf("ParseISLA(%q) expected error containing %q, got nil", tt.input, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestParseISLA_Variable(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    *ISLAExpression
+		wantErr bool
+	}{
+		{
+			name:  "variable with count words",
+			input: "#johannes.count(words) =>",
+			want: &ISLAExpression{
+				Object:  &VariableNode{Name: "johannes"},
+				Methods: []MethodCall{{Name: "count", Args: []string{"words"}}},
+				Output:  OutputOp{Kind: OutputInline},
+			},
+		},
+		{
+			name:  "variable with stats and output below to new slug",
+			input: "#muuttuja.stats >> #uusi-muuttuja",
+			want: &ISLAExpression{
+				Object:  &VariableNode{Name: "muuttuja"},
+				Methods: []MethodCall{{Name: "stats"}},
+				Output:  OutputOp{Kind: OutputNewCellBelow, Name: "#uusi-muuttuja"},
+			},
+		},
+		{
+			name:  "naming with inline output operator => #slug",
+			input: "@(Joh 3:16).use(KR92) => #my-slug",
+			want: &ISLAExpression{
+				Object:  &VerseRefNode{Reference: "Joh 3:16"},
+				Methods: []MethodCall{{Name: "use", Args: []string{"KR92"}}},
+				Output:  OutputOp{Kind: OutputInline, Name: "#my-slug"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseISLA(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ParseISLA(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("\ngot:  %+v\nwant: %+v", got, tt.want)
 			}
 		})
 	}

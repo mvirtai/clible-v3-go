@@ -75,7 +75,7 @@ export function App() {
   const selectedTranslation =
     selectedMeta && selectedMeta.language === lang
       ? userSelectedTranslation
-      : defaultTranslationForLang || userSelectedTranslation || '';
+      : defaultTranslationForLang || userSelectedTranslation || (lang === 'fi' ? 'fin-1992' : 'web');
   const [activeReference, setActiveReference] = useState<string>(
     () => localStorage.getItem('activeReference') || ''
   );

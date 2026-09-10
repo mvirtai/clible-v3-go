@@ -12,11 +12,22 @@ describe('islaLexer', () => {
       expect(isISLALine('!ISLA @Gen 1:1')).toBe(true);
       expect(isISLALine('! @Matt 5:3')).toBe(true);
       expect(isISLALine('!')).toBe(true);
+      expect(isISLALine('! ')).toBe(true);
+      expect(isISLALine('!s')).toBe(true);
+      expect(isISLALine('!search("armo")')).toBe(true);
+      expect(isISLALine('!range(GEN, DEU)')).toBe(true);
+      expect(isISLALine('!at(Joh 1:1)')).toBe(true);
+      expect(isISLALine('!#muuttuja.count')).toBe(true);
       expect(isISLALine('  !@Joh 3:16')).toBe(true);
+      expect(isISLALine('@Joh 3:16 => count')).toBe(true);
+      expect(isISLALine('^ => #themes')).toBe(true);
+      expect(isISLALine('search("armo") =>')).toBe(true);
+      expect(isISLALine('#myvar.count')).toBe(true);
     });
 
     it('rejects non-ISLA markdown lines', () => {
       expect(isISLALine('# Header')).toBe(false);
+      expect(isISLALine('## Secondary Header')).toBe(false);
       expect(isISLALine('Regular paragraph with [Joh 3:16]')).toBe(false);
       expect(isISLALine('![Image](https://example.com/img.png)')).toBe(false);
       expect(isISLALine('')).toBe(false);
@@ -163,19 +174,51 @@ describe('islaLexer', () => {
         { type: 'operator', text: '>' },
       ]);
     });
+
+    it('tokenizes .. range operator in ! (MAT .. JOH).count(books)', () => {
+      const tokens = tokenizeISLALine('! (MAT .. JOH).count(books)');
+      expect(tokens).toEqual([
+        { type: 'directive', text: '! ' },
+        { type: 'plain', text: '(' },
+        { type: 'plain', text: 'MAT' },
+        { type: 'plain', text: ' ' },
+        { type: 'operator', text: '..' },
+        { type: 'plain', text: ' ' },
+        { type: 'plain', text: 'JOH' },
+        { type: 'plain', text: ')' },
+        { type: 'operator', text: '.' },
+        { type: 'function', text: 'count' },
+        { type: 'plain', text: '(' },
+        { type: 'plain', text: 'books' },
+        { type: 'plain', text: ')' },
+      ]);
+    });
   });
 
+
   describe('getTokenClassName', () => {
-    it('returns appropriate Tailwind styling classes for all token types', () => {
-      expect(getTokenClassName('directive')).toContain('text-amber-400');
-      expect(getTokenClassName('reference')).toContain('text-emerald-400');
-      expect(getTokenClassName('string')).toContain('text-cyan-300');
-      expect(getTokenClassName('regex')).toContain('text-teal-300');
-      expect(getTokenClassName('operator')).toContain('text-purple-400');
-      expect(getTokenClassName('translation')).toContain('text-rose-400');
-      expect(getTokenClassName('function')).toContain('text-fuchsia-400');
-      expect(getTokenClassName('param')).toContain('text-sky-300');
-      expect(getTokenClassName('plain')).toContain('text-neutral-200');
+    it('returns appropriate Tailwind styling classes for all token types across light and dark modes', () => {
+      // Light theme classes
+      expect(getTokenClassName('directive')).toContain('text-amber-600');
+      expect(getTokenClassName('reference')).toContain('text-emerald-600');
+      expect(getTokenClassName('string')).toContain('text-cyan-700');
+      expect(getTokenClassName('regex')).toContain('text-teal-700');
+      expect(getTokenClassName('operator')).toContain('text-purple-600');
+      expect(getTokenClassName('translation')).toContain('text-rose-600');
+      expect(getTokenClassName('function')).toContain('text-fuchsia-600');
+      expect(getTokenClassName('param')).toContain('text-sky-700');
+      expect(getTokenClassName('plain')).toContain('text-neutral-800');
+
+      // Dark theme classes
+      expect(getTokenClassName('directive')).toContain('dark:text-amber-400');
+      expect(getTokenClassName('reference')).toContain('dark:text-emerald-400');
+      expect(getTokenClassName('string')).toContain('dark:text-cyan-300');
+      expect(getTokenClassName('regex')).toContain('dark:text-teal-300');
+      expect(getTokenClassName('operator')).toContain('dark:text-purple-400');
+      expect(getTokenClassName('translation')).toContain('dark:text-rose-400');
+      expect(getTokenClassName('function')).toContain('dark:text-fuchsia-400');
+      expect(getTokenClassName('param')).toContain('dark:text-sky-300');
+      expect(getTokenClassName('plain')).toContain('dark:text-neutral-200');
     });
   });
 });

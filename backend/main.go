@@ -21,11 +21,20 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	cfg := config.Load()
+
+	var logHandler slog.Handler
+	if os.Getenv("LOG_FORMAT") == "json" || cfg.Env == "production" {
+		logHandler = slog.NewJSONHandler(os.Stdout, nil)
+	} else {
+		logHandler = middleware.NewConsoleHandler(os.Stdout, &middleware.ConsoleHandlerOptions{
+			Level: slog.LevelInfo,
+			Color: true,
+		})
+	}
+	logger := slog.New(logHandler)
 	slog.SetDefault(logger)
 	bootStart := time.Now()
-
-	cfg := config.Load()
 
 	dbConn, err := db.InitializeDB(cfg.DatabaseURL)
 	if err != nil {

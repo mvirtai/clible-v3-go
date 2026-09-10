@@ -40,10 +40,12 @@ export function MarkdownCell({
   onChange,
   isEditable = true,
   onSelectVerse,
-  translation = 'WEB',
+  translation,
   contextText = '',
   onOutputRoute,
 }: MarkdownCellProps) {
+  const { lang } = useLanguage();
+  const effectiveTranslation = translation || (lang === 'fi' ? 'fin-1992' : 'web');
   const [isEditing, setIsEditing] = useState(false);
   const [editorMode, setEditorMode] = useState<'auto' | 'isla' | 'markdown'>('auto');
 
@@ -64,9 +66,45 @@ export function MarkdownCell({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
       setIsEditing(false);
+      return;
     }
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       setIsEditing(false);
+      return;
+    }
+
+    // Smart typing gesture for transitioning into ISLA DSL mode:
+    // If the user types '!' at the start of an empty cell or at start of line,
+    // immediately transition into ISLA mode with a trailing space '! '.
+    if (e.key === '!') {
+      const target = e.currentTarget;
+      const start = target.selectionStart ?? 0;
+      const textBefore = target.value.slice(0, start);
+      const isStartOfLine = start === 0 || textBefore.endsWith('\n') || /^\s*$/.test(textBefore);
+
+      if (isStartOfLine) {
+        e.preventDefault();
+        setEditorMode('isla');
+        const nextContent = target.value.slice(0, start) + '! ' + target.value.slice(target.selectionEnd ?? start);
+        onChange(nextContent);
+        return;
+      }
+    }
+
+    // Smart typing gesture for '@' at start of line:
+    if (e.key === '@') {
+      const target = e.currentTarget;
+      const start = target.selectionStart ?? 0;
+      const textBefore = target.value.slice(0, start);
+      const isStartOfLine = start === 0 || textBefore.endsWith('\n') || /^\s*$/.test(textBefore);
+
+      if (isStartOfLine) {
+        e.preventDefault();
+        setEditorMode('isla');
+        const nextContent = target.value.slice(0, start) + '! @()' + target.value.slice(target.selectionEnd ?? start);
+        onChange(nextContent);
+        return;
+      }
     }
   };
 
@@ -100,12 +138,18 @@ export function MarkdownCell({
     }
 
     // Shorthand for count queries: `# "armo" @ut` or `# @Joh 3:16` -> `? "armo" @ut => count` or `@Joh 3:16 => count`
+    // #variable refer to variable created earlier in the notebook, that can be used as an object to perform .
     if (q.startsWith('#')) {
       const rest = q.substring(1).trim();
-      if (rest.startsWith('@') || rest.startsWith('?')) {
-        return `${rest} => count`;
+
+      // Jos kyseessä on v2 muuttujakomento (esim. #muuttuja.count, #muuttuja =>, #muuttuja >> tai pelkkä #muuttuja), älä koske!
+      if (/^[a-zA-Z0-9_-]+(\.|\s*=>|\s*>|\s*>>|$)/.test(rest)) {
+        return q;
       }
-      return `? ${rest} => count`;
+      // Vanha v1-yhteensopivuus vain jos perässä on lainausmerkeissä sana:
+      if (rest.startsWith('"') || rest.startsWith("'")) {
+        return `? ${rest} => count`;
+      }
     }
 
     return q;
@@ -151,6 +195,13 @@ export function MarkdownCell({
    * Combines preceding notebook markdown cells with any text in the current cell preceding this query.
    */
   const getContextForQuery = (query: string): string => {
+    // Only caret (^) context queries need preceding markdown context text.
+    // For normal searches, verses, etc. return empty string so typing in other cells
+    // does not cause cache invalidation.
+    if (!query.includes('^')) {
+      return '';
+    }
+
     const cleanPreceding = stripISLAFromText(contextText || '');
 
     const rawContent = cell.content || '';
@@ -222,7 +273,7 @@ export function MarkdownCell({
         return (
           <ISLABlock
             code={normalizedCode}
-            translation={translation}
+            translation={effectiveTranslation}
             contextText={getContextForQuery(rawCode)}
             onOutputRoute={
               onOutputRoute
@@ -257,7 +308,10 @@ export function MarkdownCell({
   }
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
+    let val = e.target.value;
+    if (val.trim() === '!') {
+      val = '! ';
+    }
     onChange(val);
 
     if (editorMode === 'auto' && isISLALine(val.trim())) {
@@ -294,13 +348,15 @@ export function MarkdownCell({
             </button>
           </div>
           <ISLAEditor
-            initialCode={cell.content}
-            translationId={translation}
+            initialCode={cell.content.trim() === '!' ? '! ' : cell.content}
+            translationId={effectiveTranslation}
             contextText={contextText}
             onExecute={(code) => {
               // Check if code contains output operator `>>` (cell below) or `>` (cell above)
-              const matchBelow = code.match(/^(.*?)\s*>>\s*([^\n]*)$/);
-              const matchAbove = !matchBelow ? code.match(/^(.*?)\s*>\s*([^\n]*)$/) : null;
+              // Note: `=>` is an inline output operator (and variable assignment), NOT a routing operator!
+              const isInline = code.includes('=>');
+              const matchBelow = !isInline ? code.match(/^(.*?)\s*>>\s*([^\n]*)$/) : null;
+              const matchAbove = !isInline && !matchBelow ? code.match(/^(.*?)\s*(?<!=)>\s*([^\n]*)$/) : null;
 
               if (onOutputRoute && (matchBelow || matchAbove)) {
                 const isBelow = Boolean(matchBelow);
@@ -323,6 +379,7 @@ export function MarkdownCell({
             }}
             onChange={onChange}
             onCancel={() => setIsEditing(false)}
+            onBlur={() => setIsEditing(false)}
           />
         </div>
       );

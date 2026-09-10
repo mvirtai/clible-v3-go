@@ -62,8 +62,9 @@ function generateCellId(): string {
  * @param props - Component properties conforming to {@link NotebookEditorProps}.
  * @returns Interactive notebook editor workspace.
  */
-export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse, isGuest = false }: NotebookEditorProps) {
-  const { strings } = useLanguage();
+export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest = false }: NotebookEditorProps) {
+  const { strings, lang } = useLanguage();
+  const effectiveTranslation = translation || (lang === 'fi' ? 'fin-1992' : 'web');
   const isGuestMode = isGuest || isGuestNotebookId(notebookId);
 
   // 1. Synchronous lazy initial state derivation
@@ -322,7 +323,8 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
       initialContent = `### ${title}\n\n`;
     }
     if (queryCode) {
-      initialContent += `! ${queryCode} =>\n`;
+      const cleanCode = queryCode.replace(/^!+\s*/, '');
+      initialContent += `! ${cleanCode} =>\n`;
     }
     handleInsertCell(targetIndex, initialContent);
   };
@@ -486,7 +488,7 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
                     cell={cell}
                     onChange={(content) => handleCellContentChange(cell.id, content)}
                     onSelectVerse={onSelectVerse}
-                    translation={translation}
+                    translation={effectiveTranslation}
                     contextText={precedingCellsText}
                     onOutputRoute={(direction, title, queryCode) =>
                       handleOutputRoute(index, direction, title, queryCode)
