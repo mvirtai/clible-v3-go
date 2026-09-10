@@ -349,7 +349,7 @@ export function MarkdownCell({
           </div>
           <ISLAEditor
             initialCode={cell.content.trim() === '!' ? '! ' : cell.content}
-            translationId={translation}
+            translationId={effectiveTranslation}
             contextText={contextText}
             onExecute={(code) => {
               // Check if code contains output operator `>>` (cell below) or `>` (cell above)
