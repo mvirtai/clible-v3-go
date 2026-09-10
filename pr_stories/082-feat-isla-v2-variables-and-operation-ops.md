@@ -78,21 +78,70 @@ graph TD
 
 ### 1. The Inline Routing Regex Defect & Resolution Saga
 
-- **The Problem:** When entering `! @(mat 1) => #mat1`, users observed the current cell mutating into a routing notification (`↳ Tulos reititetty uuteen soluun (yläpuolelle): #mat1`), an unintended new cell spawning above with `#mat1`, and a red error banner:
-  ```text
-  ISLA error: DSL parse error: empty verse reference after '@'
-  ```
-- **The Root Cause:** In [`MarkdownCell.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/cells/MarkdownCell.tsx), the `onExecute` routing regex:
-  ```typescript
-  const matchBelow = code.match(/^(.*?)\s*>>\s*([^\n]*)$/);
-  const matchAbove = !matchBelow ? code.match(/^(.*?)\s*>\s*([^\n]*)$/) : null;
-  ```
-  did not guard against `=>`. Because `=>` terminates with `>`, `matchAbove` matched the trailing `>` character. The non-greedy `^(.*?)` captured `! @(mat 1) =`, stripping the `>` and passing the severed prefix to `onOutputRoute`. The new cell received the invalid expression `! @(mat 1) = =>`, which failed the v2 parser, fell back to the v1 parser, and triggered the empty citation error.
-- **The Remedy:**
-  1. Explicitly isolated inline expressions: `const isInline = code.includes('=>')`.
-  2. Applied negative lookbehind in routing regex: `(?<!=)>`.
-  3. Hidden manual route buttons in [`ISLABlock.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/isla/ISLABlock.tsx) when `outputOp.kind === 'inline'`.
-  4. Added regression test in [`MarkdownCell.test.tsx`](file:///home/vivaldev/code/clible-v3-go/frontend/src/components/notebook/cells/MarkdownCell.test.tsx) confirming `=> #slug` never triggers routing.
+#### A. The Problem: Cell Hijacking & Cryptic Error Spawning
+
+When a user typed an inline variable assignment expression such as:
+
+```isla
+! @(mat 1) => #mat1
+```
+
+and executed the cell, three disruptive defects occurred simultaneously:
+
+1. **Cell Content Hijacked:** The active notebook cell's content was immediately overwritten by a routing notice:
+
+   ```markdown
+   > ↳ Tulos reititetty uuteen soluun (yläpuolelle): #mat1
+   ```
+
+2. **Unintended Cell Creation:** A new notebook cell was automatically spawned directly above the active cell.
+3. **Cryptic Parser Error:** The newly created cell attempted to execute a corrupted fragment (`! @(mat 1) = =>`), failing immediately and displaying an alarming red error banner:
+
+   ```text
+   ISLA error: DSL parse error: empty verse reference after '@'
+   ```
+
+The user's original query was stripped from their current cell, and the intended variable `#mat1` was never registered.
+
+#### B. The Root Cause Analysis (Multi-Tier Anatomy)
+
+Investigation revealed a compounding chain of causes across frontend routing and backend fallback logic:
+
+1. **Greedy Trailing Boundary Match in Frontend Router (`MarkdownCell.tsx`):**
+   The cell execution router scanned for cell-routing operators using regex:
+
+   ```typescript
+   const matchBelow = code.match(/^(.*?)\s*>>\s*([^\n]*)$/);
+   const matchAbove = !matchBelow ? code.match(/^(.*?)\s*>\s*([^\n]*)$/) : null;
+   ```
+
+   Because the inline operator `=>` ends with `>`, `matchAbove` matched the trailing `>` character of `=>`. The non-greedy `^(.*?)` captured `! @(mat 1) =` as the code prefix, and captured `#mat1` as the routing destination title. The router therefore treated the expression as a directive to spawn a cell above named `#mat1`, passing `! @(mat 1) =` as the routed payload.
+
+2. **The Backend Dual-Parser Fallback Trap:**
+   Why did the error message claim `empty verse reference after '@'` rather than a syntax error regarding `=`?
+   In `backend/internal/services/cli_service.go`, `ExecuteDSLWithResolver` first attempts to parse queries with the modern v2 AST parser:
+
+   ```go
+   expr, err := newdsl.ParseISLA(query)
+   if err != nil {
+       // Fallback to legacy v1 parser
+       v1Result, v1Err := dsl.Parse(query)
+       ...
+   }
+   ```
+
+   When the severed code `! @(mat 1) =` failed v2 parsing due to the dangling assignment operator, the engine silently fell back to the legacy ISLA v1 parser. Legacy v1 expected classical citation syntax (`@Joh 3:16`). When the v1 parser encountered `@(`, it attempted to extract the book abbreviation between `@` and the first whitespace or punctuation, encountered `(`, found zero valid book characters, and generated the misleading diagnostic: `empty verse reference after '@'`.
+
+3. **Unconditional Route Action Button (`ISLABlock.tsx`):**
+   The UI block rendered a "Route to new cell" action button even when the query was already explicitly an inline variable pipeline (`outputOp.kind === 'inline'`), creating cognitive ambiguity.
+
+#### C. How the Issue Was Resolved
+
+1. **Isolated Inline Operators:** Added explicit detection `const isInline = code.includes('=>')`. When `isInline` is true, cell routing evaluation is completely bypassed.
+2. **Negative Lookbehind Regex:** Updated the above-cell routing regex to `^(.*?)\s*(?<!=)>\s*([^\n]*)$`, guaranteeing that any `>` preceded by `=` cannot trigger routing under any circumstance.
+3. **Contextual Action Buttons:** Modified `ISLABlock.tsx` to conditionally hide manual routing buttons whenever `outputOp.kind === 'inline'`, rendering instead the variable indicator badge `#slug`.
+4. **Cross-Cell Variable Persistence:** Extended `islaCache.ts` with `islaVariableRegistry`, automatically caching results tagged with `output_op.name` and forwarding them in the `variables` payload during subsequent API calls.
+5. **Automated Regression Protection:** Added a dedicated test suite in `MarkdownCell.test.tsx` ensuring `! @(mat 1) => #mat1` preserves cell content and never invokes `onOutputRoute`.
 
 ```typescript
 // frontend/src/components/notebook/cells/MarkdownCell.tsx
@@ -101,9 +150,27 @@ const matchBelow = !isInline ? code.match(/^(.*?)\s*>>\s*([^\n]*)$/) : null;
 const matchAbove = !isInline && !matchBelow ? code.match(/^(.*?)\s*(?<!=)>\s*([^\n]*)$/) : null;
 
 if (onOutputRoute && (matchBelow || matchAbove)) {
-  // Only route for explicit > or >>
+  // Only route for explicit > or >> cell directives
 }
 ```
+
+#### D. Verified Intended Behavior (How It Works Now)
+
+With the fix in place, the complete analytical workflow operates seamlessly:
+
+1. **In-Place Execution:** When the user enters `! @(mat 1) => #mat1` and executes the cell, the editor preserves the code verbatim without mutating into a routing notification or creating unwanted cells.
+2. **Immediate Result Presentation:** The verse results for Matthew 1 are rendered directly in the current cell with an inline `#mat1` pill badge.
+3. **Automatic In-Memory Registry:** The client-side `islaVariableRegistry` indexes `#mat1` with the evaluated verse dataset.
+4. **Seamless Downstream Consumption:** In any subsequent notebook cell, the user can reference `#mat1` directly:
+
+   ```isla
+   ! #mat1.count(words)
+   ! #mat1.top(10)
+   ! #mat1.words.stats
+   ```
+
+   The query evaluates instantaneously against the cached variable dataset without triggering redundant database queries or parser fallbacks.
+5. **Intact Legacy Routing:** Traditional cell routing directives (`! @(joh 3:16) > note_above` or `! search("valo") >> results_below`) continue to work exactly as expected without interference.
 
 ### 2. Variable AST, Parser & Cross-Cell Resolution
 
