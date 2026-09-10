@@ -582,5 +582,73 @@ describe('MarkdownCell', () => {
     expect(onOutputRoute).not.toHaveBeenCalled();
     expect(onChange).toHaveBeenCalledWith('! @(mat 1) => #mat1');
   });
+
+  it('switches to ISLA mode with "! " when typing ! in an empty markdown textarea', async () => {
+    const cell = {
+      id: 'cell-empty-1',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '',
+    };
+    const onChange = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={onChange} />
+        </LanguageProvider>
+      );
+    });
+
+    // Click on empty cell to enter edit mode
+    const proseDiv = container?.querySelector('div.prose');
+    await act(async () => {
+      proseDiv?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+
+    // Type '!' at start of empty cell
+    await act(async () => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '!', bubbles: true, cancelable: true })
+      );
+    });
+
+    // onChange must be called with '! ' (including trailing space)
+    expect(onChange).toHaveBeenCalledWith('! ');
+  });
+
+  it('normalizes cell content with lone "!" to "! " when mounting ISLAEditor', async () => {
+    const cell = {
+      id: 'cell-lone-excl',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '!',
+    };
+    const onChange = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={onChange} />
+        </LanguageProvider>
+      );
+    });
+
+    // Click to enter editing mode
+    const proseDiv = container?.querySelector('div.prose');
+    await act(async () => {
+      proseDiv?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    });
+
+    // Because '!' is an ISLA line, it enters ISLA mode with ISLAEditor
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+    expect(textarea?.value).toBe('! ');
+  });
 });
 

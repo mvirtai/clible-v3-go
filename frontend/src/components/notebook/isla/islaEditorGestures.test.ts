@@ -190,6 +190,22 @@ describe('islaEditorGestures', () => {
       expect(res.newCursorOffset).toBe(7);
     });
 
+    it('deletes both ! and trailing space when caret is after smart "! " at start of line', () => {
+      const initial = '! ';
+      const res = handleISLAGesture('Backspace', initial, 2, 2);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('');
+      expect(res.newCursorOffset).toBe(0);
+    });
+
+    it('deletes both ! and trailing space after newline in multiline text', () => {
+      const initial = '# Title\n! ';
+      const res = handleISLAGesture('Backspace', initial, 10, 10);
+      expect(res.handled).toBe(true);
+      expect(res.newCode).toBe('# Title\n');
+      expect(res.newCursorOffset).toBe(8);
+    });
+
     it('does not intercept regular backspace when caret is not between empty pair', () => {
       const initial = 'abc';
       const res = handleISLAGesture('Backspace', initial, 3, 3);

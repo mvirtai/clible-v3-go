@@ -64,9 +64,45 @@ export function MarkdownCell({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
       setIsEditing(false);
+      return;
     }
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       setIsEditing(false);
+      return;
+    }
+
+    // Smart typing gesture for transitioning into ISLA DSL mode:
+    // If the user types '!' at the start of an empty cell or at start of line,
+    // immediately transition into ISLA mode with a trailing space '! '.
+    if (e.key === '!') {
+      const target = e.currentTarget;
+      const start = target.selectionStart ?? 0;
+      const textBefore = target.value.slice(0, start);
+      const isStartOfLine = start === 0 || textBefore.endsWith('\n') || /^\s*$/.test(textBefore);
+
+      if (isStartOfLine) {
+        e.preventDefault();
+        setEditorMode('isla');
+        const nextContent = target.value.slice(0, start) + '! ' + target.value.slice(target.selectionEnd ?? start);
+        onChange(nextContent);
+        return;
+      }
+    }
+
+    // Smart typing gesture for '@' at start of line:
+    if (e.key === '@') {
+      const target = e.currentTarget;
+      const start = target.selectionStart ?? 0;
+      const textBefore = target.value.slice(0, start);
+      const isStartOfLine = start === 0 || textBefore.endsWith('\n') || /^\s*$/.test(textBefore);
+
+      if (isStartOfLine) {
+        e.preventDefault();
+        setEditorMode('isla');
+        const nextContent = target.value.slice(0, start) + '! @()' + target.value.slice(target.selectionEnd ?? start);
+        onChange(nextContent);
+        return;
+      }
     }
   };
 
@@ -263,7 +299,10 @@ export function MarkdownCell({
   }
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
+    let val = e.target.value;
+    if (val.trim() === '!') {
+      val = '! ';
+    }
     onChange(val);
 
     if (editorMode === 'auto' && isISLALine(val.trim())) {
@@ -300,7 +339,7 @@ export function MarkdownCell({
             </button>
           </div>
           <ISLAEditor
-            initialCode={cell.content}
+            initialCode={cell.content.trim() === '!' ? '! ' : cell.content}
             translationId={translation}
             contextText={contextText}
             onExecute={(code) => {

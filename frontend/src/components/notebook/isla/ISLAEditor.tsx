@@ -108,10 +108,13 @@ export function ISLAEditor({
 }: ISLAEditorProps): JSX.Element {
   const { strings } = useLanguage();
 
+  // Defensive normalization: if initialCode is a lone '!', automatically format as '! '
+  const normalizedInitial = initialCode.trim() === '!' ? '! ' : initialCode;
+
   // Lazy state initialization for initial code and caret position
-  const [code, setCode] = useState(() => initialCode);
-  const [cursorOffset, setCursorOffset] = useState(() => initialCode.length);
-  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [code, setCode] = useState(() => normalizedInitial);
+  const [cursorOffset, setCursorOffset] = useState(() => normalizedInitial.length);
+  const [showAutocomplete, setShowAutocomplete] = useState(() => normalizedInitial.trim() === '!' || normalizedInitial === '! ');
   const [hasNavigated, setHasNavigated] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [hoveredKeyword, setHoveredKeyword] = useState<string | null>(null);
@@ -120,8 +123,20 @@ export function ISLAEditor({
   const [prevInitialCode, setPrevInitialCode] = useState(initialCode);
   if (prevInitialCode !== initialCode) {
     setPrevInitialCode(initialCode);
-    setCode(initialCode);
-    setCursorOffset(initialCode.length);
+    const normalized = initialCode.trim() === '!' ? '! ' : initialCode;
+    setCode(normalized);
+    setCursorOffset(normalized.length);
+    if (normalized.trim() === '!' || normalized === '! ') {
+      setShowAutocomplete(true);
+    }
+    if (normalized !== initialCode) {
+      onChange?.(normalized);
+    }
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.setSelectionRange(normalized.length, normalized.length);
+      }
+    });
   }
 
   // Single DOM ref strictly used for imperative element focus
@@ -135,8 +150,15 @@ export function ISLAEditor({
   const visibleSuggestions = rawSuggestions.slice(0, 8);
 
   function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const value = e.target.value;
-    const offset = e.target.selectionStart ?? value.length;
+    let value = e.target.value;
+    let offset = e.target.selectionStart ?? value.length;
+
+    // Defensive check: if value was entered as lone '!', automatically append trailing space
+    if (value.trim() === '!' && !value.includes(' ')) {
+      value = '! ';
+      offset = 2;
+    }
+
     setCode(value);
     setCursorOffset(offset);
     setShowAutocomplete(true);

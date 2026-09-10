@@ -118,6 +118,20 @@ export function handleISLAGesture(
         newCursorOffset: selectionStart - 1,
       };
     }
+
+    // Case C: Caret is directly after smart '! ' at start of line -> remove '! ' completely
+    if (
+      selectionStart >= 2 &&
+      code.slice(selectionStart - 2, selectionStart) === '! ' &&
+      (selectionStart === 2 || code.slice(0, selectionStart - 2).endsWith('\n') || /^\s*$/.test(code.slice(0, selectionStart - 2)))
+    ) {
+      const newCode = code.slice(0, selectionStart - 2) + code.slice(selectionStart);
+      return {
+        handled: true,
+        newCode,
+        newCursorOffset: selectionStart - 2,
+      };
+    }
   }
 
   // 4. Auto-closing pairs when no text is selected

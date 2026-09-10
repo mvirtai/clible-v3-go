@@ -409,6 +409,53 @@ describe('ISLAEditor', () => {
     expect(onChange).toHaveBeenCalledWith('! ');
     expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
   });
+
+  it('normalizes lone "!" initialCode to "! " with open autocomplete and notifies onChange', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="!"
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea?.value).toBe('! ');
+    expect(container?.querySelector('[role="listbox"]')).toBeTruthy();
+  });
+
+  it('deletes both ! and trailing space when pressing Backspace immediately after "! "', () => {
+    const onChange = vi.fn();
+    act(() => {
+      root?.render(
+        <LanguageProvider>
+          <ISLAEditor
+            initialCode="! "
+            translationId="KR92"
+            onExecute={vi.fn()}
+            onChange={onChange}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea?.value).toBe('! ');
+
+    act(() => {
+      textarea?.setSelectionRange(2, 2);
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(textarea?.value).toBe('');
+    expect(onChange).toHaveBeenCalledWith('');
+  });
 });
-
-
