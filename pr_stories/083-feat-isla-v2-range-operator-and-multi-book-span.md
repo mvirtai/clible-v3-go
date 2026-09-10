@@ -14,8 +14,10 @@ Prior to this pull request, range syntax and execution exhibited two major limit
 1. **Syntax Failure on `..` Operator:** The ISLA v2 lexer and parser only accepted the legacy comma delimiter `range(start, end)`. When researchers wrote natural mathematical/language range syntax using the standard double-dot operator `..` (e.g., `(MAT .. JOH)`, `@(MAT .. JOH)`, or `range(MAT .. JOH)`), the lexer emitted isolated dot tokens, causing syntax parsing errors and execution aborts.
 2. **Endpoint-Only Book Execution Defect:** When executing book-level ranges, the legacy executor merely queried the start and end boundary books (`append(startVerses, endVerses...)`). Querying `MAT .. JOH` returned only 2 books (Matthew and John) instead of the 4 canonical Gospels (Matthew, Mark, Luke, John).
 3. **Missing "Joh" Book Alias:** Common shorthand abbreviations like `"Joh"` / `"joh"` were missing from `book_names.json`, leading to reference resolution failures for Finnish and colloquial references.
+4. **Hardcoded Fallback Translation:** In previous versions, ISLA defaulted to `"WEB"` (World English Bible) if a translation was omitted, ignoring the user's active interface language (`fi` vs `en`). When Finnish users evaluated expressions and stored results into notebook variables (e.g. `#armo`), the verses were stored under `"WEB"` even if rendered in `"fin-1992"` (KR92).
+5. **Console Log Readability:** Raw JSON logs on the backend made complex queries like SQL execution and ISLA AST inspection difficult to read during local development.
 
-This Pull Request delivers comprehensive end-to-end support for the `..` range operator, canonical multi-book span interpolation across all 66 biblical books, book alias normalization, and full frontend highlighting and IntelliSense integration.
+This Pull Request delivers comprehensive end-to-end support for the `..` range operator, canonical multi-book span interpolation across all 66 biblical books, book alias normalization, language-aware translation resolution (`fi` -> `fin-1992` / KR92), ANSI SQL syntax highlighting in the terminal console, and full frontend highlighting and IntelliSense integration.
 
 ---
 
@@ -119,7 +121,7 @@ func GetBookSpan(startRaw, endRaw string) []string {
   - `range(MAT .. JOH)` (functional notation, with backward-compatible comma support)
 - **Bounded Range Splitting:** Range argument parsing halts on `TokenDotDot`, `TokenComma`, or closing parentheses `TokenParenClose`, preserving whitespace and multi-word book titles.
 
-### 3. Execution Engine Book Span Ingestion (`backend/new_dsl/executor.go`)
+### 3. Execution Engine Book Span Ingestion & Language Awareness (`backend/new_dsl/executor.go`)
 
 - **Full Corpus Retrieval:** Updated `executeRangeExpr` to inspect boundary scopes. When both start and end resolve to `ScopeBook`, the engine invokes `GetBookSpan` and queries all matching verses across all books in the slice:
 
@@ -142,13 +144,20 @@ if startScope == ScopeBook && endScope == ScopeBook {
 ```
 
 - **Accurate Metric Calculations:** When chained with `.count(books)`, `countResultUnit` calculates unique book IDs across the retrieved verses, correctly returning `4` for Gospels instead of `2`.
+- **Language-Aware Default Translation:** In `inferTranslationFromScope` and missing-translation fallbacks, the executor now defaults to `"fin-1992"` (KR92) whenever working in Finnish contexts, ensuring notebook variables (`#var`) accurately save verses in the active Bible translation rather than unexpectedly storing `"web"`.
 
-### 4. Frontend Syntax Highlighting & IntelliSense (`frontend/src/`)
+### 4. Frontend Syntax Highlighting, IntelliSense & Translation Context (`frontend/src/`)
 
 - **Lexer Operator Token:** `islaLexer.ts` recognizes `..` as an operator token, rendering it in syntax-highlighted styles alongside other ISLA operators.
 - **ISLA Line Detection:** `isISLALine` detects shorthand expressions matching `^\([^)]+\.\.[^)]+\)` as valid ISLA commands.
 - **Autocomplete Snippets:** Added range snippets in `islaIntellisense.ts` showcasing the `..` operator (`! range(GEN .. DEU) => count()` and `! (MAT .. JOH).count(books) =>`).
 - **Method Chaining:** Updated `isVerseRef` regex in IntelliSense to recognize `..` expressions, offering method suggestions (`.count()`, `.top()`, `.themes()`) immediately upon typing `.` after a range.
+- **Dynamic Translation Propagation:** Removed hardcoded `translation = 'WEB'` across `NotebookEditor.tsx`, `MarkdownCell.tsx`, `ISLABlock.tsx`, and `islaCache.ts`. The frontend now dynamically passes the user's active translation (e.g. `fin-1992` for Finnish) and attaches `Accept-Language` headers, ensuring total consistency between UI view and stored notebook variables.
+
+### 5. Development Console Formatting & SQL Syntax Coloring (`backend/internal/middleware/console_handler.go`)
+
+- **Developer Experience:** Added `ConsoleHandler` for development mode which provides human-readable, ANSI-colored output in the terminal.
+- **SQL Formatting:** Structured SQL queries (e.g. `[ISLA SQL]`) with colored keywords (`SELECT`, `FROM`, `WHERE`, `JOIN`), indented clauses, and clearly separated parameter bindings for instantaneous readability during query tuning.
 
 ---
 
@@ -156,7 +165,8 @@ if startScope == ScopeBook && endScope == ScopeBook {
 
 * **Gospel Scope Accuracy:** Queries for `MAT .. JOH` now accurately return all **4** canonical Gospels (`MAT`, `MRK`, `LUK`, `JHN`) rather than only **2** endpoint books.
 * **Lexer Coverage:** Full tokenization parity between Go backend and TypeScript frontend for the double-dot operator `..`.
-* **Backend Coverage:** Maintained **77.7%** total statement coverage in Go backend unit test suite.
+* **Translation Parity:** Zero translation mismatches between UI display and stored notebook variables (`#var` stores `fin-1992` on Finnish UI).
+* **Backend Coverage:** Maintained **78.0%** total statement coverage in Go backend unit test suite.
 * **Frontend Test Suite:** All **35** frontend test suites passed with **296** passing tests (including **8** ISLA test suites with **128** tests).
 
 ---
@@ -181,16 +191,23 @@ if startScope == ScopeBook && endScope == ScopeBook {
 | `backend/new_dsl/lexer_test.go` | Added `TestLexer_RangeOperatorDotDot` testing `..` tokenization |
 | `backend/new_dsl/parser.go` | Added `(start .. end)` shorthand parsing, `@(..)` range detection, and dual `..` / `,` delimiter support |
 | `backend/new_dsl/parser_test.go` | Added `TestParseISLA_RangeDotDot` testing parser AST generation with `..` |
-| `backend/new_dsl/executor.go` | Added multi-book span verse retrieval via `GetBookSpan()` in `executeRangeExpr` |
+| `backend/new_dsl/executor.go` | Added multi-book span verse retrieval via `GetBookSpan()`, dynamic Finnish translation fallback (`fin-1992`) |
 | `backend/new_dsl/executor_test.go` | Added `TestExecute_RangeMultiBookSpan` verifying `.count(books)` returns 4 for `MAT .. JOH` |
+| `backend/internal/api/dsl_handler.go` | Added language header inspection and fallback to `fin-1992` on Finnish requests |
+| `backend/internal/middleware/console_handler.go` | Added `ConsoleHandler` with SQL clause indentation, ANSI syntax highlighting, and clean log formatting |
+| `backend/internal/middleware/console_handler_test.go` | Added unit tests for SQL formatting, ISLA SQL coloring, and console handler events |
+| `backend/main.go` | Integrated `ConsoleHandler` in development mode with automatic JSON fallback for production |
+| `frontend/src/App.tsx` | Updated default translation fallback to depend on user language (`fin-1992` vs `web`) |
+| `frontend/src/components/notebook/NotebookEditor.tsx` | Removed hardcoded `'WEB'` translation default, replaced with language-aware fallback |
+| `frontend/src/components/notebook/cells/MarkdownCell.tsx` | Replaced hardcoded `'WEB'` translation with dynamic language-aware fallback |
+| `frontend/src/components/notebook/isla/ISLABlock.tsx` | Replaced hardcoded `'WEB'` with language-aware translation default |
+| `frontend/src/components/notebook/isla/islaCache.ts` | Added `Accept-Language` header propagation and dynamic fallback translation |
 | `frontend/src/data/book_names.json` | Added `"Joh"` alias pointing to `JHN` |
 | `frontend/src/components/notebook/isla/islaLexer.ts` | Added `..` operator tokenization and updated `isISLALine` regex |
 | `frontend/src/components/notebook/isla/islaLexer.test.ts` | Added tests for `..` operator tokens and range line classification |
 | `frontend/src/components/notebook/isla/islaIntellisense.ts` | Updated range snippets to use `..` and recognized range chaining in `isVerseRef` |
 | `frontend/src/components/notebook/isla/islaIntellisense.test.ts` | Added tests for range snippet suggestions and method chaining after `(MAT .. JOH).` |
-| `backend/internal/middleware/console_handler.go` | Added `ConsoleHandler` with SQL clause indentation, ANSI syntax highlighting, and clean log formatting |
-| `backend/internal/middleware/console_handler_test.go` | Added unit tests for SQL formatting, ISLA SQL coloring, and console handler events |
-| `backend/main.go` | Integrated `ConsoleHandler` in development mode with automatic JSON fallback for production |
+| `pr_stories/083-feat-isla-v2-range-operator-and-multi-book-span.md` | Comprehensive PR story covering range operator, book spans, console formatting, and translation defaults |
 
 ---
 
@@ -206,6 +223,7 @@ if startScope == ScopeBook && endScope == ScopeBook {
   - `TestLexer_RangeOperatorDotDot` (`backend/new_dsl`): PASS
   - `TestParseISLA_RangeDotDot` (`backend/new_dsl`): PASS
   - `TestExecute_RangeMultiBookSpan` (`backend/new_dsl`): PASS
+  - `TestConsoleHandler_FormatSQL` (`backend/internal/middleware`): PASS
 
 ```text
 === RUN   TestGetBookSpan
@@ -217,7 +235,7 @@ if startScope == ScopeBook && endScope == ScopeBook {
 === RUN   TestExecute_RangeMultiBookSpan
 --- PASS: TestExecute_RangeMultiBookSpan (0.03s)
 PASS
-coverage: 77.7% of statements
+coverage: 78.0% of statements
 ```
 
 #### Frontend Quality Gates (`task frontend:check`)
@@ -237,3 +255,5 @@ Duration    10.74s
 2. **Alternative Syntax Compatibility:** Confirmed `@(MAT .. JOH)` and `range(MAT .. JOH)` parse and execute identically to `(MAT .. JOH)`.
 3. **Pentateuch Span (`! range(GEN .. DEU) => count(books)`):** Confirmed all 5 books of Moses are included.
 4. **IntelliSense and Highlight:** Verified typing `(MAT .. JOH).` offers `.count()`, `.top()`, and `.themes()` autocompletions in the editor.
+5. **Language-Aware Default Translation:** Verified evaluating queries without specifying translation saves variables with translation `"fin-1992"` when Finnish UI is active.
+6. **Console Formatting:** Verified SQL queries in backend logs print with colored keywords and structured clause indentation.
