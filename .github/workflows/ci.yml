@@ -51,7 +51,7 @@ jobs:
       - name: Set up pnpm dependency engine
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 12
 
       - name: Set up Node.js environment
         uses: actions/setup-node@v4
@@ -61,7 +61,7 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install locked dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Verify TypeScript strict compilation
         run: pnpm exec tsc --noEmit
