@@ -503,6 +503,22 @@ describe('islaIntellisense', () => {
     });
   });
 
+  describe('Range and multi-book span suggestions', () => {
+    it('suggests range templates when user types "r", "!r", or "range"', () => {
+      const suggestionsR = getISLASuggestions('!r', 2);
+      expect(suggestionsR.some((s) => s.label.startsWith('range'))).toBe(true);
+      expect(suggestionsR.some((s) => s.label.includes('..'))).toBe(true);
+    });
+
+    it('suggests valid methods after multi-book span dot chaining', () => {
+      const suggestionsDot = getISLASuggestions('!(MAT .. JOH).', 14);
+      expect(suggestionsDot.length).toBeGreaterThan(0);
+      expect(suggestionsDot.some((s) => s.label.startsWith('count'))).toBe(true);
+      expect(suggestionsDot.some((s) => s.label.startsWith('top'))).toBe(true);
+      expect(suggestionsDot.some((s) => s.label.startsWith('themes'))).toBe(true);
+    });
+  });
+
   describe('Fallback behavior', () => {
     it('returns empty array when text does not trigger any IntelliSense rules', () => {
       expect(getISLASuggestions('Regular text in a markdown cell', 15)).toEqual([]);
@@ -510,4 +526,5 @@ describe('islaIntellisense', () => {
     });
   });
 });
+
 

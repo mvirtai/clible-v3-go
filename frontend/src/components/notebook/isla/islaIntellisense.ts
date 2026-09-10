@@ -289,17 +289,30 @@ export const ISLA_MAIN_SNIPPETS: ISLASuggestion[] = [
     example: '! range(Gen 1:1, Gen 2:3) => count()',
     kind: 'snippet',
   },
-  // 17. Book-level range
+  // 17. Book-level range with '..' operator
   {
-    label: '! range(GEN, DEU) => count()',
-    insertText: '! range(GEN, DEU) => count()',
+    label: '! range(GEN .. DEU) => count()',
+    insertText: '! range(GEN .. DEU) => count()',
     cursorOffset: 9,
     detail: 'Book-level Range',
     documentation: {
-      fi: 'Kirjatason tekstijakso: hakee kaikki jakeet Genesiksen alusta Deuteronomiumin loppuun.',
-      en: 'Book-level range: fetches all verses from Genesis through Deuteronomy.',
+      fi: 'Kirjatason tekstijakso: hakee kaikki jakeet Genesiksen alusta Deuteronomiumin loppuun ..-operaattorilla.',
+      en: 'Book-level range: fetches all verses from Genesis through Deuteronomy using .. operator.',
     },
-    example: '! range(MAT, JHN) => count()',
+    example: '! range(MAT .. JHN) => count()',
+    kind: 'snippet',
+  },
+  // 18. Multi-book range shorthand with book count
+  {
+    label: '! (MAT .. JOH).count(books) =>',
+    insertText: '! (MAT .. JOH).count(books) => ',
+    cursorOffset: 3,
+    detail: 'Multi-book Span & Count',
+    documentation: {
+      fi: 'Monikirjaväli (MAT .. JOH) ..-operaattorilla ja kirjojen määrän laskennalla.',
+      en: 'Multi-book span (MAT .. JOH) using .. operator chained with book count.',
+    },
+    example: '! (MAT .. JOH).count(books) =>',
     kind: 'snippet',
   },
   // 18. Text statistics & TTR
@@ -611,10 +624,10 @@ export function getISLASuggestions(
           cursorOffset: bOffset + 6,
           detail: 'Tekstijakso / Passage range',
           documentation: {
-            fi: 'Hakee yhtenäisen tekstijakson alku- ja loppuviitteen väliltä.',
-            en: 'Fetches a contiguous passage between start and end references.',
+            fi: 'Hakee yhtenäisen tekstijakson alku- ja loppuviitteen väliltä (.. operaattorilla).',
+            en: 'Fetches a contiguous passage between start and end references (using .. operator).',
           },
-          example: `${p}range(Joh 1:1, Joh 1:18)`,
+          example: `${p}range(Joh 1:1 .. Joh 1:18)`,
           kind: 'function',
         },
       ];
@@ -675,7 +688,7 @@ export function getISLASuggestions(
     const textBeforeDot = textBeforeCursor.slice(0, dotMatch.index);
     const isSearch = /(?:search|\?)\s*\(/i.test(textBeforeDot);
     const isCellCtx = /\^\s*$/.test(textBeforeDot);
-    const isVerseRef = /@/.test(textBeforeDot) || /range\s*\(/i.test(textBeforeDot);
+    const isVerseRef = /@/.test(textBeforeDot) || /range\s*\(/i.test(textBeforeDot) || /\.\./.test(textBeforeDot);
 
     let methods = ISLA_METHOD_SUGGESTIONS;
     if (isCellCtx) {

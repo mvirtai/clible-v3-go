@@ -55,6 +55,7 @@ export function isISLALine(line: string): boolean {
     trimmed.startsWith('@') ||
     trimmed.startsWith('^') ||
     trimmed.startsWith('?') ||
+    /^\([^)]+\.\.[^)]+\)/.test(trimmed) ||
     /^(?:search|range|read|at|use|vs|compare|count|themes|words|stats|ttr)\s*\(/i.test(trimmed) ||
     /^#[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+|\s*=>|\s*>|\s*>>)/.test(trimmed)
   ) {
@@ -146,7 +147,7 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
       }
     }
 
-    // 5. Multi-character operators: `=>`, `>>`
+    // 5. Multi-character operators: `=>`, `>>`, `..`
     if (line.startsWith('=>', index)) {
       tokens.push({ type: 'operator', text: '=>' });
       index += 2;
@@ -157,6 +158,11 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
       index += 2;
       continue;
     }
+    if (line.startsWith('..', index)) {
+      tokens.push({ type: 'operator', text: '..' });
+      index += 2;
+      continue;
+    }
 
     // 6. Single character operators: `?`, `:`, `^`, `>`, `.`
     if (char === '?' || char === ':' || char === '^' || char === '>' || char === '.') {
@@ -164,6 +170,7 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
       index++;
       continue;
     }
+
 
     // 7. Scripture References and Scopes: `@(Joh 3:16)`, `@Joh 3:16`, `@Room`, `@NT`
     if (char === '@') {

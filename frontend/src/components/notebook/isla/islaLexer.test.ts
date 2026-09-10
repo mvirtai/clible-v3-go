@@ -174,7 +174,27 @@ describe('islaLexer', () => {
         { type: 'operator', text: '>' },
       ]);
     });
+
+    it('tokenizes .. range operator in ! (MAT .. JOH).count(books)', () => {
+      const tokens = tokenizeISLALine('! (MAT .. JOH).count(books)');
+      expect(tokens).toEqual([
+        { type: 'directive', text: '! ' },
+        { type: 'plain', text: '(' },
+        { type: 'plain', text: 'MAT' },
+        { type: 'plain', text: ' ' },
+        { type: 'operator', text: '..' },
+        { type: 'plain', text: ' ' },
+        { type: 'plain', text: 'JOH' },
+        { type: 'plain', text: ')' },
+        { type: 'operator', text: '.' },
+        { type: 'function', text: 'count' },
+        { type: 'plain', text: '(' },
+        { type: 'plain', text: 'books' },
+        { type: 'plain', text: ')' },
+      ]);
+    });
   });
+
 
   describe('getTokenClassName', () => {
     it('returns appropriate Tailwind styling classes for all token types across light and dark modes', () => {
