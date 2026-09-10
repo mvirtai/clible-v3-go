@@ -192,18 +192,6 @@ export interface ISLACommandMeta {
 export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
   // ── Source / Primary Commands ────────────────────────────────────────────
   {
-    keyword: '?',
-    label: { fi: 'Tekstihaku (?)', en: 'Full-text Search (?)' },
-    description: {
-      fi: 'Nopea kysely- ja FTS-tekstihakuoperaattori (?): vastaa search()-komentoa. Esim. `?("armo")` tai `?"armo"` tai `? /pattern/`.',
-      en: 'Fast query & FTS search operator (?): equivalent to search(). E.g. `?("grace")` or `?"grace"` or `? /pattern/`.',
-    },
-    syntax: '?("QUERY") | ?("TERM1" AND "TERM2") | ? /REGEX/',
-    example: '! ?("armo") => at(UT) => count()',
-    hasArgs: true,
-    isPrimary: true,
-  },
-  {
     keyword: 'search',
     label: { fi: 'Tekstihaku', en: 'Full-text Search' },
     description: {
@@ -212,18 +200,6 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     },
     syntax: 'search("QUERY") | search("TERM1" AND "TERM2") | search("Q", scope: GROUP)',
     example: '! search("armo" AND "rauha") => at(evankeliumit) => count()',
-    hasArgs: true,
-    isPrimary: true,
-  },
-  {
-    keyword: '@',
-    label: { fi: 'Jaeviittaus (@)', en: 'Verse Reference (@)' },
-    description: {
-      fi: 'Jaeviittaus (@): vastaa at()-komentoa. Esim. `@(Joh 3:16)` tai `@Joh 3:16`.',
-      en: 'Verse reference (@): equivalent to at(). E.g. `@(Joh 3:16)` or `@Joh 3:16`.',
-    },
-    syntax: '@(VERSE_REF) | @VERSE_REF',
-    example: '! @(Joh 3:16) => use(KR92)',
     hasArgs: true,
     isPrimary: true,
   },

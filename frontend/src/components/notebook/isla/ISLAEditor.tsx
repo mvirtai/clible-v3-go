@@ -9,7 +9,6 @@ import {
   getHoverDocumentation,
   getISLASuggestions,
 } from './islaIntellisense';
-import { handleISLAGesture } from './islaEditorGestures';
 import { useLanguage } from '../../../context/LanguageContext';
 
 /**
@@ -108,13 +107,10 @@ export function ISLAEditor({
 }: ISLAEditorProps): JSX.Element {
   const { strings } = useLanguage();
 
-  // Defensive normalization: if initialCode is a lone '!', automatically format as '! '
-  const normalizedInitial = initialCode.trim() === '!' ? '! ' : initialCode;
-
   // Lazy state initialization for initial code and caret position
-  const [code, setCode] = useState(() => normalizedInitial);
-  const [cursorOffset, setCursorOffset] = useState(() => normalizedInitial.length);
-  const [showAutocomplete, setShowAutocomplete] = useState(() => normalizedInitial.trim() === '!' || normalizedInitial === '! ');
+  const [code, setCode] = useState(() => initialCode);
+  const [cursorOffset, setCursorOffset] = useState(() => initialCode.length);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [hoveredKeyword, setHoveredKeyword] = useState<string | null>(null);
@@ -123,22 +119,8 @@ export function ISLAEditor({
   const [prevInitialCode, setPrevInitialCode] = useState(initialCode);
   if (prevInitialCode !== initialCode) {
     setPrevInitialCode(initialCode);
-    const normalized = initialCode.trim() === '!' ? '! ' : initialCode;
-    if (normalized !== code) {
-      setCode(normalized);
-      setCursorOffset(normalized.length);
-      if (normalized.trim() === '!' || normalized === '! ') {
-        setShowAutocomplete(true);
-      }
-      if (normalized !== initialCode) {
-        onChange?.(normalized);
-      }
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.setSelectionRange(normalized.length, normalized.length);
-        }
-      });
-    }
+    setCode(initialCode);
+    setCursorOffset(initialCode.length);
   }
 
   // Single DOM ref strictly used for imperative element focus
@@ -152,15 +134,8 @@ export function ISLAEditor({
   const visibleSuggestions = rawSuggestions.slice(0, 8);
 
   function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    let value = e.target.value;
-    let offset = e.target.selectionStart ?? value.length;
-
-    // Defensive check: if value was entered as lone '!', automatically append trailing space
-    if (value.trim() === '!' && !value.includes(' ')) {
-      value = '! ';
-      offset = 2;
-    }
-
+    const value = e.target.value;
+    const offset = e.target.selectionStart ?? value.length;
     setCode(value);
     setCursorOffset(offset);
     setShowAutocomplete(true);
@@ -178,42 +153,6 @@ export function ISLAEditor({
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    const target = e.currentTarget;
-    const start = target.selectionStart ?? 0;
-    const end = target.selectionEnd ?? 0;
-
-    // Smart typing gestures & auto-closing pairs
-    const gesture = handleISLAGesture(e.key, code, start, end);
-    if (gesture.handled) {
-      e.preventDefault();
-      setCode(gesture.newCode);
-      setCursorOffset(gesture.newCursorOffset);
-      onChange?.(gesture.newCode);
-
-      target.value = gesture.newCode;
-      target.setSelectionRange(gesture.newCursorOffset, gesture.newCursorOffset);
-
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.setSelectionRange(gesture.newCursorOffset, gesture.newCursorOffset);
-        }
-      });
-
-      if (e.key === '@' || e.key === '!' || e.key === '?') {
-        setShowAutocomplete(true);
-        setActiveIndex(0);
-        setHasNavigated(false);
-      }
-
-      const word = getKeywordAtOffset(gesture.newCode, gesture.newCursorOffset);
-      if (word && getHoverDocumentation(word)) {
-        setHoveredKeyword(word);
-      } else {
-        setHoveredKeyword(null);
-      }
-      return;
-    }
-
     // Autocomplete keyboard navigation
     if (showAutocomplete && visibleSuggestions.length > 0) {
       if (e.key === 'ArrowDown') {
@@ -238,7 +177,6 @@ export function ISLAEditor({
       }
       if (e.key === 'Enter') {
         const textBeforeCursor = code.slice(0, cursorOffset);
-        const trimmed = textBeforeCursor.trimStart();
         const hasTypedFilter =
           /=>\s*[A-Za-z0-9_#()-]+$/.test(textBeforeCursor) ||
           /\.\s*[a-zA-Z0-9_]+$/.test(textBeforeCursor) ||
@@ -246,8 +184,7 @@ export function ISLAEditor({
           /count\(\s*["']?[A-Za-z0-9äöåÄÖÅ_]+$/i.test(textBeforeCursor) ||
           /(?:use|in|vs)\(\s*["']?[A-Za-z0-9_-]+$/i.test(textBeforeCursor) ||
           /at\(\s*@?[A-Za-z0-9äöåÄÖÅ_]+$/i.test(textBeforeCursor) ||
-          /[?:]\s*[A-Za-z0-9_-]+$/.test(textBeforeCursor) ||
-          /^(?:!\s*)?[a-zA-Z0-9_?#~^]+$/.test(trimmed);
+          /[?:]\s*[A-Za-z0-9_-]+$/.test(textBeforeCursor);
 
         if (hasNavigated || hasTypedFilter) {
           e.preventDefault();
@@ -367,7 +304,7 @@ export function ISLAEditor({
           'relative z-0 w-full resize-none bg-transparent',
           'font-mono text-sm leading-relaxed',
           'px-3 py-2 pr-9',
-          'text-transparent caret-amber-600 dark:caret-amber-400',
+          'text-transparent caret-amber-400 dark:caret-amber-300',
           'placeholder:text-[var(--muted)]/50',
           'border border-amber-500/30 rounded-lg focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50',
           'whitespace-pre-wrap overflow-hidden transition-all',

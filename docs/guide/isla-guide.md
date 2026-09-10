@@ -43,18 +43,29 @@ plain text, but an executable ISLA directive:
 
 ### The ISLA v2 Object-Method Paradigm
 
-ISLA v2 introduces a uniform expression structure where every query follows an intuitive object-method anatomy:
+ISLA v2 introduces a uniform expression structure:
 
-![ISLA v2 Expression Anatomy](/isla-anatomy.svg)
+```text
+[!] Object  .method1().method2()  OutputOperator
+```
 
-| Component | In above example | Role |
-|---|---|---|
-| **0. Trigger** *(optional)* | `!` / `!isla ` | Signals execution in Markdown notes |
-| **1. Object** *(required)* | `@(Joh 3:16)` | Defines *what* data to query (`@()`, `range`, `search`, `^`, `#var`) |
-| **2. Method(s)** *(optional)* | `.vs(KR92, KJV)` | Transforms or analyzes the data (`.use`, `.vs`, `.themes`, `.stats`) |
-| **3. Output** *(optional)* | `=> #joh-study` | Defines *where* to render and save (`=>`, `>`, `>>`) |
+Every valid ISLA expression consists of:
 
+1. **Trigger prefix** (`!` or `!isla ` in Markdown cells) — signals code execution.
+2. **One source Object** — defines *what* data is loaded.
+3. **Zero or more chained Methods** — transform or analyze the data.
+4. **One Output Operator** — defines *where* the result is rendered.
 
+```mermaid
+flowchart LR
+    subgraph Expression ["ISLA v2 Expression in Notebook"]
+        TRG["⓪ Trigger\n!\n!isla"]
+        OBJ["① Object\n@(Joh 3:16)\nrange(GEN, DEU)\nsearch('grace')\n^3"]
+        MTH["② Methods\n.use(KR92)\n.vs(KR92, KJV)\n.themes(5)\n.stats()"]
+        OUT["③ Output\n=> inline\n> new cell above\n>> new cell below"]
+    end
+    TRG --> OBJ --> MTH --> OUT
+```
 
 ---
 
@@ -114,18 +125,6 @@ or semantic queries against the narrative you have already written:
 Cell context objects are resolved server-side: the surrounding notebook cell text is
 sent in the API request, stripped of any existing ISLA directives, and passed to the
 execution engine.
-
-### `#variable` — Named Variable Reference
-
-References the result of a previous query stored in a named variable using `=> #variable`, `> #variable`, or `>> #variable`.
-A variable acts as a first-class object that you can chain analytical methods onto without re-querying the database:
-
-```isla
-search("armo").at(UT) => #armo
-#armo.count(words) =>
-#armo.top(10) =>
-#armo.stats >> #armo-stats
-```
 
 ---
 
@@ -279,15 +278,14 @@ from the cell text or matched verse corpus:
 Every ISLA expression must end with an output operator that specifies where the result
 is rendered.
 
-### `=>` — Inline (Current Cell) & Variable Assignment
+### `=>` — Inline (Current Cell)
 
 Renders the result within the current notebook cell, replacing the raw command text
-in reading mode. It can optionally assign the result to a named variable using `#variable`:
+in reading mode:
 
 ```isla
 @(Joh 3:16).vs(KR92, KJV) =>
-search("grace").at(epistles) => #grace
-#grace.count(words) =>
+search("grace").at(epistles).count() =>
 ```
 
 ### `>` — New Cell Above

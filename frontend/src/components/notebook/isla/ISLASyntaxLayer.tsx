@@ -35,12 +35,10 @@ export function ISLASyntaxLayer({ code }: ISLASyntaxLayerProps): JSX.Element {
             className={[
                 // Positioning: exact same area as the textarea underneath
                 'absolute inset-0 pointer-events-none',
-                // Border: match the textarea's 1px border box
-                'border border-transparent',
                 // Font: must match textarea exactly (same typeface, size, line-height)
                 'font-mono text-sm leading-relaxed',
                 // Padding: must match textarea padding exactly
-                'px-3 py-2 pr-9',
+                'px-3 py-2',
                 // Whitespace: preserve indentation, allow natural token wrapping
                 'whitespace-pre-wrap',
                 // Z-index: overlay must sit above the textarea (z-10)

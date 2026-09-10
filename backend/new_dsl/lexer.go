@@ -81,15 +81,10 @@ func (l *Lexer) NextToken() Token {
 		l.pos++
 		return Token{Type: TokenIllegal, Literal: "=", Pos: start}
 
-	// ── .. vs . — range operator vs method chain separator ───────────────────
+	// ── . — method chain separator ────────────────────────────────────────────
 	case ch == '.':
-		if l.peek() == '.' {
-			l.pos += 2
-			return Token{Type: TokenDotDot, Literal: "..", Pos: start}
-		}
 		l.pos++
 		return Token{Type: TokenDot, Literal: ".", Pos: start}
-
 
 	// ── ? — search shorthand ─────────────────────────────────────────────────
 	case ch == '?':

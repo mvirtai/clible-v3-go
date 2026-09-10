@@ -28,7 +28,6 @@ const (
 	ObjectRange                      // range(GEN, DEU)
 	ObjectSearch                     // search("grace")
 	ObjectCellCtx                    // ^, ^3, ^all
-	ObjectVariable                   // #variable
 )
 
 // -- Object types ──────────────────────────────────────────────────────────────
@@ -86,15 +85,6 @@ func (n *SearchNode) String() string {
 	}
 	return `search("` + n.Query + `")`
 }
-
-// VariableNode represents a reference to a previously stored named result: #variable
-type VariableNode struct {
-	Name string // "variable" (without leading '#')
-}
-
-func (n *VariableNode) node()                  {}
-func (n *VariableNode) objectKind() ObjectKind { return ObjectVariable }
-func (n *VariableNode) String() string         { return "#" + n.Name }
 
 // CellCtxNode represents a reference to preceding notebook cells: ^, ^3, ^all
 type CellCtxNode struct {
@@ -158,18 +148,6 @@ func (o OutputOp) String() string {
 	}
 	return sym
 }
-
-// -- Root expression ─────────────────────────────────────────────────────────────────────────────
-
-// ISLAExpression is the complete parsed ISLA v2 expression.
-//
-// Grammar (simplified):
-//
-// expression = object method* output_op
-// object     = verse_ref | range | search | cell_ctx | variable
-// method     = "." IDENT "(" args ")"
-// output_op  = "=>" | ">" [name] | ">>" [name]
-//
 
 // -- Root expression ─────────────────────────────────────────────────────────────────────────────
 

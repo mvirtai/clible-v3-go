@@ -22,9 +22,6 @@ type VerseSearcher interface {
 	SearchVerses(ctx context.Context, query string, isRegex bool, translationID, searchScope, scopeValue string) ([]models.Verse, error)
 }
 
-// VariableResolver defines the interface for retrieving variables by name.
-type VariableResolver func(name string) (*models.CLIResult, error)
-
 // AnalyticsData contains aggregated lexical and linguistic metrics.
 type AnalyticsData struct {
 	TokenCount        int                `json:"token_count"`
@@ -37,24 +34,23 @@ type AnalyticsData struct {
 
 // ExecutionContext is the runtime context for AST evaluation.
 type ExecutionContext struct {
-	Ctx              context.Context
-	DefaultTrans     string
-	ContextText      string
-	VerseFetcher     VerseFetcher
-	VerseSearcher    VerseSearcher
-	ThemeExtractor   func(text string, limit int) []models.ThemeItem
-	RefsFinder       func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
-	SuggestFinder    func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
-	AnalyticsFinder  func(verses []models.Verse, text string, topN int) AnalyticsData
-	VariableResolver VariableResolver
+	Ctx             context.Context
+	DefaultTrans    string
+	ContextText     string
+	VerseFetcher    VerseFetcher
+	VerseSearcher   VerseSearcher
+	ThemeExtractor  func(text string, limit int) []models.ThemeItem
+	RefsFinder      func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
+	SuggestFinder   func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
+	AnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
 }
 
 var (
-	islaLineRegex   = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
-	codeBlockRegex  = regexp.MustCompile("(?s)```.*?```")
-	inlineCodeRegex = regexp.MustCompile("`[^`]*`")
-	nonAlphaRegex   = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
-	whitespaceRegex = regexp.MustCompile(`\s+`)
+	islaLineRegex    = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
+	codeBlockRegex   = regexp.MustCompile("(?s)```.*?```")
+	inlineCodeRegex  = regexp.MustCompile("`[^`]*`")
+	nonAlphaRegex    = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
+	whitespaceRegex  = regexp.MustCompile(`\s+`)
 )
 
 // StripISLAFromText sanitises text by removing ISLA directives, code blocks,
@@ -113,8 +109,6 @@ func evaluateExpression(ctx *ExecutionContext, expr *ISLAExpression) (*models.CL
 		return executeSearchExpr(ctx, obj, expr.Methods)
 	case *CellCtxNode:
 		return executeCellCtxExpr(ctx, obj, expr.Methods)
-	case *VariableNode:
-		return executeVariableExpr(ctx, obj, expr.Methods)
 	default:
 		return nil, fmt.Errorf("unsupported object type: %T", expr.Object)
 	}
@@ -138,9 +132,6 @@ func executeVerseRefExpr(ctx *ExecutionContext, n *VerseRefNode, methods []Metho
 	tid := parsers.ResolveTranslationID(transID)
 	if tid == "" {
 		tid = parsers.ResolveTranslationID(ctx.DefaultTrans)
-	}
-	if tid == "" {
-		tid = "fin-1992"
 	}
 
 	// Check if comparison .vs(trans1, trans2) is present
@@ -215,9 +206,6 @@ func executeRangeExpr(ctx *ExecutionContext, n *RangeNode, methods []MethodCall)
 	if tid == "" {
 		tid = parsers.ResolveTranslationID(ctx.DefaultTrans)
 	}
-	if tid == "" {
-		tid = "fin-1992"
-	}
 
 	var verses []models.Verse
 	pStart, errStart := parsers.ParseReference(n.Start)
@@ -236,19 +224,6 @@ func executeRangeExpr(ctx *ExecutionContext, n *RangeNode, methods []MethodCall)
 			verses, err = ctx.VerseFetcher.GetVerses(ctx.Ctx, combinedRef, tid)
 			if err != nil {
 				verses = nil
-			}
-		}
-	}
-
-	// Check if both start and end references are ScopeBook (e.g. MAT .. JOH, Genesis .. Deuteronomy)
-	if errStart == nil && errEnd == nil &&
-		pStart.Scope == parsers.ScopeBook && pEnd.Scope == parsers.ScopeBook &&
-		pStart.BookName != "" && pEnd.BookName != "" {
-		bookIDs := parsers.GetBookSpan(pStart.BookName, pEnd.BookName)
-		for _, bID := range bookIDs {
-			bVerses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, bID, tid)
-			if err == nil && len(bVerses) > 0 {
-				verses = append(verses, bVerses...)
 			}
 		}
 	}
@@ -272,7 +247,6 @@ func executeRangeExpr(ctx *ExecutionContext, n *RangeNode, methods []MethodCall)
 			}
 		}
 	}
-
 
 	res := &models.CLIResult{
 		Type: "range",
@@ -323,9 +297,6 @@ func executeSearchExpr(ctx *ExecutionContext, n *SearchNode, methods []MethodCal
 	if tid == "" {
 		effectiveTrans := inferTranslationFromScope(scope, ctx.DefaultTrans)
 		tid = parsers.ResolveTranslationID(effectiveTrans)
-	}
-	if tid == "" {
-		tid = "fin-1992"
 	}
 
 	searchScope, scopeValue := resolveSearchScope(scope)
@@ -383,178 +354,6 @@ func executeCellCtxExpr(ctx *ExecutionContext, n *CellCtxNode, methods []MethodC
 	}
 
 	return applyAnalyticalMethods(ctx, res, nil, text, methods)
-}
-
-// -- Variable Execution ---------------------------------------------------------
-
-func executeVariableExpr(ctx *ExecutionContext, n *VariableNode, methods []MethodCall) (*models.CLIResult, error) {
-	if ctx.VariableResolver == nil {
-		return nil, errors.New("isla: variable resolver not configured in execution context")
-	}
-
-	cleanName := strings.TrimPrefix(n.Name, "#")
-	baseRes, err := ctx.VariableResolver(cleanName)
-	if err != nil {
-		return nil, fmt.Errorf("isla: failed to resolve variable '#%s': %w", cleanName, err)
-	}
-	if baseRes == nil {
-		return nil, fmt.Errorf("isla: variable '#%s' not found", cleanName)
-	}
-
-	// If no methods are chained, return the resolved result as-is
-	if len(methods) == 0 {
-		return baseRes, nil
-	}
-
-	// Check if translation is overridden by .use(trans)
-	for _, m := range methods {
-		if m.Name == "use" && len(m.Args) > 0 {
-			if ref, ok := baseRes.Data["reference"].(string); ok && ref != "" && ctx.VerseFetcher != nil {
-				tid := parsers.ResolveTranslationID(m.Args[0])
-				verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, ref, tid)
-				if err != nil {
-					return nil, fmt.Errorf("failed to fetch verses for %q (%s): %w", ref, tid, err)
-				}
-				baseRes = &models.CLIResult{
-					Type: "read",
-					Data: map[string]interface{}{
-						"reference":   ref,
-						"translation": tid,
-						"verses":      verses,
-						"count":       len(verses),
-					},
-				}
-				break
-			}
-		}
-	}
-
-	// Check if comparison .vs(trans1, trans2) is present and variable has reference
-	for _, m := range methods {
-		if m.Name == "vs" && len(m.Args) >= 2 {
-			if ref, ok := baseRes.Data["reference"].(string); ok && ref != "" {
-				return executeComparison(ctx, ref, m.Args[0], m.Args[1])
-			}
-			return nil, fmt.Errorf("isla: cannot execute .vs() on variable '#%s' without reference", cleanName)
-		}
-	}
-
-	// Check if cross-references .refs(limit) is present and variable has reference
-	for _, m := range methods {
-		if m.Name == "refs" {
-			if ref, ok := baseRes.Data["reference"].(string); ok && ref != "" {
-				limit := 5
-				if len(m.Args) > 0 {
-					if parsedLim, err := strconv.Atoi(m.Args[0]); err == nil && parsedLim > 0 {
-						limit = parsedLim
-					}
-				}
-				if ctx.RefsFinder == nil {
-					return nil, errors.New("refs finder dependency not configured")
-				}
-				tid := ctx.DefaultTrans
-				if trans, ok := baseRes.Data["translation"].(string); ok && trans != "" {
-					tid = trans
-				}
-				tid = parsers.ResolveTranslationID(tid)
-				if tid == "" {
-					tid = "fin-1992"
-				}
-				verses, err := ctx.RefsFinder(ctx.Ctx, ref, tid, limit)
-				if err != nil {
-					return nil, err
-				}
-				return &models.CLIResult{
-					Type: "refs",
-					Data: map[string]interface{}{
-						"source":      ref,
-						"translation": tid,
-						"references":  verses,
-						"count":       len(verses),
-					},
-				}, nil
-			}
-			return nil, fmt.Errorf("isla: cannot execute .refs() on variable '#%s' without reference", cleanName)
-		}
-	}
-
-	verses := extractVersesFromResult(baseRes)
-	text := extractTextFromResult(baseRes)
-
-	return applyAnalyticalMethods(ctx, baseRes, verses, text, methods)
-}
-
-func extractVersesFromResult(res *models.CLIResult) []models.Verse {
-	if res == nil || res.Data == nil {
-		return nil
-	}
-
-	// 1. Direct []models.Verse
-	if verses, ok := res.Data["verses"].([]models.Verse); ok {
-		return verses
-	}
-	if refs, ok := res.Data["references"].([]models.Verse); ok {
-		return refs
-	}
-	if sugs, ok := res.Data["suggestions"].([]models.Verse); ok {
-		return sugs
-	}
-
-	// 2. Unmarshaled JSON slice: []interface{}
-	extractFromSlice := func(slice []interface{}) []models.Verse {
-		var out []models.Verse
-		for _, item := range slice {
-			if m, ok := item.(map[string]interface{}); ok {
-				var v models.Verse
-				if id, ok := m["id"].(string); ok {
-					v.ID = id
-				}
-				if text, ok := m["text"].(string); ok {
-					v.Text = text
-				}
-				if tid, ok := m["translation_id"].(string); ok {
-					v.TranslationID = tid
-				}
-				if bookId, ok := m["book_id"].(string); ok {
-					v.BookID = bookId
-				}
-				if ch, ok := m["chapter"].(float64); ok {
-					v.Chapter = int(ch)
-				}
-				if vs, ok := m["verse"].(float64); ok {
-					v.Verse = int(vs)
-				}
-				out = append(out, v)
-			}
-		}
-		return out
-	}
-
-	if slice, ok := res.Data["verses"].([]interface{}); ok {
-		return extractFromSlice(slice)
-	}
-	if slice, ok := res.Data["references"].([]interface{}); ok {
-		return extractFromSlice(slice)
-	}
-	if slice, ok := res.Data["suggestions"].([]interface{}); ok {
-		return extractFromSlice(slice)
-	}
-
-	return nil
-}
-
-func extractTextFromResult(res *models.CLIResult) string {
-	if res == nil || res.Data == nil {
-		return ""
-	}
-	if text, ok := res.Data["text"].(string); ok && text != "" {
-		return text
-	}
-	verses := extractVersesFromResult(res)
-	if len(verses) > 0 {
-		return aggregateText(verses, "")
-	}
-	return ""
 }
 
 // -- Analytical & Aggregation Methods -------------------------------------------
@@ -878,7 +677,7 @@ func inferTranslationFromScope(scope string, defaultTrans string) string {
 		if defaultTrans != "" {
 			return defaultTrans
 		}
-		return "fin-1992"
+		return "web"
 	}
 }
 

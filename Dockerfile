@@ -1,15 +1,11 @@
 # syntax=docker/dockerfile:1
 
 # --- Stage 1: Build React Frontend ---
-FROM node:24-alpine AS frontend-builder
-
-# Upgrade base packages to patch security vulnerabilities
-RUN apk update && apk upgrade --no-cache
-
+FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
-# Install pnpm globally for package management (pinned to v12)
-RUN npm install -g pnpm@12
+# Install pnpm globally for package management
+RUN npm install -g pnpm
 
 # Copy dependency manifests and install packages utilizing BuildKit cache
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
@@ -25,8 +21,8 @@ RUN --mount=type=cache,target=/root/.cache/turbo \
 # --- Stage 2: Build Go Backend ---
 FROM golang:1.26-alpine AS backend-builder
 
-# Upgrade base packages and install gcc and musl-dev for SQLite CGO compilation
-RUN apk update && apk upgrade --no-cache && apk add --no-cache gcc musl-dev
+# Install gcc and musl-dev for SQLite CGO compilation
+RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app/backend
 
@@ -47,10 +43,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go build -ldflags="-s -w" -o clible-server main.go
 
 # --- Stage 3: Runtime Image ---
-FROM alpine:3.21
+FROM alpine:3.19
 
-# Upgrade base packages and install certificates for HTTPS requests (Gemini API)
-RUN apk update && apk upgrade --no-cache && apk add --no-cache ca-certificates
+# Install certificates for HTTPS requests (Gemini API)
+RUN apk add --no-cache ca-certificates
 
 # Create non-root user for security
 ARG APP_USER=clible

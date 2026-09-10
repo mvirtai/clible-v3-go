@@ -57,38 +57,44 @@ function ISLAContent({
     <div
       className="group relative my-4 block w-full max-w-full rounded-xl border border-amber-500/30 dark:border-amber-500/25 bg-amber-500/5 dark:bg-[var(--surface)] p-4 shadow-xs hover:shadow-md transition-all not-prose text-[var(--text)] whitespace-normal break-words"
     >
-      {/* Always-visible ISLA command header with syntax badge and output routing */}
-      <div className="mb-3 pb-2 border-b border-amber-500/15 flex items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-md bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300">
-            <span className="text-amber-500">✦</span> {code}
-          </span>
-          {outputOp?.name && (
-            <span className="font-mono font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-[11px]">
-              {outputOp.name}
-            </span>
-          )}
-          {outputOp?.kind === 'cell_above' && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-sans text-amber-600 dark:text-amber-400 font-medium">
-              <span>↑</span> {strings.islaOutputAbove}
-            </span>
-          )}
-          {outputOp?.kind === 'cell_below' && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-sans text-amber-600 dark:text-amber-400 font-medium">
-              <span>↓</span> {strings.islaOutputBelow}
-            </span>
+      {/* Floating hover badge revealing the underlying ISLA command */}
+      <div className="absolute top-2.5 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-white/90 dark:bg-[var(--surface-2)] border border-amber-500/30 text-amber-600 dark:text-amber-400 backdrop-blur-sm shadow-xs">
+          ✦ {code}
+        </span>
+      </div>
+
+      {/* Output operator slug / direction indicator */}
+      {outputOp && (outputOp.name || outputOp.kind === 'cell_above' || outputOp.kind === 'cell_below') && (
+        <div className="mb-3 pb-2 border-b border-amber-500/15 flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            {outputOp.name && (
+              <span className="font-mono font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-[11px]">
+                {outputOp.name}
+              </span>
+            )}
+            {outputOp.kind === 'cell_above' && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-sans text-amber-600 dark:text-amber-400 font-medium">
+                <span>↑</span> {strings.islaOutputAbove}
+              </span>
+            )}
+            {outputOp.kind === 'cell_below' && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-sans text-amber-600 dark:text-amber-400 font-medium">
+                <span>↓</span> {strings.islaOutputBelow}
+              </span>
+            )}
+          </div>
+          {onOutputRoute && (
+            <button
+              type="button"
+              onClick={() => onOutputRoute(outputOp, code)}
+              className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
+            >
+              {outputOp.kind === 'cell_above' ? '↑ route' : '↓ route'}
+            </button>
           )}
         </div>
-        {outputOp && onOutputRoute && outputOp.kind !== 'inline' && (
-          <button
-            type="button"
-            onClick={() => onOutputRoute(outputOp, code)}
-            className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
-          >
-            {outputOp.kind === 'cell_above' ? '↑ route' : '↓ route'}
-          </button>
-        )}
-      </div>
+      )}
 
       <div className="w-full max-w-full">
         {(result.type === 'compare' || result.type === 'comparison') && (
@@ -153,14 +159,12 @@ export interface ISLABlockProps {
  * @returns Suspended interactive ISLA query visualization.
  */
 export function ISLABlock({ code, translation, contextText = '', onOutputRoute }: ISLABlockProps) {
-  const { lang } = useLanguage();
-  const effectiveTranslation = translation || (lang === 'fi' ? 'fin-1992' : 'web');
   const cleanQuery = code.trim();
   if (!cleanQuery) return null;
 
   return (
     <Suspense fallback={<ISLASkeleton code={code} />}>
-      <ISLAContent code={cleanQuery} translation={effectiveTranslation} contextText={contextText} onOutputRoute={onOutputRoute} />
+      <ISLAContent code={cleanQuery} translation={translation} contextText={contextText} onOutputRoute={onOutputRoute} />
     </Suspense>
   );
 }

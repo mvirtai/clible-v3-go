@@ -37,32 +37,17 @@ const KNOWN_TRANSLATIONS = new Set([
  */
 export function isISLALine(line: string): boolean {
   const trimmed = line.trimStart();
-  if (!trimmed) return false;
-
-  // Markdown image `![alt](url)` vs ISLA embed `![@Joh 3:16]` or `![[isla ...]]`
-  if (trimmed.startsWith('![')) {
-    return /^!\[(?:\[)?(?:isla\b|ISLA\b|i\b|[@?#~^]|search|read|at|range|from|count|vs|compare)/i.test(trimmed);
-  }
-
-  // Any other line starting with `!` is an ISLA directive
-  if (trimmed.startsWith('!')) {
-    return true;
-  }
-
-  // Also support bare ISLA expressions (without `!` prefix):
-  // e.g. `@Joh 3:16`, `^ => #themes`, `search("armo")`, `range(GEN,EXO)`, `#myvar.count`
-  if (
-    trimmed.startsWith('@') ||
-    trimmed.startsWith('^') ||
-    trimmed.startsWith('?') ||
-    /^\([^)]+\.\.[^)]+\)/.test(trimmed) ||
-    /^(?:search|range|read|at|use|vs|compare|count|themes|words|stats|ttr)\s*\(/i.test(trimmed) ||
-    /^#[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+|\s*=>|\s*>|\s*>>)/.test(trimmed)
-  ) {
-    return true;
-  }
-
-  return false;
+  return (
+    trimmed.startsWith('!@') ||
+    trimmed.startsWith('!?') ||
+    trimmed.startsWith('!#') ||
+    trimmed.startsWith('!~') ||
+    trimmed.startsWith('!^') ||
+    trimmed.startsWith('!isla') ||
+    trimmed.startsWith('!ISLA') ||
+    trimmed.startsWith('! ') ||
+    trimmed === '!'
+  );
 }
 
 /**
@@ -147,7 +132,7 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
       }
     }
 
-    // 5. Multi-character operators: `=>`, `>>`, `..`
+    // 5. Multi-character operators: `=>`, `>>`
     if (line.startsWith('=>', index)) {
       tokens.push({ type: 'operator', text: '=>' });
       index += 2;
@@ -158,11 +143,6 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
       index += 2;
       continue;
     }
-    if (line.startsWith('..', index)) {
-      tokens.push({ type: 'operator', text: '..' });
-      index += 2;
-      continue;
-    }
 
     // 6. Single character operators: `?`, `:`, `^`, `>`, `.`
     if (char === '?' || char === ':' || char === '^' || char === '>' || char === '.') {
@@ -170,7 +150,6 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
       index++;
       continue;
     }
-
 
     // 7. Scripture References and Scopes: `@(Joh 3:16)`, `@Joh 3:16`, `@Room`, `@NT`
     if (char === '@') {
@@ -277,23 +256,23 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
 export function getTokenClassName(type: ISLATokenType): string {
   switch (type) {
     case 'directive':
-      return 'text-amber-600 dark:text-amber-400 font-bold';
+      return 'text-amber-400 font-bold';
     case 'reference':
-      return 'text-emerald-600 dark:text-emerald-400 font-semibold';
+      return 'text-emerald-400 font-semibold';
     case 'string':
-      return 'text-cyan-700 dark:text-cyan-300';
+      return 'text-cyan-300';
     case 'regex':
-      return 'text-teal-700 dark:text-teal-300 font-mono';
+      return 'text-teal-300 font-mono';
     case 'operator':
-      return 'text-purple-600 dark:text-purple-400 font-bold';
+      return 'text-purple-400 font-bold';
     case 'translation':
-      return 'text-rose-600 dark:text-rose-400 font-semibold';
+      return 'text-rose-400 font-semibold';
     case 'function':
-      return 'text-fuchsia-600 dark:text-fuchsia-400 font-semibold';
+      return 'text-fuchsia-400 font-semibold';
     case 'param':
-      return 'text-sky-700 dark:text-sky-300';
+      return 'text-sky-300';
     case 'plain':
     default:
-      return 'text-neutral-800 dark:text-neutral-200';
+      return 'text-neutral-200';
   }
 }
