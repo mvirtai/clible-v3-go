@@ -207,6 +207,7 @@ func (p *Parser) extractOutputOp() (*OutputOp, []Token, error) {
 	return &OutputOp{Kind: kind, Name: name}, exprTokens, nil
 }
 
+// parseObject handles the object part of an ISLA expression
 func (p *Parser) parseObject() (Object, error) {
 	tok := p.current()
 
@@ -294,6 +295,7 @@ func (p *Parser) parseObject() (Object, error) {
 	}
 }
 
+// parseRange handles range() syntax
 func (p *Parser) parseRange() (*RangeNode, error) {
 	if _, err := p.expect(TokenParenOpen); err != nil {
 		return nil, err
@@ -330,6 +332,7 @@ func (p *Parser) parseRangeAfterOpenParen() (*RangeNode, error) {
 	}, nil
 }
 
+// readRangePart reads a single part of a range (e.g. "Joh 1:1" or "MAT")
 func (p *Parser) readRangePart() (string, error) {
 	var sb strings.Builder
 	var lastType TokenType
@@ -352,7 +355,7 @@ func (p *Parser) readRangePart() (string, error) {
 	return res, nil
 }
 
-
+// parseAtVerseRef handles at() and similar functions
 func (p *Parser) parseAtVerseRef() (*VerseRefNode, error) {
 	if _, err := p.expect(TokenParenOpen); err != nil {
 		return nil, errors.New("isla: expected '(' after verse reference function")
@@ -385,6 +388,7 @@ func (p *Parser) parseAtVerseRef() (*VerseRefNode, error) {
 	return &VerseRefNode{Reference: ref}, nil
 }
 
+// parseSearchBody handles search() and ? syntax
 func (p *Parser) parseSearchBody() (*SearchNode, error) {
 	// If followed by '(', consume it
 	hasParen := false
@@ -466,6 +470,7 @@ func (p *Parser) parseSearchBody() (*SearchNode, error) {
 	}, nil
 }
 
+// parseMethodCall handles method call syntax: .method() or .method
 func (p *Parser) parseMethodCall() (MethodCall, error) {
 	if p.current().Type == TokenAtOpen {
 		tok := p.advance()
@@ -511,6 +516,7 @@ func (p *Parser) parseMethodCall() (MethodCall, error) {
 	}, nil
 }
 
+// validateMethodForObject validates that the method is allowed for the given object kind
 func validateMethodForObject(kind ObjectKind, method string) error {
 	switch method {
 	case "use":
