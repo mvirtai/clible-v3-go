@@ -188,6 +188,9 @@ if startScope == ScopeBook && endScope == ScopeBook {
 | `frontend/src/components/notebook/isla/islaLexer.test.ts` | Added tests for `..` operator tokens and range line classification |
 | `frontend/src/components/notebook/isla/islaIntellisense.ts` | Updated range snippets to use `..` and recognized range chaining in `isVerseRef` |
 | `frontend/src/components/notebook/isla/islaIntellisense.test.ts` | Added tests for range snippet suggestions and method chaining after `(MAT .. JOH).` |
+| `backend/internal/middleware/console_handler.go` | Added `ConsoleHandler` with SQL clause indentation, ANSI syntax highlighting, and clean log formatting |
+| `backend/internal/middleware/console_handler_test.go` | Added unit tests for SQL formatting, ISLA SQL coloring, and console handler events |
+| `backend/main.go` | Integrated `ConsoleHandler` in development mode with automatic JSON fallback for production |
 
 ---
 
@@ -197,7 +200,7 @@ if startScope == ScopeBook && endScope == ScopeBook {
 
 #### Backend Quality Gates (`task backend:check`)
 
-* **Statement Coverage:** 77.7% across all packages.
+* **Statement Coverage:** 78.0% across all packages.
 * **Key Unit Tests Passing:**
   - `TestGetBookSpan` (`backend/internal/parsers`): PASS
   - `TestLexer_RangeOperatorDotDot` (`backend/new_dsl`): PASS
