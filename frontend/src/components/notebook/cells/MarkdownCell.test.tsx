@@ -513,5 +513,74 @@ describe('MarkdownCell', () => {
       expect.stringContaining('Tulos reititetty uuteen soluun (alapuolelle)*: `#uusi-solu`')
     );
   });
+
+  it('does NOT trigger onOutputRoute for inline assignment => #slug', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            type: 'verses',
+            data: {
+              verses: [
+                {
+                  id: 'v1',
+                  ref: 'Matt 1:1',
+                  book: 'MAT',
+                  chapter: 1,
+                  verse: 1,
+                  translationId: 'web',
+                  text: 'The book of the genealogy...',
+                },
+              ],
+              output_op: {
+                kind: 'inline',
+                name: '#mat1',
+                raw: '=> #mat1',
+              },
+            },
+          }),
+      })
+    );
+
+    const cell = {
+      id: 'cell-inline-1',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '! @(mat 1) => #mat1',
+    };
+    const onOutputRoute = vi.fn();
+    const onChange = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={onChange} onOutputRoute={onOutputRoute} />
+        </LanguageProvider>
+      );
+    });
+
+    // Double-click into edit mode
+    const proseDiv = container?.querySelector('div.prose');
+    await act(async () => {
+      proseDiv?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    });
+
+    // Execute ISLA command
+    const runBtn = Array.from(container?.querySelectorAll('button') || []).find(
+      (b) => b.textContent?.trim() === '▶'
+    );
+    expect(runBtn).toBeDefined();
+
+    await act(async () => {
+      runBtn?.click();
+    });
+
+    // onOutputRoute must NOT be called; onChange is called with the exact code in-place
+    expect(onOutputRoute).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith('! @(mat 1) => #mat1');
+  });
 });
 

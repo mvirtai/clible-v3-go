@@ -305,8 +305,10 @@ export function MarkdownCell({
             contextText={contextText}
             onExecute={(code) => {
               // Check if code contains output operator `>>` (cell below) or `>` (cell above)
-              const matchBelow = code.match(/^(.*?)\s*>>\s*([^\n]*)$/);
-              const matchAbove = !matchBelow ? code.match(/^(.*?)\s*>\s*([^\n]*)$/) : null;
+              // Note: `=>` is an inline output operator (and variable assignment), NOT a routing operator!
+              const isInline = code.includes('=>');
+              const matchBelow = !isInline ? code.match(/^(.*?)\s*>>\s*([^\n]*)$/) : null;
+              const matchAbove = !isInline && !matchBelow ? code.match(/^(.*?)\s*(?<!=)>\s*([^\n]*)$/) : null;
 
               if (onOutputRoute && (matchBelow || matchAbove)) {
                 const isBelow = Boolean(matchBelow);

@@ -79,7 +79,7 @@ function ISLAContent({
             </span>
           )}
         </div>
-        {outputOp && onOutputRoute && (
+        {outputOp && onOutputRoute && outputOp.kind !== 'inline' && (
           <button
             type="button"
             onClick={() => onOutputRoute(outputOp, code)}

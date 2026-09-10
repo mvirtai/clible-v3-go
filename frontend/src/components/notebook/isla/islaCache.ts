@@ -6,10 +6,25 @@ import type { CellResult } from '../types';
 const islaPromiseCache = new Map<string, Promise<CellResult>>();
 
 /**
+ * In-memory registry of named variable results (e.g. #mat1) from executed ISLA queries.
+ */
+const islaVariableRegistry = new Map<string, CellResult>();
+
+/**
  * Clears the in-memory ISLA evaluation cache.
  */
 export function clearISLAPromiseCache(): void {
   islaPromiseCache.clear();
+  islaVariableRegistry.clear();
+}
+
+/**
+ * Registers an ISLA named variable directly (e.g. from loaded notebook cells).
+ */
+export function registerISLAVariable(name: string, result: CellResult): void {
+  const clean = name.replace(/^#/, '');
+  islaVariableRegistry.set(clean, result);
+  islaVariableRegistry.set(`#${clean}`, result);
 }
 
 /**
@@ -25,14 +40,25 @@ export function fetchISLAResult(
   translationId: string,
   contextText: string = ''
 ): Promise<CellResult> {
-  const cacheKey = `${translationId}:${query}:${contextText}`;
+  // Collect currently known variables to send with the request
+  const variables: Record<string, CellResult> = {};
+  islaVariableRegistry.forEach((val, key) => {
+    variables[key] = val;
+  });
+
+  const cacheKey = `${translationId}:${query}:${contextText}:${Object.keys(variables).sort().join(',')}`;
   const existing = islaPromiseCache.get(cacheKey);
   if (existing) return existing;
 
   const promise = fetch('/api/dsl/eval', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, translationId, contextText }),
+    body: JSON.stringify({
+      query,
+      translationId,
+      contextText,
+      ...(Object.keys(variables).length > 0 ? { variables } : {}),
+    }),
   })
     .then(async (res) => {
       if (!res.ok) {
@@ -42,7 +68,13 @@ export function fetchISLAResult(
           data: { message: errData.error || `Error ${res.status}: ${res.statusText}` },
         } satisfies CellResult;
       }
-      return res.json();
+      const data = (await res.json()) as CellResult;
+      // If result contains an output_op with a name, register it as a known variable for downstream cells
+      const outputOp = (data?.data as { output_op?: { name?: string } })?.output_op;
+      if (outputOp?.name) {
+        registerISLAVariable(outputOp.name, data);
+      }
+      return data;
     })
     .catch((err: Error) => {
       return {
