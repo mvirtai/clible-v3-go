@@ -194,6 +194,17 @@ export interface Messages {
   islaOutputAbove: string;
   islaOutputBelow: string;
   islaOutputInline: string;
+  islaRouteToNewCell: string;
+  islaOutputRoutedNotice: string;
+  islaEditorPlaceholder: string;
+  islaExecuteAriaLabel: string;
+  islaAutocompleteLabel: string;
+  islaHoverExample: string;
+  islaKeyNavigate: string;
+  islaKeySelect: string;
+  islaKeyClose: string;
+  islaModeLabel: string;
+  markdownModeLabel: string;
   appendMarkdownCellLabel: string;
   appendCodeCellLabel: string;
   savedLabel: string;
@@ -527,6 +538,17 @@ export const strings: Record<UILanguage, Messages> = {
     islaOutputAbove: 'Cell above',
     islaOutputBelow: 'Cell below',
     islaOutputInline: 'This cell',
+    islaRouteToNewCell: 'Create cell',
+    islaOutputRoutedNotice: 'Result routed to a new cell',
+    islaEditorPlaceholder: 'Type an ISLA command… (e.g. ! @Joh 3:16 =>)',
+    islaExecuteAriaLabel: 'Execute ISLA command',
+    islaAutocompleteLabel: 'ISLA autocomplete suggestions',
+    islaHoverExample: 'e.g.',
+    islaKeyNavigate: 'navigate',
+    islaKeySelect: 'select',
+    islaKeyClose: 'close',
+    islaModeLabel: 'ISLA DSL',
+    markdownModeLabel: 'Markdown',
     appendMarkdownCellLabel: '+ Add cell to end',
     appendCodeCellLabel: '+ Add cell to end',
     savedLabel: 'Saved',
@@ -845,6 +867,17 @@ export const strings: Record<UILanguage, Messages> = {
     islaOutputAbove: 'Yläpuolelle',
     islaOutputBelow: 'Alapuolelle',
     islaOutputInline: 'Tähän soluun',
+    islaRouteToNewCell: 'Luo solu',
+    islaOutputRoutedNotice: 'Tulos reititetty uuteen soluun',
+    islaEditorPlaceholder: 'Kirjoita ISLA-komento... (esim. ! @Joh 3:16 =>)',
+    islaExecuteAriaLabel: 'Suorita ISLA-komento',
+    islaAutocompleteLabel: 'ISLA-täydennykset',
+    islaHoverExample: 'esim.',
+    islaKeyNavigate: 'navigoi',
+    islaKeySelect: 'valitse',
+    islaKeyClose: 'sulje',
+    islaModeLabel: 'ISLA DSL',
+    markdownModeLabel: 'Markdown',
     appendMarkdownCellLabel: '+ Lisää solu loppuun',
     appendCodeCellLabel: '+ Lisää solu loppuun',
     savedLabel: 'Tallennettu',

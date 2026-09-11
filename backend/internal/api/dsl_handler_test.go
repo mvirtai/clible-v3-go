@@ -98,7 +98,7 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 	})
 
 	t.Run("Rejects request body exceeding max size", func(t *testing.T) {
-		largeBody := bytes.Repeat([]byte("a"), (1<<20)+10)
+		largeBody := bytes.Repeat([]byte("a"), (10<<20)+10)
 		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(largeBody))
 		rr := httptest.NewRecorder()
 
@@ -192,6 +192,37 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 		}
 		if res.Data["count"] != float64(6) {
 			t.Errorf("expected count 6 words, got %v", res.Data["count"])
+		}
+	})
+
+	t.Run("Success evaluation of ISLA v2 output operator metadata", func(t *testing.T) {
+		reqBody, _ := json.Marshal(api.DSLEvalRequest{
+			Query:         "! @(JHN 3:16) >> #armo-maara",
+			TranslationID: "web",
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(reqBody))
+		rr := httptest.NewRecorder()
+
+		handler.EvalDSL(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
+		}
+
+		var res models.CLIResult
+		if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+
+		outputOp, ok := res.Data["output_op"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected output_op metadata in response data, got %v", res.Data)
+		}
+		if outputOp["kind"] != "cell_below" {
+			t.Errorf("expected output_op kind 'cell_below', got %v", outputOp["kind"])
+		}
+		if outputOp["name"] != "#armo-maara" {
+			t.Errorf("expected output_op name '#armo-maara', got %v", outputOp["name"])
 		}
 	})
 }

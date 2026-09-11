@@ -62,8 +62,9 @@ function generateCellId(): string {
  * @param props - Component properties conforming to {@link NotebookEditorProps}.
  * @returns Interactive notebook editor workspace.
  */
-export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse, isGuest = false }: NotebookEditorProps) {
-  const { strings } = useLanguage();
+export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest = false }: NotebookEditorProps) {
+  const { strings, lang } = useLanguage();
+  const effectiveTranslation = translation || (lang === 'fi' ? 'fin-1992' : 'web');
   const isGuestMode = isGuest || isGuestNotebookId(notebookId);
 
   // 1. Synchronous lazy initial state derivation
@@ -287,14 +288,14 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
     });
   };
 
-  const handleInsertCell = (index: number) => {
+  const handleInsertCell = (index: number, initialContent: string = '') => {
     const cellId = generateCellId();
 
     const newCell: Cell = {
       id: cellId,
       notebookId,
       type: 'markdown',
-      content: '',
+      content: initialContent,
       position: index,
       resultJson: null,
     };
@@ -308,6 +309,24 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
     });
 
     return cellId;
+  };
+
+  const handleOutputRoute = (
+    cellIndex: number,
+    direction: 'above' | 'below',
+    title?: string,
+    queryCode?: string
+  ) => {
+    const targetIndex = direction === 'above' ? cellIndex : cellIndex + 1;
+    let initialContent = '';
+    if (title) {
+      initialContent = `### ${title}\n\n`;
+    }
+    if (queryCode) {
+      const cleanCode = queryCode.replace(/^!+\s*/, '');
+      initialContent += `! ${cleanCode} =>\n`;
+    }
+    handleInsertCell(targetIndex, initialContent);
   };
 
   if (isLoading) {
@@ -469,8 +488,11 @@ export function NotebookEditor({ notebookId, translation = 'WEB', onSelectVerse,
                     cell={cell}
                     onChange={(content) => handleCellContentChange(cell.id, content)}
                     onSelectVerse={onSelectVerse}
-                    translation={translation}
+                    translation={effectiveTranslation}
                     contextText={precedingCellsText}
+                    onOutputRoute={(direction, title, queryCode) =>
+                      handleOutputRoute(index, direction, title, queryCode)
+                    }
                   />
                 </CellWrapper>
               </React.Fragment>

@@ -136,12 +136,67 @@ func TestLexer_StripsBangPrefix(t *testing.T) {
 	}
 }
 
+func TestLexer_RangeOperatorDotDot(t *testing.T) {
+	tokens := tokenStream(t, `(MAT .. JOH).count(books)`)
+	want := []TokenType{
+		TokenParenOpen,
+		TokenIdent,
+		TokenDotDot,
+		TokenIdent,
+		TokenParenClose,
+		TokenDot,
+		TokenIdent,
+		TokenParenOpen,
+		TokenIdent,
+		TokenParenClose,
+	}
+	got := make([]TokenType, len(tokens))
+	for i, tok := range tokens {
+		got[i] = tok.Type
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+	if tokens[2].Literal != ".." {
+		t.Errorf("Literal = %q, want '..'", tokens[2].Literal)
+	}
+}
+
 // ── Error cases ───────────────────────────────────────────────────────────────
+
 
 func TestLexer_IllegalToken(t *testing.T) {
 	tokens := tokenStream(t, "@without_paren")
 	if len(tokens) == 0 || tokens[0].Type != TokenIllegal {
 		t.Errorf("expected TokenIllegal for bare @, got %v", tokens)
+	}
+}
+
+func TestLexer_UnterminatedString(t *testing.T) {
+	tokens := tokenStream(t, `search("armo" AND "rauha)`)
+	hasIllegal := false
+	for _, tok := range tokens {
+		if tok.Type == TokenIllegal {
+			hasIllegal = true
+			break
+		}
+	}
+	if !hasIllegal {
+		t.Errorf("expected TokenIllegal for unterminated string, got %v", tokens)
+	}
+}
+
+func TestLexer_UnterminatedRegex(t *testing.T) {
+	tokens := tokenStream(t, `? /unclosed`)
+	hasIllegal := false
+	for _, tok := range tokens {
+		if tok.Type == TokenIllegal {
+			hasIllegal = true
+			break
+		}
+	}
+	if !hasIllegal {
+		t.Errorf("expected TokenIllegal for unterminated regex, got %v", tokens)
 	}
 }
 
@@ -155,3 +210,4 @@ func TestNewLexer_InputTooLong(t *testing.T) {
 		t.Error("expected error for overlong input, got nil")
 	}
 }
+

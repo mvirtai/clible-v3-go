@@ -398,5 +398,257 @@ describe('MarkdownCell', () => {
       'Edellisen solun muistiinpano.\n\nTämä on oikeaa muistiinpanotekstiä.'
     );
   });
+
+  it('opens ISLAEditor with syntax layer and execute button when editing an ISLA cell', async () => {
+    const cell = {
+      id: 'cell-isla-1',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '! @Joh 3:16 => web',
+    };
+    const onChange = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={onChange} />
+        </LanguageProvider>
+      );
+    });
+
+    // Double click to open edit mode
+    const markdownDiv = container?.querySelector('div.prose');
+    if (markdownDiv) {
+      await act(async () => {
+        markdownDiv.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+      });
+    }
+
+    // ISLAEditor is rendered
+    expect(container?.querySelector('div.group\\/isla-editor')).not.toBeNull();
+    expect(container?.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    const executeBtn = container?.querySelector('button[aria-label="Suorita ISLA-komento"]');
+    expect(executeBtn).not.toBeNull();
+
+    // Clicking execute calls onChange and exits edit mode
+    await act(async () => {
+      (executeBtn as HTMLButtonElement)?.click();
+    });
+    expect(onChange).toHaveBeenCalledWith('! @Joh 3:16 => web');
+    expect(container?.querySelector('div.group\\/isla-editor')).toBeNull();
+  });
+
+  it('triggers onOutputRoute when clicking the route button on an outputOp banner', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            type: 'verses',
+            data: {
+              verses: [
+                {
+                  id: 'v1',
+                  ref: 'Joh 3:16',
+                  book: 'Joh',
+                  chapter: 3,
+                  verse: 16,
+                  translationId: 'kr92',
+                  text: 'Sillä niin on Jumala...',
+                },
+              ],
+              output_op: {
+                kind: 'cell_below',
+                name: '#uusi-solu',
+                raw: '>> #uusi-solu',
+              },
+            },
+          }),
+      })
+    );
+
+    const cell = {
+      id: 'cell-route-1',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '! @Joh 3:16 >> #uusi-solu',
+    };
+    const onOutputRoute = vi.fn();
+    const onChange = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={onChange} onOutputRoute={onOutputRoute} />
+        </LanguageProvider>
+      );
+    });
+
+    // Verify output badge displays the target slug without manual button
+    expect(container?.textContent).toContain('#uusi-solu');
+    expect(container?.textContent).toContain('Alapuolelle');
+
+    // Double-click into edit mode
+    const proseDiv = container?.querySelector('div.prose');
+    await act(async () => {
+      proseDiv?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    });
+
+    // Execute ISLA command
+    const runBtn = Array.from(container?.querySelectorAll('button') || []).find(
+      (b) => b.textContent?.trim() === '▶'
+    );
+    expect(runBtn).toBeDefined();
+
+    await act(async () => {
+      runBtn?.click();
+    });
+
+    // onOutputRoute is triggered automatically and the current cell is formatted with a routing notice
+    expect(onOutputRoute).toHaveBeenCalledWith('below', '#uusi-solu', '! @Joh 3:16');
+    expect(onChange).toHaveBeenCalledWith(
+      expect.stringContaining('Tulos reititetty uuteen soluun (alapuolelle)*: `#uusi-solu`')
+    );
+  });
+
+  it('does NOT trigger onOutputRoute for inline assignment => #slug', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            type: 'verses',
+            data: {
+              verses: [
+                {
+                  id: 'v1',
+                  ref: 'Matt 1:1',
+                  book: 'MAT',
+                  chapter: 1,
+                  verse: 1,
+                  translationId: 'web',
+                  text: 'The book of the genealogy...',
+                },
+              ],
+              output_op: {
+                kind: 'inline',
+                name: '#mat1',
+                raw: '=> #mat1',
+              },
+            },
+          }),
+      })
+    );
+
+    const cell = {
+      id: 'cell-inline-1',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '! @(mat 1) => #mat1',
+    };
+    const onOutputRoute = vi.fn();
+    const onChange = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={onChange} onOutputRoute={onOutputRoute} />
+        </LanguageProvider>
+      );
+    });
+
+    // Double-click into edit mode
+    const proseDiv = container?.querySelector('div.prose');
+    await act(async () => {
+      proseDiv?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    });
+
+    // Execute ISLA command
+    const runBtn = Array.from(container?.querySelectorAll('button') || []).find(
+      (b) => b.textContent?.trim() === '▶'
+    );
+    expect(runBtn).toBeDefined();
+
+    await act(async () => {
+      runBtn?.click();
+    });
+
+    // onOutputRoute must NOT be called; onChange is called with the exact code in-place
+    expect(onOutputRoute).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith('! @(mat 1) => #mat1');
+  });
+
+  it('switches to ISLA mode with "! " when typing ! in an empty markdown textarea', async () => {
+    const cell = {
+      id: 'cell-empty-1',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '',
+    };
+    const onChange = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={onChange} />
+        </LanguageProvider>
+      );
+    });
+
+    // Click on empty cell to enter edit mode
+    const proseDiv = container?.querySelector('div.prose');
+    await act(async () => {
+      proseDiv?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+
+    // Type '!' at start of empty cell
+    await act(async () => {
+      textarea?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '!', bubbles: true, cancelable: true })
+      );
+    });
+
+    // onChange must be called with '! ' (including trailing space)
+    expect(onChange).toHaveBeenCalledWith('! ');
+  });
+
+  it('normalizes cell content with lone "!" to "! " when mounting ISLAEditor', async () => {
+    const cell = {
+      id: 'cell-lone-excl',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '!',
+    };
+    const onChange = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={onChange} />
+        </LanguageProvider>
+      );
+    });
+
+    // Click to enter editing mode
+    const proseDiv = container?.querySelector('div.prose');
+    await act(async () => {
+      proseDiv?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    });
+
+    // Because '!' is an ISLA line, it enters ISLA mode with ISLAEditor
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+    expect(textarea?.value).toBe('! ');
+  });
 });
 

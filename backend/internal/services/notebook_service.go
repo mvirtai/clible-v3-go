@@ -15,6 +15,7 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/dsl"
 	"github.com/mvirtai/clible-v3-go/internal/models"
+	newdsl "github.com/mvirtai/clible-v3-go/new_dsl"
 )
 
 // CellScopeOptions defines options for cell scoping.
@@ -460,7 +461,33 @@ func (s *NotebookService) ExecuteCellCommand(ctx context.Context, notebookID, ce
 			}
 			contextText = ResolveCellContext(notebook.Cells, cellID, cmd)
 		}
-		res, err := s.cliService.ExecuteDSL(ctx, trimmedContent, translationID, contextText)
+		// Build variable resolver looking up named outputs from previous notebook cells
+		var varResolver newdsl.VariableResolver = func(name string) (*models.CLIResult, error) {
+			cleanName := strings.TrimPrefix(name, "#")
+			for _, cell := range notebook.Cells {
+				if len(cell.ResultJSON) == 0 {
+					continue
+				}
+				var res models.CLIResult
+				if err := json.Unmarshal(cell.ResultJSON, &res); err != nil {
+					continue
+				}
+				if res.Data == nil {
+					continue
+				}
+				if outputOp, ok := res.Data["output_op"].(map[string]interface{}); ok {
+					if opName, ok := outputOp["name"].(string); ok {
+						cleanOpName := strings.TrimPrefix(opName, "#")
+						if cleanOpName == cleanName {
+							return &res, nil
+						}
+					}
+				}
+			}
+			return nil, fmt.Errorf("variable '#%s' not found in notebook context", cleanName)
+		}
+
+		res, err := s.cliService.ExecuteDSLWithResolver(ctx, trimmedContent, translationID, contextText, varResolver)
 		if err != nil {
 			cliResult = &models.CLIResult{
 				Type: "error",

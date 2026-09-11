@@ -292,7 +292,12 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 	}
 
 	// --- FTS mode: fast full-text search ---
-	args := []any{params.FTSQuery}
+	ftsTerm := params.FTSQuery
+	if !r.isPostgres {
+		ftsTerm = strings.ReplaceAll(ftsTerm, " & ", " AND ")
+		ftsTerm = strings.ReplaceAll(ftsTerm, " | ", " OR ")
+	}
+	args := []any{ftsTerm}
 	var ftsQuery string
 
 	if r.isPostgres {

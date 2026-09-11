@@ -24,6 +24,9 @@ func ParseISLA(input string) (*ISLAExpression, error) {
 	for {
 		tok := lex.NextToken()
 		if tok.Type == TokenIllegal {
+			if strings.HasPrefix(tok.Literal, "unterminated") {
+				return nil, fmt.Errorf("isla: %s at pos %d", tok.Literal, tok.Pos)
+			}
 			return nil, fmt.Errorf("isla: illegal token %q at pos %d", tok.Literal, tok.Pos)
 		}
 		if tok.Type == TokenEOF {
@@ -103,6 +106,17 @@ func (p *Parser) parseExpression() (*ISLAExpression, error) {
 		methods = append(methods, method)
 	}
 
+	// If object is CellCtxNode and no methods are specified, check if output is => with legacy action names.
+	// In legacy DSL, "^1 => #themes" is an action invocation, not a variable assignment.
+	if _, isCellCtx := obj.(*CellCtxNode); isCellCtx && len(methods) == 0 {
+		if outputOp.Kind == OutputInline {
+			switch outputOp.Name {
+			case "#themes", "#refs", "#suggest", "#stats":
+				return nil, fmt.Errorf("isla: legacy action %s is not supported without method call (use ^.themes() instead)", outputOp.Name)
+			}
+		}
+	}
+
 	return &ISLAExpression{
 		Object:  obj,
 		Methods: methods,
@@ -129,7 +143,8 @@ func (p *Parser) extractOutputOp() (*OutputOp, []Token, error) {
 	}
 
 	if opIdx == -1 {
-		return nil, nil, errors.New("isla: missing output operator (expected =>, >, or >>)")
+		// Output operator is optional: default to inline rendering (=>)
+		return &OutputOp{Kind: OutputInline}, p.tokens, nil
 	}
 
 	opTok := p.tokens[opIdx]
@@ -150,43 +165,73 @@ func (p *Parser) extractOutputOp() (*OutputOp, []Token, error) {
 	var name string
 	if len(nameTokens) > 0 {
 		if kind == OutputInline {
-			return nil, nil, errors.New("isla: => does not support naming — use > or >>")
-		}
-
-		// Check if it's #slug or string literal or words.
-		if nameTokens[0].Type == TokenHash {
-			// #slug
+			// For inline output operator (=>), naming is ONLY supported for variable assignment (#slug).
+			// Title texts and method/function calls (e.g. count(words)) are not allowed.
+			if nameTokens[0].Type != TokenHash {
+				return nil, nil, fmt.Errorf("isla: => only supports variable naming (#slug), got %q", nameTokens[0].Literal)
+			}
+			for _, t := range nameTokens[1:] {
+				if t.Type == TokenParenOpen || t.Type == TokenParenClose || t.Type == TokenComma || t.Type == TokenDot {
+					return nil, nil, fmt.Errorf("isla: invalid variable name token %q", t.Literal)
+				}
+			}
 			var sb strings.Builder
 			sb.WriteString("#")
 			for _, t := range nameTokens[1:] {
 				sb.WriteString(t.Literal)
 			}
 			name = sb.String()
-		} else if len(nameTokens) == 1 && nameTokens[0].Type == TokenString {
-			name = nameTokens[0].Literal
 		} else {
-			// Free title text
-			var words []string
-			for _, t := range nameTokens {
-				words = append(words, t.Literal)
+			// > and >> support #slug, string literal, or free title text.
+			if nameTokens[0].Type == TokenHash {
+				// #slug
+				var sb strings.Builder
+				sb.WriteString("#")
+				for _, t := range nameTokens[1:] {
+					sb.WriteString(t.Literal)
+				}
+				name = sb.String()
+			} else if len(nameTokens) == 1 && nameTokens[0].Type == TokenString {
+				name = nameTokens[0].Literal
+			} else {
+				// Free title text
+				var words []string
+				for _, t := range nameTokens {
+					words = append(words, t.Literal)
+				}
+				name = strings.Join(words, " ")
 			}
-			name = strings.Join(words, " ")
 		}
 	}
 
 	return &OutputOp{Kind: kind, Name: name}, exprTokens, nil
 }
 
+// parseObject handles the object part of an ISLA expression
 func (p *Parser) parseObject() (Object, error) {
 	tok := p.current()
 
 	switch tok.Type {
+	case TokenParenOpen:
+		// (start .. end) range syntax shorthand
+		p.advance() // consume '('
+		return p.parseRangeAfterOpenParen()
+
 	case TokenAtOpen:
 		p.advance()
-		// Literal already holds the verse reference string: "Joh 3:16"
+		// Literal already holds the verse reference string: "Joh 3:16" or "MAT .. JOH"
 		ref := strings.TrimSpace(tok.Literal)
 		if ref == "" {
 			return nil, errors.New("isla: empty verse reference in @()")
+		}
+		if strings.Contains(ref, "..") {
+			parts := strings.SplitN(ref, "..", 2)
+			startStr := strings.TrimSpace(parts[0])
+			endStr := strings.TrimSpace(parts[1])
+			if startStr == "" || endStr == "" {
+				return nil, errors.New("isla: range expects start and end around '..'")
+			}
+			return &RangeNode{Start: startStr, End: endStr}, nil
 		}
 		return &VerseRefNode{Reference: ref}, nil
 
@@ -223,29 +268,53 @@ func (p *Parser) parseObject() (Object, error) {
 		case "search":
 			p.advance()
 			return p.parseSearchBody()
+		case "at", "from", "read":
+			p.advance()
+			return p.parseAtVerseRef()
+
 		default:
 			return nil, fmt.Errorf("isla: unknown object identifier %q at pos %d", tok.Literal, tok.Pos)
 		}
+
+	case TokenHash:
+		p.advance() // consume '#'
+		identTok, err := p.expect(TokenIdent)
+		if err != nil {
+			return nil,
+				fmt.Errorf("isla: expected variable name after '#': %w", err)
+		}
+		var sb strings.Builder
+		sb.WriteString(identTok.Literal)
+		for p.pos < len(p.tokens) && (p.current().Type == TokenDash || p.current().Type == TokenIdent || p.current().Type == TokenNumber) {
+			sb.WriteString(p.advance().Literal)
+		}
+		return &VariableNode{Name: sb.String()}, nil
 
 	default:
 		return nil, fmt.Errorf("isla: unexpected token %q (type %s) at start of expression", tok.Literal, tok.Type)
 	}
 }
 
+// parseRange handles range() syntax
 func (p *Parser) parseRange() (*RangeNode, error) {
 	if _, err := p.expect(TokenParenOpen); err != nil {
 		return nil, err
 	}
+	return p.parseRangeAfterOpenParen()
+}
 
+func (p *Parser) parseRangeAfterOpenParen() (*RangeNode, error) {
 	// Read start
 	startStr, err := p.readRangePart()
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := p.expect(TokenComma); err != nil {
-		return nil, errors.New("isla: range() expects two comma-separated arguments: start, end")
+	sep := p.current()
+	if sep.Type != TokenDotDot && sep.Type != TokenComma {
+		return nil, fmt.Errorf("isla: range expects '..' or ',' separator, got %q at pos %d", sep.Literal, sep.Pos)
 	}
+	p.advance() // consume '..' or ','
 
 	// Read end
 	endStr, err := p.readRangePart()
@@ -263,12 +332,13 @@ func (p *Parser) parseRange() (*RangeNode, error) {
 	}, nil
 }
 
+// readRangePart reads a single part of a range (e.g. "Joh 1:1" or "MAT")
 func (p *Parser) readRangePart() (string, error) {
 	var sb strings.Builder
 	var lastType TokenType
 	for p.pos < len(p.tokens) {
 		t := p.current()
-		if t.Type == TokenComma || t.Type == TokenParenClose || t.Type == TokenEOF {
+		if t.Type == TokenDotDot || t.Type == TokenComma || t.Type == TokenParenClose || t.Type == TokenEOF {
 			break
 		}
 		p.advance()
@@ -285,6 +355,40 @@ func (p *Parser) readRangePart() (string, error) {
 	return res, nil
 }
 
+// parseAtVerseRef handles at() and similar functions
+func (p *Parser) parseAtVerseRef() (*VerseRefNode, error) {
+	if _, err := p.expect(TokenParenOpen); err != nil {
+		return nil, errors.New("isla: expected '(' after verse reference function")
+	}
+
+	var parts []string
+	var lastType TokenType
+	for p.pos < len(p.tokens) {
+		t := p.current()
+		if t.Type == TokenParenClose || t.Type == TokenEOF {
+			break
+		}
+		p.advance()
+		if len(parts) > 0 && lastType != TokenColon && t.Type != TokenColon && lastType != TokenDash && t.Type != TokenDash && t.Type != TokenDot {
+			parts = append(parts, " ")
+		}
+		parts = append(parts, t.Literal)
+		lastType = t.Type
+	}
+
+	if _, err := p.expect(TokenParenClose); err != nil {
+		return nil, err
+	}
+
+	ref := strings.TrimSpace(strings.Join(parts, ""))
+	if ref == "" {
+		return nil, errors.New("isla: empty verse reference in at()")
+	}
+
+	return &VerseRefNode{Reference: ref}, nil
+}
+
+// parseSearchBody handles search() and ? syntax
 func (p *Parser) parseSearchBody() (*SearchNode, error) {
 	// If followed by '(', consume it
 	hasParen := false
@@ -366,7 +470,16 @@ func (p *Parser) parseSearchBody() (*SearchNode, error) {
 	}, nil
 }
 
+// parseMethodCall handles method call syntax: .method() or .method
 func (p *Parser) parseMethodCall() (MethodCall, error) {
+	if p.current().Type == TokenAtOpen {
+		tok := p.advance()
+		return MethodCall{
+			Name: "at",
+			Args: []string{strings.TrimSpace(tok.Literal)},
+		}, nil
+	}
+
 	tok, err := p.expect(TokenIdent)
 	if err != nil {
 		return MethodCall{}, fmt.Errorf("isla: expected method name after '.', got %s", p.current().Type)
@@ -393,6 +506,9 @@ func (p *Parser) parseMethodCall() (MethodCall, error) {
 	if name == "ttr" {
 		name = "stats"
 	}
+	if name == "words" {
+		name = "top"
+	}
 
 	return MethodCall{
 		Name: name,
@@ -400,6 +516,7 @@ func (p *Parser) parseMethodCall() (MethodCall, error) {
 	}, nil
 }
 
+// validateMethodForObject validates that the method is allowed for the given object kind
 func validateMethodForObject(kind ObjectKind, method string) error {
 	switch method {
 	case "use":
@@ -407,8 +524,8 @@ func validateMethodForObject(kind ObjectKind, method string) error {
 			return fmt.Errorf("isla: .use() method is not permitted on cell context (^)")
 		}
 	case "vs":
-		if kind != ObjectVerseRef {
-			return fmt.Errorf("isla: .vs() comparison method is only permitted on verse references @()")
+		if kind != ObjectVerseRef && kind != ObjectVariable {
+			return fmt.Errorf("isla: .vs() comparison method is only permitted on verse references @() or variables")
 		}
 	case "at":
 		if kind != ObjectSearch {
@@ -419,8 +536,8 @@ func validateMethodForObject(kind ObjectKind, method string) error {
 			return fmt.Errorf("isla: .limit() method is only permitted on search() objects")
 		}
 	case "refs":
-		if kind != ObjectVerseRef {
-			return fmt.Errorf("isla: .refs() cross-reference method is only permitted on verse references @()")
+		if kind != ObjectVerseRef && kind != ObjectVariable {
+			return fmt.Errorf("isla: .refs() cross-reference method is only permitted on verse references @() or variables")
 		}
 	case "count", "themes", "suggest", "top", "stats":
 		// Allowed on all objects

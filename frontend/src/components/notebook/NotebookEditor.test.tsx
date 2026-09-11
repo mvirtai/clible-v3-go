@@ -6,6 +6,7 @@ import { act } from 'react';
 import { NotebookEditor } from './NotebookEditor';
 import { LanguageProvider } from '../../context/LanguageContext';
 import * as guestStorage from '../../utils/guestNotebookStorage';
+import { clearISLAPromiseCache } from './isla/islaCache';
 
 // Mock @dnd-kit/react DragDropProvider (transparent wrapper for tests)
 vi.mock('@dnd-kit/react', () => ({
@@ -57,6 +58,7 @@ describe('NotebookEditor', () => {
   let root: Root | null = null;
 
   beforeEach(() => {
+    clearISLAPromiseCache();
     container = document.createElement('div');
     document.body.appendChild(container);
 
@@ -235,5 +237,91 @@ describe('NotebookEditor', () => {
         }),
       })
     );
+  });
+
+  it('inserts new cell below with title and command when onOutputRoute is triggered', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/api/dsl/eval')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                type: 'verses',
+                data: {
+                  verses: [
+                    {
+                      id: 'v1',
+                      ref: 'Joh 3:16',
+                      book: 'Joh',
+                      chapter: 3,
+                      verse: 16,
+                      translationId: 'kr92',
+                      text: 'Sillä niin on Jumala...',
+                    },
+                  ],
+                  output_op: {
+                    kind: 'cell_below',
+                    name: '#armo-maara',
+                    raw: '>> #armo-maara',
+                  },
+                },
+              }),
+          });
+        }
+        if (url.includes('/api/notebooks/nb-123')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                ...mockNotebookData,
+                cells: [
+                  {
+                    id: 'cell-output-op',
+                    notebookId: 'nb-123',
+                    type: 'markdown',
+                    content: '! @Joh 3:16 >> #armo-maara',
+                    position: 0,
+                  },
+                ],
+              }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        });
+      })
+    );
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <NotebookEditor notebookId="nb-123" />
+        </LanguageProvider>
+      );
+    });
+
+    // Double-click into edit mode
+    const proseDiv = container?.querySelector('div.prose');
+    await act(async () => {
+      proseDiv?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    });
+
+    // Execute ISLA command
+    const runBtn = Array.from(container?.querySelectorAll('button') || []).find(
+      (b) => b.textContent?.trim() === '▶'
+    );
+    expect(runBtn).toBeDefined();
+
+    await act(async () => {
+      runBtn?.click();
+    });
+
+    // Verify that a new cell was inserted below containing the title and command
+    const textContent = container?.textContent || '';
+    expect(textContent).toContain('#armo-maara');
   });
 });

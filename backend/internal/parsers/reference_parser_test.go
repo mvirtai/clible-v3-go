@@ -280,3 +280,50 @@ func TestBuildAliasMap(t *testing.T) {
 		}
 	}
 }
+
+func TestGetBookSpan(t *testing.T) {
+	tests := []struct {
+		start string
+		end   string
+		want  []string
+	}{
+		{
+			start: "MAT",
+			end:   "JOH",
+			want:  []string{"MAT", "MRK", "LUK", "JHN"},
+		},
+		{
+			start: "Matt",
+			end:   "Joh",
+			want:  []string{"MAT", "MRK", "LUK", "JHN"},
+		},
+		{
+			start: "GEN",
+			end:   "DEU",
+			want:  []string{"GEN", "EXO", "LEV", "NUM", "DEU"},
+		},
+		{
+			start: "ROM",
+			end:   "GAL",
+			want:  []string{"ROM", "1CO", "2CO", "GAL"},
+		},
+		{
+			start: "REV",
+			end:   "REV",
+			want:  []string{"REV"},
+		},
+	}
+
+	for _, tt := range tests {
+		got := GetBookSpan(tt.start, tt.end)
+		if len(got) != len(tt.want) {
+			t.Fatalf("GetBookSpan(%q, %q) length = %d, want %d (got: %v)", tt.start, tt.end, len(got), len(tt.want), got)
+		}
+		for i := range got {
+			if got[i] != tt.want[i] {
+				t.Errorf("GetBookSpan(%q, %q)[%d] = %q, want %q", tt.start, tt.end, i, got[i], tt.want[i])
+			}
+		}
+	}
+}
+

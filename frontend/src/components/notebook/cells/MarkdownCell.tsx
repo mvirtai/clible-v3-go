@@ -4,8 +4,8 @@ import remarkGfm from 'remark-gfm';
 import type { Cell } from '../types';
 import { useLanguage } from '../../../context/LanguageContext';
 import { ISLABlock } from '../isla/ISLABlock';
-import { getISLASuggestions } from '../isla/islaIntellisense';
-import { isISLALine, tokenizeISLALine } from '../isla/islaLexer';
+import { ISLAEditor } from '../isla/ISLAEditor';
+import { isISLALine } from '../isla/islaLexer';
 import { stripISLAFromText } from '../isla/islaUtils';
 
 /**
@@ -24,6 +24,8 @@ export interface MarkdownCellProps {
   translation?: string;
   /** Optional notebook text context from preceding markdown cells */
   contextText?: string;
+  /** Optional callback fired when routing an output to a new cell above or below */
+  onOutputRoute?: (direction: 'above' | 'below', title?: string, code?: string) => void;
 }
 
 /**
@@ -38,17 +40,71 @@ export function MarkdownCell({
   onChange,
   isEditable = true,
   onSelectVerse,
-  translation = 'WEB',
+  translation,
   contextText = '',
+  onOutputRoute,
 }: MarkdownCellProps) {
+  const { lang } = useLanguage();
+  const effectiveTranslation = translation || (lang === 'fi' ? 'fin-1992' : 'web');
   const [isEditing, setIsEditing] = useState(false);
+  const [editorMode, setEditorMode] = useState<'auto' | 'isla' | 'markdown'>('auto');
+
+  // Sync / reset mode when exiting editing without useEffect
+  const [prevEditing, setPrevEditing] = useState(isEditing);
+  if (prevEditing !== isEditing) {
+    setPrevEditing(isEditing);
+    if (!isEditing) {
+      setEditorMode('auto');
+    }
+  }
+
+  const isISLAContent = isISLALine(cell.content.trim());
+  const activeMode = editorMode === 'auto'
+    ? (isISLAContent ? 'isla' : 'markdown')
+    : editorMode;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
       setIsEditing(false);
+      return;
     }
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       setIsEditing(false);
+      return;
+    }
+
+    // Smart typing gesture for transitioning into ISLA DSL mode:
+    // If the user types '!' at the start of an empty cell or at start of line,
+    // immediately transition into ISLA mode with a trailing space '! '.
+    if (e.key === '!') {
+      const target = e.currentTarget;
+      const start = target.selectionStart ?? 0;
+      const textBefore = target.value.slice(0, start);
+      const isStartOfLine = start === 0 || textBefore.endsWith('\n') || /^\s*$/.test(textBefore);
+
+      if (isStartOfLine) {
+        e.preventDefault();
+        setEditorMode('isla');
+        const nextContent = target.value.slice(0, start) + '! ' + target.value.slice(target.selectionEnd ?? start);
+        onChange(nextContent);
+        return;
+      }
+    }
+
+    // Smart typing gesture for '@' at start of line:
+    if (e.key === '@') {
+      const target = e.currentTarget;
+      const start = target.selectionStart ?? 0;
+      const textBefore = target.value.slice(0, start);
+      const isStartOfLine = start === 0 || textBefore.endsWith('\n') || /^\s*$/.test(textBefore);
+
+      if (isStartOfLine) {
+        e.preventDefault();
+        setEditorMode('isla');
+        const nextContent = target.value.slice(0, start) + '! @()' + target.value.slice(target.selectionEnd ?? start);
+        onChange(nextContent);
+        return;
+      }
     }
   };
 
@@ -82,12 +138,18 @@ export function MarkdownCell({
     }
 
     // Shorthand for count queries: `# "armo" @ut` or `# @Joh 3:16` -> `? "armo" @ut => count` or `@Joh 3:16 => count`
+    // #variable refer to variable created earlier in the notebook, that can be used as an object to perform .
     if (q.startsWith('#')) {
       const rest = q.substring(1).trim();
-      if (rest.startsWith('@') || rest.startsWith('?')) {
-        return `${rest} => count`;
+
+      // Jos kyseessä on v2 muuttujakomento (esim. #muuttuja.count, #muuttuja =>, #muuttuja >> tai pelkkä #muuttuja), älä koske!
+      if (/^[a-zA-Z0-9_-]+(\.|\s*=>|\s*>|\s*>>|$)/.test(rest)) {
+        return q;
       }
-      return `? ${rest} => count`;
+      // Vanha v1-yhteensopivuus vain jos perässä on lainausmerkeissä sana:
+      if (rest.startsWith('"') || rest.startsWith("'")) {
+        return `? ${rest} => count`;
+      }
     }
 
     return q;
@@ -133,6 +195,13 @@ export function MarkdownCell({
    * Combines preceding notebook markdown cells with any text in the current cell preceding this query.
    */
   const getContextForQuery = (query: string): string => {
+    // Only caret (^) context queries need preceding markdown context text.
+    // For normal searches, verses, etc. return empty string so typing in other cells
+    // does not cause cache invalidation.
+    if (!query.includes('^')) {
+      return '';
+    }
+
     const cleanPreceding = stripISLAFromText(contextText || '');
 
     const rawContent = cell.content || '';
@@ -204,8 +273,16 @@ export function MarkdownCell({
         return (
           <ISLABlock
             code={normalizedCode}
-            translation={translation}
+            translation={effectiveTranslation}
             contextText={getContextForQuery(rawCode)}
+            onOutputRoute={
+              onOutputRoute
+                ? (op, queryCode) => {
+                    const dir = op.kind === 'cell_above' ? 'above' : 'below';
+                    onOutputRoute(dir, op.name, queryCode);
+                  }
+                : undefined
+            }
           />
         );
       }
@@ -231,29 +308,114 @@ export function MarkdownCell({
   }
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
+    let val = e.target.value;
+    if (val.trim() === '!') {
+      val = '! ';
+    }
     onChange(val);
 
-    // Live debug logging for ISLA IntelliSense and Lexer in browser console
-    const cursor = e.target.selectionStart ?? val.length;
-    const lines = val.slice(0, cursor).split('\n');
-    const currentLine = lines[lines.length - 1] || '';
-    const lineOffset = currentLine.length;
-
-    if (isISLALine(currentLine)) {
-      const suggestions = getISLASuggestions(currentLine, lineOffset);
-      const tokens = tokenizeISLALine(currentLine);
-      console.log(`[ISLA IntelliSense] Line: "${currentLine}" | Offset: ${lineOffset}`, {
-        suggestionsCount: suggestions.length,
-        suggestions: suggestions.map((s) => ({ label: s.label, kind: s.kind, detail: s.detail })),
-        tokens,
-      });
+    if (editorMode === 'auto' && isISLALine(val.trim())) {
+      setEditorMode('isla');
     }
   };
 
   if (isEditing) {
+    if (activeMode === 'isla') {
+      return (
+        <div className="w-full relative space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-amber-500 flex items-center gap-1">
+                <span>✦</span> {strings.islaModeLabel}
+              </span>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setEditorMode('markdown')}
+                className="text-[10px] text-[var(--muted)] hover:text-[var(--text)] cursor-pointer px-1.5 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+                title={strings.markdownModeLabel}
+              >
+                {strings.markdownModeLabel}
+              </button>
+            </div>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setIsEditing(false)}
+              className="text-[10px] text-[var(--muted)] hover:text-[var(--text)] cursor-pointer px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+            >
+              Esc / {strings.islaKeyClose}
+            </button>
+          </div>
+          <ISLAEditor
+            initialCode={cell.content.trim() === '!' ? '! ' : cell.content}
+            translationId={effectiveTranslation}
+            contextText={contextText}
+            onExecute={(code) => {
+              // Check if code contains output operator `>>` (cell below) or `>` (cell above)
+              // Note: `=>` is an inline output operator (and variable assignment), NOT a routing operator!
+              const isInline = code.includes('=>');
+              const matchBelow = !isInline ? code.match(/^(.*?)\s*>>\s*([^\n]*)$/) : null;
+              const matchAbove = !isInline && !matchBelow ? code.match(/^(.*?)\s*(?<!=)>\s*([^\n]*)$/) : null;
+
+              if (onOutputRoute && (matchBelow || matchAbove)) {
+                const isBelow = Boolean(matchBelow);
+                const queryCode = (isBelow ? matchBelow?.[1] : matchAbove?.[1])?.trim() || '';
+                const name = (isBelow ? matchBelow?.[2] : matchAbove?.[2])?.trim();
+                const directionLabel = isBelow ? strings.islaOutputBelow : strings.islaOutputAbove;
+                
+                // Format original cell with explanatory comment and routing notice without triggering inline execution
+                const noticeText = `> ↳ *${strings.islaOutputRoutedNotice} (${directionLabel.toLowerCase()})*${name ? `: \`${name}\`` : ''}\n\n\`${code.trim()}\``;
+                onChange(noticeText);
+                setIsEditing(false);
+
+                // Instantly spawn the new cell with the user's routed command & title
+                onOutputRoute(isBelow ? 'below' : 'above', name, queryCode);
+                return;
+              }
+
+              onChange(code);
+              setIsEditing(false);
+            }}
+            onChange={onChange}
+            onCancel={() => setIsEditing(false)}
+            onBlur={() => setIsEditing(false)}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="w-full relative">
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[var(--muted)]">
+              {strings.markdownModeLabel}
+            </span>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setEditorMode('isla');
+                if (!cell.content.trim()) {
+                  onChange('! ');
+                }
+              }}
+              className="text-[10px] font-mono font-bold text-amber-500 hover:text-amber-400 cursor-pointer px-1.5 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors flex items-center gap-1"
+              title={strings.islaModeLabel}
+            >
+              <span>✦</span> {strings.islaModeLabel}
+            </button>
+          </div>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setIsEditing(false)}
+            className="text-[10px] text-[var(--muted)] hover:text-[var(--text)] cursor-pointer px-2 py-0.5 rounded hover:bg-[var(--surface-2)] transition-colors"
+          >
+            Esc / {strings.islaKeyClose}
+          </button>
+        </div>
         <textarea
           ref={(node) => {
             if (node) {

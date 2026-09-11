@@ -283,5 +283,54 @@ describe('ISLABlock', () => {
     expect(container?.textContent).toContain('Alapuolelle');
     expect(container?.textContent).toContain('42');
   });
+
+  it('reuses cache and does NOT refetch non-caret queries when contextText changes', async () => {
+    const mockSearchResult = {
+      type: 'search',
+      data: {
+        query: 'Herra',
+        count: 10,
+        verses: [],
+      },
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockSearchResult),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // Render with first contextText
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <ISLABlock
+            code='?("Herra").@(evankeliumit)'
+            translation="web"
+            contextText="First typing state..."
+          />
+        </LanguageProvider>
+      );
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Re-render with completely different contextText (simulating keystroke in another cell)
+    await act(async () => {
+      root?.render(
+        <LanguageProvider>
+          <ISLABlock
+            code='?("Herra").@(evankeliumit)'
+            translation="web"
+            contextText="Second typing state with many new letters!"
+          />
+        </LanguageProvider>
+      );
+    });
+
+    // fetch must NOT have been called again!
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
 
