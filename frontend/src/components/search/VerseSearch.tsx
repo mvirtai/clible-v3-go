@@ -102,10 +102,10 @@ export function VerseSearch({
         mode: regex ? 'regex' : 'phrase',
         resultCount: data.length,
       }).catch((err) => console.error('Failed to persist search history', err));
+      setLoading(false);
     } catch {
       setError(strings.errSearchFailed);
       setResults([]);
-    } finally {
       setLoading(false);
     }
   };
@@ -130,10 +130,10 @@ export function VerseSearch({
       if (onWorkspaceUpdated) {
         onWorkspaceUpdated();
       }
+      setSaving(false);
     } catch {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
-    } finally {
       setSaving(false);
     }
   };

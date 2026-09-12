@@ -32,10 +32,10 @@ export function TranslationManager({ translations, onTranslationChanged }: Trans
       await apiService.linkTranslation(translationId);
       setStatus({ type: 'success', message: `"${name}" ${strings.translationActivatedMsg}` });
       if (onTranslationChanged) onTranslationChanged();
+      setLoading(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setStatus({ type: 'error', message: msg || strings.translationActivationFailed });
-    } finally {
       setLoading(null);
     }
   };
@@ -47,10 +47,10 @@ export function TranslationManager({ translations, onTranslationChanged }: Trans
       await apiService.unlinkTranslation(translationId);
       setStatus({ type: 'success', message: `"${name}" ${strings.translationDeactivatedMsg}` });
       if (onTranslationChanged) onTranslationChanged();
+      setLoading(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setStatus({ type: 'error', message: msg || strings.translationDeactivationFailed });
-    } finally {
       setLoading(null);
     }
   };
