@@ -160,10 +160,10 @@ export function VerseReader({
     try {
       const result = await apiService.getVerses(normalized, translation);
       setData(result);
+      setLoading(false);
     } catch {
       setError(strings.fetchVersesFailed);
       setData(null);
-    } finally {
       setLoading(false);
     }
   }, [translation, loadedSavedInsight, strings.fetchVersesFailed]);
@@ -177,6 +177,7 @@ export function VerseReader({
       const text = data.verses.map(v => `${v.verse}. ${v.text}`).join('\n');
       const res = await apiService.getAiInsight(text);
       setAiInsight(res);
+      setAiLoading(false);
     } catch (err) {
       const errorObj = err as Error;
       if (errorObj.message && errorObj.message.includes('503')) {
@@ -184,7 +185,6 @@ export function VerseReader({
       } else {
         setAiError(errorObj.message || strings.aiInsightFailed);
       }
-    } finally {
       setAiLoading(false);
     }
   };
@@ -225,10 +225,10 @@ export function VerseReader({
         const res = await apiService.getAiDeepDive(it.label, lang, { reference: data?.reference || reference });
         setDeepDiveText(res.text);
         setDeepDiveUsage(res.geminiUsageMetadata || null);
+        setAiLoading(false);
       } catch (err) {
         const errorObj = err as Error;
         setAiError(errorObj.message || strings.deepDiveFailed);
-      } finally {
         setAiLoading(false);
       }
     } else {

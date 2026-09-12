@@ -168,9 +168,9 @@ export const AnalyticsView = ({
     try {
       const data = await apiService.analyze(normalized, defaultTranslation);
       setStats(data);
+      setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : strings.analyticsFetchFailed);
-    } finally {
       setLoading(false);
     }
   };
@@ -194,6 +194,7 @@ export const AnalyticsView = ({
       const text = resData.verses.map((v) => v.text).join("\n");
       const res = await apiService.getAiTone(text);
       setToneResult(res);
+      setToneLoading(false);
     } catch (err) {
       const errorObj = err as Error;
       if (errorObj.message && errorObj.message.includes("503")) {
@@ -201,7 +202,6 @@ export const AnalyticsView = ({
       } else {
         setToneError(errorObj.message || strings.toneAnalysisFailed);
       }
-    } finally {
       setToneLoading(false);
     }
   };
@@ -245,10 +245,10 @@ export const AnalyticsView = ({
         });
         setDeepDiveText(res.text);
         setDeepDiveUsage(res.geminiUsageMetadata || null);
+        setToneLoading(false);
       } catch (err) {
         const errorObj = err as Error;
         setToneError(errorObj.message || strings.deepDiveFailed);
-      } finally {
         setToneLoading(false);
       }
     } else {
@@ -267,9 +267,9 @@ export const AnalyticsView = ({
       try {
         const data = await apiService.analyze(normalized, defaultTranslation);
         setStats(data);
+        setLoading(false);
       } catch {
         setError(strings.analyticsFetchFailed);
-      } finally {
         setLoading(false);
       }
     }
@@ -403,10 +403,10 @@ export const AnalyticsView = ({
                     setSaveStatus("success");
                     setTimeout(() => setSaveStatus("idle"), 3000);
                     if (onWorkspaceUpdated) onWorkspaceUpdated();
+                    setSaving(false);
                   } catch {
                     setSaveStatus("error");
                     setTimeout(() => setSaveStatus("idle"), 3000);
-                  } finally {
                     setSaving(false);
                   }
                 }}
