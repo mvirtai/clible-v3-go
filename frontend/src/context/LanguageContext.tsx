@@ -25,6 +25,18 @@ const LanguageContext = createContext<LanguageContextValue>({
   strings: t(defaultLang),
 });
 
+function getInitialLanguage(): UILanguage {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    if (raw === 'fi' || raw === 'en') {
+      return raw as UILanguage;
+    }
+  } catch {
+    // ignore localStorage errors in non-browser/restricted environments
+  }
+  return defaultLang;
+}
+
 /**
  * Manages UI language preference, localStorage persistence, and dictionary distribution.
  *
@@ -32,15 +44,7 @@ const LanguageContext = createContext<LanguageContextValue>({
  * @returns Context provider element wrapping child components.
  */
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<UILanguage>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw === 'fi' || raw === 'en') return raw as UILanguage;
-    } catch {
-      // ignore localStorage errors in non-browser/restricted environments
-    }
-    return defaultLang;
-  });
+  const [lang, setLangState] = useState<UILanguage>(getInitialLanguage);
 
   useEffect(() => {
     try {
@@ -56,9 +60,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const strings = t(lang);
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, strings }}>
+    <LanguageContext value={{ lang, setLang, strings }}>
       {children}
-    </LanguageContext.Provider>
+    </LanguageContext>
   );
 };
 
