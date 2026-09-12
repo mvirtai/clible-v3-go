@@ -4,7 +4,7 @@ import { AppHeader, type ViewMode } from './components/layout/AppHeader';
 import { ViewModeTabs } from './components/layout/ViewModeTabs';
 import { TranslationManager } from './components/translations/TranslationManager';
 import { VerseReader } from './components/reader/VerseReader';
-import { VerseSearch } from './components/search/VerseSearch';
+import { SearchHub } from './components/search/SearchHub';
 import { SearchHistory } from './components/search/SearchHistory';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { CompareView } from './components/compare/CompareView';
@@ -101,7 +101,8 @@ export function App() {
   // Update page title according to the active view and verse reference (SEO & browser tabs)
   useEffect(() => {
     let tabLabel = strings.tabReader;
-    if (viewMode === 'analytics') tabLabel = strings.tabAnalytics;
+    if (viewMode === 'search') tabLabel = strings.tabSearch;
+    else if (viewMode === 'analytics') tabLabel = strings.tabAnalytics;
     else if (viewMode === 'compare') tabLabel = strings.tabCompare;
     else if (viewMode === 'original') tabLabel = strings.tabOriginal;
     else if (viewMode === 'notebooks') tabLabel = strings.tabNotebooks;
@@ -512,26 +513,14 @@ export function App() {
           <div className="lg:col-span-2 space-y-8">
             {viewMode === 'reader' && (
               selectedTranslation ? (
-                <>
-                  <VerseReader
-                    translation={selectedTranslation}
-                    activeReference={activeReference}
-                    activeScopeId={activeScopeId}
-                    onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
-                    loadedSavedInsight={loadedInsight}
-                    loadedSavedDeepDive={loadedInsightDeepDive}
-                  />
-                  <div onClick={handleSearchFinished}>
-                    <VerseSearch
-                      translation={selectedTranslation}
-                      onSelectVerse={handleSelectReference}
-                      activeScopeId={activeScopeId}
-                      onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
-                      loadedSavedResults={loadedSearch}
-                      onClearLoadedResults={() => setLoadedSearch(null)}
-                    />
-                  </div>
-                </>
+                <VerseReader
+                  translation={selectedTranslation}
+                  activeReference={activeReference}
+                  activeScopeId={activeScopeId}
+                  onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
+                  loadedSavedInsight={loadedInsight}
+                  loadedSavedDeepDive={loadedInsightDeepDive}
+                />
               ) : (
                 <div className="py-24 text-center space-y-4" style={{ color: 'var(--muted)' }}>
                   <div
@@ -553,6 +542,22 @@ export function App() {
                   </button>
                 </div>
               )
+            )}
+
+            {viewMode === 'search' && (
+              <div onClick={handleSearchFinished}>
+                <SearchHub
+                  translation={selectedTranslation}
+                  onSelectVerse={(ref) => {
+                    handleSelectReference(ref);
+                    setViewMode('reader'); // Seamless transition: clicking a search result opens Reader!
+                  }}
+                  activeScopeId={activeScopeId}
+                  onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
+                  loadedSavedResults={loadedSearch}
+                  onClearLoadedResults={() => setLoadedSearch(null)}
+                />
+              </div>
             )}
 
             {viewMode === 'analytics' && (
