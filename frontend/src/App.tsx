@@ -363,10 +363,10 @@ export function App() {
       await apiService.linkTranslation(id);
       setInstallSuccess(strings.packageInstalledMsg.replace('{id}', id));
       setTranslationTrigger((prev) => !prev);
+      setInstallingTranslationId(null);
     } catch (err) {
       const errorObj = err as Error;
       setInstallError(errorObj.message || 'Failed to install translation.');
-    } finally {
       setInstallingTranslationId(null);
     }
   };
@@ -396,7 +396,9 @@ export function App() {
       const versesRes = await apiService.getVerses(ref, originalId);
       const verses = versesRes.verses;
       if (verses.length === 0) {
-        throw new Error(strings.errOriginalTextNotFound);
+        setOriginalError(strings.errOriginalTextNotFound);
+        setOriginalLoading(false);
+        return;
       }
       const sourceText = verses.map((v: { text: string }) => v.text).join('\n');
       const sourceLanguage = originalId === 'greeksblgnt' ? 'grc' : 'he';
@@ -428,10 +430,10 @@ export function App() {
         scope,
       });
       setOriginalResult(res);
+      setOriginalLoading(false);
     } catch (err) {
       const errorObj = err as Error;
       setOriginalError(errorObj.message || 'Original study failed.');
-    } finally {
       setOriginalLoading(false);
     }
   };

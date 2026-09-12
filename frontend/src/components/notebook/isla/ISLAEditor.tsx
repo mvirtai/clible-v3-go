@@ -133,11 +133,6 @@ export function ISLAEditor({
       if (normalized !== initialCode) {
         onChange?.(normalized);
       }
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.setSelectionRange(normalized.length, normalized.length);
-        }
-      });
     }
   }
 
