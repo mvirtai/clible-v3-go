@@ -49,11 +49,11 @@ export function Register() {
 
     try {
       await register(email, password);
+      setLoading(false);
       navigate('/verify-email', { state: { email } });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : strings.registerFailedMessage;
       setError(errorMsg);
-    } finally {
       setLoading(false);
     }
   };

@@ -40,14 +40,16 @@ export function VerifyEmail() {
       if (code.length !== 6) {
         return { success: false, error: strings.enterVerificationCode };
       }
+      const targetEmail = email ? email : undefined;
       try {
-        await verifyEmail({ email: email || undefined, code });
+        await verifyEmail({ email: targetEmail, code });
         setTimeout(() => navigate('/'), 1200);
         return { success: true, error: null };
       } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : strings.errUnexpected;
         return {
           success: false,
-          error: err instanceof Error ? err.message : strings.errUnexpected,
+          error: errorMsg,
         };
       }
     },
@@ -73,19 +75,17 @@ export function VerifyEmail() {
       .then(() => {
         if (isMounted) {
           setTokenState({ success: true, error: null });
+          setIsTokenPending(false);
           setTimeout(() => navigate('/'), 1500);
         }
       })
       .catch((err: unknown) => {
         if (isMounted) {
+          const errorMsg = err instanceof Error ? err.message : strings.errUnexpected;
           setTokenState({
             success: false,
-            error: err instanceof Error ? err.message : strings.errUnexpected,
+            error: errorMsg,
           });
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
           setIsTokenPending(false);
         }
       });
