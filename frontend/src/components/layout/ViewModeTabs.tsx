@@ -1,4 +1,4 @@
-import { BookOpen, Activity, GitCompare, Languages, FileText } from 'lucide-react';
+import { BookOpen, Search, Activity, GitCompare, Languages, FileText } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ViewMode } from './AppHeader';
 
@@ -27,7 +27,7 @@ export function ViewModeTabs({
   const { strings } = useLanguage();
 
   return (
-    <div className="grid grid-cols-5 sm:flex items-center overflow-x-auto gap-1 sm:gap-1.5 p-1 rounded-xl w-full sm:w-fit mb-6 sm:mb-8 bg-[var(--surface-2)] border border-[var(--border-soft)] select-none">
+    <div className="grid grid-cols-6 sm:flex items-center overflow-x-auto gap-1 sm:gap-1.5 p-1 rounded-xl w-full sm:w-fit mb-6 sm:mb-8 bg-[var(--surface-2)] border border-[var(--border-soft)] select-none">
       <button
         type="button"
         onClick={() => onSelectViewMode('reader')}
@@ -39,6 +39,19 @@ export function ViewModeTabs({
       >
         <BookOpen size={16} className="shrink-0" />
         <span>{strings.tabReader}</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onSelectViewMode('search')}
+        className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium transition-all btn-tactile text-center cursor-pointer ${
+          viewMode === 'search'
+            ? 'bg-[var(--surface)] shadow-xs text-[var(--text)] border border-[var(--border-soft)]'
+            : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
+        }`}
+      >
+        <Search size={16} className="shrink-0" />
+        <span>{strings.tabSearch}</span>
       </button>
 
       <button

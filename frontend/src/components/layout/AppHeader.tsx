@@ -6,7 +6,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { APP_VERSION } from '@/utils/version';
 import type { InstalledTranslation } from '../../types/bible';
 
-export type ViewMode = 'reader' | 'analytics' | 'compare' | 'original' | 'notebooks';
+
+export type ViewMode = 'reader' | 'search' | 'analytics' | 'compare' | 'original' | 'notebooks';
 
 export interface AppHeaderProps {
   theme: 'light' | 'dark';

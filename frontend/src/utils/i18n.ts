@@ -43,6 +43,11 @@ export interface Messages {
   createNotebook: string;
   noTranslations: string;
   translationPlaceholder: string;
+  tabSearch: string;
+  searchHubTitle: string;
+  searchHubSubtitle: string;
+  searchModeLexical: string;
+  searchModeSemantic: string; 
   readByReference: string;
   versePlaceholder: string;
   fetchButtonLabel: string;
@@ -323,6 +328,8 @@ export interface Messages {
   errOriginalTextNotFound: string;
   notebookTitleDefault: string;
 
+
+
   // Language selection
   changeLanguage: string;
 
@@ -372,6 +379,14 @@ export const strings: Record<UILanguage, Messages> = {
     previousChapterLabel: 'Previous chapter',
     nextChapterLabel: 'Next chapter',
 
+    // SearchHub
+    tabSearch: 'Search',
+    searchHubTitle: 'Bible Search Hub',
+    searchHubSubtitle: 'Search biblical scriptures by keyword, regex, or conceptual themes.',
+    searchModeLexical: 'Text & Regex Search',
+    searchModeSemantic: 'Semantic AI Search',
+    searchNoResults: 'No results found.', 
+
     noTranslationSelected: 'No translation selected',
     noTranslationHint: 'Open Translations in the header and install one.',
     installTranslation: 'Install a Translation',
@@ -419,7 +434,6 @@ export const strings: Record<UILanguage, Messages> = {
     searchClear: 'Clear',
     notebookDefaultTitle: 'New notebook',
     searchResultsTitle: 'Search Results',
-    searchNoResults: 'No verses found for this search.',
     selectBookAria: 'Select book',
     foundMatches: 'Found',
     matchesSuffix: 'matches',
@@ -689,6 +703,13 @@ export const strings: Record<UILanguage, Messages> = {
     readerExport: 'Vie',
     previousChapterLabel: 'Edellinen luku',
     nextChapterLabel: 'Seuraava luku',
+
+    // SearchHub
+    tabSearch: 'Haku',
+    searchHubTitle: 'Raamatun hakukeskus',
+    searchHubSubtitle: 'Hae Raamatun tekstejä sanahaulla, säännöllisillä lausekkeilla tai teemallisesti.',
+    searchModeLexical: 'Perinteinen tekstihaku',
+    searchModeSemantic: 'Semanttinen AI-haku',
 
     noTranslationSelected: 'Ei valittua käännöstä',
     noTranslationHint: 'Avaa ylävalikon Käännökset ja asenna yksi.',
