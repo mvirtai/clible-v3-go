@@ -138,9 +138,9 @@ export function CompareView({
         try {
             const data = await apiService.compare(normalized, leftTr, rightTr);
             setResult(data);
+            setLoading(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : strings.errSearchFailed);
-        } finally {
             setLoading(false);
         }
     };
@@ -165,6 +165,7 @@ export function CompareView({
                 textB: rightText
             });
             setAiResult(res);
+            setAiLoading(false);
         } catch (err) {
             const errorObj = err as Error;
             if (errorObj.message && errorObj.message.includes('503')) {
@@ -172,7 +173,6 @@ export function CompareView({
             } else {
                 setAiError(errorObj.message || strings.aiInsightFailed);
             }
-        } finally {
             setAiLoading(false);
         }
     };
@@ -220,9 +220,10 @@ export function CompareView({
                 );
                 setDeepDiveText(res.text);
                 setDeepDiveUsage(res.geminiUsageMetadata || null);
+                setAiLoading(false);
             } catch (err) {
-                setAiError(err instanceof Error ? err.message : strings.deepDiveFailed);
-            } finally {
+                const errorObj = err as Error;
+                setAiError(errorObj.message || strings.deepDiveFailed);
                 setAiLoading(false);
             }
         }
@@ -384,10 +385,10 @@ export function CompareView({
                                                 setSaveStatus('success');
                                                 setTimeout(() => setSaveStatus('idle'), 3000);
                                                 if (onWorkspaceUpdated) onWorkspaceUpdated();
+                                                setSaving(false);
                                             } catch {
                                                 setSaveStatus('error');
                                                 setTimeout(() => setSaveStatus('idle'), 3000);
-                                            } finally {
                                                 setSaving(false);
                                             }
                                         }}

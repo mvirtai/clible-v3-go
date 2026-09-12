@@ -11,6 +11,7 @@ import { GeminiUsage } from '../layout/GeminiUsage';
 import type { NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
 import { NextFocusChips } from '../search/NextFocusChips';
 import { DeepDiveCard } from '../layout/DeepDiveCard';
+import { apiService } from '../../services/api';
 
 const GREEK_PACK_ID = 'sblgnt';
 const HEBREW_PACK_ID = 'heb-leningrad';
@@ -122,7 +123,6 @@ export function OriginalStudyView({
     if (!activeScopeId || !result || !reference) return;
     setOriginalSaveStatus('saving');
     try {
-      const { apiService } = await import('../../services/api');
       await apiService.saveAnalysis({
         scopeId: activeScopeId,
         name: `${strings.originalStudyTitle}: ${reference}`,

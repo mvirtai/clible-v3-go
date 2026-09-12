@@ -54,13 +54,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const currentUser = await apiService.getMe();
         if (isMounted) {
           setUser(currentUser);
+          setLoading(false);
         }
       } catch {
         if (isMounted) {
           setUser(null);
-        }
-      } finally {
-        if (isMounted) {
           setLoading(false);
         }
       }
@@ -89,9 +87,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       await apiService.logout();
-    } finally {
-      setUser(null);
+    } catch {
+      // Ignore network errors during client-side session termination
     }
+    setUser(null);
   };
 
   const enterGuestMode = () => {

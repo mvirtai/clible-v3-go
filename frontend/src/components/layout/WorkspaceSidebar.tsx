@@ -67,12 +67,10 @@ export function WorkspaceSidebar({
         } else if (!activeScopeId && list && list.length > 0) {
           onScopeChanged(list[0].id);
         }
+        setLoadingScopes(false);
       } catch {
         if (isMounted) {
           alert(strings.createScopeFailed);
-        }
-      } finally {
-        if (isMounted) {
           setLoadingScopes(false);
         }
       }
@@ -96,12 +94,10 @@ export function WorkspaceSidebar({
         const data = await apiService.getScopeWorkspace(activeScopeId);
         if (!isMounted) return;
         setWorkspace(data);
+        setLoadingWorkspace(false);
       } catch {
         if (isMounted) {
           console.error('Failed to load workspace data');
-        }
-      } finally {
-        if (isMounted) {
           setLoadingWorkspace(false);
         }
       }

@@ -31,11 +31,11 @@ export function Login() {
 
     try {
       await login(email, password);
+      setLoading(false);
       navigate('/');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : strings.loginFailedMessage;
       setError(errorMsg);
-    } finally {
       setLoading(false);
     }
   };

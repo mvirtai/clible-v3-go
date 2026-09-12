@@ -168,13 +168,17 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
               }))
             ),
           });
-          if (!res.ok) throw new Error('Cell persistence error');
+          if (!res.ok) {
+            setError('Auto-save failed. Check network connection.');
+            setIsSaving(false);
+            return;
+          }
         }
         setError(null);
+        setIsSaving(false);
       } catch (err) {
         console.error(err);
         setError('Auto-save failed. Check network connection.');
-      } finally {
         setIsSaving(false);
       }
     }, 1500);
@@ -208,7 +212,10 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
           }),
         });
 
-        if (!res.ok) throw new Error('Title update failed');
+        if (!res.ok) {
+          setError('Title save failed.');
+          return { error: 'Title update failed' };
+        }
         const updated: Notebook = await res.json();
         setNotebook(updated);
         setIsEditingTitle(false);
