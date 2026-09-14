@@ -339,6 +339,20 @@ export interface Messages {
   guestNotebookExpiresIn: string;
   guestNotebookExpiredNotice: string;
   guestNotebookSignUpCta: string;
+
+  // AI Semantic Search
+  semanticSearchPlaceholder: string;
+  semanticSearchExamplesLabel: string;
+  semanticSearchBtn: string;
+  semanticSearching: string;
+  semanticResolvedPassageTitle: string;
+  semanticOpenInReader: string;
+  semanticPlanTitle: string;
+  semanticSummaryTitle: string;
+  semanticHitsTitle: string;
+  semanticNoHitsFound: string;
+  semanticNoHitsHint: string;
+  semanticSearchError: string;
 }
 
 export const strings: Record<UILanguage, Messages> = {
@@ -671,7 +685,20 @@ export const strings: Record<UILanguage, Messages> = {
     guestNotebookExpiresIn: 'Time remaining: {time}',
     guestNotebookExpiredNotice: 'The 1-hour guest notebook session has expired and temporary notebooks were reset.',
     guestNotebookSignUpCta: 'Create account',
-    
+
+    // AI Semantic Search
+    semanticSearchPlaceholder: 'Ask or describe a topic in your own words...',
+    semanticSearchExamplesLabel: 'Try queries:',
+    semanticSearchBtn: 'Search with AI',
+    semanticSearching: 'AI is analyzing theology & searching...',
+    semanticResolvedPassageTitle: 'Identified Scripture Passage',
+    semanticOpenInReader: 'Open in Reader',
+    semanticPlanTitle: 'Search Strategy & Parameters',
+    semanticSummaryTitle: 'Theological Synthesis',
+    semanticHitsTitle: 'Discovered Verses',
+    semanticNoHitsFound: 'No matching verses found for this semantic query in the selected translation.',
+    semanticNoHitsHint: 'Tip: Try selecting another translation or rephrase using broader keywords.',
+    semanticSearchError: 'Semantic search failed. Ensure backend has GEMINI_API_KEY set.',
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -1012,6 +1039,20 @@ export const strings: Record<UILanguage, Messages> = {
     guestNotebookExpiresIn: 'Aikaa jäljellä: {time}',
     guestNotebookExpiredNotice: 'Vierastilan 1 tunnin aikaraja on umpeutunut ja väliaikaiset muistikirjat on nollattu.',
     guestNotebookSignUpCta: 'Luo ilmainen tili',
+
+    // AI Semantic Search
+    semanticSearchPlaceholder: 'Kysy tai kuvaile aihetta omin sanoin...',
+    semanticSearchExamplesLabel: 'Kokeile hakuja:',
+    semanticSearchBtn: 'Hae tekoälyllä',
+    semanticSearching: 'Tekoäly tulkitsee teemaa ja hakee jakeita...',
+    semanticResolvedPassageTitle: 'Tulkittu raamatunkohta',
+    semanticOpenInReader: 'Avaa lukunäkymässä',
+    semanticPlanTitle: 'Hakusuunnitelma ja rajaus',
+    semanticSummaryTitle: 'Teologinen yhteenveto',
+    semanticHitsTitle: 'Löydetyt jakeet',
+    semanticNoHitsFound: 'Valitusta käännöksestä ei löytynyt vastaavia jakeita.',
+    semanticNoHitsHint: 'Vinkki: Kokeile toista käännöstä tai muotoile hakua yleisemmillä sanoilla.',
+    semanticSearchError: 'Semanttinen haku epäonnistui. Varmista, että GEMINI_API_KEY on asetettu palvelimelle.',
   }
 
 };

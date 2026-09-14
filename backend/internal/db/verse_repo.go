@@ -219,6 +219,55 @@ type SearchParams struct {
 	ScopeValue    string // NEW: book_id (e.g. "gen", "exo")
 }
 
+var prefixStarRegex = regexp.MustCompile(`([\p{L}\p{N}_]+)\*`)
+var boolAndRegex = regexp.MustCompile(`(?i)\bAND\b`)
+var boolOrRegex = regexp.MustCompile(`(?i)\bOR\b`)
+var boolNotRegex = regexp.MustCompile(`(?i)\bNOT\b`)
+
+// normalizePostgresTSQuery converts full-text query strings (including SQLite FTS syntax)
+// into valid PostgreSQL tsquery expressions (& for AND, | for OR, <-> for phrase, and :* for prefix).
+func normalizePostgresTSQuery(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	// 1. Phrase handling: e.g. "jumalan sota-asu" -> jumalan <-> sota-asu
+	if strings.HasPrefix(trimmed, `"`) && strings.HasSuffix(trimmed, `"`) && len(trimmed) > 1 {
+		inner := strings.Trim(trimmed, `"`)
+		words := strings.Fields(inner)
+		if len(words) > 1 {
+			var phraseWords []string
+			for _, w := range words {
+				phraseWords = append(phraseWords, prefixStarRegex.ReplaceAllString(w, "$1:*"))
+			}
+			return strings.Join(phraseWords, " <-> ")
+		}
+		trimmed = inner
+	}
+
+	// 2. Boolean operators: AND, OR, NOT
+	res := trimmed
+	res = boolAndRegex.ReplaceAllString(res, "&")
+	res = boolOrRegex.ReplaceAllString(res, "|")
+	res = boolNotRegex.ReplaceAllString(res, "& !")
+
+	// 3. Prefix match: e.g. usk* -> usk:*
+	res = prefixStarRegex.ReplaceAllString(res, "$1:*")
+
+	return res
+}
+
+// normalizeSQLiteFTSQuery converts PostgreSQL tsquery syntax into SQLite FTS5 MATCH format.
+func normalizeSQLiteFTSQuery(raw string) string {
+	res := raw
+	res = strings.ReplaceAll(res, " & ", " AND ")
+	res = strings.ReplaceAll(res, " | ", " OR ")
+	res = strings.ReplaceAll(res, " <-> ", " ")
+	res = strings.ReplaceAll(res, ":*", "*")
+	return res
+}
+
 func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]models.Verse, error) {
 	var (
 		rows *sql.Rows
@@ -293,9 +342,10 @@ func (r *VerseRepository) Search(ctx context.Context, params SearchParams) ([]mo
 
 	// --- FTS mode: fast full-text search ---
 	ftsTerm := params.FTSQuery
-	if !r.isPostgres {
-		ftsTerm = strings.ReplaceAll(ftsTerm, " & ", " AND ")
-		ftsTerm = strings.ReplaceAll(ftsTerm, " | ", " OR ")
+	if r.isPostgres {
+		ftsTerm = normalizePostgresTSQuery(ftsTerm)
+	} else {
+		ftsTerm = normalizeSQLiteFTSQuery(ftsTerm)
 	}
 	args := []any{ftsTerm}
 	var ftsQuery string

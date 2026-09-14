@@ -184,7 +184,7 @@ func TestVerseRepository_Search(t *testing.T) {
 			t.Fatalf("Search failed: %v", err)
 		}
 		if len(results) != 0 {
-			t.Errorf("expected 0 results in Gen book scope, got %d", len(results))
+			t.Errorf("expected 0 results, got %d", len(results))
 		}
 	})
 }

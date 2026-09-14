@@ -3,6 +3,7 @@ import { Search, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { VerseSearch } from './VerseSearch';
 import type { SearchVerse } from '@/types/search';
+import { AiSemanticSearch } from './AiSemanticSearch';
 
 export type SearchSubModule = 'lexical' | 'semantic';
 
@@ -97,13 +98,11 @@ export function SearchHub({
       )}
 
       {activeTab === 'semantic' && (
-        <div className="p-8 text-center border border-dashed border-[var(--border)] rounded-xl bg-[var(--surface)] text-[var(--muted)]">
-          <Sparkles className="w-8 h-8 mx-auto mb-2 text-[var(--accent)] animate-pulse" />
-          <p className="font-medium text-[var(--text)]">{strings.searchModeSemantic}</p>
-          <p className="text-xs mt-1">Ready for PR #085 integration.</p>
-        </div>
+        <AiSemanticSearch
+          translation={translation}
+          onSelectVerse={onSelectVerse}
+        />
       )}
     </div>
-    )
-
+  );
 }
