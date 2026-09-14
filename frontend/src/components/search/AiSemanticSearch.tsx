@@ -13,6 +13,7 @@ import {
   Compass,
   AlertCircle,
   SearchX,
+  Bookmark,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -21,6 +22,20 @@ export interface AiSemanticSearchProps {
   translation: string;
   /** Callback triggered when user clicks a verse or identified passage to navigate to reader */
   onSelectVerse?: (reference: string) => void;
+
+  activeScopeId?: string;
+  /** Callback for when workspace is updated */
+  onWorkspaceUpdated?: () => void;
+  /** Optional initial loaded data */
+  loadedData?: {
+    query: string;
+    data: AiSearchResponse;
+  } | null;
+}
+
+interface SaveActionState {
+  status: 'idle' | 'success' | 'error';
+  errorMessage: string | null;
 }
 
 interface SemanticSearchState {
@@ -28,19 +43,17 @@ interface SemanticSearchState {
   error: string | null;
 }
 
-const initialSearchState: SemanticSearchState = {
-  data: null,
-  error: null,
-};
-
 /**
  * Modern React 19.2 semantic AI search component powered by useActionState.
  */
 export function AiSemanticSearch({
   translation,
   onSelectVerse,
+  activeScopeId,
+  onWorkspaceUpdated,
+  loadedData,
 }: AiSemanticSearchProps) {
-  const [queryInput, setQueryInput] = useState('');
+  const [queryInput, setQueryInput] = useState(loadedData?.query ?? '');
   const { strings, lang } = useLanguage();
 
   // Pure derived state: localized search suggestions
@@ -75,7 +88,35 @@ export function AiSemanticSearch({
       console.error('Semantic search failed:', err);
       return { data: null, error: strings.semanticSearchError };
     }
-  }, initialSearchState);
+  }, {
+    data: loadedData?.data ?? null,
+    error: null,
+  });
+
+  const [saveState, saveAction, isSaving] = useActionState(
+    async (_prevState: SaveActionState, formData: FormData): Promise<SaveActionState> => {
+      const title = (formData.get('title') as string)?.trim();
+      if (!title || !activeScopeId || !searchState.data) {
+        return { status: 'error', errorMessage: 'Missing required data' };
+      }
+      try {
+        await apiService.saveSearch({
+          scopeId: activeScopeId,
+          name: title,
+          queryText: queryInput,
+          searchScope: 'semantic',
+          scopeValue: translation,
+          translationId: translation,
+          resultJson: JSON.stringify(searchState.data),
+        });
+        onWorkspaceUpdated?.();
+        return { status: 'success', errorMessage: null };
+      } catch (err) {
+        return { status: 'error', errorMessage: String(err) };
+      }
+    },
+    { status: 'idle', errorMessage: null }
+  );
 
   // Trigger search from inspiration chips using React 19 startTransition
   const handleSelectExample = (exampleText: string) => {
@@ -156,6 +197,55 @@ export function AiSemanticSearch({
       {/* Search Results */}
       {data && (
         <div className="space-y-6">
+          {/* Save to workspace card */}
+          {activeScopeId && (
+            <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+              <div className="space-y-0.5">
+                <div className="text-xs font-semibold text-[var(--text)] flex items-center gap-1.5">
+                  <Bookmark size={13} className="text-[var(--accent)]" />
+                  <span>{strings.saveSemanticSearch}</span>
+                </div>
+                {saveState.status === 'success' && (
+                  <p className="text-xs text-emerald-500 font-medium animate-pulse">
+                    {strings.saveSemanticSearchSuccess}
+                  </p>
+                )}
+                {saveState.status === 'error' && (
+                  <p className="text-xs text-red-500 font-medium">
+                    {saveState.errorMessage || 'Failed to save search'}
+                  </p>
+                )}
+              </div>
+
+              <form action={saveAction} className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  name="title"
+                  type="text"
+                  required
+                  placeholder={strings.saveSemanticSearchPlaceholder}
+                  defaultValue={queryInput}
+                  className="px-3 py-1.5 rounded-lg text-xs bg-[var(--surface)] border border-[var(--border-soft)] text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)] transition-colors min-w-[200px]"
+                />
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  {isSaving ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Bookmark size={12} />
+                  )}
+                  <span>
+                    {isSaving
+                      ? strings.savingSemanticSearch
+                      : strings.saveSemanticSearchButton}
+                  </span>
+                </button>
+              </form>
+            </div>
+          )}
+
           {/* 1. Resolved Canonical Reference (Highlighted Hero Card) */}
           {data.plan?.resolvedReference && (
             <div className="p-5 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">

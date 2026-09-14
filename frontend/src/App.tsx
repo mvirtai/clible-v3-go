@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppHeader, type ViewMode } from './components/layout/AppHeader';
+import { AppHeader } from './components/layout/AppHeader';
 import { ViewModeTabs } from './components/layout/ViewModeTabs';
 import { TranslationManager } from './components/translations/TranslationManager';
 import { VerseReader } from './components/reader/VerseReader';
-import { SearchHub } from './components/search/SearchHub';
+import { SearchHub, type SearchSubModule } from './components/search/SearchHub';
 import { SearchHistory } from './components/search/SearchHistory';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { CompareView } from './components/compare/CompareView';
@@ -22,7 +22,9 @@ import type { SavedSearch, SavedAnalysis } from './types/workspace';
 import type { SearchVerse } from './types/search';
 import type { OriginalStudyResult } from './types/originalStudy';
 import type { AiTextResponse } from './types/ai';
+import type { AiSearchResponse } from './types/aiSearch';
 import type { Notebook } from './components/notebook/types';
+import { useViewModeNavigation } from './hooks/useViewModeNavigation';
 import {
   getGuestNotebooks,
   createGuestNotebook,
@@ -61,7 +63,7 @@ export function App() {
   const [historyTrigger, setHistoryTrigger] = useState(false);
   const [translationTrigger, setTranslationTrigger] = useState(false);
   const [showManager, setShowManager] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('reader');
+  const [viewMode, setViewMode] = useViewModeNavigation();
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [installedTranslations, setInstalledTranslations] = useState<InstalledTranslation[]>([]);
@@ -89,6 +91,11 @@ export function App() {
 
   // Saved results states for quick loading
   const [loadedSearch, setLoadedSearch] = useState<LoadedSearchState | null>(null);
+  const [loadedSemanticSearch, setLoadedSemanticSearch] = useState<{
+    query: string;
+    data: AiSearchResponse;
+  } | null>(null);
+  const [searchTab, setSearchTab] = useState<SearchSubModule>('lexical');
   const [loadedStats, setLoadedStats] = useState<LoadedStatsState | null>(null);
   const [loadedComparison, setLoadedComparison] = useState<LoadedComparisonState | null>(null);
   const [loadedInsight, setLoadedInsight] = useState<AiTextResponse | null>(null);
@@ -258,6 +265,29 @@ export function App() {
       setActiveReference(s.queryText);
       setViewMode('reader');
       setLoadedSearch(null);
+      setLoadedSemanticSearch(null);
+      return;
+    }
+
+    if (s.searchScope === 'semantic') {
+      let data: AiSearchResponse | null = null;
+      try {
+        if (s.resultJson) {
+          data = JSON.parse(s.resultJson);
+        }
+      } catch (err) {
+        console.error('Failed to parse saved semantic search JSON', err);
+      }
+      if (data) {
+        setLoadedSemanticSearch({
+          query: s.queryText,
+          data,
+        });
+        setLoadedSearch(null);
+        setSearchTab('semantic');
+        handleSelectTranslation(s.translationId);
+        setViewMode('search');
+      }
       return;
     }
 
@@ -280,8 +310,10 @@ export function App() {
       scopeValue: scope,
       results: Array.isArray(results) ? results : [],
     });
+    setLoadedSemanticSearch(null);
+    setSearchTab('lexical');
     handleSelectTranslation(s.translationId);
-    setViewMode('reader');
+    setViewMode('search');
   };
 
   const handleLoadSavedAnalysis = (a: SavedAnalysis) => {
@@ -556,8 +588,14 @@ export function App() {
                   }}
                   activeScopeId={activeScopeId}
                   onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
+                  initialTab={searchTab}
+                  onTabChange={setSearchTab}
                   loadedSavedResults={loadedSearch}
-                  onClearLoadedResults={() => setLoadedSearch(null)}
+                  loadedSemanticData={loadedSemanticSearch}
+                  onClearLoadedResults={() => {
+                    setLoadedSearch(null);
+                    setLoadedSemanticSearch(null);
+                  }}
                 />
               </div>
             )}

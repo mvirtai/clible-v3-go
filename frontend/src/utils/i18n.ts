@@ -353,6 +353,12 @@ export interface Messages {
   semanticNoHitsFound: string;
   semanticNoHitsHint: string;
   semanticSearchError: string;
+  saveSemanticSearch: string;
+  saveSemanticSearchTitle: string;
+  saveSemanticSearchPlaceholder: string;
+  saveSemanticSearchSuccess: string;
+  saveSemanticSearchButton: string;
+  savingSemanticSearch: string;
 }
 
 export const strings: Record<UILanguage, Messages> = {
@@ -699,6 +705,12 @@ export const strings: Record<UILanguage, Messages> = {
     semanticNoHitsFound: 'No matching verses found for this semantic query in the selected translation.',
     semanticNoHitsHint: 'Tip: Try selecting another translation or rephrase using broader keywords.',
     semanticSearchError: 'Semantic search failed. Ensure backend has GEMINI_API_KEY set.',
+    saveSemanticSearch: 'Save search to workspace',
+    saveSemanticSearchTitle: 'Name this search',
+    saveSemanticSearchPlaceholder: 'E.g. Jesus calms the storm...',
+    saveSemanticSearchSuccess: 'Semantic search saved to workspace!',
+    saveSemanticSearchButton: 'Save',
+    savingSemanticSearch: 'Saving...',
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -1053,6 +1065,12 @@ export const strings: Record<UILanguage, Messages> = {
     semanticNoHitsFound: 'Valitusta käännöksestä ei löytynyt vastaavia jakeita.',
     semanticNoHitsHint: 'Vinkki: Kokeile toista käännöstä tai muotoile hakua yleisemmillä sanoilla.',
     semanticSearchError: 'Semanttinen haku epäonnistui. Varmista, että GEMINI_API_KEY on asetettu palvelimelle.',
+    saveSemanticSearch: 'Tallenna haku työtilaan',
+    saveSemanticSearchTitle: 'Anna haulle nimi',
+    saveSemanticSearchPlaceholder: 'Esim. Jeesus tyynnyttää myrskyn...',
+    saveSemanticSearchSuccess: 'Semanttinen haku tallennettu työtilaan!',
+    saveSemanticSearchButton: 'Tallenna',
+    savingSemanticSearch: 'Tallennetaan...',
   }
 
 };
