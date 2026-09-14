@@ -37,18 +37,18 @@ export function useViewModeNavigation() {
     );
 
     const setViewMode = useCallback((newMode: ViewMode, push = true) => {
-    const currentUrl = new URL(window.location.href);
-    if (currentUrl.searchParams.get('view') === newMode) return;
+        const currentUrl = new URL(window.location.href);
+        if (currentUrl.searchParams.get('view') === newMode) return;
 
-    currentUrl.searchParams.set('view', newMode);
-    if (push) {
-      window.history.pushState({ viewMode: newMode }, '', currentUrl.toString());
-    } else {
-      window.history.replaceState({ viewMode: newMode }, '', currentUrl.toString());
-    }
-    // Herätetään useSyncExternalStore -tilaajat heti samassa säikeessä
-    window.dispatchEvent(new Event('popstate'));
-  }, []);
+        currentUrl.searchParams.set('view', newMode);
+        if (push) {
+            window.history.pushState({ viewMode: newMode }, '', currentUrl.toString());
+        } else {
+            window.history.replaceState({ viewMode: newMode }, '', currentUrl.toString());
+        }
+        // Herätetään useSyncExternalStore -tilaajat heti samassa säikeessä
+        window.dispatchEvent(new Event('popstate'));
+    }, []);
 
   return [viewMode, setViewMode] as const;
 }
