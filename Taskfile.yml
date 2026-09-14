@@ -609,10 +609,22 @@ tasks:
         # Update frontend/package.json
         cd frontend && pnpm version "$NEW_VERSION" --no-git-tag-version && cd ..
         # Update frontend utils/version.ts
-        sed -i -E "s/APP_VERSION = '[^']*'/APP_VERSION = '$NEW_VERSION'/" frontend/src/utils/version.ts 2>/dev/null || true
+        sed -i -E "s/'[0-9]+\.[0-9]+\.[0-9]+'/'$NEW_VERSION'/" frontend/src/utils/version.ts 2>/dev/null || true
         # Update backend version.go
         sed -i -E "s/Version = \"[^\"]*\"/Version = \"$NEW_VERSION\"/" backend/internal/version/version.go 2>/dev/null || true
         echo "✅ Version bumped from $CURRENT to $NEW_VERSION"
+
+  version:set:
+    desc: "Set explicit version in all relevant project files. Usage: task version:set VER=3.4.0"
+    cmds:
+      - |
+        NEW_VERSION="{{.VER}}"
+        if [ -z "$NEW_VERSION" ]; then echo "Usage: task version:set VER=x.y.z"; exit 1; fi
+        echo "$NEW_VERSION" > VERSION
+        cd frontend && pnpm version "$NEW_VERSION" --no-git-tag-version && cd ..
+        sed -i -E "s/'[0-9]+\.[0-9]+\.[0-9]+'/'$NEW_VERSION'/" frontend/src/utils/version.ts 2>/dev/null || true
+        sed -i -E "s/Version = \"[^\"]*\"/Version = \"$NEW_VERSION\"/" backend/internal/version/version.go 2>/dev/null || true
+        echo "✅ Version explicitly set to $NEW_VERSION"
 
   git:tag:
     desc: Create annotated git release tag for current version in VERSION file
