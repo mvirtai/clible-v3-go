@@ -11,6 +11,7 @@ import (
 
 	"github.com/mvirtai/clible-v3-go/internal/config"
 	"github.com/mvirtai/clible-v3-go/internal/db"
+	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/parsers"
 )
 
@@ -66,12 +67,12 @@ const aiSearchPlannerSystemInstruction = "You convert natural-language Bible sea
 	"Output ONLY valid JSON with no markdown fences and no extra text. " +
 	"Schema: " +
 	"{ \"terms\": string[], \"mode\": \"phrase\"|\"words\"|\"wildcard\", \"operator\": \"and\"|\"or\"|\"not\", " +
-	"\"scope\": \"bible\"|\"ot\"|\"nt\"|\"book\", \"book\": string|null, \"rationale\": string }. " +
+	"\"scope\": \"bible\"|\"ot\"|\"nt\"|\"book\", \"book\": string|null, \"rationale\": string, \"resolvedReference\": string|null }. " +
 	"Rules: " +
-	"(1) terms must be in the same language as the installed translation text (Finnish translation → Finnish terms). " +
-	"(2) scope book requires non-null book (e.g. Psalms, Psalmit, John, Johanneksen evankelium). " +
+	"(1) terms must be in the same language as the installed translation text (Finnish translation → Finnish terms). For inflected languages like Finnish, prefer wildcard stems (e.g. usk*, teko*, kuol*) so morphological variants match. " +
+	"(2) scope book requires non-null book (e.g. Psalms, Psalmit, John, Johanneksen evankeliumi). " +
 	"(3) scope bible|ot|nt must have book null. " +
-	"(4) Do not invent verse references in rationale. " +
+	"(4) resolvedReference: if the user's question refers to a specific known story, passage, or chapter (e.g. 'Armor of God' -> 'Eph 6:10-18', 'Calming the storm' -> 'Mark 4:35-41', 'Faith without works' -> 'Jas 2:14-26', 'Sermon on the Mount' -> 'Matt 5-7'), identify and output the canonical reference string, otherwise null. " +
 	"(5) Prefer phrase for idioms; words+or for synonyms; wildcard only for clear stems like lov*. " +
 	"(6) rationale is 1-2 sentences in the requested ui language explaining the search strategy."
 
@@ -108,12 +109,13 @@ type AIResponse struct {
 
 // SearchPlan is the planner's structured output
 type SearchPlan struct {
-	Terms     []string `json:"terms"`
-	Mode      string   `json:"mode"`
-	Operator  string   `json:"operator"`
-	Scope     string   `json:"scope"`
-	Book      *string  `json:"book"`
-	Rationale string   `json:"rationale"`
+	Terms             []string `json:"terms"`
+	Mode              string   `json:"mode"`
+	Operator          string   `json:"operator"`
+	Scope             string   `json:"scope"`
+	Book              *string  `json:"book"`
+	Rationale         string   `json:"rationale"`
+	ResolvedReference *string  `json:"resolvedReference,omitempty"` // e.g. "Eph 6:10-18" or "Jas 2:14-26"
 }
 
 // AIService defines backend's AI functionalities
@@ -586,6 +588,40 @@ func (s *aiServiceImpl) AISearch(ctx context.Context, query, translationID, uiLa
 	verses, err := s.verseRepo.Search(ctx, dbParams)
 	if err != nil {
 		return nil, fmt.Errorf("database search execution failed: %w", err)
+	}
+	if verses == nil {
+		verses = []models.Verse{}
+	}
+
+	// Fallback & Enrichment: If full-text search returned 0 hits or partial hits,
+	// ensure verses from the identified canonical passage (e.g. "Joh 2:1-11") are included.
+	if plan.ResolvedReference != nil && strings.TrimSpace(*plan.ResolvedReference) != "" {
+		if parsed, parseErr := parsers.ParseReference(*plan.ResolvedReference); parseErr == nil {
+			vStart := parsed.VerseStart
+			vEnd := parsed.VerseEnd
+			if vStart <= 0 {
+				vStart = 1
+			}
+			if vEnd <= 0 {
+				vEnd = 999
+			}
+			if refVerses, refErr := s.verseRepo.GetByReference(ctx, dbParams.TranslationID, parsed.BookName, parsed.Chapter, vStart, vEnd); refErr == nil && len(refVerses) > 0 {
+				if len(verses) == 0 {
+					verses = refVerses
+				} else {
+					seen := make(map[string]bool, len(verses))
+					for _, v := range verses {
+						seen[v.ID] = true
+					}
+					for _, rv := range refVerses {
+						if !seen[rv.ID] {
+							verses = append(verses, rv)
+							seen[rv.ID] = true
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// Limit search hits passed to AI summarizer to avoid massive tokens

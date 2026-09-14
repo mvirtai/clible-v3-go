@@ -5,7 +5,7 @@ import type { Components } from 'react-markdown';
  */
 export interface MarkdownComponentsOptions {
   /** Whether to invert color tokens for dark backgrounds */
-  invert: boolean;
+  invert?: boolean;
   /** Whether to use expanded heading styles for AI insight layouts */
   insightLayout?: boolean;
   /** Whether to use expanded heading styles for AI tone layouts */
@@ -18,8 +18,8 @@ export interface MarkdownComponentsOptions {
  * @param options - Configuration options conforming to {@link MarkdownComponentsOptions}.
  * @returns ReactMarkdown `Components` mapping.
  */
-export function markdownComponents(options: MarkdownComponentsOptions): Components {
-  const { invert, insightLayout, toneLayout } = options;
+export function markdownComponents(options: MarkdownComponentsOptions = {}): Components {
+  const { invert = false, insightLayout, toneLayout } = options;
 
   // High-end typography class tokens
   const bodyColor = invert ? 'text-gray-200' : 'text-[var(--text-2)]';

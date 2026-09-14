@@ -9,6 +9,10 @@ func TestLoadDefaults(t *testing.T) {
 	// Clean potentially leaking local environments inside testing scope safely
 	t.Setenv("PORT", "")
 	t.Setenv("DATABASE_URL", "")
+	t.Setenv("GEMINI_MODEL_INSIGHT", "")
+	t.Setenv("GEMINI_MODEL_TONE", "")
+	t.Setenv("GEMINI_MODEL_ORIGINAL", "")
+	t.Setenv("GEMINI_MODEL_SEARCH", "")
 
 	cfg := Load()
 

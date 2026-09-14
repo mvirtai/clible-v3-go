@@ -11,6 +11,7 @@ export interface AiSearchPlan {
     scope: AiSearchScope;
     book: string | null;
     rationale: string;
+    resolvedReference?: string | null;
 }
 
 export interface AiSearchSummary {
