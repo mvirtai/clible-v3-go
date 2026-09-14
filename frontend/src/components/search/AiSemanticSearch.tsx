@@ -193,7 +193,7 @@ export function AiSemanticSearch({
               <div className="prose dark:prose-invert text-sm leading-relaxed text-[var(--text)]">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  components={markdownComponents({ insightLayout: true })}
+                  components={markdownComponents({ invert: false, insightLayout: true })}
                 >
                   {data.summary.text}
                 </ReactMarkdown>
