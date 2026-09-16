@@ -6,6 +6,7 @@ import type { Scope, SavedSearch, SavedAnalysis, ScopeWorkspace } from "../types
 import type { AiTextResponse } from "../types/ai";
 import type { AiSearchResponse } from "../types/aiSearch";
 import type { OriginalStudyResult } from "../types/originalStudy";
+import type { AiUsageStats, AiUsageSummary } from "../types/aiUsage";
 
 
 /**
@@ -619,6 +620,28 @@ export class ApiService {
             credentials: 'include',
         });
         if (!res.ok) throw new Error(`POST /ai/compare returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Fetches AI token usage statistics for the authenticated user.
+     */
+    async getMyAiUsage(days = 30): Promise<AiUsageStats> {
+        const res = await fetch(`${this.baseUrl}/ai/usage/me?days=${days}`, {
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`GET /ai/usage/me returned ${res.status}`);
+        return await res.json();
+    }
+
+    /**
+     * Fetches aggregated global AI usage summary.
+     */
+    async getGlobalAiUsageSummary(days = 30): Promise<AiUsageSummary> {
+        const res = await fetch(`${this.baseUrl}/ai/usage/summary?days=${days}`, {
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(`GET /ai/usage/summary returned ${res.status}`);
         return await res.json();
     }
 }

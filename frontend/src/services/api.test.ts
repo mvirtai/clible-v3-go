@@ -346,6 +346,54 @@ describe('ApiService', () => {
 
         await expect(apiService.resendVerification('unknown@example.com')).rejects.toThrow('user_not_found');
     });
+
+    it('fetches authenticated user AI usage stats (getMyAiUsage)', async () => {
+        const mockStats = {
+            totalCalls: 8,
+            totalPromptTokens: 800,
+            totalCandidatesTokens: 400,
+            totalTokens: 1200,
+            cachedTokens: 100,
+        };
+
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockStats,
+        } as Response);
+
+        const result = await apiService.getMyAiUsage(14);
+
+        expect(result).toEqual(mockStats);
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/ai/usage/me?days=14'),
+            expect.objectContaining({ credentials: 'include' })
+        );
+    });
+
+    it('fetches global AI usage summary (getGlobalAiUsageSummary)', async () => {
+        const mockSummary = {
+            userStats: { totalCalls: 8, totalPromptTokens: 800, totalCandidatesTokens: 400, totalTokens: 1200, cachedTokens: 100 },
+            guestStats: { totalCalls: 2, totalPromptTokens: 200, totalCandidatesTokens: 100, totalTokens: 300, cachedTokens: 0 },
+            globalStats: { totalCalls: 10, totalPromptTokens: 1000, totalCandidatesTokens: 500, totalTokens: 1500, cachedTokens: 100 },
+            byFeature: {
+                insight: { totalCalls: 10, totalPromptTokens: 1000, totalCandidatesTokens: 500, totalTokens: 1500, cachedTokens: 100 },
+            },
+        };
+
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockSummary,
+        } as Response);
+
+        const result = await apiService.getGlobalAiUsageSummary(30);
+
+        expect(result).toEqual(mockSummary);
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/ai/usage/summary?days=30'),
+            expect.objectContaining({ credentials: 'include' })
+        );
+    });
 });
+
 
 

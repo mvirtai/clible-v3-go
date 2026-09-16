@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Terminal, Settings, Sun, Moon, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { Terminal, Settings, Sun, Moon, LogOut, LogIn, UserPlus, Sparkles } from 'lucide-react';
 import { LanguageSwitcher } from '../LanguageSwitcher/LanguageSwitcher';
 import { TranslationSelector } from '../translations/TranslationSelector';
+import { AiTokenUsageModal } from './AiTokenUsageModal';
 import { useLanguage } from '../../context/LanguageContext';
 import { APP_VERSION } from '@/utils/version';
 import type { InstalledTranslation } from '../../types/bible';
@@ -38,6 +40,23 @@ export function AppHeader({
 }: AppHeaderProps) {
   const { strings } = useLanguage();
   const navigate = useNavigate();
+  const [showUsageModal, setShowUsageModal] = useState(false);
+  const [usageStats, setUsageStats] = useState<import('../../types/aiUsage').AiUsageStats | null>(null);
+  const [usageSummary, setUsageSummary] = useState<import('../../types/aiUsage').AiUsageSummary | null>(null);
+
+  const handleOpenUsage = async () => {
+    setShowUsageModal(true);
+    try {
+      if (user) {
+        const stats = await apiService.getMyAiUsage(30);
+        setUsageStats(stats);
+      }
+      const summary = await apiService.getGlobalAiUsageSummary(30);
+      setUsageSummary(summary);
+    } catch {
+      // Ignored
+    }
+  };
 
   return (
     <header
@@ -83,6 +102,23 @@ export function AppHeader({
 
         {/* User & Global Controls */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink">
+          {/* AI Usage telemetry button */}
+          <button
+            type="button"
+            onClick={handleOpenUsage}
+            aria-label={strings.aiUsageTitle}
+            title={strings.aiUsageTitle}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-medium transition-colors btn-tactile hover:border-[var(--accent)] shrink-0 cursor-pointer"
+            style={{
+              border: '1px solid var(--border)',
+              background: 'transparent',
+              color: 'var(--muted)',
+            }}
+          >
+            <Sparkles size={13} className="text-[var(--accent)]" />
+            <span className="hidden md:inline">{strings.aiUsageTitle}</span>
+          </button>
+
           {user ? (
             <>
               <span className="text-xs max-md:hidden" style={{ color: 'var(--muted)' }}>
@@ -148,6 +184,14 @@ export function AppHeader({
           />
         </div>
       </div>
+
+      <AiTokenUsageModal
+        isOpen={showUsageModal}
+        onClose={() => setShowUsageModal(false)}
+        isAuthenticated={Boolean(user)}
+        initialStats={usageStats}
+        initialSummary={usageSummary}
+      />
     </header>
   );
 }
