@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mvirtai/clible-v3-go/internal/config"
+	"github.com/mvirtai/clible-v3-go/internal/ctxkeys"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
@@ -401,6 +403,27 @@ func TestAIService_OriginalStudy_UsesExplicitOutputLanguageAcrossScopes(t *testi
 	}
 }
 
+type mockAiUsageRepo struct {
+	recorded []*models.AiTokenUsage
+}
+
+func (m *mockAiUsageRepo) RecordUsage(ctx context.Context, u *models.AiTokenUsage) error {
+	m.recorded = append(m.recorded, u)
+	return nil
+}
+
+func (m *mockAiUsageRepo) GetUserStats(ctx context.Context, userID string, since time.Time) (*models.AiUsageStats, error) {
+	return &models.AiUsageStats{}, nil
+}
+
+func (m *mockAiUsageRepo) GetGuestStats(ctx context.Context, since time.Time) (*models.AiUsageStats, error) {
+	return &models.AiUsageStats{}, nil
+}
+
+func (m *mockAiUsageRepo) GetGlobalSummary(ctx context.Context, since time.Time) (*models.AiUsageSummary, error) {
+	return &models.AiUsageSummary{}, nil
+}
+
 func TestNewAIService(t *testing.T) {
 	conn, err := db.InitializeDB(":memory:")
 	if err != nil {
@@ -409,14 +432,88 @@ func TestNewAIService(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 
 	verseRepo := db.NewVerseRepository(conn)
+	usageRepo := db.NewAiUsageRepository(conn)
 
 	cfg := &config.Config{
 		GeminiAPIKey:       "test-api-key",
 		GeminiModelInsight: "gemini-3.7-flash",
 	}
 
-	service := NewAIService(cfg, verseRepo)
+	service := NewAIService(cfg, verseRepo, usageRepo)
 	if service == nil {
 		t.Fatalf("expected non-nil AIService")
 	}
+}
+
+func TestAIService_UsageTracking(t *testing.T) {
+	cfg := &config.Config{
+		GeminiAPIKey:       "test-key",
+		GeminiModelInsight: "gemini-insight",
+	}
+
+	rawText := "## Insight\nContent\n```json\n{\"next_focus\":[]}\n```"
+	mockJSONResponse := makeMockResponseJSON(rawText)
+
+	mockClient := &http.Client{
+		Transport: &mockTransport{
+			roundTrip: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(mockJSONResponse)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
+
+	usageRepo := &mockAiUsageRepo{}
+	service := &aiServiceImpl{
+		cfg:       cfg,
+		client:    mockClient,
+		usageRepo: usageRepo,
+	}
+
+	t.Run("records authenticated user token usage", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), ctxkeys.UserIDKey, "user-test-456")
+		_, err := service.GetInsight(ctx, "John 3:16", "")
+		if err != nil {
+			t.Fatalf("GetInsight failed: %v", err)
+		}
+
+		if len(usageRepo.recorded) != 1 {
+			t.Fatalf("expected 1 recorded usage, got %d", len(usageRepo.recorded))
+		}
+
+		rec := usageRepo.recorded[0]
+		if rec.UserID == nil || *rec.UserID != "user-test-456" {
+			t.Errorf("expected userID 'user-test-456', got %v", rec.UserID)
+		}
+		if rec.Feature != "insight" {
+			t.Errorf("expected feature 'insight', got %q", rec.Feature)
+		}
+		if rec.PromptTokens != 10 || rec.CandidatesTokens != 20 || rec.TotalTokens != 30 {
+			t.Errorf("unexpected token counts: %+v", rec)
+		}
+	})
+
+	t.Run("records guest user token usage when context has no user id", func(t *testing.T) {
+		usageRepo.recorded = nil
+		ctx := context.Background()
+		_, err := service.GetInsight(ctx, "John 3:16", "")
+		if err != nil {
+			t.Fatalf("GetInsight failed: %v", err)
+		}
+
+		if len(usageRepo.recorded) != 1 {
+			t.Fatalf("expected 1 recorded usage, got %d", len(usageRepo.recorded))
+		}
+
+		rec := usageRepo.recorded[0]
+		if rec.UserID != nil {
+			t.Errorf("expected nil userID for guest, got %v", rec.UserID)
+		}
+		if rec.GuestID == nil || *rec.GuestID != "guest" {
+			t.Errorf("expected guestID 'guest', got %v", rec.GuestID)
+		}
+	})
 }
