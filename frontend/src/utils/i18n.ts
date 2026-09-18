@@ -70,6 +70,14 @@ export interface Messages {
   aiUsageDays30: string;
   aiUsageDays7: string;
   aiUsageDays90: string;
+  userSettingsTitle: string;
+  userAccountVerified: string;
+  userAccountFree: string;
+  userAccountGuest: string;
+  userMenuAria: string;
+  userMenuLanguage: string;
+  userMenuTheme: string;
+  userMenuDocumentation: string;
   analyzePassage: string;
   aiReading: string;
   aiUnavailable: string;
@@ -457,6 +465,14 @@ export const strings: Record<UILanguage, Messages> = {
     aiUsageDays30: 'Past 30 days',
     aiUsageDays7: 'Past 7 days',
     aiUsageDays90: 'Past 90 days',
+    userSettingsTitle: 'User Settings',
+    userAccountVerified: 'Verified Account',
+    userAccountFree: 'Free Account',
+    userAccountGuest: 'Guest Explorer',
+    userMenuAria: 'User Account Menu',
+    userMenuLanguage: 'Language',
+    userMenuTheme: 'Theme',
+    userMenuDocumentation: 'Documentation',
     analyzePassage: 'Analyze Passage',
     aiReading: 'AI is reading the passage...',
     aiUnavailable: 'AI not available. Set GEMINI_API_KEY.',
@@ -815,6 +831,14 @@ export const strings: Record<UILanguage, Messages> = {
     aiUsageDays30: 'Viimeiset 30 päivää',
     aiUsageDays7: 'Viimeiset 7 päivää',
     aiUsageDays90: 'Viimeiset 90 päivää',
+    userSettingsTitle: 'Käyttäjäasetukset',
+    userAccountVerified: 'Vahvistettu tili',
+    userAccountFree: 'Ilmainen tili',
+    userAccountGuest: 'Vierailija',
+    userMenuAria: 'Käyttäjävalikko',
+    userMenuLanguage: 'Kieli',
+    userMenuTheme: 'Teema',
+    userMenuDocumentation: 'Dokumentaatio',
     analyzePassage: 'Analysoi tekstiä',
     aiReading: 'Tekoäly opiskelee tekstikohtaa...',
     aiUnavailable: 'Tekoäly ei ole käytettävissä. Aseta GEMINI_API_KEY.',
