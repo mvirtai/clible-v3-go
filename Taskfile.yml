@@ -607,7 +607,7 @@ tasks:
         NEW_VERSION="$MAJOR.$MINOR.$PATCH"
         echo "$NEW_VERSION" > VERSION
         # Update frontend/package.json
-        cd frontend && pnpm version "$NEW_VERSION" --no-git-tag-version && cd ..
+        cd frontend && pnpm version "$NEW_VERSION" --no-git-tag-version --no-git-checks && cd ..
         # Update frontend utils/version.ts
         sed -i -E "s/'[0-9]+\.[0-9]+\.[0-9]+'/'$NEW_VERSION'/" frontend/src/utils/version.ts 2>/dev/null || true
         # Update backend version.go
@@ -621,7 +621,7 @@ tasks:
         NEW_VERSION="{{.VER}}"
         if [ -z "$NEW_VERSION" ]; then echo "Usage: task version:set VER=x.y.z"; exit 1; fi
         echo "$NEW_VERSION" > VERSION
-        cd frontend && pnpm version "$NEW_VERSION" --no-git-tag-version && cd ..
+        cd frontend && pnpm version "$NEW_VERSION" --no-git-tag-version --no-git-checks && cd ..
         sed -i -E "s/'[0-9]+\.[0-9]+\.[0-9]+'/'$NEW_VERSION'/" frontend/src/utils/version.ts 2>/dev/null || true
         sed -i -E "s/Version = \"[^\"]*\"/Version = \"$NEW_VERSION\"/" backend/internal/version/version.go 2>/dev/null || true
         echo "✅ Version explicitly set to $NEW_VERSION"
