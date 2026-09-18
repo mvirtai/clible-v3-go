@@ -1,4 +1,5 @@
 import { useActionState, startTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles, X, Activity, Layers, Database, UserCheck, Users, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { apiService } from '../../services/api';
@@ -84,7 +85,7 @@ export function AiTokenUsageModal({
   const featureList = state.summary?.byFeature ? Object.entries(state.summary.byFeature) : [];
   const globalTotalTokens = state.summary?.globalStats.totalTokens || 1;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -302,6 +303,7 @@ export function AiTokenUsageModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
