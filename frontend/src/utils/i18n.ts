@@ -55,6 +55,29 @@ export interface Messages {
   noVersesFound: string;
   backToBroaderText: string;
   aiAnalysisTitle: string;
+  aiUsageTitle: string;
+  aiTokensTotal: string;
+  aiTokensPrompt: string;
+  aiTokensCandidates: string;
+  aiTokensCalls: string;
+  aiTokensCached: string;
+  aiUsageGuest: string;
+  aiUsageUsers: string;
+  aiUsageGlobal: string;
+  aiUsageLoading: string;
+  aiUsageByFeature: string;
+  aiUsageClose: string;
+  aiUsageDays30: string;
+  aiUsageDays7: string;
+  aiUsageDays90: string;
+  userSettingsTitle: string;
+  userAccountVerified: string;
+  userAccountFree: string;
+  userAccountGuest: string;
+  userMenuAria: string;
+  userMenuLanguage: string;
+  userMenuTheme: string;
+  userMenuDocumentation: string;
   analyzePassage: string;
   aiReading: string;
   aiUnavailable: string;
@@ -427,6 +450,29 @@ export const strings: Record<UILanguage, Messages> = {
     noVersesFound: 'No verses found.',
     backToBroaderText: 'Back to broader text',
     aiAnalysisTitle: 'AI Analysis (Gemini)',
+    aiUsageTitle: 'AI Token Usage',
+    aiTokensTotal: 'Total Tokens',
+    aiTokensPrompt: 'Prompt Tokens',
+    aiTokensCandidates: 'Candidate Tokens',
+    aiTokensCalls: 'API Calls',
+    aiTokensCached: 'Cached Tokens',
+    aiUsageGuest: 'Guest Users',
+    aiUsageUsers: 'Authenticated Users',
+    aiUsageGlobal: 'Global System',
+    aiUsageLoading: 'Loading usage statistics...',
+    aiUsageByFeature: 'Usage by Feature',
+    aiUsageClose: 'Close',
+    aiUsageDays30: 'Past 30 days',
+    aiUsageDays7: 'Past 7 days',
+    aiUsageDays90: 'Past 90 days',
+    userSettingsTitle: 'User Settings',
+    userAccountVerified: 'Verified Account',
+    userAccountFree: 'Free Account',
+    userAccountGuest: 'Guest Explorer',
+    userMenuAria: 'User Account Menu',
+    userMenuLanguage: 'Language',
+    userMenuTheme: 'Theme',
+    userMenuDocumentation: 'Documentation',
     analyzePassage: 'Analyze Passage',
     aiReading: 'AI is reading the passage...',
     aiUnavailable: 'AI not available. Set GEMINI_API_KEY.',
@@ -770,6 +816,29 @@ export const strings: Record<UILanguage, Messages> = {
     noVersesFound: 'Ei jakeita löytynyt.',
     backToBroaderText: 'Takaisin laajempaan tekstiin',
     aiAnalysisTitle: 'Tekoäly-analyysi (Gemini)',
+    aiUsageTitle: 'Tekoälyn token-kulutus',
+    aiTokensTotal: 'Tokeneita yhteensä',
+    aiTokensPrompt: 'Kehotetokent',
+    aiTokensCandidates: 'Vastaustokenit',
+    aiTokensCalls: 'Kutsukertoja',
+    aiTokensCached: 'Välimuistissa',
+    aiUsageGuest: 'Vieraskäyttäjät',
+    aiUsageUsers: 'Kirjautuneet käyttäjät',
+    aiUsageGlobal: 'Koko järjestelmä',
+    aiUsageLoading: 'Ladataan käyttötilastoja...',
+    aiUsageByFeature: 'Kulutus toiminnoittain',
+    aiUsageClose: 'Sulje',
+    aiUsageDays30: 'Viimeiset 30 päivää',
+    aiUsageDays7: 'Viimeiset 7 päivää',
+    aiUsageDays90: 'Viimeiset 90 päivää',
+    userSettingsTitle: 'Käyttäjäasetukset',
+    userAccountVerified: 'Vahvistettu tili',
+    userAccountFree: 'Ilmainen tili',
+    userAccountGuest: 'Vierailija',
+    userMenuAria: 'Käyttäjävalikko',
+    userMenuLanguage: 'Kieli',
+    userMenuTheme: 'Teema',
+    userMenuDocumentation: 'Dokumentaatio',
     analyzePassage: 'Analysoi tekstiä',
     aiReading: 'Tekoäly opiskelee tekstikohtaa...',
     aiUnavailable: 'Tekoäly ei ole käytettävissä. Aseta GEMINI_API_KEY.',

@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/mvirtai/clible-v3-go/internal/config"
+	"github.com/mvirtai/clible-v3-go/internal/ctxkeys"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/parsers"
@@ -85,9 +87,10 @@ const aiSearchSummarySystemInstruction = "You summarize Bible search results for
 
 // Structs matching the JSON footers and models
 type GeminiUsageMetadata struct {
-	PromptTokenCount     int `json:"promptTokenCount"`
-	CandidatesTokenCount int `json:"candidatesTokenCount"`
-	TotalTokenCount      int `json:"totalTokenCount"`
+	PromptTokenCount        int `json:"promptTokenCount"`
+	CandidatesTokenCount    int `json:"candidatesTokenCount"`
+	TotalTokenCount         int `json:"totalTokenCount"`
+	CachedContentTokenCount int `json:"cachedContentTokenCount,omitempty"`
 }
 
 type geminiResponse struct {
@@ -132,16 +135,45 @@ type aiServiceImpl struct {
 	cfg       *config.Config
 	client    *http.Client
 	verseRepo *db.VerseRepository
+	usageRepo db.AiUsageRepository
 }
 
 // NewAIService creates a new AIService implementation
-func NewAIService(cfg *config.Config, verseRepo *db.VerseRepository) AIService {
+func NewAIService(cfg *config.Config, verseRepo *db.VerseRepository, usageRepo db.AiUsageRepository) AIService {
 	return &aiServiceImpl{
 		cfg: cfg,
 		client: &http.Client{
 			Timeout: 45 * time.Second,
 		},
 		verseRepo: verseRepo,
+		usageRepo: usageRepo,
+	}
+}
+
+// recordUsage records token consumption metrics to the repository asynchronously or safely.
+func (s *aiServiceImpl) recordUsage(ctx context.Context, feature, model string, usage *GeminiUsageMetadata) {
+	if s.usageRepo == nil || usage == nil {
+		return
+	}
+
+	u := &models.AiTokenUsage{
+		Feature:          feature,
+		Model:            model,
+		PromptTokens:     usage.PromptTokenCount,
+		CandidatesTokens: usage.CandidatesTokenCount,
+		TotalTokens:      usage.TotalTokenCount,
+		CachedTokens:     usage.CachedContentTokenCount,
+	}
+
+	if userID, ok := ctxkeys.GetUserID(ctx); ok && userID != "" {
+		u.UserID = &userID
+	} else {
+		guest := "guest"
+		u.GuestID = &guest
+	}
+
+	if err := s.usageRepo.RecordUsage(ctx, u); err != nil {
+		slog.Warn("Failed to record AI token usage", "feature", feature, "error", err)
 	}
 }
 
@@ -315,6 +347,7 @@ func (s *aiServiceImpl) GetInsight(ctx context.Context, text, focus string) (*AI
 	if err != nil {
 		return nil, err
 	}
+	s.recordUsage(ctx, "insight", s.cfg.GeminiModelInsight, usage)
 
 	resp := parseAIResponse(raw)
 	if usage != nil {
@@ -352,6 +385,7 @@ func (s *aiServiceImpl) GetTone(ctx context.Context, text, focus string) (*AIRes
 	if err != nil {
 		return nil, err
 	}
+	s.recordUsage(ctx, "tone", s.cfg.GeminiModelTone, usage)
 
 	resp := parseAIResponse(raw)
 	if usage != nil {
@@ -398,6 +432,7 @@ func (s *aiServiceImpl) DeepDive(ctx context.Context, topic, outputLanguage stri
 	if err != nil {
 		return nil, err
 	}
+	s.recordUsage(ctx, "deep_dive", s.cfg.GeminiModelInsight, usage)
 
 	resp := parseAIResponse(raw)
 	if usage != nil {
@@ -515,6 +550,7 @@ func (s *aiServiceImpl) OriginalStudy(ctx context.Context, reference, sourceText
 	if err != nil {
 		return nil, err
 	}
+	s.recordUsage(ctx, "original_study", s.cfg.GeminiModelOriginal, usage)
 
 	resp := parseAIResponse(raw)
 	if usage != nil {
@@ -538,6 +574,7 @@ func (s *aiServiceImpl) AISearch(ctx context.Context, query, translationID, uiLa
 	if err != nil {
 		return nil, fmt.Errorf("AI search planner phase failed: %w", err)
 	}
+	s.recordUsage(ctx, "search_planner", s.cfg.GeminiModelSearch, usagePlanner)
 
 	var plan SearchPlan
 	if err := json.Unmarshal([]byte(planRaw), &plan); err != nil {
@@ -659,6 +696,7 @@ func (s *aiServiceImpl) AISearch(ctx context.Context, query, translationID, uiLa
 	if err != nil {
 		return nil, fmt.Errorf("AI search summarizer phase failed: %w", err)
 	}
+	s.recordUsage(ctx, "search_summary", s.cfg.GeminiModelSearch, usageSummarizer)
 
 	// Simple heuristic extraction of cited references
 	var citedRefs []string
@@ -714,6 +752,7 @@ func (s *aiServiceImpl) GetComparison(ctx context.Context, reference, transA, te
 	if err != nil {
 		return nil, err
 	}
+	s.recordUsage(ctx, "compare", s.cfg.GeminiModelTone, usage)
 
 	resp := parseAIResponse(raw)
 	if usage != nil {

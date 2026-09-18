@@ -52,6 +52,7 @@ func main() {
 	bookRepo := db.NewBookRepository(dbConn)
 	userRepo := db.NewUserRepository(dbConn)
 	notebookRepo := db.NewNotebookRepository(dbConn)
+	aiUsageRepo := db.NewAiUsageRepository(dbConn)
 
 	// --- Services & Parsers ---
 	verseService := services.NewVerseService(verseRepo, translationRepo)
@@ -79,7 +80,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	aiService := services.NewAIService(cfg, verseRepo)
+	aiUsageService := services.NewAiUsageService(aiUsageRepo)
+	aiService := services.NewAIService(cfg, verseRepo, aiUsageRepo)
 
 	// --- API Handlers ---
 	bibleHandler := api.NewBibleHandler(verseService)
@@ -90,6 +92,7 @@ func main() {
 	bookHandler := api.NewBookHandler(bookService)
 	authHandler := api.NewAuthHandler(authService, userRepo)
 	aiHandler := api.NewAIHandler(aiService)
+	aiUsageHandler := api.NewAiUsageHandler(aiUsageService)
 	notebookHandler := api.NewNotebookHandler(notebookService)
 	dslHandler := api.NewDSLHandler(cliService)
 	versionHandler := api.NewVersionHandler()
@@ -165,6 +168,8 @@ func main() {
 	mux.Handle("POST /api/ai/original-study", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetOriginalStudy))))
 	mux.Handle("POST /api/ai/search", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.AISearch))))
 	mux.Handle("POST /api/ai/compare", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetComparison))))
+	mux.Handle("GET /api/ai/usage/me", requireAuth(http.HandlerFunc(aiUsageHandler.GetMyUsage)))
+	mux.Handle("GET /api/ai/usage/summary", optionalAuth(http.HandlerFunc(aiUsageHandler.GetSummary)))
 
 	// Static SPA fallback
 	fs := http.FileServer(http.Dir(cfg.FrontendDir))

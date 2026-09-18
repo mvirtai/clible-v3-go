@@ -1,18 +1,16 @@
-import { useNavigate } from 'react-router-dom';
-import { Terminal, Settings, Sun, Moon, LogOut, LogIn, UserPlus } from 'lucide-react';
-import { LanguageSwitcher } from '../LanguageSwitcher/LanguageSwitcher';
+import { Terminal, Sun, Moon } from 'lucide-react';
 import { TranslationSelector } from '../translations/TranslationSelector';
+import { UserMenuDropdown } from './UserMenuDropdown';
 import { useLanguage } from '../../context/LanguageContext';
 import { APP_VERSION } from '@/utils/version';
 import type { InstalledTranslation } from '../../types/bible';
-
 
 export type ViewMode = 'reader' | 'search' | 'analytics' | 'compare' | 'original' | 'notebooks';
 
 export interface AppHeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
-  user: { email: string } | null;
+  user: { email: string; name?: string } | null;
   onSignOut: () => void;
   showManager: boolean;
   onToggleManager: () => void;
@@ -23,7 +21,7 @@ export interface AppHeaderProps {
 
 /**
  * Top sticky header bar containing branding, theme toggle, translation selector,
- * user authentication info, guest mode indicator, and settings manager buttons.
+ * and the unified UserMenuDropdown.
  */
 export function AppHeader({
   theme,
@@ -37,7 +35,6 @@ export function AppHeader({
   onSelectTranslation,
 }: AppHeaderProps) {
   const { strings } = useLanguage();
-  const navigate = useNavigate();
 
   return (
     <header
@@ -81,70 +78,18 @@ export function AppHeader({
           </h1>
         </div>
 
-        {/* User & Global Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink">
-          {user ? (
-            <>
-              <span className="text-xs max-md:hidden" style={{ color: 'var(--muted)' }}>
-                {user.email}
-              </span>
-              <button
-                onClick={onSignOut}
-                aria-label={strings.signOutTitle}
-                className="flex items-center gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)] shrink-0 cursor-pointer"
-                style={{
-                  border: '1px solid var(--border)',
-                  background: 'transparent',
-                  color: 'var(--muted)',
-                }}
-              >
-                <LogOut size={14} />
-                <span className="max-md:hidden">{strings.signOutTitle}</span>
-              </button>
-            </>
-          ) : (
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <button
-                onClick={() => navigate('/login')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium btn-tactile hover:text-[var(--text)] cursor-pointer"
-                style={{ color: 'var(--muted)' }}
-              >
-                <LogIn size={13} />
-                <span>{strings.loginButton}</span>
-              </button>
-              <button
-                onClick={() => navigate('/register')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium btn-tactile hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors cursor-pointer"
-                style={{
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface-2)',
-                  color: 'var(--text)',
-                }}
-              >
-                <UserPlus size={13} />
-                <span>{strings.guestQuickSignup}</span>
-              </button>
-            </div>
-          )}
-
-          <button
-            onClick={onToggleManager}
-            className="flex items-center gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors btn-tactile hover:border-[var(--accent)] shrink-0 cursor-pointer"
-            style={{
-              border: '1px solid var(--border)',
-              background: showManager ? 'var(--accent-bg)' : 'transparent',
-              color: showManager ? 'var(--accent)' : 'var(--muted)',
-            }}
-          >
-            <Settings size={14} />
-            <span className="max-sm:hidden">{showManager ? strings.hideLabel : strings.translationsLabel}</span>
-          </button>
-
-          <LanguageSwitcher />
+        {/* Translation Selector & User Menu */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink">
           <TranslationSelector
             selectedTranslation={selectedTranslation}
             onSelectTranslation={onSelectTranslation}
             translations={installedTranslations}
+          />
+          <UserMenuDropdown
+            user={user}
+            onSignOut={onSignOut}
+            showManager={showManager}
+            onToggleManager={onToggleManager}
           />
         </div>
       </div>
