@@ -329,6 +329,59 @@ tasks:
         gh api -X PATCH "repos/:owner/:repo/pulls/$PR_NUM" -F "body=@{{.STORY_PATH}}" >/dev/null
       - 'echo "PR body updated successfully!"'
 
+  git:pr-edit:
+    desc: Update existing GitHub PR title and/or body via GitHub REST API. Usage task git:pr-edit [TITLE="..."] [FILE=story.md] [PR=number]
+    vars:
+      CURRENT_BRANCH:
+        sh: git branch --show-current
+      STORY_FILE:
+        sh: |
+          if [ -n "{{.FILE}}" ]; then
+            F="{{.FILE}}"
+            F="${F#pr_stories/}"
+            if [[ "$F" != *.md ]]; then
+              F="${F}.md"
+            fi
+            echo "$F"
+          elif [ -z "{{.TITLE}}" ]; then
+            find pr_stories -maxdepth 1 -name '[0-9]*.md' -type f 2>/dev/null | sort -V | tail -n 1 | xargs -n 1 basename 2>/dev/null
+          fi
+      STORY_PATH: '{{if .STORY_FILE}}pr_stories/{{.STORY_FILE}}{{end}}'
+    preconditions:
+      - sh: command -v gh >/dev/null 2>&1
+        msg: "GitHub CLI (gh) is required but not installed. Run 'brew install gh' or equivalent."
+    cmds:
+      - |
+        PR_NUM="{{.PR}}"
+        if [ -z "$PR_NUM" ]; then
+          PR_NUM=$(gh api "repos/:owner/:repo/pulls?state=open" --jq '.[] | select(.head.ref == "{{.CURRENT_BRANCH}}") | .number' 2>/dev/null | head -n 1)
+        fi
+        if [ -z "$PR_NUM" ]; then
+          echo "Error: Could not find open pull request for branch '{{.CURRENT_BRANCH}}'. Please specify PR number manually: task git:pr-edit PR=<number>"
+          exit 1
+        fi
+        echo "Target PR: #$PR_NUM on branch '{{.CURRENT_BRANCH}}'"
+
+        ARGS=()
+        if [ -n "{{.TITLE}}" ]; then
+          ARGS+=(-f "title={{.TITLE}}")
+          echo "Setting title: '{{.TITLE}}'"
+        fi
+
+        if [ -n "{{.STORY_PATH}}" ] && [ -f "{{.STORY_PATH}}" ]; then
+          ARGS+=(-F "body=@{{.STORY_PATH}}")
+          echo "Setting body from: '{{.STORY_PATH}}'"
+        fi
+
+        if [ ${#ARGS[@]} -eq 0 ]; then
+          echo "Error: Neither TITLE nor valid FILE provided to update PR #$PR_NUM."
+          echo "Usage: task git:pr-edit [TITLE=\"feat: ...\"] [FILE=story.md] [PR=number]"
+          exit 1
+        fi
+
+        gh api -X PATCH "repos/:owner/:repo/pulls/$PR_NUM" "${ARGS[@]}" >/dev/null
+        echo "✅ PR #$PR_NUM successfully updated via GitHub REST API!"
+
   git:commit:
     desc: 'Stage changes and create a formatted conventional commit. Usage: task git:commit TYPE=feat SCOPE=setup MSG="add config loader" [FILES="file1"] [SKIP_CHECK=1]'
     cmds:
