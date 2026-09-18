@@ -77,7 +77,7 @@ export function AiTokenUsageModal({
   const activeStats = isAuthenticated && state.userStats ? state.userStats : state.summary?.guestStats;
   const totalTokens = activeStats?.totalTokens ?? 0;
   const promptTokens = activeStats?.totalPromptTokens ?? 0;
-  const candidatesTokens = activeStats?.totalCandTokens ?? 0;
+  const candidatesTokens = activeStats?.totalCandidatesTokens ?? 0;
   const cachedTokens = activeStats?.cachedTokens ?? 0;
   const totalCalls = activeStats?.totalCalls ?? 0;
 
