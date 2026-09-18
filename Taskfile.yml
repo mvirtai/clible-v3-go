@@ -133,6 +133,7 @@ tasks:
       - '../.cov/frontend/.lint_ok'
     method: checksum
     cmds:
+      - pnpm exec tsc -b
       - pnpm run lint
       - mkdir -p ../.cov/frontend && touch ../.cov/frontend/.lint_ok
 
