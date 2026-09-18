@@ -96,6 +96,7 @@ type AiUsageRepository interface {
 ```
 
 Every AI operation automatically invokes telemetry logging:
+
 - `GetInsight`: Feature `"insight"`
 - `GetTone`: Feature `"tone"`
 - `DeepDive`: Feature `"deep_dive"`
@@ -107,33 +108,42 @@ Every AI operation automatically invokes telemetry logging:
 ### 3. React 19.2 & React Compiler Modal Interface
 
 The frontend introduces `AiTokenUsageModal.tsx`, implementing the React 19.2 mental model:
+
 - **Zero `useEffect` for State Sync:** Action dispatches and modal triggers use declarative event handlers and `useActionState` instead of lifecycle effect cascades.
 - **Pure Derived Metrics:** Proportional breakdowns (Prompt vs. Output percentages, M/k token abbreviations) are calculated at render time.
 - **Bilingual Localization:** All metrics, badges, and time range selectors (7, 30, 90 days) are defined in both Finnish and English in `frontend/src/utils/i18n.ts`.
+- **Portal Overlay Stacking (`createPortal`):** Modal dialog renders via `createPortal(..., document.body)` to escape local parent layout constraints and z-index clipping, with tests updated to query `document.body`.
+
+### 4. Codebase Maintenance & Quality Gate Isolation
+
+As part of the housekeeping protocol:
+
+- Cleaned up obsolete test dump files and orphan diff artifacts (`.cov/new_dsl.*`, temporary text diffs).
+- Enforced **Developer WIP Isolation**: Updated agent guidelines (`AGENTS.md` and `clible-quality-gates` skill) so that global `task check` failures caused by concurrent developer edits in other files are isolated, while agent-assigned modifications are verified via scoped checks.
 
 ---
 
 ## 📈 Improvement Metrics & Key Figures
 
-* **Token Accountability:** 100% of all Gemini API invocations across all 7 functional endpoints now log prompt, candidate, and total token usage.
-* **Backend Test Coverage:** Maintained 77.3% total statement coverage across Go packages with zero regressions.
-* **Frontend Test Suite:** 36 test files passed cleanly (300 unit and component tests).
-* **Zero Allocations on Inactive Paths:** Auditing hooks incur zero memory overhead when AI features are idle.
+- **Token Accountability:** 100% of all Gemini API invocations across all 7 functional endpoints now log prompt, candidate, and total token usage.
+- **Backend Test Coverage:** Maintained 77.3% total statement coverage across Go packages with zero regressions.
+- **Frontend Test Suite:** 36 test files passed cleanly (300 unit and component tests).
+- **Zero Allocations on Inactive Paths:** Auditing hooks incur zero memory overhead when AI features are idle.
 
 ---
 
 ## Security & Compliance
 
-* **Authenticated Context Propagation:** User identity is verified via `ctxkeys.GetUserID(ctx)`. Token records for guests are securely attributed to anonymous identifiers with `user_id = NULL`.
-* **SQL Injection Prevention:** All SQL queries in `ai_usage_repo.go` use parameterized placeholders (`$1, $2`).
-* **Safe Error Handling:** API responses return sanitized error codes without exposing internal database errors or API keys.
+- **Authenticated Context Propagation:** User identity is verified via `ctxkeys.GetUserID(ctx)`. Token records for guests are securely attributed to anonymous identifiers with `user_id = NULL`.
+- **SQL Injection Prevention:** All SQL queries in `ai_usage_repo.go` use parameterized placeholders (`$1, $2`).
+- **Safe Error Handling:** API responses return sanitized error codes without exposing internal database errors or API keys.
 
 ---
 
 ## Files Changed
 
 | File | Change Summary |
-|------|----------------|
+| ------ | ---------------- |
 | `backend/migrations/016_ai_token_usage.sql` | Schema migration for AI token usage table and performance indexes |
 | `backend/internal/models/ai_usage.go` | Domain data models for token usage, statistics, and summary aggregates |
 | `backend/internal/db/ai_usage_repo.go` | Repository implementation with parameterized aggregation queries |
@@ -160,8 +170,8 @@ The frontend introduces `AiTokenUsageModal.tsx`, implementing the React 19.2 men
 
 #### Backend (Go Test Suite)
 
-* **Coverage:** 77.3% total statement coverage (from `.cov/backend/coverage.txt`).
-* **Quality Gates:** `task backend:check` and `task check` passed without any compilation or linter errors.
+- **Coverage:** 77.3% total statement coverage (from `.cov/backend/coverage.txt`).
+- **Quality Gates:** `task backend:check` and `task check` passed without any compilation or linter errors.
 
 ```text
 === RUN   TestAiUsageRepository_RecordAndAggregate
@@ -176,5 +186,5 @@ The frontend introduces `AiTokenUsageModal.tsx`, implementing the React 19.2 men
 
 #### Frontend (Vitest Suite)
 
-* **Test Suite:** `pnpm test` / `task frontend:check`.
-* **Results:** 36 test files passed, 300 tests passed (100% green).
+- **Test Suite:** `pnpm test` / `task frontend:check`.
+- **Results:** 36 test files passed, 300 tests passed (100% green).
