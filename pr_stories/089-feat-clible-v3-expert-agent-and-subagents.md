@@ -137,7 +137,7 @@ graph TD
 | `.agents/skills/` | Repository skill suite (ISLA DSL, React Compiler audit, Quality Gates, Markdown Kanban, Speechify) |
 | `.agents/workflows/` | Standardized agent workflows (security review, bugfix verification, feature planning, PR creation) |
 | `kanban/todos.md` | Synchronized task board tracking agent skill design, subagent audits, and PR lifecycle |
-| `pr_stories/088-feat-clible-v3-expert-agent-and-subagents.md` | Comprehensive PR story documenting agent ecosystem architecture and quality gates |
+| `pr_stories/089-feat-clible-v3-expert-agent-and-subagents.md` | Comprehensive PR story documenting agent ecosystem architecture and quality gates |
 
 ---
 

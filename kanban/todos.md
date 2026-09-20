@@ -2,35 +2,6 @@
 
 ## In Progress
 
-### Clible v3.* Asiantuntija-arkkitehti ja Spesifit Subagentit (Clible v3.* Expert & Subagents)
-
-  - due: 2026-10-01
-  - tags: [agent, skill, architecture, clible-v3, subagent, isla, react, backend]
-  - priority: high
-  - workload: Hard
-  - defaultExpanded: true
-  - steps:
-      - [x] Esitutkimus: olemassa olevien taitojen (skills) ja työnkulkujen (workflows) kartoitus
-      - [x] Suunnitelmadokumentin laadinta molemmista poluista (.plans/19-clible-v3-expert-agent/)
-      - [x] Polku 1: Pääarkkitehdin taidon (.agents/skills/clible-v3-expert/SKILL.md) rakentaminen
-      - [x] Polku 1: Arkkitehtuurikartan ja viitedokumenttien luominen (Go, React 19, ISLA v2, Neon DB)
-      - [x] Polku 2: ISLA-subagentin syväperehdytys kattavaan kielioppidokumentaatioon (.plans/isla-v2, .plans/muistiot, .plans/13-isla-ide-experience)
-      - [x] Polku 2: isla-engine-specialist -subagentin uudelleenmäärittely kattavalla kielioppipohjalla (v1/v2/v3 ja putkialgebra)
-      - [x] Polku 2: react-compiler-auditor -subagentin dynaaminen määrittely ja katselmointitehtävä (React 19.2, 2D Grid Canvas, i18n)
-      - [x] Polku 2: backend-pipeline-auditor -subagentin dynaaminen määrittely ja katselmointitehtävä (Go 1.22, O(1) streaming, Neon DB)
-      - [x] Polku 2: pr-documentation-specialist -subagentin määrittely ja PR-story -laadintaprosessi
-      - [x] Kaikkien subagenttien raporttien arviointi ja koonti
-      - [x] .agents/ -hakemiston tuominen versionhallintaan (.gitignore -päivitys)
-      - [x] Laaduntarkistukset ja toimivuuden varmennus (task check)
-      - [ ] PR-tarinan luominen ja PR:n avaaminen (task git:pr)
-    ```md
-    Suunnitelma: [.plans/19-clible-v3-expert-agent/01-clible-v3-expert-agent-ja-skill.md](file:///home/vivaldev/code/clible-v3-go/.plans/19-clible-v3-expert-agent/01-clible-v3-expert-agent-ja-skill.md)
-    Toteutetaan hybridimallin (Vaihtoehto C) mukainen kokonaisuus:
-    1. Polku 1: Pääarkkitehdin asiantuntijataito (.agents/skills/clible-v3-expert/), joka yhdistää Go 1.22+ backendin, React 19.2 -frontendin, ISLA v2 -moottorin ja Neon PostgreSQL -tietokannan sekä ohjaa työnkulkuja.
-    2. Polku 2: Neljä erikoistunutta subagenttia (isla-engine-specialist, react-compiler-auditor, backend-pipeline-auditor, pr-documentation-specialist), joille annetaan syväperehdytys projektin kattavaan dokumentaatiopohjaan ja suoritetaan arkkitehtuurikatselmoinnit.
-    3. Versionhallinta: .agents/ -hakemiston vapauttaminen .gitignoresta ja kokonaisuuden vieminen GitHub PR:ksi.
-    ```
-
 ### Semanttisen haun jakeiden kuratointi ja Swipe-triage (Mobiili & Työpöytä)
 
   - due: 2026-09-28
@@ -236,6 +207,36 @@
     ```
 
 ## Done
+
+### Clible v3.* Asiantuntija-arkkitehti ja Spesifit Subagentit (Clible v3.* Expert & Subagents)
+
+  - due: 2026-10-01
+  - tags: [agent, skill, architecture, clible-v3, subagent, isla, react, backend]
+  - priority: high
+  - workload: Hard
+  - defaultExpanded: false
+  - steps:
+      - [x] Esitutkimus: olemassa olevien taitojen (skills) ja työnkulkujen (workflows) kartoitus
+      - [x] Suunnitelmadokumentin laadinta molemmista poluista (.plans/19-clible-v3-expert-agent/)
+      - [x] Polku 1: Pääarkkitehdin taidon (.agents/skills/clible-v3-expert/SKILL.md) rakentaminen
+      - [x] Polku 1: Arkkitehtuurikartan ja viitedokumenttien luominen (Go, React 19, ISLA v2, Neon DB)
+      - [x] Polku 2: ISLA-subagentin syväperehdytys kattavaan kielioppidokumentaatioon (.plans/isla-v2, .plans/muistiot, .plans/13-isla-ide-experience)
+      - [x] Polku 2: isla-engine-specialist -subagentin uudelleenmäärittely kattavalla kielioppipohjalla (v1/v2/v3 ja putkialgebra)
+      - [x] Polku 2: react-compiler-auditor -subagentin dynaaminen määrittely ja katselmointitehtävä (React 19.2, 2D Grid Canvas, i18n)
+      - [x] Polku 2: backend-pipeline-auditor -subagentin dynaaminen määrittely ja katselmointitehtävä (Go 1.22, O(1) streaming, Neon DB)
+      - [x] Polku 2: pr-documentation-specialist -subagentin määrittely ja PR-story -laadintaprosessi
+      - [x] Kaikkien subagenttien raporttien arviointi ja koonti
+      - [x] .agents/ -hakemiston tuominen versionhallintaan (.gitignore -päivitys)
+      - [x] Laaduntarkistukset ja toimivuuden varmennus (task check)
+      - [x] PR-tarinan luominen ja PR:n avaaminen (task git:pr -> PR #95)
+    ```md
+    Suunnitelma: [.plans/19-clible-v3-expert-agent/01-clible-v3-expert-agent-ja-skill.md](file:///home/vivaldev/code/clible-v3-go/.plans/19-clible-v3-expert-agent/01-clible-v3-expert-agent-ja-skill.md)
+    Toteutettu PR-tarinassa `pr_stories/089-feat-clible-v3-expert-agent-and-subagents.md` (GitHub PR #95).
+    Hybridimallin (Vaihtoehto C) mukainen kokonaisuus:
+    1. Polku 1: Pääarkkitehdin asiantuntijataito (.agents/skills/clible-v3-expert/), joka yhdistää Go 1.22+ backendin, React 19.2 -frontendin, ISLA v2 -moottorin ja Neon PostgreSQL -tietokannan sekä ohjaa työnkulkuja.
+    2. Polku 2: Neljä erikoistunutta subagenttia (isla-engine-specialist, react-compiler-auditor, backend-pipeline-auditor, pr-documentation-specialist), joille annettu syväperehdytys projektin kattavaan dokumentaatiopohjaan ja suoritettu arkkitehtuurikatselmoinnit.
+    3. Versionhallinta: .agents/ -hakemiston vapauttaminen .gitignoresta ja vieminen GitHub PR:ksi #95.
+    ```
 
 ### i18n-käännöskorjaukset ja -parannukset (FI/EN)
 
