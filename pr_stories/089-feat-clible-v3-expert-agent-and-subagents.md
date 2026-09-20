@@ -103,15 +103,17 @@ graph TD
 
 - Updated Kanban board to reflect the complete execution lifecycle of the agent ecosystem task under `## In Progress` and `## Done`, linking documentation, subagents, and quality gate verifications.
 
-### 4. PR Specialist Training: Diagram Discipline (~0–3) & Concurrent Release Sequencing
+### 4. PR Specialist Training: Diagram Discipline (~0–3), Creative Voice & Release Sequencing
 
 - **Diagram Necessity & Quantity Discipline (~0–3):** Codified strict guidelines preventing visual bloat. Lean changes and bugfixes use 0 diagrams; focused features use 1; full-stack features use 2; major milestones use a hard ceiling of 3 distinct diagrams.
+- **Creative Engineering Narrative & Anti-Boilerplate Voice:** Ban sterile, robotic boilerplate and formulaic repetitions across PR stories. Mandate compelling architectural narratives that explain the problem friction, trade-offs, and micro-craftsmanship while maintaining senior rigor.
 - **Concurrent Agent Coordination & Release Sequencing:** Formulated protocols for multi-agent co-existence: branch isolation, preventing accidental staging of concurrent agents' work, sequence number collision prevention (`ls pr_stories/`, `git mv`), and release sequencing advice (foundation/migrations first -> orthogonal branches in parallel -> dependents last).
 
 ---
 
 ## 📈 Improvement Metrics & Key Figures
 
+* **Semantic Version:** Bumped patch version to `3.5.1` (`VERSION`, `package.json`, `version.ts`, `version.go`).
 * **Agent Domain Specialization:** 4 purpose-built subagents covering all critical architectural domains (ISLA, React 19.2, Go backend, PR documentation).
 * **Reference Base:** 4 dedicated technical reference documents synthesizing over 50 plans, memos, and architectural decisions.
 * **Test Verification:** 100% pass rate across backend Go unit test suites (`24/24 PASS` in DSL, `PASS` in API) and Vitest frontend test suites (`36/36 passed`, `300/300 tests passed`).
@@ -131,6 +133,10 @@ graph TD
 
 | File | Change Summary |
 |------|----------------|
+| `VERSION` | Bump patch version to 3.5.1 |
+| `frontend/package.json` | Synchronize frontend package version to 3.5.1 |
+| `frontend/src/utils/version.ts` | Update client-side version constant to 3.5.1 |
+| `backend/internal/version/version.go` | Update Go backend version constant to 3.5.1 |
 | `.gitignore` | Remove `.agents/` exclusion to enable Git version control for agent skills and configurations |
 | `.agents/AGENTS.md` | Core repository conventions, communication policy, pair programming rules, and quality gates |
 | `.agents/rules/` | Operational rules for Markdown Kanban task management, guest mode, and authentication |
@@ -139,8 +145,8 @@ graph TD
 | `.agents/skills/clible-v3-expert/references/boundary-rules.md` | Inviolable architectural boundaries between API, Service, Repository, and Parser layers |
 | `.agents/skills/clible-v3-expert/references/data-flow-matrix.md` | Detailed data flow matrix from user input to database storage and client rendering |
 | `.agents/skills/clible-v3-expert/references/subagent-catalog.md` | Catalog of specialized subagents, prompt templates, roles, and verification checklists |
-| `.agents/skills/` | Repository skill suite (ISLA DSL, React Compiler audit, Quality Gates, Markdown Kanban, Speechify) |
-| `.agents/workflows/` | Standardized agent workflows (security review, bugfix verification, feature planning, PR creation) |
+| `.agents/skills/pr-story-reviewer/SKILL.md` | PR reviewer skill with 0-3 diagram rule, creative expression, and concurrency protocol |
+| `.agents/workflows/verify-pr-story.md` | Workflow for auditing PR stories, diagram counts, narrative quality, and release sequence |
 | `kanban/todos.md` | Synchronized task board tracking agent skill design, subagent audits, and PR lifecycle |
 | `pr_stories/089-feat-clible-v3-expert-agent-and-subagents.md` | Comprehensive PR story documenting agent ecosystem architecture and quality gates |
 

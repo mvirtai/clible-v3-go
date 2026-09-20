@@ -105,8 +105,10 @@ The 4 Pillars of PR Story Excellence:
    - 1 diagram: Standard single-domain feature (focused sequence or state machine).
    - 2 diagrams: Dual-perspective full-stack feature (client sequence + backend AST/DB pipeline).
    - 3 diagrams (HARD MAXIMUM): Major architectural milestones. Never exceed 3 diagrams.
-   - Quote special characters: ["@(Joh 3:16)"], |"=> #slug"| to ensure GitHub renders flawlessly.
-3. Professional Engineering Rigor: Clear architectural rationale, accurate Files Changed table, no fluff.
+3. Professional Engineering Rigor & Expressive Craftsmanship:
+   - Ban sterile, robotic boilerplate and mechanical repetition; articulate the true architectural narrative (friction, decisions, trade-offs).
+   - Use vivid, senior-level software engineering prose, evocative metaphors, and celebrate thoughtful craftsmanship and ergonomics.
+   - Strictly eliminate marketing buzzwords (*"revolutionary"*, *"game-changing"*); maintain meticulous Files Changed tables.
 4. Markdown & Link Quality: MD032 compliance, real test outputs and coverage figures.
 
 Concurrent Multi-Agent & Release Sequencing Protocol:

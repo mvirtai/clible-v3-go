@@ -49,6 +49,7 @@ clible-v3-go/
 ## 2. Backend Subsystems (Go 1.22+)
 
 ### A. HTTP Routing & API Layer (`backend/internal/api/`)
+
 - Built on Go 1.22+ standard library `http.ServeMux`.
 - Routes use exact HTTP method prefixes:
   - `GET /api/verses`
@@ -58,11 +59,13 @@ clible-v3-go/
 - Middleware extracts user identities safely into context using typed keys ([`ctxkeys.GetUserID(ctx)`](file:///home/vivaldev/code/clible-v3-go/backend/internal/ctxkeys)).
 
 ### B. Service Layer (`backend/internal/services/`)
+
 - Orchestrates multi-step operations (e.g. verse aggregation, user preferences, guest notebook TTL cleanup).
 - Enforces batching (recommended chunk size: 500 records) to maintain constant memory overhead.
 - Strictly decoupled from HTTP primitives (`http.ResponseWriter`, `*http.Request`).
 
 ### C. Repository Layer (`backend/internal/db/`)
+
 - Interacts directly with `*sql.DB`.
 - Strictly uses parameterized SQL (`$1, $2`).
 - Dual-driver compatibility:
@@ -70,6 +73,7 @@ clible-v3-go/
   - Tests: SQLite `:memory:` for high-speed automated unit tests.
 
 ### D. ISLA v2 Engine (`backend/new_dsl/`)
+
 - Independent, high-performance compiler and query engine:
   - `lexer.go`: Tokenizes source strings up to 2000 runes in $O(1)$ space.
   - `parser.go`: Deterministic LL(1) recursive-descent parser (< 50 µs parse time).
@@ -81,17 +85,20 @@ clible-v3-go/
 ## 3. Frontend Subsystems (React 19.2 & TypeScript)
 
 ### A. State Management & Navigation
+
 - Zero `useEffect` for state synchronization.
 - Browser URL, query parameters, and history navigation are tracked using `useSyncExternalStore` subscribed to `popstate`.
 - Active view switching (`notebook`, `reader`, `search`, `settings`) is driven by URL hash/pathname.
 
 ### B. 2D Canvas & Grid Matrix
+
 - Located in `frontend/src/components/notebook/`.
 - 24-column flexible CSS Grid.
 - Cells can be moved, resized, collapsed, and grouped.
 - Hybrid cells support rich Markdown text, embedded ISLA v2 query blocks, and live verse result cards.
 
 ### C. Internationalization (`frontend/src/i18n.ts`)
+
 - Strict bilingual support: Finnish (`fi`) and English (`en`).
 - Helper function `t("key")` retrieves translated strings.
 - Zero hardcoded text allowed in any TSX markup.

@@ -37,10 +37,12 @@ A Pull Request story is the permanent historical record of architectural decisio
      - `erDiagram`: Database schema relations, foreign keys, and entity structures.
    - **Syntax & Quoting Rules**: Always quote node labels and messages containing special characters (`@`, `=>`, `?`, `:`, `()`, `{}`) to prevent GitHub rendering errors (e.g. `id["@(Joh 3:16)"]` or `|"=> #slug"|`).
 
-3. **Professional Software Engineering Rigor**
-   - Eliminate marketing adjectives, hyperbole, and "newbie" placeholders.
-   - Maintain concise, clear, and unambiguous explanations of *why* choices were made.
-   - Ensure all changed files are accurately listed in the **Files Changed** table.
+3. **Professional Engineering Rigor & Expressive Craftsmanship (Luovuus ja elävä ilmaisu ilman robottimaista toistoa)**
+   - **Narrative Arc & Intentionality**: A Pull Request story must never read as sterile, mechanical boilerplate or automated changelog regurgitation. It should tell a compelling architectural story: what was the underlying friction or engineering tension? Why was this specific path chosen over alternative designs? What trade-offs were deliberately accepted?
+   - **Expressive Technical Voice over Sterile Repetition**: Use vivid, senior-level software engineering prose with articulate metaphors and crisp technical precision (e.g. *"ephemeral sandbox with self-pruning TTL"*, *"zero-DOM-overhead token streaming"*, *"matrix grid snapping with spatial viewport ergonomics"*). Avoid formulaic mad-libs repetition across PR stories.
+   - **Celebrating Engineering Craftsmanship**: Highlight thoughtful micro-details and elegant solutions—whether it is a clever algorithmic simplification, a robust concurrency guarantee, or a delightful UI micro-interaction. True engineering pride and craftsmanship should be visible in the repository's permanent history.
+   - **Rigor Without Marketing Fluff**: Vibrant expression must never be confused with shallow marketing hype. Strictly ban sales buzzwords (*"revolutionary"*, *"game-changing"*, *"mind-blowing"*). Maintain technical truth, objective accuracy, and senior intellectual honesty.
+   - **Accurate Diff Accounting**: Ensure all changed files and key metrics are meticulously recorded in the **Files Changed** table without omitting secondary touchpoints.
 
 4. **Markdown & Link Quality Gates**
    - Adhere strictly to markdownlint rules (blank lines around lists MD032, valid headings, no broken syntax).

@@ -33,9 +33,11 @@ Tämä työnkulku suoritetaan aina, kun PR-tarina (`pr_stories/*.md`) on luotu t
   2. Riippumattomat aihehaarat voivat edetä rinnakkain.
   3. Neuvo kehittäjää rebeissaamaan muut avoimet haarat `main`-haaran mergeamisen jälkeen.
 
-### 4. Ammatillinen kieli ja terminologia (Tone & Rigor)
-- Poista liioitteleva tai keinotekoinen hehkutus.
-- Varmista, että teksti kuvaa ammattimaisesti ohjelmistoarkkitehtuuria, valintoja ja rajapintoja.
+### 4. Ammatillinen kieli, luovuus ja ilmaisun elävyys (Tone, Rigor & Engaging Narrative)
+- **Kertomuksellinen kaari (Narrative Arc)**: Varmista, ettei PR-tarina ole vain steriili mekaaninen muutoslista tai robottimainen 'changelog dump'. Avaa arkkitehtoninen matka: mikä oli perimmäinen kitka tai ongelma, miksi juuri tämä ratkaisutapa valittiin ja mitä kompromisseja punnittiin.
+- **Elävä tekninen ilmaisu vs. robottimainen toisto**: Käytä täsmällistä, rikasta ohjelmistoarkkitehtuurin kieltä ja osuvia metaforia. Vältä identtistä kaavamaista toistoa eri PR-tarinoiden välillä.
+- **Käsityötaidon ja ergonomian juhlistaminen (Craftsmanship)**: Nosta esiin koodin elegantit mikro-yksityiskohdat, algoritmiset oivallukset, suorituskykyviilaukset ja käyttöliittymän sujuvuus.
+- **Onttojen myyntisanojen karsinta**: Erota elävä tekninen kerronta ontosta markkinointihypestä (*"revolutionary"*, *"game-changing"*, *"mind-blowing"*). Säilytä syvä tekninen rehellisyys ja senior-tason tarkkuus.
 
 ### 5. Testitulokset ja manuaalinen varmistus (Verification Audit)
 - Varmista, että `Testing Strategy` sisältää todelliset testiajon tulosteet ja kattavuusluvut (`task check`, `go test`, Vitest).
