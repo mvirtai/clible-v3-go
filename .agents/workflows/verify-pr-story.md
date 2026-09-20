@@ -15,20 +15,34 @@ Tämä työnkulku suoritetaan aina, kun PR-tarina (`pr_stories/*.md`) on luotu t
 - Varmista, että jokainen muuttunut tiedosto on mainittu PR-tarinan **Files Changed** -taulukossa.
 - Varmista, ettei PR-tarina väitä valmiiksi asioita, jotka on jätetty tuleviin PR-vaiheisiin.
 
-### 2. Kaavioiden ja visualisointien arviointi (Diagram Audit)
-- Tarkastele Mermaid-kaavioita kriittisesti: tuoko kaavio aitoa selventävää arvoa?
-- Onko käytetty oikeaa kaaviotyyppiä (`sequenceDiagram`, `flowchart`, `stateDiagram-v2`, `erDiagram`)?
-- Varmista, ettei toisiinsa liittymättömiä aiheita ole väkisin yhdistetty samaan kuvaajaan.
-- Varmista, että kaikki erikoismerkit (`@`, `=>`, `?`, `:`) on lainattu asianmukaisesti GitHubin Mermaid-renderöintiä varten.
+### 2. Kaavioiden ja visualisointien arviointi (Diagram Audit & Quantity Discipline)
+- **Tarpeellisuustesti**: Tuoko kaavio aitoa arvoa? Jos muutos on pieni korjaus tai konfiguraatiomuutos, 0 kaaviota on suositeltu ratkaisu.
+- **Määräkuri (~0–3 kaaviota)**:
+  - `0 kaaviota`: Yksittäiset bugikorjaukset, lean-muutokset, refaktoroinnit, i18n-viilaukset.
+  - `1 kaavio`: Tyypillinen uusi ominaisuus (esim. yksittäinen rajapintasekvenssi tai tilakone).
+  - `2 kaaviota`: Monikerroksinen kokonaisuus (esim. sekvenssikaavio + tietovirtaputki/AST).
+  - `3 kaaviota (katto)`: Suuret arkkitehtuurijulkaisut (max 3, eri näkökulmista). Yli 3 kaaviota on ehdottomasti kielletty.
+- **Kaaviotyypin valinta**: `sequenceDiagram` (rajapinnat/kerrokset), `stateDiagram-v2` (tilat), `flowchart` (logiikka), `erDiagram` (tietokantataulut).
+- **Erikoismerkkien lainaus**: Kaikki erikoismerkit (`@`, `=>`, `?`, `:`, `()`, `{}`) on lainattava lainausmerkeillä (`["..."]` tai `|"...|"`).
 
-### 3. Ammatillinen kieli ja terminologia (Tone & Rigor)
+### 3. Rinnakkaisten agenttien ja haarojen koordinointi (Concurrency & Sequencing Audit)
+- **Aktiivisen haaran varmistus**: Tarkista `git branch --show-current`. Varmista, ettei työtilassa ole toiselle agentille tai haaralle kuuluvia komitoimattomia muutoksia.
+- **PR Story -sekvenssinumeron tarkistus**: Tarkista `ls -1 pr_stories/` ja `git log --all --oneline -- pr_stories/`. Varmista, ettei numero (esim. 088) törmää toisen rinnakkaisen haaran PR-tarinan kanssa. Jos törmää, siirrä omaksi numerokseen (`089-...`).
+- **Julkaisujärjestys (Sequencing)**:
+  1. Ytimen ja tietokannan korjaukset / jaetut tyypit mergetään ensin.
+  2. Riippumattomat aihehaarat voivat edetä rinnakkain.
+  3. Neuvo kehittäjää rebeissaamaan muut avoimet haarat `main`-haaran mergeamisen jälkeen.
+
+### 4. Ammatillinen kieli ja terminologia (Tone & Rigor)
 - Poista liioitteleva tai keinotekoinen hehkutus.
 - Varmista, että teksti kuvaa ammattimaisesti ohjelmistoarkkitehtuuria, valintoja ja rajapintoja.
 
-### 4. Testitulokset ja manuaalinen varmistus (Verification Audit)
-- Varmista, että `Testing Strategy` sisältää todelliset testiajon tulosteet ja kattavuusluvut.
+### 5. Testitulokset ja manuaalinen varmistus (Verification Audit)
+- Varmista, että `Testing Strategy` sisältää todelliset testiajon tulosteet ja kattavuusluvut (`task check`, `go test`, Vitest).
 - Varmista, että `Manual Verification Checklist` sisältää vain asioita, jotka on oikeasti voitu varmentaa selaimessa tai ajonaikaisesti tällä nimenomaisella branchilla.
 
-### 5. Synkronointi GitHubiin (Sync)
+### 6. Synkronointi GitHubiin (Sync)
 - Päivitä tarvittaessa suoraan avoinna oleva GitHub PR komennolla:
+  `task git:pr-edit PR=<number> FILE=pr_stories/...`
+  tai:
   `gh api -X PATCH repos/:owner/:repo/pulls/:number -F body=@pr_stories/...`

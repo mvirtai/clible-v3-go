@@ -8,7 +8,7 @@ This Pull Request brings the entire `.agents/` configuration and skills ecosyste
 1. `isla-engine-specialist`: Master of ISLA v1/v2/v3 grammar, AST pipelines, and execution engines.
 2. `react-compiler-auditor`: Enforcer of React 19.2 compiler purity, zero-`useEffect` state synchronization, and strict internationalization (`i18n.ts`).
 3. `backend-pipeline-auditor`: Guardian of Go 1.22+ standard routing (`http.ServeMux`), 3-tier boundaries, and cancellable context propagation.
-4. `pr-documentation-specialist`: Steward of Pull Request stories (`pr_stories/`), VitePress documentation (`docs/`), and release hygiene.
+4. `pr-documentation-specialist`: Steward of Pull Request stories (`pr_stories/`), diagram quantity discipline (~0–3 focused diagrams), concurrent multi-agent release sequencing, and release hygiene.
 
 By tracking these agent skills, workflows, and rules in Git, the development workflow achieves full repeatability, architectural governance, and seamless developer mentoring.
 
@@ -101,7 +101,12 @@ graph TD
 
 ### 3. Markdown Kanban Task Management Updates (`kanban/todos.md`)
 
-- Updated Kanban board to reflect the complete execution lifecycle of the agent ecosystem task under `## In Progress`, linking documentation, subagents, and quality gate verifications.
+- Updated Kanban board to reflect the complete execution lifecycle of the agent ecosystem task under `## In Progress` and `## Done`, linking documentation, subagents, and quality gate verifications.
+
+### 4. PR Specialist Training: Diagram Discipline (~0–3) & Concurrent Release Sequencing
+
+- **Diagram Necessity & Quantity Discipline (~0–3):** Codified strict guidelines preventing visual bloat. Lean changes and bugfixes use 0 diagrams; focused features use 1; full-stack features use 2; major milestones use a hard ceiling of 3 distinct diagrams.
+- **Concurrent Agent Coordination & Release Sequencing:** Formulated protocols for multi-agent co-existence: branch isolation, preventing accidental staging of concurrent agents' work, sequence number collision prevention (`ls pr_stories/`, `git mv`), and release sequencing advice (foundation/migrations first -> orthogonal branches in parallel -> dependents last).
 
 ---
 

@@ -100,9 +100,20 @@ Your mission is to ensure every Pull Request story in pr_stories/, documentation
 
 The 4 Pillars of PR Story Excellence:
 1. Strict Factual Accuracy: Verified against git diff main...HEAD (zero fake claims, zero placeholders).
-2. Purposeful Visualizations: Razor-sharp Mermaid diagrams (quoted special characters, valid syntax).
+2. Purposeful Visualizations & Quantity Discipline (~0–3 Diagrams):
+   - 0 diagrams: Lean fixes, isolated component tweaks, config/version bumps (preferred over clutter).
+   - 1 diagram: Standard single-domain feature (focused sequence or state machine).
+   - 2 diagrams: Dual-perspective full-stack feature (client sequence + backend AST/DB pipeline).
+   - 3 diagrams (HARD MAXIMUM): Major architectural milestones. Never exceed 3 diagrams.
+   - Quote special characters: ["@(Joh 3:16)"], |"=> #slug"| to ensure GitHub renders flawlessly.
 3. Professional Engineering Rigor: Clear architectural rationale, accurate Files Changed table, no fluff.
 4. Markdown & Link Quality: MD032 compliance, real test outputs and coverage figures.
+
+Concurrent Multi-Agent & Release Sequencing Protocol:
+- Branch Isolation: Always check `git branch --show-current`. Never mix or overwrite edits from another concurrent agent or branch.
+- Clean Branch Switching: Stash (`git stash`) or commit working copy changes before switching branches.
+- Sequence Number Coordination: Check `ls pr_stories/` and `git log --all -- pr_stories/` to prevent duplicate numbers (e.g. 088 vs 089). Renumber with `git mv` and `task git:pr-edit` if needed.
+- Release Sequencing: Core fixes/migrations merge first; orthogonal branches merge in parallel; advise developer on post-merge rebase (`git pull origin main --rebase`).
 
 Inviolable Repository Rules:
 - NEVER commit .plans/, .visions/, or local notes.
