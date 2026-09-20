@@ -52,7 +52,6 @@ export function NotebookCanvasView({
             {strings.backToList}
           </button>
           <NotebookEditor
-            key={selectedNotebookId}
             notebookId={selectedNotebookId}
             translation={selectedTranslation}
             onSelectVerse={onSelectVerse}
@@ -64,26 +63,18 @@ export function NotebookCanvasView({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[var(--surface-0)] overflow-hidden">
-      {/* Top action bar */}
-      <div className="h-11 px-4 border-b border-[var(--border-soft)] bg-[var(--surface-1)] flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-[var(--text)] uppercase tracking-wider">
-            {strings.notebookTitle}
-          </span>
-          <span className="px-1.5 py-0.5 bg-amber-500/15 text-amber-500 border border-amber-500/30 text-[10px] font-bold rounded">
-            2D Matrix
-          </span>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
+        <h2 className="text-lg font-bold text-[var(--text)]">{strings.notebookTitle}</h2>
         <div className="flex items-center gap-2">
           {notebooks.length > 0 && (
             <button
               onClick={onResetNotebookSizes}
               className="px-3 py-1.5 bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 border border-[var(--border-soft)] text-[var(--muted)] hover:text-amber-500 text-xs rounded font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-              title={strings.resetNotebookSizes}
+              title={strings.resetNotebookSizes || 'Palauta koot'}
             >
               <RotateCcw size={13} />
-              <span>{strings.resetNotebookSizes}</span>
+              <span>{strings.resetNotebookSizes || 'Palauta koot'}</span>
             </button>
           )}
           <button
@@ -150,8 +141,8 @@ export function NotebookCanvasView({
                   console.error('Failed to update notebook dimensions:', err);
                 }
               }}
-              dragHandleTitle={strings.dragHandleTitle}
-              updatedAtLabel={strings.updatedAtLabel}
+              dragHandleTitle={strings.dragHandleTitle || 'Vedä järjestääksesi'}
+              updatedAtLabel="Päivitetty"
               noDateLabel="-"
             />
           ))}

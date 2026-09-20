@@ -1,7 +1,6 @@
 import type { JSX } from 'react';
 import { THEME_AVATARS, AVATAR_GRADIENTS, getAvatarIndex, getUserInitials } from './avatars';
 import { User } from 'lucide-react';
-import { useLanguage } from '@/context/LanguageContext';
 
 export interface UserAvatarProps {
     name?: string | null; 
@@ -24,7 +23,6 @@ const ICON_PADDING = {
 
 export function UserAvatar({ name, email, size = 'md', className = ''}: UserAvatarProps):
 JSX.Element {
-    const { lang, strings } = useLanguage();
     const initials = getUserInitials(name);
     const seed = email || name || 'guest';
     const index = getAvatarIndex(seed);
@@ -49,14 +47,13 @@ JSX.Element {
     // 2. Logged-in user without a name: deternimistic theme-SVG
     if (email) {
         const avatar = THEME_AVATARS[index];
-        const avatarTitle = lang === 'en' ? avatar.nameEn : avatar.nameFi;
         return (
             <div
                 className={`rounded-full bg-gradient-to-br ${gradient} text-white flex
                 items-center justify-center border border-black/10 dark:border-white/20 shadow-xs
                 shrink-0 ${sizeClass} ${ICON_PADDING[size]} ${className}`}
-                title={avatarTitle}
-                aria-label={avatarTitle}
+                title={avatar.nameFi}
+                aria-label={avatar.nameFi}
             >
                 {avatar.render()}
             </div>
@@ -67,7 +64,7 @@ JSX.Element {
       return (
         <div
           className={`rounded-full bg-[var(--surface-2)] text-[var(--muted)] border border-[var(--border)] flex items-center justify-center shrink-0 ${sizeClass} ${className}`}
-          aria-label={strings.userAccountGuest}
+          aria-label="Guest"
         >
           <User size={size === 'sm' ? 14 : size === 'md' ? 17 : 22} />
         </div>

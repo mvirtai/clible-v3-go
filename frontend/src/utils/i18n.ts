@@ -67,7 +67,6 @@ export interface Messages {
   aiUsageLoading: string;
   aiUsageByFeature: string;
   aiUsageClose: string;
-  aiUsageRefresh: string;
   aiUsageDays30: string;
   aiUsageDays7: string;
   aiUsageDays90: string;
@@ -292,7 +291,6 @@ export interface Messages {
   cardEmptyNote: string;
   cardClickToAddCells: string;
   cardEmptyBadge: string;
-  cardMoreCells: string;
   updatedAtLabel: string;
   backToList: string;
   chartBarTitle: string;
@@ -304,16 +302,16 @@ export interface Messages {
   finnishLabel: string;
   renameScopeTitle: string;
   editTitleLabel: string;
-  renameButtonTitle: string;
-  deleteButtonTitle: string;
-  savedSearchesTitle: string;
-  noSavedSearches: string;
-  savedAnalysesTitle: string;
-  noSavedAnalyses: string;
-  loadingNotebook: string;
-  errorHeading: string;
-  retryButtonLabel: string;
-  unnamedNotebook: string;
+  renameButtonTitle?: string;
+  deleteButtonTitle?: string;
+  savedSearchesTitle?: string;
+  noSavedSearches?: string;
+  savedAnalysesTitle?: string;
+  noSavedAnalyses?: string;
+  loadingNotebook?: string;
+  errorHeading?: string;
+  retryButtonLabel?: string;
+  unnamedNotebook?: string;
   cellWidthFull: string;
   cellWidthHalf: string;
   cellWidthThird: string;
@@ -464,7 +462,6 @@ export const strings: Record<UILanguage, Messages> = {
     aiUsageLoading: 'Loading usage statistics...',
     aiUsageByFeature: 'Usage by Feature',
     aiUsageClose: 'Close',
-    aiUsageRefresh: 'Refresh',
     aiUsageDays30: 'Past 30 days',
     aiUsageDays7: 'Past 7 days',
     aiUsageDays90: 'Past 90 days',
@@ -610,16 +607,6 @@ export const strings: Record<UILanguage, Messages> = {
     deleteScopeConfirm: 'Are you sure you want to delete this workspace and all saved items?',
     deleteSearchConfirm: 'Are you sure you want to delete this saved search?',
     deleteAnalysisConfirm: 'Are you sure you want to delete this analysis?',
-    renameButtonTitle: 'Rename',
-    deleteButtonTitle: 'Delete',
-    savedSearchesTitle: 'Saved Searches',
-    noSavedSearches: 'No saved searches.',
-    savedAnalysesTitle: 'Saved Analyses',
-    noSavedAnalyses: 'No saved analyses.',
-    loadingNotebook: 'Loading notebook...',
-    errorHeading: 'Oops! Something went wrong',
-    retryButtonLabel: 'Try again',
-    unnamedNotebook: 'Untitled notebook',
     exactMatchesLabel: 'Exact Matches',
     verseLabel: 'Verse',
     similarityLabel: 'Sim',
@@ -701,7 +688,6 @@ export const strings: Record<UILanguage, Messages> = {
     cardEmptyNote: 'Empty note...',
     cardClickToAddCells: 'Click to open notebook and add cells',
     cardEmptyBadge: 'Empty',
-    cardMoreCells: 'more cells...',
     updatedAtLabel: 'Updated',
     backToList: '← Back to list',
     chartBarTitle: 'Bar chart',
@@ -842,7 +828,6 @@ export const strings: Record<UILanguage, Messages> = {
     aiUsageLoading: 'Ladataan käyttötilastoja...',
     aiUsageByFeature: 'Kulutus toiminnoittain',
     aiUsageClose: 'Sulje',
-    aiUsageRefresh: 'Päivitä',
     aiUsageDays30: 'Viimeiset 30 päivää',
     aiUsageDays7: 'Viimeiset 7 päivää',
     aiUsageDays90: 'Viimeiset 90 päivää',
@@ -1081,7 +1066,6 @@ export const strings: Record<UILanguage, Messages> = {
     cardEmptyNote: 'Tyhjä muistiinpano...',
     cardClickToAddCells: 'Klikkaa avataksesi muistikirjan ja lisätäksesi soluja',
     cardEmptyBadge: 'Tyhjä',
-    cardMoreCells: 'muuta solua...',
     updatedAtLabel: 'Päivitetty',
     backToList: '← Takaisin listaukseen',
     noTranslations: 'Ei käännöksiä',
