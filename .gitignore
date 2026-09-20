@@ -28,8 +28,6 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# agents files
-.agents/
 # Terraform ignores
 .terraform/
 *.tfstate
