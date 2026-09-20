@@ -124,7 +124,7 @@ export function AiTokenUsageModal({
               type="button"
               onClick={() => startTransition(() => dispatchDays(state.days))}
               disabled={isPending}
-              aria-label="Refresh"
+              aria-label={strings.aiUsageRefresh}
               className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:opacity-50"
             >
               <RefreshCw size={15} className={isPending ? 'animate-spin' : ''} />

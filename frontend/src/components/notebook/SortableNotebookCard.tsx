@@ -90,7 +90,7 @@ export function SortableNotebookCard({
   updatedAtLabel,
   noDateLabel,
 }: SortableNotebookCardProps) {
-  const { lang } = useLanguage();
+  const { lang, strings } = useLanguage();
   const cardRef = useRef<HTMLDivElement | null>(null);
   const { ref: sortableRef, handleRef, isDragging } = useSortable({ id: nb.id, index });
 
@@ -220,7 +220,7 @@ export function SortableNotebookCard({
                         <div className="text-[var(--muted)] text-[11px] line-clamp-2 leading-relaxed bg-[var(--surface-2)]/30 rounded-lg p-2 border border-[var(--border-soft)]/40 shadow-2xs">
                           {cleanText || (
                             <em className="italic text-[var(--muted)]/60">
-                              {lang === 'fi' ? 'Tyhjä muistiinpano...' : 'Empty note...'}
+                              {strings.cardEmptyNote}
                             </em>
                           )}
                         </div>
@@ -230,7 +230,7 @@ export function SortableNotebookCard({
                 })}
                 {nb.cells.length > previewLimit && (
                   <div className="text-[10px] text-center font-medium text-[var(--muted)]/80 py-1 px-2 rounded-lg bg-[var(--surface-2)]/30 border border-dashed border-[var(--border-soft)]/60 shrink-0">
-                    + {nb.cells.length - previewLimit} {lang === 'fi' ? 'muuta solua...' : 'more cells...'}
+                    + {nb.cells.length - previewLimit} {strings.cardMoreCells}
                   </div>
                 )}
               </>

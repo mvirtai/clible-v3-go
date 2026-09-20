@@ -129,12 +129,12 @@ export interface NotebookContentBadgesProps {
 }
 
 export function NotebookContentBadges({ cells, fallbackCellCounts }: NotebookContentBadgesProps) {
-  const { lang } = useLanguage();
+  const { strings } = useLanguage();
   const counts = classifyNotebookContent(cells, fallbackCellCounts);
   const total = Object.values(counts).reduce((acc, n) => acc + n, 0);
 
   if (total === 0) {
-    return <span className="text-[9px] text-[var(--muted)] italic">{lang === 'fi' ? 'Tyhjä' : 'Empty'}</span>;
+    return <span className="text-[9px] text-[var(--muted)] italic">{strings.cardEmptyBadge}</span>;
   }
 
   const order: (keyof typeof counts)[] = ['text', 'search', 'verse', 'compare', 'count', 'refs'];
