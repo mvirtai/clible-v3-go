@@ -21,8 +21,6 @@
     Mahdollistaa semanttisen haun löytämien jakeiden nopean kuratoinnin ja karsinnan. Puhelimella jakeita voi pyyhkäistä (swipe) hyväksytyiksi tai hylätyiksi luonnollisilla eleillä, ja työpöydällä kuratointi hoituu intuitiivisilla pikanapeilla ja pikanäppäimillä.
     ```
 
-## To Do
-
 ### Käyttäjäasetukset ja profiilinäkymä (User Settings & Profile View)
 
   - due: 2026-09-26
@@ -40,6 +38,8 @@
     Suunnitelma: [.plans/14-kayttaja-ja-tili/29-kayttaja-asetukset-ja-profiilinakyma.md](file:///home/vivaldev/code/clible-v3-go/.plans/14-kayttaja-ja-tili/29-kayttaja-asetukset-ja-profiilinakyma.md)
     Toteuttaa keskitetyn käyttäjäasetukset- ja profiilinäkymän, josta käyttäjä voi hallita nimeään, oletuskäännöstä, teemaa, käyttöliittymäkieltä sekä tarkastella tilaustaan ja AI-kiintiötään.
     ```
+
+## To Do
 
 ### Reader Viewin käyttöliittymäuudistus ja kutsuva lukunäkymä
 
