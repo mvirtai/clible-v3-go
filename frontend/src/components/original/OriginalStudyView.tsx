@@ -297,7 +297,15 @@ export function OriginalStudyView({
   const smartClear = useSmartClearInput(reference, setReference);
 
   const renderForm = () => (
-    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-5">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (canRun) {
+          onStudy(reference.trim(), originalId, targetIds, scope);
+        }
+      }}
+      className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-5"
+    >
       <div className="space-y-1">
         <div className="flex flex-wrap gap-2 pb-2" role="tablist" aria-label={strings.originalScopeLabel}>
           {STUDY_SCOPES.map((nextScope) => {
@@ -415,16 +423,15 @@ export function OriginalStudyView({
 
       <div>
         <button
-          type="button"
+          type="submit"
           disabled={!canRun}
-          onClick={() => onStudy(reference.trim(), originalId, targetIds, scope)}
           className="inline-flex items-center gap-2 rounded-full bg-[var(--text)] hover:opacity-90 px-6 py-2.5 text-sm font-medium text-[var(--surface)] disabled:opacity-40 btn-tactile cursor-pointer"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles size={18} />}
           {strings.originalRunButton}
         </button>
       </div>
-    </div>
+    </form>
   );
 
   const renderResult = () => {

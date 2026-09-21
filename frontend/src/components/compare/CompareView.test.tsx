@@ -120,4 +120,114 @@ describe('CompareView', () => {
     expect(desktopContainer).not.toBeNull();
     expect(desktopContainer?.querySelector('table')).not.toBeNull();
   });
+
+  it('prefills activeReference when passed as prop', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CompareView
+            installedTranslations={mockTranslations}
+            activeReference="Romans 8:28"
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const input = container?.querySelector('input[type="text"]') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.value).toBe('Romans 8:28');
+  });
+
+  it('clears input when pressing Enter on pristine field in CompareView', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CompareView
+            installedTranslations={mockTranslations}
+            activeReference="Romans 8:28"
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const input = container?.querySelector('input[type="text"]') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.value).toBe('Romans 8:28');
+
+    act(() => {
+      input.focus();
+    });
+
+    act(() => {
+      const enterEvent = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      });
+      input.dispatchEvent(enterEvent);
+    });
+
+    expect(input.value).toBe('');
+  });
+
+  it('replaces full input with first typed character when pristine in CompareView', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CompareView
+            installedTranslations={mockTranslations}
+            activeReference="Romans 8:28"
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const input = container?.querySelector('input[type="text"]') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.value).toBe('Romans 8:28');
+
+    act(() => {
+      input.focus();
+    });
+
+    act(() => {
+      const keyEvent = new KeyboardEvent('keydown', {
+        key: 'm',
+        bubbles: true,
+        cancelable: true,
+      });
+      input.dispatchEvent(keyEvent);
+    });
+
+    expect(input.value).toBe('m');
+  });
+
+  it('clears reference when clear button is clicked', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CompareView
+            installedTranslations={mockTranslations}
+            activeReference="Romans 8:28"
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const input = container?.querySelector('input[type="text"]') as HTMLInputElement;
+    expect(input.value).toBe('Romans 8:28');
+
+    const clearBtn = container?.querySelector('button[aria-label="Clear input"]') as HTMLButtonElement;
+    expect(clearBtn).not.toBeNull();
+
+    act(() => {
+      clearBtn.click();
+    });
+
+    expect(input.value).toBe('');
+  });
 });

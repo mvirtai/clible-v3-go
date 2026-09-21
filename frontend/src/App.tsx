@@ -617,6 +617,8 @@ export function App() {
             {viewMode === 'compare' && (
               <CompareView
                 installedTranslations={installedTranslations}
+                defaultTranslation={selectedTranslation}
+                activeReference={activeReference}
                 activeScopeId={activeScopeId}
                 onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
                 loadedSavedComparison={loadedComparison}

@@ -20,6 +20,10 @@ import { X } from 'lucide-react';
 export interface CompareViewProps {
     /** All translations currently installed and available in the workspace. */
     installedTranslations: InstalledTranslation[];
+    /** Default or globally active translation ID. */
+    defaultTranslation?: string;
+    /** Currently active scripture reference from reader/navigation. */
+    activeReference?: string;
     /** Active workspace (scope) identifier for persisting comparison snapshots. */
     activeScopeId?: string;
     /** Callback fired after saving a comparison to the workspace tree. */
@@ -56,15 +60,41 @@ function similarityBarHue(ratio01: number): string {
  */
 export function CompareView({
     installedTranslations,
+    defaultTranslation,
+    activeReference,
     activeScopeId,
     onWorkspaceUpdated,
     loadedSavedComparison,
     loadedSavedAi,
     loadedSavedDeepDive
 }: CompareViewProps) {
-    const [reference, setReference] = useState(() => loadedSavedComparison?.reference ?? 'John 3:16');
-    const [leftTr, setLeftTr] = useState(() => loadedSavedComparison?.translationA ?? '');
-    const [rightTr, setRightTr] = useState(() => loadedSavedComparison?.translationB ?? '');
+    const [reference, setReference] = useState(() => loadedSavedComparison?.reference ?? activeReference ?? 'John 3:16');
+    const [prevActiveReference, setPrevActiveReference] = useState(activeReference);
+    if (activeReference && activeReference !== prevActiveReference && !loadedSavedComparison) {
+        setPrevActiveReference(activeReference);
+        setReference(activeReference);
+    }
+
+    const [leftTr, setLeftTr] = useState(() => {
+        if (loadedSavedComparison?.translationA) return loadedSavedComparison.translationA;
+        if (defaultTranslation && installedTranslations.some((t) => t.id === defaultTranslation)) return defaultTranslation;
+        return installedTranslations[0]?.id ?? '';
+    });
+    const [rightTr, setRightTr] = useState(() => {
+        if (loadedSavedComparison?.translationB) return loadedSavedComparison.translationB;
+        const initialLeft = loadedSavedComparison?.translationA || (defaultTranslation && installedTranslations.some((t) => t.id === defaultTranslation) ? defaultTranslation : installedTranslations[0]?.id);
+        const alternative = installedTranslations.find((t) => t.id !== initialLeft);
+        return alternative?.id ?? '';
+    });
+
+    if (!leftTr && installedTranslations.length > 0) {
+        const initialLeft = defaultTranslation && installedTranslations.some((t) => t.id === defaultTranslation) ? defaultTranslation : installedTranslations[0].id;
+        setLeftTr(initialLeft);
+        const alt = installedTranslations.find((t) => t.id !== initialLeft);
+        if (alt && !rightTr) {
+            setRightTr(alt.id);
+        }
+    }
     const [result, setResult] = useState<ComparisonResult | null>(() => loadedSavedComparison?.result ?? null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -237,7 +267,15 @@ export function CompareView({
         <div className="space-y-8 animate-fade-in">
 
             {/* Control Panel */}
-            <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4">
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!loading && leftTr && rightTr && reference.trim()) {
+                        runCompare();
+                    }
+                }}
+                className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4"
+            >
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <GitCompareArrows size={22} className="text-[var(--accent)]" />
                     <span>{strings.tabCompare}</span>
@@ -259,7 +297,6 @@ export function CompareView({
                                 onFocus={smartClear.onFocus}
                                 onKeyDown={smartClear.onKeyDown}
                                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-4 pr-10 py-2 text-sm outline-none focus:border-[var(--accent)] transition-colors"
-                                disabled={installedTranslations.length < 2}
                             />
                             {reference && (
                                 <button
@@ -328,15 +365,14 @@ export function CompareView({
                 )}
 
                 <button
-                    type="button"
-                    onClick={runCompare}
+                    type="submit"
                     disabled={loading || !leftTr || !rightTr || !reference.trim()}
                     className="inline-flex items-center gap-2 rounded-full bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 text-sm font-medium btn-tactile disabled:opacity-40 cursor-pointer"
                 >
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <GitCompareArrows size={18} />}
                     {strings.compareButtonLabel}
                 </button>
-            </div>
+            </form>
 
             {error && (
                 <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">

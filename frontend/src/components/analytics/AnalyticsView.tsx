@@ -287,7 +287,13 @@ export const AnalyticsView = ({
           <Activity size={20} className="text-[var(--accent)]" />
           <span>{strings.tabAnalytics}</span>
         </h2>
-        <div className="flex flex-col sm:flex-row gap-3">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            runAnalysis();
+          }}
+          className="flex flex-col sm:flex-row gap-3"
+        >
           <div className="relative flex-1">
             <input
               type="text"
@@ -315,8 +321,7 @@ export const AnalyticsView = ({
             )}
           </div>
           <button
-            type="button"
-            onClick={runAnalysis}
+            type="submit"
             disabled={loading || !defaultTranslation}
             className="px-6 py-2.5 rounded-xl bg-[var(--text)] text-[var(--bg)] font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer btn-tactile"
           >
@@ -325,9 +330,9 @@ export const AnalyticsView = ({
             ) : (
               <Activity size={16} />
             )}
-            {strings.analyzePassage}
+            <span>{strings.analyzePassage}</span>
           </button>
-        </div>
+        </form>
         {activeReference &&
           reference.trim().toLowerCase() !==
             activeReference.trim().toLowerCase() && (
