@@ -140,7 +140,7 @@ export function SortableNotebookCard({
       ref={setCombinedRef}
       style={gridStyle}
       onClick={onClick}
-      className={`group relative rounded-2xl p-4 sm:p-5 flex flex-col justify-between text-left
+      className={`notebook-matrix-card group relative rounded-2xl p-4 sm:p-5 flex flex-col justify-between text-left
                   transition-all duration-200 cursor-pointer overflow-hidden
                   hover:shadow-md hover:border-amber-500/40
                   bg-[var(--surface-2)] border border-[var(--border-soft)]
@@ -257,48 +257,51 @@ export function SortableNotebookCard({
       </div>
 
       {/* Resize handles — multi-edge pointer interactions */}
-      {/* Right edge */}
-      <div className="absolute top-2 right-0 bottom-2 w-2.5 cursor-ew-resize
-                      opacity-0 group-hover:opacity-100 transition-opacity
-                      flex items-center justify-center touch-none select-none z-20"
-           onClick={(e) => e.stopPropagation()}
-           onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'right')}
-           onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
-        <div className="w-0.5 h-8 rounded-full"
-          style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
-      </div>
+      {/* Resize Handles (Only rendered on desktop/tablet >= md, hidden on mobile to protect swipe ergonomics) */}
+      <div className="hidden md:block">
+        {/* Right edge */}
+        <div className="absolute top-2 right-0 bottom-2 w-2.5 cursor-ew-resize
+                        opacity-0 group-hover:opacity-100 transition-opacity
+                        flex items-center justify-center touch-none select-none z-20"
+             onClick={(e) => e.stopPropagation()}
+             onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'right')}
+             onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+          <div className="w-0.5 h-8 rounded-full"
+            style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
+        </div>
 
-      {/* Left edge */}
-      <div className="absolute top-2 left-0 bottom-2 w-2.5 cursor-ew-resize
-                      opacity-0 group-hover:opacity-100 transition-opacity
-                      flex items-center justify-center touch-none select-none z-20"
-           onClick={(e) => e.stopPropagation()}
-           onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'left')}
-           onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
-        <div className="w-0.5 h-8 rounded-full"
-          style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
-      </div>
+        {/* Left edge */}
+        <div className="absolute top-2 left-0 bottom-2 w-2.5 cursor-ew-resize
+                        opacity-0 group-hover:opacity-100 transition-opacity
+                        flex items-center justify-center touch-none select-none z-20"
+             onClick={(e) => e.stopPropagation()}
+             onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'left')}
+             onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+          <div className="w-0.5 h-8 rounded-full"
+            style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
+        </div>
 
-      {/* Bottom edge */}
-      <div className="absolute bottom-0 left-2 right-2 h-2.5 cursor-ns-resize
-                      opacity-0 group-hover:opacity-100 transition-opacity
-                      flex items-center justify-center touch-none select-none z-20"
-           onClick={(e) => e.stopPropagation()}
-           onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'bottom')}
-           onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
-        <div className="h-0.5 w-8 rounded-full"
-          style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
-      </div>
+        {/* Bottom edge */}
+        <div className="absolute bottom-0 left-2 right-2 h-2.5 cursor-ns-resize
+                        opacity-0 group-hover:opacity-100 transition-opacity
+                        flex items-center justify-center touch-none select-none z-20"
+             onClick={(e) => e.stopPropagation()}
+             onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'bottom')}
+             onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+          <div className="h-0.5 w-8 rounded-full"
+            style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
+        </div>
 
-      {/* Bottom-right corner handle */}
-      <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize
-                      opacity-0 group-hover:opacity-100 transition-opacity
-                      touch-none select-none z-30"
-           onClick={(e) => e.stopPropagation()}
-           onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'corner')}
-           onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
-        <div className="w-1.5 h-1.5 rounded-full"
-          style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
+        {/* Bottom-right corner handle */}
+        <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize
+                        opacity-0 group-hover:opacity-100 transition-opacity
+                        touch-none select-none z-30"
+             onClick={(e) => e.stopPropagation()}
+             onPointerDown={(e) => handlePointerDown(e, cardRef.current, 'corner')}
+             onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+          <div className="w-1.5 h-1.5 rounded-full"
+            style={{ background: isResizing ? 'rgba(251,191,36,0.9)' : 'rgba(251,191,36,0.35)' }} />
+        </div>
       </div>
     </div>
   );

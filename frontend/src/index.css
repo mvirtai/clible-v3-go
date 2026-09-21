@@ -336,3 +336,11 @@ select:focus {
   vertical-align: super;
   letter-spacing: 0;
 }
+
+/* Notebook 2D Matrix mobile fallback: screens under 768px stretch card to 100% full width */
+@media (max-width: 767px) {
+  .notebook-matrix-card {
+    grid-column: span 24 !important;
+    min-height: auto !important;
+  }
+}
