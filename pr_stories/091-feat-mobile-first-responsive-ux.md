@@ -1,4 +1,4 @@
-# PR Story: Mobile-First Responsive UX, Smart Input Ergonomics & AI Language Decoupling (v3.6.0)
+# PR Story: Mobile-First Responsive UX, Smart Input Ergonomics & AI Language Decoupling (v3.7.0)
 
 ## Business Context
 
