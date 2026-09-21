@@ -51,7 +51,7 @@ describe('ViewModeTabs', () => {
     expect(text).toContain('Muistikirjat');
   });
 
-  it('renders with mobile-friendly scrollable pill classes and accessible min-height', () => {
+  it('renders mobile dropdown selector and desktop pills with accessible min-height', () => {
     const onSelect = vi.fn();
     const onSelectNb = vi.fn();
 
@@ -68,15 +68,60 @@ describe('ViewModeTabs', () => {
       );
     });
 
-    const navContainer = container?.querySelector('div');
-    expect(navContainer?.className).toContain('overflow-x-auto');
-    expect(navContainer?.className).toContain('no-scrollbar');
+    // Mobile trigger button (< 640px)
+    const mobileContainer = container?.querySelector('.sm\\:hidden');
+    expect(mobileContainer).not.toBeNull();
+    const mobileBtn = mobileContainer?.querySelector('button');
+    expect(mobileBtn?.textContent).toContain('Haku');
+    expect(mobileBtn?.className).toContain('min-h-[44px]');
 
-    const buttons = container?.querySelectorAll('button');
-    expect(buttons?.length).toBe(6);
-    buttons?.forEach((btn) => {
-      expect(btn.className).toContain('min-h-[40px]');
+    // Desktop pill container (>= 640px)
+    const desktopContainer = container?.querySelector('.hidden.sm\\:flex');
+    expect(desktopContainer).not.toBeNull();
+
+    const desktopButtons = desktopContainer?.querySelectorAll('button');
+    expect(desktopButtons?.length).toBe(6);
+    desktopButtons?.forEach((btn) => {
+      expect(btn.className).toContain('min-h-[44px]');
       expect(btn.className).toContain('whitespace-nowrap');
     });
+  });
+
+  it('opens mobile dropdown menu when clicking mobile selector button', () => {
+    const onSelect = vi.fn();
+    const onSelectNb = vi.fn();
+
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <ViewModeTabs
+            viewMode="reader"
+            onSelectViewMode={onSelect}
+            onSelectNotebookId={onSelectNb}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const mobileBtn = container?.querySelector('.sm\\:hidden button') as HTMLButtonElement;
+    expect(mobileBtn).not.toBeNull();
+
+    act(() => {
+      mobileBtn.click();
+    });
+
+    // Dropdown menu items should now be rendered
+    const menu = container?.querySelector('[role="menu"]');
+    expect(menu).not.toBeNull();
+    const menuItems = menu?.querySelectorAll('[role="menuitem"]');
+    expect(menuItems?.length).toBe(6);
+
+    // Clicking a menu item selects it and closes the dropdown
+    act(() => {
+      (menuItems![1] as HTMLButtonElement).click();
+    });
+    expect(onSelect).toHaveBeenCalledWith('search');
+    expect(container?.querySelector('[role="menu"]')).toBeNull();
   });
 });
