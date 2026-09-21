@@ -14,6 +14,8 @@ import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../../t
 import { useLanguage } from '../../context/LanguageContext';
 import { getNextChapterRef, getPreviousChapterRef, getChapterCount, formatChapterRef } from '../../utils/readerNavigation';
 import { getBookGenre } from '../../utils/bookGenre';
+import { useSmartClearInput } from '../../utils/useSmartClearInput';
+import { X } from 'lucide-react';
 
 
 
@@ -304,6 +306,8 @@ export function VerseReader({
   };
 
 
+  const smartClear = useSmartClearInput(reference, setReference);
+
   return (
     <div className="rounded-3xl p-4 sm:p-8 space-y-4 sm:space-y-6" style={{
       background: 'var(--surface)',
@@ -314,27 +318,46 @@ export function VerseReader({
       </h2>
 
       <form onSubmit={handleFetch} className="flex flex-col sm:flex-row gap-2.5 sm:gap-2">
-        <input
-        type="text"
-        placeholder={strings.versePlaceholder}
-        value={reference}
-        onChange={(e) => setReference(e.target.value)}
-        className="flex-1 rounded-full px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
-        style={{
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border)',
-          color: 'var(--text)',
-        }}
-      />
-      <button
-        type="submit"
-        disabled={loading || !reference.trim()}
-        className="rounded-full px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 btn-tactile btn-accent disabled:opacity-40 w-full sm:w-auto"
-        style={{ cursor: 'pointer' }}
-      >
-        {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-        {strings.fetchButtonLabel}
-      </button>
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={reference}
+            onChange={(e) => {
+              smartClear.markDirty();
+              setReference(e.target.value);
+            }}
+            onFocus={smartClear.onFocus}
+            onKeyDown={smartClear.onKeyDown}
+            className="w-full rounded-full pl-4 sm:pl-5 pr-10 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
+            style={{
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
+            }}
+          />
+          {reference && (
+            <button
+              type="button"
+              onClick={() => {
+                setReference('');
+                smartClear.markDirty();
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+              aria-label="Clear input"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <button
+          type="submit"
+          disabled={loading || !reference.trim()}
+          className="rounded-full px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 btn-tactile btn-accent disabled:opacity-40 w-full sm:w-auto min-h-[42px]"
+          style={{ cursor: 'pointer' }}
+        >
+          {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+          {strings.fetchButtonLabel}
+        </button>
       </form>
 
       {error && (

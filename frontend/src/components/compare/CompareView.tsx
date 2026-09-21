@@ -11,6 +11,8 @@ import { DeepDiveCard } from '../layout/DeepDiveCard';
 import { GeminiUsage } from '../layout/GeminiUsage';
 import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
 import { useLanguage } from '../../context/LanguageContext';
+import { useSmartClearInput } from '../../utils/useSmartClearInput';
+import { X } from 'lucide-react';
 
 /**
  * Properties for {@link CompareView}.
@@ -229,6 +231,8 @@ export function CompareView({
         }
     };
 
+    const smartClear = useSmartClearInput(reference, setReference);
+
     return (
         <div className="space-y-8 animate-fade-in">
 
@@ -244,14 +248,33 @@ export function CompareView({
                         <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
                             {strings.compareReferenceLabel}
                         </label>
-                        <input
-                            type="text"
-                            value={reference}
-                            onChange={(e) => setReference(e.target.value)}
-                            placeholder={strings.compareReferencePlaceholder}
-                            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm"
-                            disabled={installedTranslations.length < 2}
-                        />
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={reference}
+                                onChange={(e) => {
+                                    smartClear.markDirty();
+                                    setReference(e.target.value);
+                                }}
+                                onFocus={smartClear.onFocus}
+                                onKeyDown={smartClear.onKeyDown}
+                                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-4 pr-10 py-2 text-sm outline-none focus:border-[var(--accent)] transition-colors"
+                                disabled={installedTranslations.length < 2}
+                            />
+                            {reference && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setReference('');
+                                        smartClear.markDirty();
+                                    }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+                                    aria-label="Clear input"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

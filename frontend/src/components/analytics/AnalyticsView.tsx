@@ -8,7 +8,9 @@ import {
   Sparkles,
   Cloud,
   Save,
+  X,
 } from "lucide-react";
+import { useSmartClearInput } from "../../utils/useSmartClearInput";
 import {
   BarChart,
   Bar,
@@ -275,6 +277,8 @@ export const AnalyticsView = ({
     }
   };
 
+  const smartClear = useSmartClearInput(reference, setReference);
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Search Header */}
@@ -284,13 +288,32 @@ export const AnalyticsView = ({
           <span>{strings.tabAnalytics}</span>
         </h2>
         <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-            placeholder={strings.versePlaceholder}
-            className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm"
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={reference}
+              onChange={(e) => {
+                smartClear.markDirty();
+                setReference(e.target.value);
+              }}
+              onFocus={smartClear.onFocus}
+              onKeyDown={smartClear.onKeyDown}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-4 pr-10 py-2.5 text-sm outline-none focus:border-[var(--accent)] transition-colors"
+            />
+            {reference && (
+              <button
+                type="button"
+                onClick={() => {
+                  setReference('');
+                  smartClear.markDirty();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+                aria-label="Clear input"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={runAnalysis}

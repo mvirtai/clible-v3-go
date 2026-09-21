@@ -12,6 +12,8 @@ import type { NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
 import { NextFocusChips } from '../search/NextFocusChips';
 import { DeepDiveCard } from '../layout/DeepDiveCard';
 import { apiService } from '../../services/api';
+import { useSmartClearInput } from '../../utils/useSmartClearInput';
+import { X } from 'lucide-react';
 
 const GREEK_PACK_ID = 'sblgnt';
 const HEBREW_PACK_ID = 'heb-leningrad';
@@ -292,6 +294,8 @@ export function OriginalStudyView({
     </div>
   );
 
+  const smartClear = useSmartClearInput(reference, setReference);
+
   const renderForm = () => (
     <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-5">
       <div className="space-y-1">
@@ -319,13 +323,32 @@ export function OriginalStudyView({
         <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
           {strings.originalReferenceLabel}
         </label>
-        <input
-          type="text"
-          value={reference}
-          onChange={(e) => setReference(e.target.value)}
-          placeholder={strings.originalReferencePlaceholder}
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm"
-        />
+        <div className="relative">
+          <input
+            type="text"
+            value={reference}
+            onChange={(e) => {
+              smartClear.markDirty();
+              setReference(e.target.value);
+            }}
+            onFocus={smartClear.onFocus}
+            onKeyDown={smartClear.onKeyDown}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-4 pr-10 py-2.5 text-sm outline-none focus:border-[var(--accent)] transition-colors"
+          />
+          {reference && (
+            <button
+              type="button"
+              onClick={() => {
+                setReference('');
+                smartClear.markDirty();
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+              aria-label="Clear input"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <p className="text-xs text-[var(--muted)]">{scopeReferenceHint[scope]}</p>
       </div>
 
