@@ -102,6 +102,7 @@ sequenceDiagram
 | `frontend/src/components/layout/UserMenuDropdown.tsx` | Modified | Added navigation link to `/settings` with `Settings` icon |
 | `frontend/src/main.tsx` | Modified | Registered `/settings` route in application router |
 | `frontend/src/utils/i18n.ts` | Modified | Added bilingual message keys for settings view |
+| `docs/package.json`, `docs/pnpm-lock.yaml` | Modified | Overrode PostCSS to 8.5.28 to resolve Dependabot security vulnerabilities |
 | `.agents/agents/*` | Added | Specialized workspace agents (`clible-expert`, `isla-engine-specialist`, etc.) |
 | `VERSION`, `frontend/package.json`, ... | Modified | Version bump to `3.6.0` |
 
