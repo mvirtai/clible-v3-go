@@ -122,7 +122,8 @@ describe('VerseReader', () => {
     expect(container!.textContent).toContain('Evankeliumi Johanneksen mukaan 3:16');
 
     // Confirm that the "Takaisin laajempaan tekstiin" button is visible with (JHN 3)
-    const backBtn = container!.querySelector('button[type="button"]');
+    const buttons = Array.from(container!.querySelectorAll('button'));
+    const backBtn = buttons.find(b => b.textContent?.includes('Takaisin laajempaan tekstiin'));
     expect(backBtn).toBeDefined();
     expect(backBtn!.textContent).toContain('Takaisin laajempaan tekstiin (JHN 3)');
   });
@@ -228,5 +229,68 @@ describe('VerseReader', () => {
     expect(container!.textContent).toContain('80');
     expect(container!.textContent).toContain('230');
     expect(container!.textContent).toContain('Gemini Engine');
+  });
+
+  it('adjusts font size and persists setting in localStorage', async () => {
+    vi.mocked(apiService.getVerses).mockResolvedValue(mockChapterData);
+
+    const r = createRoot(container!);
+    root = r;
+    await act(async () => {
+      r.render(<VerseReader translation="web" activeReference="JHN 3" />);
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    // Initial default should be 'xl'
+    expect(container!.textContent).toContain('xl');
+
+    // Click decrease font size (A-)
+    const decreaseBtn = container!.querySelector('button[aria-label="Pienennä tekstikokoa"]') as HTMLButtonElement;
+    expect(decreaseBtn).not.toBeNull();
+    await act(async () => {
+      decreaseBtn.click();
+    });
+
+    expect(container!.textContent).toContain('lg');
+    expect(localStorage.getItem('clible:reader_font_size')).toBe('lg');
+
+    // Click increase font size (A+) twice
+    const increaseBtn = container!.querySelector('button[aria-label="Suurenna tekstikokoa"]') as HTMLButtonElement;
+    expect(increaseBtn).not.toBeNull();
+    await act(async () => {
+      increaseBtn.click();
+    });
+    await act(async () => {
+      increaseBtn.click();
+    });
+
+    expect(container!.textContent).toContain('2xl');
+    expect(localStorage.getItem('clible:reader_font_size')).toBe('2xl');
+  });
+
+  it('renders dual chapter navigation at both top and bottom of chapter', async () => {
+    vi.mocked(apiService.getVerses).mockResolvedValue(mockChapterData);
+
+    const r = createRoot(container!);
+    root = r;
+    await act(async () => {
+      r.render(<VerseReader translation="web" activeReference="JHN 3" />);
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    // Both top and bottom next/previous buttons should be present (2 previous, 2 next)
+    const prevBtns = Array.from(container!.querySelectorAll('button'))
+      .filter(b => b.textContent?.includes('Edellinen luku'));
+    const nextBtns = Array.from(container!.querySelectorAll('button'))
+      .filter(b => b.textContent?.includes('Seuraava luku'));
+
+    expect(prevBtns.length).toBe(2);
+    expect(nextBtns.length).toBe(2);
+
+    // Each button has min-h-[44px] for touch ergonomics
+    expect(prevBtns[0].className).toContain('min-h-[44px]');
+    expect(nextBtns[0].className).toContain('min-h-[44px]');
+    expect(prevBtns[1].className).toContain('min-h-[44px]');
+    expect(nextBtns[1].className).toContain('min-h-[44px]');
   });
 });

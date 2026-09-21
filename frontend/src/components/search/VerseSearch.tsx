@@ -171,19 +171,21 @@ export function VerseSearch({
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs text-left">
-          <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-left">
+          <label className="flex items-center gap-2 cursor-pointer select-none py-1.5 px-2 rounded-lg hover:bg-[var(--surface-2)]" style={{ color: 'var(--muted)' }}>
             <input
               type="checkbox"
               checked={regex}
               onChange={(e) => setRegex(e.target.checked)}
-              className="rounded cursor-pointer"
+              className="w-4 h-4 rounded cursor-pointer accent-[var(--accent)]"
             />
-            {strings.regexLabel}
+            <span className="font-medium">{strings.regexLabel}</span>
           </label>
 
-          <div className="flex items-center gap-2">
-            <label htmlFor="search-scope-select" style={{ color: 'var(--muted)' }}>{strings.searchScopeLabel}:</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="search-scope-select" className="font-medium" style={{ color: 'var(--muted)' }}>
+              {strings.searchScopeLabel}:
+            </label>
             <select
               id="search-scope-select"
               value={searchScope}
@@ -191,7 +193,7 @@ export function VerseSearch({
                 setSearchScope(e.target.value as 'all' | 'ot' | 'nt' | 'book');
                 setScopeValue('');
               }}
-              className="rounded-lg border px-2 py-1 outline-none cursor-pointer"
+              className="rounded-xl border px-3 py-2 text-xs outline-none cursor-pointer min-h-[38px]"
               style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
             >
               <option value="all">{strings.scopeAll}</option>
@@ -205,7 +207,7 @@ export function VerseSearch({
                 aria-label={strings.selectBookAria}
                 value={scopeValue}
                 onChange={(e) => setScopeValue(e.target.value)}
-                className="rounded-lg border px-2 py-1 outline-none cursor-pointer max-w-[150px]"
+                className="rounded-xl border px-3 py-2 text-xs outline-none cursor-pointer min-h-[38px] max-w-[180px]"
                 style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
               >
                 <option value="">{strings.chooseBookPlaceholder}</option>

@@ -422,6 +422,8 @@ export interface Messages {
   avatarSectionDesc: string;
   avatarInitialsLabel: string;
   changeAvatarLabel: string;
+  decreaseFontSize: string;
+  increaseFontSize: string;
 }
 
 
@@ -847,7 +849,9 @@ export const strings: Record<UILanguage, Messages> = {
     avatarSectionTitle: 'Avatar & Symbol',
     avatarSectionDesc: 'Choose how you appear: your initials or a thematic biblical symbol.',
     avatarInitialsLabel: 'Initials',
-    changeAvatarLabel: 'Change avatar'
+    changeAvatarLabel: 'Change avatar',
+    decreaseFontSize: 'Decrease font size',
+    increaseFontSize: 'Increase font size'
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -1270,7 +1274,9 @@ export const strings: Record<UILanguage, Messages> = {
     avatarSectionTitle: 'Avatar ja tunnuskuvake',
     avatarSectionDesc: 'Valitse miten näyt työtilassa: nimikirjaimina tai teemakuvakkeena.',
     avatarInitialsLabel: 'Nimikirjaimet',
-    changeAvatarLabel: 'Vaihda avatar'
+    changeAvatarLabel: 'Vaihda avatar',
+    decreaseFontSize: 'Pienennä tekstikokoa',
+    increaseFontSize: 'Suurenna tekstikokoa'
   }
 
 };

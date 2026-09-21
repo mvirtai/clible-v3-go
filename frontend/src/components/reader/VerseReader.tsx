@@ -81,6 +81,35 @@ export function VerseReader({
   const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
   const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
+  // Reader Font Size state (persisted in localStorage, defaulting to 'xl')
+  type ReaderFontSize = 'sm' | 'base' | 'lg' | 'xl' | '2xl';
+  const FONT_SIZES: ReaderFontSize[] = ['sm', 'base', 'lg', 'xl', '2xl'];
+  const [fontSize, setFontSize] = useState<ReaderFontSize>(() => {
+    if (typeof window === 'undefined') return 'xl';
+    const saved = localStorage.getItem('clible:reader_font_size') as ReaderFontSize | null;
+    return saved && FONT_SIZES.includes(saved) ? saved : 'xl';
+  });
+
+  const handleAdjustFontSize = (delta: number) => {
+    const currentIndex = FONT_SIZES.indexOf(fontSize);
+    const newIndex = Math.max(0, Math.min(FONT_SIZES.length - 1, currentIndex + delta));
+    const newSize = FONT_SIZES[newIndex];
+    setFontSize(newSize);
+    try {
+      localStorage.setItem('clible:reader_font_size', newSize);
+    } catch {
+      // Ignore localStorage errors in private browsing/sandboxed iframes
+    }
+  };
+
+  const fontSizeClassMap: Record<ReaderFontSize, string> = {
+    sm: 'text-sm',
+    base: 'text-base',
+    lg: 'text-lg',
+    xl: 'text-xl',
+    '2xl': 'text-2xl',
+  };
+
   const { lang, strings } = useLanguage();
 
   const displayRef = data ? parseReferenceForDisplay(data.reference, lang) : null;
@@ -316,44 +345,79 @@ export function VerseReader({
 
       {data && (
         <div className="space-y-6">
-          <div className="flex justify-between items-baseline pb-4"
+          <div className="flex justify-between items-center pb-4 gap-2 flex-wrap"
             style={{ borderBottom: '1px solid var(--border-soft)' }}>
-            <div className="space-y-1 text-left">
-              <h3 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+            <div className="space-y-1 text-left min-w-0">
+              <h3 className="text-xl sm:text-2xl font-bold tracking-tight truncate" style={{ color: 'var(--text)' }}>
                 {displayRef?.mainLabel}
               </h3>
               {displayRef?.subLabel && (
-                <div className="text-xs font-mono tracking-wider font-normal" style={{ color: 'var(--muted)' }}>
+                <div className="text-xs font-mono tracking-wider font-normal truncate" style={{ color: 'var(--muted)' }}>
                   {displayRef.subLabel}
                 </div>
               )}
             </div>
-            <span className="text-xs font-mono uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
-              {data.translationName}
-            </span>
+
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Font size toggle (A- / A+) */}
+              <div
+                className="flex items-center gap-1 rounded-xl p-1 border"
+                style={{
+                  background: 'var(--surface-2)',
+                  borderColor: 'var(--border-soft)',
+                }}
+                role="group"
+                aria-label="Font size controls"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleAdjustFontSize(-1)}
+                  disabled={fontSize === 'sm'}
+                  aria-label={strings.decreaseFontSize}
+                  className="px-2 py-1 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface)] text-[var(--text)] cursor-pointer"
+                >
+                  A-
+                </button>
+                <span className="text-[10px] font-mono px-1 text-[var(--muted)] uppercase">
+                  {fontSize}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleAdjustFontSize(1)}
+                  disabled={fontSize === '2xl'}
+                  aria-label={strings.increaseFontSize}
+                  className="px-2 py-1 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface)] text-[var(--text)] cursor-pointer"
+                >
+                  A+
+                </button>
+              </div>
+
+              <span className="text-xs font-mono uppercase tracking-widest hidden sm:inline" style={{ color: 'var(--muted)' }}>
+                {data.translationName}
+              </span>
+            </div>
           </div>
 
-          {/* Kontekstinavigaatio */}
+          {/* Kontekstinavigaatio (Yläpalkki) */}
           {!data.reference.includes(':') && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={handlePreviousChapter}
                 disabled={!prevChapterRef}
-                className="flex items-center gap-1.5 text-xs font-medium btn-tactile px-3 py-1.5 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile min-h-[44px] px-3.5 py-2 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                 style={{
                   color: 'var(--muted)',
                   borderColor: 'var(--border-soft)',
                   background: 'var(--surface-2)',
-                  cursor: prevChapterRef ? 'pointer' : 'default',
                 }}
               >
-                <ChevronLeft size={14} />
-                {strings.previousChapterLabel}
+                <ChevronLeft size={16} />
+                <span>{strings.previousChapterLabel}</span>
               </button>
 
               {totalChapters !== null && currentChapterInfo && (
-                <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>
+                <span className="text-xs font-mono px-2" style={{ color: 'var(--muted)' }}>
                   {currentChapterInfo.chapter}/{totalChapters}
                 </span>
               )}
@@ -362,16 +426,15 @@ export function VerseReader({
                 type="button"
                 onClick={handleNextChapter}
                 disabled={!nextChapterRef}
-                className="flex items-center gap-1.5 text-xs font-medium btn-tactile px-3 py-1.5 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile min-h-[44px] px-3.5 py-2 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                 style={{
                   color: 'var(--muted)',
                   borderColor: 'var(--border-soft)',
                   background: 'var(--surface-2)',
-                  cursor: nextChapterRef ? 'pointer' : 'default',
                 }}
               >
-                {strings.nextChapterLabel}
-                <ChevronRight size={14} />
+                <span>{strings.nextChapterLabel}</span>
+                <ChevronRight size={16} />
               </button>
             </div>
           )}
@@ -459,7 +522,7 @@ export function VerseReader({
               {data.verses.map((v, idx) => (
                 <div
                   key={`${v.chapter}-${v.verse}-${idx}`}
-                  className="flex gap-2 items-baseline rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--accent-bg)] cursor-pointer"
+                  className="flex gap-2 items-baseline rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--accent-bg)] active:bg-[var(--accent-bg)] cursor-pointer"
                   onClick={() => handleVerseClick(v)}
                   role="button"
                   tabIndex={0}
@@ -478,18 +541,18 @@ export function VerseReader({
                   >
                     {v.verse}
                   </sup>
-                  <span className="text-xl leading-relaxed font-serif" style={{ color: 'var(--text-2)' }}>
+                  <span className={`${fontSizeClassMap[fontSize]} leading-relaxed font-serif`} style={{ color: 'var(--text-2)' }}>
                     {v.text}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xl leading-relaxed font-serif max-w-[65ch]" style={{ color: 'var(--text-2)' }}>
+            <p className={`${fontSizeClassMap[fontSize]} leading-relaxed font-serif max-w-[65ch]`} style={{ color: 'var(--text-2)' }}>
               {data.verses.map((v, idx) => (
                 <span
                   key={`${v.chapter}-${v.verse}-${idx}`}
-                  className="inline px-1 py-0.5 rounded-md transition-colors hover:bg-[var(--accent-bg)] cursor-pointer"
+                  className="inline px-1 py-0.5 rounded-md transition-colors hover:bg-[var(--accent-bg)] active:bg-[var(--accent-bg)] cursor-pointer"
                   onClick={() => handleVerseClick(v)}
                   role="button"
                   tabIndex={0}
@@ -511,12 +574,53 @@ export function VerseReader({
             </p>
           )}
 
+          {/* Kontekstinavigaatio (Alapalkki - helpottaa mobiililukua luvun lopussa) */}
+          {!data.reference.includes(':') && (
+            <div className="flex items-center justify-between gap-2 pt-4 border-t border-[var(--border-soft)]">
+              <button
+                type="button"
+                onClick={handlePreviousChapter}
+                disabled={!prevChapterRef}
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile min-h-[44px] px-3.5 py-2 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                style={{
+                  color: 'var(--muted)',
+                  borderColor: 'var(--border-soft)',
+                  background: 'var(--surface-2)',
+                }}
+              >
+                <ChevronLeft size={16} />
+                <span>{strings.previousChapterLabel}</span>
+              </button>
+
+              {totalChapters !== null && currentChapterInfo && (
+                <span className="text-xs font-mono px-2" style={{ color: 'var(--muted)' }}>
+                  {currentChapterInfo.chapter}/{totalChapters}
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={handleNextChapter}
+                disabled={!nextChapterRef}
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile min-h-[44px] px-3.5 py-2 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                style={{
+                  color: 'var(--muted)',
+                  borderColor: 'var(--border-soft)',
+                  background: 'var(--surface-2)',
+                }}
+              >
+                <span>{strings.nextChapterLabel}</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+
           {backReference && (
             <div className="flex justify-start pt-6">
               <button
                 type="button"
                 onClick={handleBackClick}
-                className="text-xs flex items-center gap-1.5 transition-colors hover:text-[var(--accent)] font-medium btn-tactile px-3.5 py-1.5 rounded-full border border-[var(--border-soft)] hover:border-[var(--accent-border)] bg-[var(--surface-2)]"
+                className="text-xs flex items-center gap-1.5 transition-colors hover:text-[var(--accent)] font-medium btn-tactile px-3.5 py-1.5 rounded-full border border-[var(--border-soft)] hover:border-[var(--accent-border)] bg-[var(--surface-2)] min-h-[40px]"
                 style={{ color: 'var(--muted)', cursor: 'pointer' }}
               >
                 <ArrowLeft size={12} />
