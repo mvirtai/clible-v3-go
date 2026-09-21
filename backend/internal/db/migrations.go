@@ -95,6 +95,17 @@ func RunMigrations(db *sql.DB) error {
 					"ALTER TABLE notebooks ADD COLUMN col_height INTEGER;",
 				}, "\n")
 			}
+			if filename == "017_user_preferences.sql" {
+				// In SQLite tests, 014_email_verification.sql already created subscription columns.
+				// SQLite does not support ADD COLUMN IF NOT EXISTS, so only add the new preferences columns.
+				content = strings.Join([]string{
+					"ALTER TABLE users ADD COLUMN display_name VARCHAR(128) NOT NULL DEFAULT '';",
+					"ALTER TABLE users ADD COLUMN preferred_lang VARCHAR(8) NOT NULL DEFAULT 'en';",
+					"ALTER TABLE users ADD COLUMN theme_preference VARCHAR(16) NOT NULL DEFAULT 'system';",
+					"ALTER TABLE users ADD COLUMN default_translation_id VARCHAR(64) NOT NULL DEFAULT 'web';",
+					"CREATE INDEX IF NOT EXISTS idx_users_default_translation ON users(default_translation_id);",
+				}, "\n")
+			}
 		}
 
 		// Execute migration logic wrapped in a database transaction block
