@@ -30,7 +30,7 @@ func (h *UserSettingsHandler) GetSettings(w http.ResponseWriter, r *http.Request
 
 	settings, err := h.userRepo.GetSettings(r.Context(), userID)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to load settings")
+		writeJSONError(w, http.StatusInternalServerError, "failed to load settings: "+err.Error())
 		return
 	}
 	if settings == nil {

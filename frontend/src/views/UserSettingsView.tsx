@@ -1,4 +1,4 @@
-import { use, useActionState, useState, Suspense, type JSX } from 'react';
+import { use, useActionState, useState, Suspense, Component, type ReactNode, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -35,7 +35,10 @@ function getSettingsResource(): Promise<[UserSettings, InstalledTranslation[]]> 
     settingsResourcePromise = Promise.all([
       apiService.getUserSettings(),
       apiService.getTranslations().then((all) => all.filter((t) => t.installed)),
-    ]);
+    ]).catch((err) => {
+      settingsResourcePromise = null;
+      throw err;
+    });
   }
   return settingsResourcePromise;
 }
@@ -344,6 +347,36 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
   );
 }
 
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallback: (error: Error, reset: () => void) => ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class SettingsErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  override state: ErrorBoundaryState = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  reset = () => {
+    invalidateSettingsResource();
+    this.setState({ hasError: false, error: null });
+  };
+
+  override render() {
+    if (this.state.hasError && this.state.error) {
+      return this.props.fallback(this.state.error, this.reset);
+    }
+    return this.props.children;
+  }
+}
+
 /**
  * Root exported view providing Suspense boundaries and guest mode fallback.
  * Zero useEffect: Pure declarative React 19.2 architecture.
@@ -399,14 +432,50 @@ export function UserSettingsView(): JSX.Element {
 
   // 2. Suspense boundary for authenticated user settings loading
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] text-[var(--text)]">
-          <p className="text-sm text-[var(--muted)]">{strings.appBootLoading || 'Loading...'}</p>
+    <SettingsErrorBoundary
+      fallback={(err, reset) => (
+        <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] p-4 sm:p-8">
+          <div className="max-w-2xl mx-auto space-y-6">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="inline-flex items-center gap-2 text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={14} />
+              <span>{strings.backToBroaderText || 'Back to workspace'}</span>
+            </button>
+
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8 shadow-sm space-y-4 text-center">
+              <div className="w-12 h-12 mx-auto rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                <AlertCircle size={24} />
+              </div>
+              <h1 className="text-xl font-bold">{strings.errUnexpected}</h1>
+              <p className="text-sm text-[var(--muted)] max-w-md mx-auto">
+                {err.message}
+              </p>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-[var(--accent)] hover:opacity-90 text-white transition-all cursor-pointer"
+                >
+                  {strings.retryButtonLabel || 'Yritä uudelleen'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      }
+      )}
     >
-      <UserSettingsContent userEmail={user.email} />
-    </Suspense>
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] text-[var(--text)]">
+            <p className="text-sm text-[var(--muted)]">{strings.appBootLoading || 'Loading...'}</p>
+          </div>
+        }
+      >
+        <UserSettingsContent userEmail={user.email} />
+      </Suspense>
+    </SettingsErrorBoundary>
   );
 }
