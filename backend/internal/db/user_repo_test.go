@@ -169,5 +169,102 @@ func TestUserRepository(t *testing.T) {
 			t.Errorf("expected verified_at to be populated")
 		}
 	})
+
+	t.Run("GetSettings and UpdateSettings workflow success", func(t *testing.T) {
+		userID := uuid.New().String()
+		user := &db.User{
+			ID:           userID,
+			Email:        "settings@example.com",
+			PasswordHash: "secret-hash",
+		}
+		if err := repo.Create(ctx, user); err != nil {
+			t.Fatalf("failed to create user: %v", err)
+		}
+
+		// Initial settings check
+		settings, err := repo.GetSettings(ctx, userID)
+		if err != nil {
+			t.Fatalf("failed to get initial user settings: %v", err)
+		}
+		if settings == nil {
+			t.Fatalf("expected settings to exist, got nil")
+		}
+		if settings.Email != "settings@example.com" {
+			t.Errorf("expected email settings@example.com, got %s", settings.Email)
+		}
+		if settings.PreferredLang != "en" {
+			t.Errorf("expected default lang 'en', got %s", settings.PreferredLang)
+		}
+		if settings.ThemePreference != "system" {
+			t.Errorf("expected default theme 'system', got %s", settings.ThemePreference)
+		}
+		if settings.DefaultTranslationID != "web" {
+			t.Errorf("expected default translation 'web', got %s", settings.DefaultTranslationID)
+		}
+
+		// Update settings
+		err = repo.UpdateSettings(ctx, userID, "Grace Hopper", "fi", "dark", "fin-1992")
+		if err != nil {
+			t.Fatalf("failed to update user settings: %v", err)
+		}
+
+		// Verify updated settings
+		updated, err := repo.GetSettings(ctx, userID)
+		if err != nil {
+			t.Fatalf("failed to get updated user settings: %v", err)
+		}
+		if updated.DisplayName != "Grace Hopper" {
+			t.Errorf("expected display_name 'Grace Hopper', got %s", updated.DisplayName)
+		}
+		if updated.PreferredLang != "fi" {
+			t.Errorf("expected preferred_lang 'fi', got %s", updated.PreferredLang)
+		}
+		if updated.ThemePreference != "dark" {
+			t.Errorf("expected theme_preference 'dark', got %s", updated.ThemePreference)
+		}
+		if updated.DefaultTranslationID != "fin-1992" {
+			t.Errorf("expected default_translation_id 'fin-1992', got %s", updated.DefaultTranslationID)
+		}
+
+		// Non-existent user should return error on update
+		err = repo.UpdateSettings(ctx, "non-existent-user-id", "Nobody", "en", "light", "web")
+		if err == nil {
+			t.Errorf("expected error when updating non-existent user, got nil")
+		}
+
+		// Non-existent user should return nil without error on get
+		nonExistent, err := repo.GetSettings(ctx, "non-existent-user-id")
+		if err != nil {
+			t.Fatalf("unexpected error fetching non-existent user settings: %v", err)
+		}
+		if nonExistent != nil {
+			t.Errorf("expected nil for non-existent user, got %+v", nonExistent)
+		}
+	})
+
+	t.Run("UpdatePasswordHash success", func(t *testing.T) {
+		userID := uuid.New().String()
+		user := &db.User{
+			ID:           userID,
+			Email:        "pwd@example.com",
+			PasswordHash: "initial-hash",
+		}
+		if err := repo.Create(ctx, user); err != nil {
+			t.Fatalf("failed to create user: %v", err)
+		}
+
+		err := repo.UpdatePasswordHash(ctx, userID, "new-bcrypt-hash-value")
+		if err != nil {
+			t.Fatalf("failed to update password hash: %v", err)
+		}
+
+		refetched, err := repo.GetByID(ctx, userID)
+		if err != nil {
+			t.Fatalf("failed to get user: %v", err)
+		}
+		if refetched.PasswordHash != "new-bcrypt-hash-value" {
+			t.Errorf("expected updated password hash, got %s", refetched.PasswordHash)
+		}
+	})
 }
 
