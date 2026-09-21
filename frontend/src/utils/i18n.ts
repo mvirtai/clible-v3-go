@@ -418,6 +418,9 @@ export interface Messages {
   createAccountButton: string;
   saving: string;
   returnToApp: string;
+  avatarSectionTitle: string;
+  avatarSectionDesc: string;
+  avatarInitialsLabel: string;
 }
 
 
@@ -839,7 +842,10 @@ export const strings: Record<UILanguage, Messages> = {
     guestSettingsPrompt: 'You are in guest mode. Create a free account to save your preferences to the cloud!',
     createAccountButton: 'Create Account',
     saving: 'Saving...',
-    returnToApp: 'Back to workspace'
+    returnToApp: 'Back to workspace',
+    avatarSectionTitle: 'Avatar & Symbol',
+    avatarSectionDesc: 'Choose how you appear: your initials or a thematic biblical symbol.',
+    avatarInitialsLabel: 'Initials'
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -1258,7 +1264,10 @@ export const strings: Record<UILanguage, Messages> = {
     guestSettingsPrompt: 'Olet vierastilassa. Luo ilmainen tili tallentaaksesi preferenssisi pilveen!',
     createAccountButton: 'Luo tili',
     saving: 'Tallennetaan...',
-    returnToApp: 'Takaisin työtilaan'
+    returnToApp: 'Takaisin työtilaan',
+    avatarSectionTitle: 'Avatar ja tunnuskuvake',
+    avatarSectionDesc: 'Valitse miten näyt työtilassa: nimikirjaimina tai teemakuvakkeena.',
+    avatarInitialsLabel: 'Nimikirjaimet'
   }
 
 };

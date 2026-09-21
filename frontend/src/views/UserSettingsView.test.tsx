@@ -16,6 +16,7 @@ describe('UserSettingsView', () => {
     id: 'user-123',
     email: 'test@example.com',
     displayName: 'Test User',
+    avatarId: 'initials',
     preferredLang: 'fi',
     themePreference: 'dark',
     defaultTranslationId: 'fin-1992',
@@ -88,5 +89,40 @@ describe('UserSettingsView', () => {
 
     const text = container?.textContent || '';
     expect(text).toContain('Käyttäjäasetukset ja profiili');
+  });
+
+  it('renders avatar picker and allows selecting theme avatar when authenticated', async () => {
+    vi.spyOn(apiService, 'getMe').mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+    });
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <MemoryRouter>
+          <LanguageProvider>
+            <AuthProvider>
+              <UserSettingsView />
+            </AuthProvider>
+          </LanguageProvider>
+        </MemoryRouter>
+      );
+    });
+
+    // Verify avatar picker radios exist (1 monogram + 10 theme avatars = 11 buttons)
+    const radioButtons = container?.querySelectorAll('div[role="radiogroup"] button[role="radio"]');
+    expect(radioButtons?.length).toBe(11);
+
+    // Initials should be checked initially
+    expect(radioButtons?.[0]?.getAttribute('aria-checked')).toBe('true');
+
+    // Click the second avatar (scroll)
+    await act(async () => {
+      (radioButtons?.[1] as HTMLButtonElement)?.click();
+    });
+
+    expect(radioButtons?.[1]?.getAttribute('aria-checked')).toBe('true');
+    expect(radioButtons?.[0]?.getAttribute('aria-checked')).toBe('false');
   });
 });

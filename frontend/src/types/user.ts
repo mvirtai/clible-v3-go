@@ -5,6 +5,7 @@ export interface UserSettings {
   id: string;
   email: string;
   displayName: string;
+  avatarId: string;
   name?: string;
   preferredLang: 'en' | 'fi';
   themePreference: 'system' | 'light' | 'dark';
@@ -21,6 +22,7 @@ export interface UserSettings {
  */
 export interface UpdateUserSettingsPayload {
   displayName: string;
+  avatarId?: string;
   preferredLang: string;
   themePreference: string;
   defaultTranslationId: string;

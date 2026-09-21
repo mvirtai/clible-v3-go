@@ -103,6 +103,7 @@ func RunMigrations(db *sql.DB) error {
 					"ALTER TABLE users ADD COLUMN preferred_lang VARCHAR(8) NOT NULL DEFAULT 'en';",
 					"ALTER TABLE users ADD COLUMN theme_preference VARCHAR(16) NOT NULL DEFAULT 'system';",
 					"ALTER TABLE users ADD COLUMN default_translation_id VARCHAR(64) NOT NULL DEFAULT 'web';",
+					"ALTER TABLE users ADD COLUMN avatar_id VARCHAR(32) NOT NULL DEFAULT 'initials';",
 					"CREATE INDEX IF NOT EXISTS idx_users_default_translation ON users(default_translation_id);",
 				}, "\n")
 			}

@@ -12,11 +12,12 @@ import {
 import { UserAvatar } from './UserAvatar';
 import { AiTokenUsageModal } from './AiTokenUsageModal';
 import { useLanguage } from '@/context/LanguageContext';
+import type { User } from '@/context/AuthContext';
 import { apiService } from '@/services/api';
 import type { AiUsageStats, AiUsageSummary } from '@/types/aiUsage';
 
 export interface UserMenuDropdownProps {
-  user: { email: string; name?: string } | null;
+  user: User | null;
   onSignOut: () => void;
   showManager: boolean;
   onToggleManager: () => void;
@@ -67,7 +68,12 @@ export function UserMenuDropdown({
         aria-label={strings.userMenuAria}
         className="rounded-full p-0.5 transition-transform hover:scale-105 active:scale-95 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-[var(--accent)]"
       >
-        <UserAvatar name={user?.name} email={user?.email} size="md" />
+        <UserAvatar
+          name={user?.displayName || user?.name}
+          email={user?.email}
+          avatarId={user?.avatarId}
+          size="md"
+        />
       </button>
 
       {/* 2. Declarative outside click listener */}
@@ -99,10 +105,15 @@ export function UserMenuDropdown({
       >
         {/* User Info */}
         <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[var(--surface-2)]/60">
-          <UserAvatar name={user?.name} email={user?.email} size="sm" />
+          <UserAvatar
+            name={user?.displayName || user?.name}
+            email={user?.email}
+            avatarId={user?.avatarId}
+            size="sm"
+          />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold truncate text-[var(--text)]">
-              {user ? user.name || user.email : strings.userAccountGuest}
+              {user ? user.displayName || user.name || user.email : strings.userAccountGuest}
             </p>
             <div className="flex items-center gap-1 mt-0.5">
               <ShieldCheck

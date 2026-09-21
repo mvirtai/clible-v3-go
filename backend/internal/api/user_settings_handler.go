@@ -58,6 +58,14 @@ func (h *UserSettingsHandler) UpdateSettings(w http.ResponseWriter, r *http.Requ
 
 	// Sanitize and validate input
 	input.DisplayName = strings.TrimSpace(input.DisplayName)
+	input.AvatarID = strings.TrimSpace(input.AvatarID)
+	switch input.AvatarID {
+	case "scroll", "dove", "olive", "codex", "quill", "menorah", "alpha-omega", "flame", "anchor", "cornerstone":
+		// valid theme avatar
+	default:
+		input.AvatarID = "initials"
+	}
+
 	if input.PreferredLang != "en" && input.PreferredLang != "fi" {
 		input.PreferredLang = "en"
 	}
@@ -69,7 +77,7 @@ func (h *UserSettingsHandler) UpdateSettings(w http.ResponseWriter, r *http.Requ
 	}
 
 	err := h.userRepo.UpdateSettings(
-		r.Context(), userID, input.DisplayName, input.PreferredLang,
+		r.Context(), userID, input.DisplayName, input.AvatarID, input.PreferredLang,
 		input.ThemePreference, input.DefaultTranslationID,
 	)
 	if err != nil {

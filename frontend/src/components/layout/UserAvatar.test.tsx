@@ -70,4 +70,35 @@ describe('UserAvatar', () => {
     // Default language is 'fi' -> 'Vierailija'
     expect(guestDiv?.getAttribute('aria-label')).toBe('Vierailija');
   });
+
+  it('renders thematic SVG avatar when avatarId is explicitly chosen even if name exists', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <UserAvatar name="Matti Meikäläinen" avatarId="dove" />
+        </LanguageProvider>
+      );
+    });
+
+    const avatarDiv = container?.querySelector('div[title]');
+    expect(avatarDiv).not.toBeNull();
+    // Finnish title for dove is 'Rauhankyyhky'
+    expect(avatarDiv?.getAttribute('title')).toBe('Rauhankyyhky');
+    // Monogram text should NOT be present
+    expect(container?.textContent).not.toContain('MM');
+  });
+
+  it('renders monogram initials when avatarId is explicitly initials', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <UserAvatar name="Matti Meikäläinen" avatarId="initials" />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('MM');
+  });
 });

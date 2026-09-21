@@ -192,6 +192,9 @@ func TestUserRepository(t *testing.T) {
 		if settings.Email != "settings@example.com" {
 			t.Errorf("expected email settings@example.com, got %s", settings.Email)
 		}
+		if settings.AvatarID != "initials" {
+			t.Errorf("expected default avatar_id 'initials', got %s", settings.AvatarID)
+		}
 		if settings.PreferredLang != "en" {
 			t.Errorf("expected default lang 'en', got %s", settings.PreferredLang)
 		}
@@ -203,7 +206,7 @@ func TestUserRepository(t *testing.T) {
 		}
 
 		// Update settings
-		err = repo.UpdateSettings(ctx, userID, "Grace Hopper", "fi", "dark", "fin-1992")
+		err = repo.UpdateSettings(ctx, userID, "Grace Hopper", "quill", "fi", "dark", "fin-1992")
 		if err != nil {
 			t.Fatalf("failed to update user settings: %v", err)
 		}
@@ -216,6 +219,9 @@ func TestUserRepository(t *testing.T) {
 		if updated.DisplayName != "Grace Hopper" {
 			t.Errorf("expected display_name 'Grace Hopper', got %s", updated.DisplayName)
 		}
+		if updated.AvatarID != "quill" {
+			t.Errorf("expected avatar_id 'quill', got %s", updated.AvatarID)
+		}
 		if updated.PreferredLang != "fi" {
 			t.Errorf("expected preferred_lang 'fi', got %s", updated.PreferredLang)
 		}
@@ -227,7 +233,7 @@ func TestUserRepository(t *testing.T) {
 		}
 
 		// Non-existent user should return error on update
-		err = repo.UpdateSettings(ctx, "non-existent-user-id", "Nobody", "en", "light", "web")
+		err = repo.UpdateSettings(ctx, "non-existent-user-id", "Nobody", "initials", "en", "light", "web")
 		if err == nil {
 			t.Errorf("expected error when updating non-existent user, got nil")
 		}

@@ -12,6 +12,7 @@ type User struct {
 	ID                   string    `json:"id"`
 	Email                string    `json:"email"`
 	DisplayName          string    `json:"displayName"`
+	AvatarID             string    `json:"avatarId"`
 	PreferredLang        string    `json:"preferredLang"`
 	ThemePreference      string    `json:"themePreference"`
 	DefaultTranslationID string    `json:"defaultTranslationId"`
@@ -93,7 +94,9 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*User, e
 
 func (r *UserRepository) GetByID(ctx context.Context, id string) (*User, error) {
 	query := `
-		SELECT id, email, password_hash, is_verified, created_at, updated_at
+		SELECT id, email, display_name, avatar_id, preferred_lang, theme_preference,
+		       default_translation_id, subscription_tier, subscription_status,
+		       password_hash, is_verified, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -102,6 +105,13 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*User, error) 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&user.ID,
 		&user.Email,
+		&user.DisplayName,
+		&user.AvatarID,
+		&user.PreferredLang,
+		&user.ThemePreference,
+		&user.DefaultTranslationID,
+		&user.SubscriptionTier,
+		&user.SubscriptionStatus,
 		&user.PasswordHash,
 		&user.IsVerified,
 		&user.CreatedAt,
@@ -219,7 +229,7 @@ func (r *UserRepository) MarkUserVerified(ctx context.Context, userID string, ve
 // GetSettings retrieves the profile and preference settings for specified user.
 func (r *UserRepository) GetSettings(ctx context.Context, userID string) (*User, error) {
 	query := `
-		SELECT id, email, display_name, preferred_lang, theme_preference,
+		SELECT id, email, display_name, avatar_id, preferred_lang, theme_preference,
 			   default_translation_id, subscription_tier, subscription_status,
 			   is_verified, created_at, updated_at
 		FROM users
@@ -231,6 +241,7 @@ func (r *UserRepository) GetSettings(ctx context.Context, userID string) (*User,
 		&u.ID,
 		&u.Email,
 		&u.DisplayName,
+		&u.AvatarID,
 		&u.PreferredLang,
 		&u.ThemePreference,
 		&u.DefaultTranslationID,
@@ -250,16 +261,16 @@ func (r *UserRepository) GetSettings(ctx context.Context, userID string) (*User,
 	return &u, nil
 }
 
-// UpdateSettings uodates user display name and workspace preferences
-func (r *UserRepository) UpdateSettings(ctx context.Context, userID, displayName, preferredLang, theme, defaultTransID string) error {
+// UpdateSettings updates user display name, avatar, and workspace preferences
+func (r *UserRepository) UpdateSettings(ctx context.Context, userID, displayName, avatarID, preferredLang, theme, defaultTransID string) error {
 	query := `
 		UPDATE users
-		SET display_name = $1, preferred_lang = $2, theme_preference = $3,
-			default_translation_id = $4, updated_at = $5
-		WHERE id = $6
+		SET display_name = $1, avatar_id = $2, preferred_lang = $3, theme_preference = $4,
+			default_translation_id = $5, updated_at = $6
+		WHERE id = $7
 	`
 	now := time.Now()
-	res, err := r.db.ExecContext(ctx, query, displayName, preferredLang, theme, defaultTransID, now, userID)
+	res, err := r.db.ExecContext(ctx, query, displayName, avatarID, preferredLang, theme, defaultTransID, now, userID)
 	if err != nil {
 		return fmt.Errorf("failed to update user settings: %w", err)
 	}

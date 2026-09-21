@@ -6,11 +6,12 @@ As Clible v3 matures from an exploratory Bible text and theological analysis san
 
 This Pull Request delivers a unified, production-ready **User Settings & Profile View** (`/settings`) supported by an end-to-end full-stack architecture:
 
-1. **Persistent Cloud Preferences**: User display name, preferred UI language (`fi` / `en`), interface theme (`system` / `light` / `dark`), and default Bible translation ID (`fin-1992`, `fin-1776`, `web`, etc.) are backed by Neon PostgreSQL (`017_user_preferences.sql`) with full SQLite test-runner parity.
-2. **React 19.2 Declarative Architecture**: Zero `useEffect` for state synchronization. The settings view leverages React 19 `use()` with `<Suspense>` boundaries for non-blocking resource acquisition and `useActionState` + `<form action={...}>` for profile and password mutations.
-3. **Guest & Unauthenticated Fallback**: Seamless unauthenticated routing. Anonymous guests accessing `/settings` are presented with an educational CTA card inviting registration for cloud sync, avoiding phantom network queries.
-4. **Security Hardening**: Authenticated password rotation endpoint with current-password `bcrypt` verification and strict password complexity enforcement.
-5. **Specialized Agent Definitions**: Formally registers the Clible specialist subagent catalog under `.agents/agents/` for direct accessibility via Antigravity CLI `/agents`.
+1. **Persistent Cloud Preferences**: User display name, chosen avatar (`avatar_id`: initials or 1 of the 10 thematic biblical SVG icons), preferred UI language (`fi` / `en`), interface theme (`system` / `light` / `dark`), and default Bible translation ID (`fin-1992`, `fin-1776`, `web`, etc.) are backed by Neon PostgreSQL (`017_user_preferences.sql`) with full SQLite test-runner parity.
+2. **React 19.2 Declarative Architecture**: Zero `useEffect` for state synchronization. The settings view leverages React 19 `use()` with `<Suspense>` boundaries for non-blocking resource acquisition and `useActionState` + `<form action={...}>` for profile, avatar, and password mutations.
+3. **Thematic Avatar Selection**: A responsive visual avatar selector with accessible radio tiles enabling users to seamlessly toggle between monogram name initials and 10 vector SVG symbols (scroll, dove, olive branch, codex, quill, menorah, alpha-omega, flame, anchor, cornerstone) with instant live preview.
+4. **Guest & Unauthenticated Fallback**: Seamless unauthenticated routing. Anonymous guests accessing `/settings` are presented with an educational CTA card inviting registration for cloud sync, avoiding phantom network queries.
+5. **Security Hardening**: Authenticated password rotation endpoint with current-password `bcrypt` verification and strict password complexity enforcement.
+6. **Specialized Agent Definitions**: Formally registers the Clible specialist subagent catalog under `.agents/agents/` for direct accessibility via Antigravity CLI `/agents`.
 
 ---
 
@@ -62,13 +63,13 @@ sequenceDiagram
 ## Key Changes & Engineering Decisions
 
 ### 1. Database Schema Migration (`017_user_preferences.sql`)
-- Added `display_name` (`VARCHAR(128)`), `preferred_lang` (`VARCHAR(8)`), `theme_preference` (`VARCHAR(16)`), and `default_translation_id` (`VARCHAR(64)`) to `users`.
+- Added `display_name` (`VARCHAR(128)`), `avatar_id` (`VARCHAR(32)`), `preferred_lang` (`VARCHAR(8)`), `theme_preference` (`VARCHAR(16)`), and `default_translation_id` (`VARCHAR(64)`) to `users`.
 - Created an index `idx_users_default_translation` for high-speed foreign joins against installed translation tables.
 - Maintained 100% dialect compatibility between Neon PostgreSQL and in-memory SQLite (`:memory:`).
 
 ### 2. Go 1.22+ Standard Routing & Handler Implementation
-- Extended `UserRepository` with `GetSettings`, `UpdateSettings`, and `UpdatePasswordHash`.
-- Implemented `UserSettingsHandler` under `internal/api/user_settings_handler.go` with strict input sanitization, error wrapping, and context propagation.
+- Extended `UserRepository` with `GetSettings`, `UpdateSettings`, `GetByID` (all including `avatar_id`), and `UpdatePasswordHash`.
+- Implemented `UserSettingsHandler` under `internal/api/user_settings_handler.go` with strict input sanitization (validating avatar IDs: `initials` or 1 of the 10 theme SVGs), error wrapping, and context propagation.
 - Integrated routes into standard `http.ServeMux` protected by `requireAuth` middleware:
   - `GET /api/user/settings`
   - `PUT /api/user/settings`
@@ -77,6 +78,7 @@ sequenceDiagram
 ### 3. React 19.2 & React Compiler Compliance
 - **Zero `useEffect`**: Eliminated state-synchronization effects. Initial resource loading is driven by React 19 `use(getSettingsResource())` inside a dedicated `<Suspense>` boundary.
 - **`useActionState`**: Employed React 19 action states for asynchronous form submission (`settingsAction` and `pwdAction`), preserving form ergonomics and error boundaries.
+- **Thematic Avatar Selector**: Integrated interactive radio group allowing users to choose between monogram initials and 10 thematic SVGs (`scroll`, `dove`, `olive`, `codex`, `quill`, `menorah`, `alpha-omega`, `flame`, `anchor`, `cornerstone`) with immediate live preview.
 - **Instant UI Reactivity**: Immediate DOM theme class switching (`dark` / `light`) and language context switching (`setLang`) upon form submission without page reloads.
 - **`SettingsErrorBoundary`**: Wrapped settings content in a localized error boundary that gracefully handles rejected promises and provides instant "Yritä uudelleen" / "Retry" recovery.
 
@@ -84,7 +86,7 @@ sequenceDiagram
 - **Neon PostgreSQL & SQLite Parity**: Enhanced `backend/internal/db/migrations.go` to transparently adapt migration `017_user_preferences.sql` for SQLite in-memory test suites while keeping idempotent `IF NOT EXISTS` columns for production Neon DB.
 
 ### 5. Bilingual Localization (`i18n.ts`)
-- Added 28 localized keys to `Messages` interface (including `returnToApp: "Takaisin työtilaan"` / `"Back to workspace"`) and populated both Finnish (`fi`) and English (`en`) dictionaries with zero fallback omissions.
+- Added 31 localized keys to `Messages` interface (including `avatarSectionTitle`, `avatarSectionDesc`, `avatarInitialsLabel`, and `returnToApp: "Takaisin työtilaan"` / `"Back to workspace"`) and populated both Finnish (`fi`) and English (`en`) dictionaries with zero fallback omissions.
 
 ---
 
@@ -92,21 +94,24 @@ sequenceDiagram
 
 | File | Change Type | Description |
 | :--- | :---: | :--- |
-| `backend/migrations/017_user_preferences.sql` | Added | Schema migration for user profile, subscriptions, and workspace preferences |
+| `backend/migrations/017_user_preferences.sql` | Added | Schema migration for user profile, subscriptions, avatar, and preferences |
 | `backend/internal/db/migrations.go` | Modified | Adapted migration 017 for SQLite in-memory unit tests |
 | `backend/internal/models/user_settings.go` | Added | DTOs for `UserSettings`, `UpdateUserSettingsInput`, and `ChangePasswordInput` |
-| `backend/internal/db/user_repo.go` | Modified | Added `GetSettings`, `UpdateSettings`, and `UpdatePasswordHash` |
+| `backend/internal/db/user_repo.go` | Modified | Added `GetSettings`, `UpdateSettings`, `GetByID`, and `UpdatePasswordHash` |
 | `backend/internal/db/user_repo_test.go` | Added | Unit test suite verifying repository CRUD and edge cases |
 | `backend/internal/api/user_settings_handler.go` | Added | HTTP handler for settings retrieval, preference updates, and password rotation |
 | `backend/internal/api/user_settings_handler_test.go` | Added | Comprehensive unit tests for handler endpoints with mock repos |
 | `backend/main.go` | Modified | Registered `/api/user/settings` and `/api/user/password` routes |
 | `frontend/src/types/user.ts` | Added | TypeScript interfaces for `UserSettings` and update payloads |
 | `frontend/src/services/api.ts` | Modified | Added `getUserSettings`, `updateUserSettings`, and `updatePassword` API methods |
-| `frontend/src/views/UserSettingsView.tsx` | Added | Declarative React 19.2 settings view with `SettingsErrorBoundary` |
-| `frontend/src/views/UserSettingsView.test.tsx` | Added | Vitest test suite testing guest fallback, mock rendering, and accessibility |
-| `frontend/src/components/layout/UserMenuDropdown.tsx` | Modified | Added navigation link to `/settings` with `Settings` icon |
+| `frontend/src/views/UserSettingsView.tsx` | Added | Declarative React 19.2 settings view with Avatar picker and `SettingsErrorBoundary` |
+| `frontend/src/views/UserSettingsView.test.tsx` | Added | Vitest test suite testing guest fallback, mock rendering, and avatar picker |
+| `frontend/src/components/layout/UserAvatar.tsx` | Modified | Added `avatarId` support for selecting between initials and 10 thematic SVGs |
+| `frontend/src/components/layout/UserAvatar.test.tsx` | Modified | Unit tests covering explicit theme avatar and initials rendering |
+| `frontend/src/components/layout/UserMenuDropdown.tsx` | Modified | Passes `avatarId` and `displayName` to header avatars |
+| `frontend/src/components/layout/AppHeader.tsx` | Modified | Unified `User` type from `AuthContext` |
 | `frontend/src/main.tsx` | Modified | Registered `/settings` route in application router |
-| `frontend/src/utils/i18n.ts` | Modified | Added bilingual message keys (including `returnToApp`) |
+| `frontend/src/utils/i18n.ts` | Modified | Added bilingual message keys (including avatar and navigation strings) |
 | `docs/package.json`, `docs/pnpm-lock.yaml` | Modified | Overrode PostCSS to 8.5.28 to resolve Dependabot security vulnerabilities |
 | `.agents/agents/*` | Added | Specialized workspace agents (`clible-expert`, `isla-engine-specialist`, etc.) |
 | `VERSION`, `frontend/package.json`, ... | Modified | Version bump to `3.6.0` |
@@ -125,14 +130,14 @@ github.com/mvirtai/clible-v3-go/internal/api/user_settings_handler.go:	UpdatePas
 github.com/mvirtai/clible-v3-go/internal/db/user_repo.go:		GetSettings		100.0%
 github.com/mvirtai/clible-v3-go/internal/db/user_repo.go:		UpdateSettings		100.0%
 github.com/mvirtai/clible-v3-go/internal/db/user_repo.go:		UpdatePasswordHash	100.0%
-total:									(statements)		76.4%
+total:									(statements)		76.5%
 ```
 
 #### 2. Frontend Vitest Suite (`task frontend:check`)
 ```text
  Test Files  38 passed (38)
-      Tests  304 passed (304)
-   Duration  9.13s
+      Tests  307 passed (307)
+   Duration  9.04s
 All local quality checks passed flawlessly!
 ```
 
@@ -148,7 +153,10 @@ All local quality checks passed flawlessly!
    - Log into an account.
    - Click the user avatar in the top right -> select **Asetukset**.
    - Change Display Name to a custom name, select a new Bible translation, and switch theme to `dark`.
-   - Submit form -> verify success badge appears, document updates theme instantly, and avatar reflects updated name.
-3. **Password Security**:
+3. **Avatar Selection**:
+   - In the settings view, observe the Avatar picker grid displaying the Monogram Initials option and all 10 thematic SVGs.
+   - Click one of the thematic icons (e.g. `Dove` or `Quill`) -> verify the profile preview updates immediately.
+   - Click **Tallenna asetukset** -> verify success badge appears and preferences persist across reloads.
+4. **Password Security**:
    - Attempt password change with an incorrect current password -> verify error message.
    - Enter valid current password and compliant new password -> verify success message.

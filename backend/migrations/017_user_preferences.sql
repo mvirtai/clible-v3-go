@@ -12,5 +12,6 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(128) NOT NULL DE
 ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_lang VARCHAR(8) NOT NULL DEFAULT 'en';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_preference VARCHAR(16) NOT NULL DEFAULT 'system';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS default_translation_id VARCHAR(64) NOT NULL DEFAULT 'web';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_id VARCHAR(32) NOT NULL DEFAULT 'initials';
 
 CREATE INDEX IF NOT EXISTS idx_users_default_translation ON users(default_translation_id);

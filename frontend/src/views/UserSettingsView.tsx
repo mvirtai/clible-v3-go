@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { apiService } from '@/services/api';
 import { UserAvatar } from '@/components/layout/UserAvatar';
+import { THEME_AVATARS } from '@/components/layout/avatars';
 import type { UserSettings } from '@/types/user';
 import type { InstalledTranslation } from '@/types/bible';
 
@@ -60,18 +61,22 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
   // Pure React 19 use(): Zero useEffect, zero manual loading flags
   const [initialSettings, translations] = use(getSettingsResource());
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string>(settings?.avatarId || 'initials');
+  const [currentDisplayName, setCurrentDisplayName] = useState<string>(settings?.displayName || '');
 
   // React 19.2 useActionState for profile and preferences form action
   const [settingsState, settingsAction, isSettingsPending] = useActionState<SettingsFormState, FormData>(
     async (_prevState, formData) => {
       try {
         const displayName = (formData.get('displayName') as string) || '';
+        const avatarId = (formData.get('avatarId') as string) || 'initials';
         const preferredLang = (formData.get('preferredLang') as string) || 'en';
         const themePreference = (formData.get('themePreference') as string) || 'system';
         const defaultTranslationId = (formData.get('defaultTranslationId') as string) || 'web';
 
         const updated = await apiService.updateUserSettings({
           displayName,
+          avatarId,
           preferredLang,
           themePreference,
           defaultTranslationId,
@@ -79,6 +84,8 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
 
         invalidateSettingsResource();
         setSettings(updated);
+        setSelectedAvatarId(updated.avatarId || 'initials');
+        setCurrentDisplayName(updated.displayName || '');
 
         // Instantly update active UI language if valid
         if (preferredLang === 'fi' || preferredLang === 'en') {
@@ -145,7 +152,12 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-[var(--border-soft)]">
               <div className="flex items-center gap-3">
-                <UserAvatar name={settings?.displayName || userName} email={userEmail} size="lg" />
+                <UserAvatar
+                  name={currentDisplayName || userName}
+                  email={userEmail}
+                  avatarId={selectedAvatarId}
+                  size="lg"
+                />
                 <div>
                   <h2 className="text-sm font-semibold text-[var(--text)]">{strings.profileSectionTitle}</h2>
                   <p className="text-xs text-[var(--muted)]">{strings.profileSectionDesc}</p>
@@ -169,7 +181,8 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
                   id="name-input"
                   name="displayName"
                   type="text"
-                  defaultValue={settings?.displayName || ''}
+                  value={currentDisplayName}
+                  onChange={(e) => setCurrentDisplayName(e.target.value)}
                   placeholder={strings.displayNamePlaceholder}
                   className="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text)] focus:outline-hidden focus:ring-2 focus:ring-[var(--accent)]"
                 />
@@ -186,6 +199,74 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
                   value={userEmail}
                   className="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)]/50 border border-[var(--border-soft)] text-[var(--muted)] cursor-not-allowed"
                 />
+              </div>
+            </div>
+
+            {/* Avatar selection grid */}
+            <div className="pt-4 border-t border-[var(--border-soft)] space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--text)]">{strings.avatarSectionTitle}</h3>
+                <p className="text-xs text-[var(--muted)]">{strings.avatarSectionDesc}</p>
+              </div>
+
+              <input type="hidden" name="avatarId" value={selectedAvatarId} />
+
+              <div
+                role="radiogroup"
+                aria-label={strings.avatarSectionTitle}
+                className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5"
+              >
+                {/* Option 1: Monogram Initials */}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={selectedAvatarId === 'initials'}
+                  onClick={() => setSelectedAvatarId('initials')}
+                  className={`flex flex-col items-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                    selectedAvatarId === 'initials'
+                      ? 'border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/30 font-medium'
+                      : 'border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  <UserAvatar
+                    name={currentDisplayName || userName}
+                    email={userEmail}
+                    avatarId="initials"
+                    size="md"
+                  />
+                  <span className="text-[11px] truncate w-full">
+                    {strings.avatarInitialsLabel}
+                  </span>
+                </button>
+
+                {/* Options 2-11: 10 Thematic SVG Icons */}
+                {THEME_AVATARS.map((avatar) => {
+                  const isSelected = selectedAvatarId === avatar.id;
+                  const title = lang === 'en' ? avatar.nameEn : avatar.nameFi;
+                  return (
+                    <button
+                      key={avatar.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setSelectedAvatarId(avatar.id)}
+                      className={`flex flex-col items-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/30 font-medium'
+                          : 'border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      <UserAvatar
+                        email={userEmail}
+                        avatarId={avatar.id}
+                        size="md"
+                      />
+                      <span className="text-[11px] truncate w-full" title={title}>
+                        {title}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

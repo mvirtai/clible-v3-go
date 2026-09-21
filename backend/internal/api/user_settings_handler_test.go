@@ -134,6 +134,7 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 	t.Run("valid payload updates settings and returns 200", func(t *testing.T) {
 		payload := models.UpdateUserSettingsInput{
 			DisplayName:          "Linus Torvalds",
+			AvatarID:             "dove",
 			PreferredLang:        "fi",
 			ThemePreference:      "dark",
 			DefaultTranslationID: "fin-1992",
@@ -157,6 +158,9 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 		if updated.DisplayName != "Linus Torvalds" {
 			t.Errorf("expected display name 'Linus Torvalds', got %s", updated.DisplayName)
 		}
+		if updated.AvatarID != "dove" {
+			t.Errorf("expected avatarId 'dove', got %s", updated.AvatarID)
+		}
 		if updated.PreferredLang != "fi" {
 			t.Errorf("expected preferred lang 'fi', got %s", updated.PreferredLang)
 		}
@@ -171,6 +175,7 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 	t.Run("normalizes default language, theme, and translation values", func(t *testing.T) {
 		payload := models.UpdateUserSettingsInput{
 			DisplayName:          "  Trimmed Name  ",
+			AvatarID:             "invalid-avatar-choice",
 			PreferredLang:        "invalid-lang",
 			ThemePreference:      "unsupported-theme",
 			DefaultTranslationID: "",
@@ -193,6 +198,9 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 
 		if updated.DisplayName != "Trimmed Name" {
 			t.Errorf("expected trimmed display name, got %q", updated.DisplayName)
+		}
+		if updated.AvatarID != "initials" {
+			t.Errorf("expected fallback avatarId 'initials', got %s", updated.AvatarID)
 		}
 		if updated.PreferredLang != "en" {
 			t.Errorf("expected fallback lang 'en', got %s", updated.PreferredLang)

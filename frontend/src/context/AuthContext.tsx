@@ -9,6 +9,11 @@ export interface User {
   id: string;
   /** Primary contact and login email address. */
   email: string;
+  /** Optional human display name. */
+  displayName?: string;
+  name?: string;
+  /** Chosen avatar identifier (e.g. 'initials' or theme SVG id). */
+  avatarId?: string;
 }
 
 /**

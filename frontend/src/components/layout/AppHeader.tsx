@@ -4,13 +4,14 @@ import { UserMenuDropdown } from './UserMenuDropdown';
 import { useLanguage } from '../../context/LanguageContext';
 import { APP_VERSION } from '@/utils/version';
 import type { InstalledTranslation } from '../../types/bible';
+import type { User } from '@/context/AuthContext';
 
 export type ViewMode = 'reader' | 'search' | 'analytics' | 'compare' | 'original' | 'notebooks';
 
 export interface AppHeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
-  user: { email: string; name?: string } | null;
+  user: User | null;
   onSignOut: () => void;
   showManager: boolean;
   onToggleManager: () => void;
