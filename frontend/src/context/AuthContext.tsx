@@ -9,6 +9,11 @@ export interface User {
   id: string;
   /** Primary contact and login email address. */
   email: string;
+  /** Optional human display name. */
+  displayName?: string;
+  name?: string;
+  /** Chosen avatar identifier (e.g. 'initials' or theme SVG id). */
+  avatarId?: string;
 }
 
 /**
@@ -31,6 +36,10 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   /** Activates guest exploration mode without requiring authentication. */
   enterGuestMode: () => void;
+  /** Immediately applies local profile/avatar updates to active session. */
+  updateUser: (updates: Partial<User>) => void;
+  /** Re-fetches current user profile from /api/auth/me. */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,10 +107,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...updates } : null));
+  };
+
+  const refreshUser = async () => {
+    try {
+      const currentUser = await apiService.getMe();
+      setUser(currentUser);
+    } catch {
+      // Ignore network errors
+    }
+  };
+
   const isGuest = user === null;
 
   return (
-    <AuthContext value={{ user, isGuest, loading, login, register, verifyEmail, logout, enterGuestMode }}>
+    <AuthContext value={{ user, isGuest, loading, login, register, verifyEmail, logout, enterGuestMode, updateUser, refreshUser }}>
       {children}
     </AuthContext>
   );

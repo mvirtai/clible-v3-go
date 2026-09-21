@@ -95,6 +95,7 @@ func main() {
 	aiUsageHandler := api.NewAiUsageHandler(aiUsageService)
 	notebookHandler := api.NewNotebookHandler(notebookService)
 	dslHandler := api.NewDSLHandler(cliService)
+	userSettingsHandler := api.NewUserSettingsHandler(userRepo)
 	versionHandler := api.NewVersionHandler()
 
 	mux := http.NewServeMux()
@@ -170,6 +171,11 @@ func main() {
 	mux.Handle("POST /api/ai/compare", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetComparison))))
 	mux.Handle("GET /api/ai/usage/me", requireAuth(http.HandlerFunc(aiUsageHandler.GetMyUsage)))
 	mux.Handle("GET /api/ai/usage/summary", optionalAuth(http.HandlerFunc(aiUsageHandler.GetSummary)))
+
+	// User settings and profile routes
+	mux.Handle("GET /api/user/settings", requireAuth(http.HandlerFunc(userSettingsHandler.GetSettings)))
+	mux.Handle("PUT /api/user/settings", requireAuth(http.HandlerFunc(userSettingsHandler.UpdateSettings)))
+	mux.Handle("PUT /api/user/password", requireAuth(http.HandlerFunc(userSettingsHandler.UpdatePassword)))
 
 	// Static SPA fallback
 	fs := http.FileServer(http.Dir(cfg.FrontendDir))

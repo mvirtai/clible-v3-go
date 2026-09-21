@@ -37,7 +37,7 @@ describe('AppHeader', () => {
             <AppHeader
               theme="dark"
               onToggleTheme={vi.fn()}
-              user={{ email: 'test@clible.com' }}
+              user={{ id: 'user-1', email: 'test@clible.com' }}
               onSignOut={vi.fn()}
               showManager={false}
               onToggleManager={vi.fn()}

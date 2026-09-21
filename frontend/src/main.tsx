@@ -5,6 +5,7 @@ import App from './App.tsx';
 import Login from './pages/Login.tsx';
 import Register from './pages/Register.tsx';
 import VerifyEmail from './pages/VerifyEmail.tsx';
+import { UserSettingsView } from './views/UserSettingsView.tsx';
 import { AuthProvider } from './context/AuthContext.tsx';
 import { LanguageProvider } from './context/LanguageContext.tsx';
 import './index.css';
@@ -18,6 +19,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/settings" element={<UserSettingsView />} />
             <Route path="/guest" element={<App />} />
             <Route path="/vierailija-yleinen" element={<Navigate to="/guest" replace />} />
             <Route path="/*" element={<App />} />

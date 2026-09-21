@@ -4,7 +4,7 @@ import "runtime"
 
 var (
 	// Version is the current SemVer release of the application.
-	Version = "3.5.1"
+	Version = "3.6.0"
 
 	// GitCommit contains the commit SHA injected during compile time via ldflags.
 	GitCommit = "dev"
