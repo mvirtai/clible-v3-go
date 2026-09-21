@@ -417,6 +417,7 @@ export interface Messages {
   guestSettingsPrompt: string;
   createAccountButton: string;
   saving: string;
+  returnToApp: string;
 }
 
 
@@ -838,6 +839,7 @@ export const strings: Record<UILanguage, Messages> = {
     guestSettingsPrompt: 'You are in guest mode. Create a free account to save your preferences to the cloud!',
     createAccountButton: 'Create Account',
     saving: 'Saving...',
+    returnToApp: 'Back to workspace'
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -1256,6 +1258,7 @@ export const strings: Record<UILanguage, Messages> = {
     guestSettingsPrompt: 'Olet vierastilassa. Luo ilmainen tili tallentaaksesi preferenssisi pilveen!',
     createAccountButton: 'Luo tili',
     saving: 'Tallennetaan...',
+    returnToApp: 'Takaisin työtilaan'
   }
 
 };

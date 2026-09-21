@@ -129,7 +129,7 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
             className="inline-flex items-center gap-2 text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
           >
             <ArrowLeft size={14} />
-            <span>{strings.backToBroaderText || 'Back to workspace'}</span>
+            <span>{strings.returnToApp || 'Return to Clible'}</span>
           </button>
           <span className="text-xs font-mono text-[var(--muted)]">{userEmail}</span>
         </div>
@@ -397,7 +397,7 @@ export function UserSettingsView(): JSX.Element {
             className="inline-flex items-center gap-2 text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
           >
             <ArrowLeft size={14} />
-            <span>{strings.backToBroaderText || 'Back to workspace'}</span>
+            <span>{strings.returnToApp || 'Back to workspace'}</span>
           </button>
 
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8 shadow-sm space-y-4 text-center">
@@ -442,7 +442,7 @@ export function UserSettingsView(): JSX.Element {
               className="inline-flex items-center gap-2 text-xs font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
             >
               <ArrowLeft size={14} />
-              <span>{strings.backToBroaderText || 'Back to workspace'}</span>
+              <span>{strings.returnToApp || 'Back to workspace'}</span>
             </button>
 
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8 shadow-sm space-y-4 text-center">

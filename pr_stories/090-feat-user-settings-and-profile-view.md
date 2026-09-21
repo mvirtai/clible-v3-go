@@ -78,9 +78,13 @@ sequenceDiagram
 - **Zero `useEffect`**: Eliminated state-synchronization effects. Initial resource loading is driven by React 19 `use(getSettingsResource())` inside a dedicated `<Suspense>` boundary.
 - **`useActionState`**: Employed React 19 action states for asynchronous form submission (`settingsAction` and `pwdAction`), preserving form ergonomics and error boundaries.
 - **Instant UI Reactivity**: Immediate DOM theme class switching (`dark` / `light`) and language context switching (`setLang`) upon form submission without page reloads.
+- **`SettingsErrorBoundary`**: Wrapped settings content in a localized error boundary that gracefully handles rejected promises and provides instant "Yritä uudelleen" / "Retry" recovery.
 
-### 4. Bilingual Localization (`i18n.ts`)
-- Added 27 localized keys to `Messages` interface and populated both Finnish (`fi`) and English (`en`) dictionaries with zero fallback omissions.
+### 4. Dual-Driver DB Invariants & SQLite Test Parity
+- **Neon PostgreSQL & SQLite Parity**: Enhanced `backend/internal/db/migrations.go` to transparently adapt migration `017_user_preferences.sql` for SQLite in-memory test suites while keeping idempotent `IF NOT EXISTS` columns for production Neon DB.
+
+### 5. Bilingual Localization (`i18n.ts`)
+- Added 28 localized keys to `Messages` interface (including `returnToApp: "Takaisin työtilaan"` / `"Back to workspace"`) and populated both Finnish (`fi`) and English (`en`) dictionaries with zero fallback omissions.
 
 ---
 
@@ -88,7 +92,8 @@ sequenceDiagram
 
 | File | Change Type | Description |
 | :--- | :---: | :--- |
-| `backend/migrations/017_user_preferences.sql` | Added | Schema migration for user profile and workspace preferences |
+| `backend/migrations/017_user_preferences.sql` | Added | Schema migration for user profile, subscriptions, and workspace preferences |
+| `backend/internal/db/migrations.go` | Modified | Adapted migration 017 for SQLite in-memory unit tests |
 | `backend/internal/models/user_settings.go` | Added | DTOs for `UserSettings`, `UpdateUserSettingsInput`, and `ChangePasswordInput` |
 | `backend/internal/db/user_repo.go` | Modified | Added `GetSettings`, `UpdateSettings`, and `UpdatePasswordHash` |
 | `backend/internal/db/user_repo_test.go` | Added | Unit test suite verifying repository CRUD and edge cases |
@@ -97,11 +102,11 @@ sequenceDiagram
 | `backend/main.go` | Modified | Registered `/api/user/settings` and `/api/user/password` routes |
 | `frontend/src/types/user.ts` | Added | TypeScript interfaces for `UserSettings` and update payloads |
 | `frontend/src/services/api.ts` | Modified | Added `getUserSettings`, `updateUserSettings`, and `updatePassword` API methods |
-| `frontend/src/views/UserSettingsView.tsx` | Added | Declarative React 19.2 settings and profile view component |
+| `frontend/src/views/UserSettingsView.tsx` | Added | Declarative React 19.2 settings view with `SettingsErrorBoundary` |
 | `frontend/src/views/UserSettingsView.test.tsx` | Added | Vitest test suite testing guest fallback, mock rendering, and accessibility |
 | `frontend/src/components/layout/UserMenuDropdown.tsx` | Modified | Added navigation link to `/settings` with `Settings` icon |
 | `frontend/src/main.tsx` | Modified | Registered `/settings` route in application router |
-| `frontend/src/utils/i18n.ts` | Modified | Added bilingual message keys for settings view |
+| `frontend/src/utils/i18n.ts` | Modified | Added bilingual message keys (including `returnToApp`) |
 | `docs/package.json`, `docs/pnpm-lock.yaml` | Modified | Overrode PostCSS to 8.5.28 to resolve Dependabot security vulnerabilities |
 | `.agents/agents/*` | Added | Specialized workspace agents (`clible-expert`, `isla-engine-specialist`, etc.) |
 | `VERSION`, `frontend/package.json`, ... | Modified | Version bump to `3.6.0` |
