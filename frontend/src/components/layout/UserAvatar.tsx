@@ -13,14 +13,14 @@ export interface UserAvatarProps {
 
 const SIZE_CLASSES = {
   sm: 'w-7 h-7 text-xs',
-  md: 'w-9 h-9 text-sm',
+  md: 'w-12 h-12 text-sm',
   lg: 'w-12 h-12 text-base',
 };
 
 const ICON_PADDING = {
-  sm: 'p-1',
-  md: 'p-1.5',
-  lg: 'p-2',
+  sm: 'p-0.5',
+  md: 'p-1',
+  lg: 'p-1.5',
 };
 
 export function UserAvatar({

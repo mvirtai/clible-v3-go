@@ -421,6 +421,7 @@ export interface Messages {
   avatarSectionTitle: string;
   avatarSectionDesc: string;
   avatarInitialsLabel: string;
+  changeAvatarLabel: string;
 }
 
 
@@ -845,7 +846,8 @@ export const strings: Record<UILanguage, Messages> = {
     returnToApp: 'Back to workspace',
     avatarSectionTitle: 'Avatar & Symbol',
     avatarSectionDesc: 'Choose how you appear: your initials or a thematic biblical symbol.',
-    avatarInitialsLabel: 'Initials'
+    avatarInitialsLabel: 'Initials',
+    changeAvatarLabel: 'Change avatar'
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -1267,7 +1269,8 @@ export const strings: Record<UILanguage, Messages> = {
     returnToApp: 'Takaisin työtilaan',
     avatarSectionTitle: 'Avatar ja tunnuskuvake',
     avatarSectionDesc: 'Valitse miten näyt työtilassa: nimikirjaimina tai teemakuvakkeena.',
-    avatarInitialsLabel: 'Nimikirjaimet'
+    avatarInitialsLabel: 'Nimikirjaimet',
+    changeAvatarLabel: 'Vaihda avatar'
   }
 
 };

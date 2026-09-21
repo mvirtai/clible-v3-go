@@ -1,4 +1,4 @@
-import { use, useActionState, useState, Suspense, Component, type ReactNode, type JSX } from 'react';
+import { use, useActionState, useState, useRef, Suspense, Component, type ReactNode, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -7,6 +7,7 @@ import {
   Lock,
   CheckCircle2,
   AlertCircle,
+  Camera,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -56,6 +57,7 @@ function invalidateSettingsResource(): void {
  */
 function UserSettingsContent({ userEmail, userName }: { userEmail: string; userName?: string }): JSX.Element {
   const { lang, setLang, strings } = useLanguage();
+  const { updateUser } = useAuth();
   const navigate = useNavigate();
 
   // Pure React 19 use(): Zero useEffect, zero manual loading flags
@@ -63,6 +65,25 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string>(settings?.avatarId || 'initials');
   const [currentDisplayName, setCurrentDisplayName] = useState<string>(settings?.displayName || '');
+  const [isPickerOpen, setIsPickerOpen] = useState<boolean>(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openPicker = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setIsPickerOpen(true);
+  };
+
+  const closePickerWithDelay = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+    }
+    closeTimerRef.current = setTimeout(() => {
+      setIsPickerOpen(false);
+    }, 350);
+  };
 
   // React 19.2 useActionState for profile and preferences form action
   const [settingsState, settingsAction, isSettingsPending] = useActionState<SettingsFormState, FormData>(
@@ -86,6 +107,12 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
         setSettings(updated);
         setSelectedAvatarId(updated.avatarId || 'initials');
         setCurrentDisplayName(updated.displayName || '');
+
+        // Instantly update active AuthContext user so header avatar and profile across the app update immediately
+        updateUser({
+          displayName: updated.displayName,
+          avatarId: updated.avatarId,
+        });
 
         // Instantly update active UI language if valid
         if (preferredLang === 'fi' || preferredLang === 'en') {
@@ -149,15 +176,137 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
 
         {/* 1. Profile and preferences form */}
         <form action={settingsAction} className="space-y-6">
+          <input type="hidden" name="avatarId" value={selectedAvatarId} />
+
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-[var(--border-soft)]">
               <div className="flex items-center gap-3">
-                <UserAvatar
-                  name={currentDisplayName || userName}
-                  email={userEmail}
-                  avatarId={selectedAvatarId}
-                  size="lg"
-                />
+                {/* Interactive Avatar with Hover/Click Popover */}
+                <div
+                  className="relative p-1 -m-1"
+                  onMouseEnter={openPicker}
+                  onMouseLeave={closePickerWithDelay}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (closeTimerRef.current) {
+                        clearTimeout(closeTimerRef.current);
+                        closeTimerRef.current = null;
+                      }
+                      setIsPickerOpen((prev) => !prev);
+                    }}
+                    aria-expanded={isPickerOpen}
+                    aria-haspopup="dialog"
+                    aria-label={strings.changeAvatarLabel}
+                    className="relative group rounded-full cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-[var(--accent)] p-0.5 transition-transform hover:scale-105"
+                  >
+                    <UserAvatar
+                      name={currentDisplayName || userName}
+                      email={userEmail}
+                      avatarId={selectedAvatarId}
+                      size="lg"
+                    />
+                    {/* Hover edit badge */}
+                    <span
+                      className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-xs"
+                      title={strings.changeAvatarLabel}
+                    >
+                      <Camera size={16} />
+                    </span>
+                  </button>
+
+                  {/* Popover dropdown panel with invisible hover bridge */}
+                  {isPickerOpen && (
+                    <div
+                      role="dialog"
+                      aria-label={strings.avatarSectionTitle}
+                      className="absolute left-0 top-[calc(100%+4px)] z-30 w-72 sm:w-80 p-3 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xl backdrop-blur-xl animate-in fade-in zoom-in-95 space-y-2.5 before:absolute before:-top-4 before:left-0 before:right-0 before:h-4 before:content-['']"
+                      onMouseEnter={openPicker}
+                      onMouseLeave={closePickerWithDelay}
+                    >
+                      <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-2">
+                        <span className="text-xs font-semibold text-[var(--text)]">
+                          {strings.avatarSectionTitle}
+                        </span>
+                        <span className="text-[10px] text-[var(--muted)]">
+                          {strings.changeAvatarLabel}
+                        </span>
+                      </div>
+
+                      <div
+                        role="radiogroup"
+                        aria-label={strings.avatarSectionTitle}
+                        className="grid grid-cols-4 sm:grid-cols-6 gap-2"
+                      >
+                        {/* Option 1: Monogram Initials */}
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={selectedAvatarId === 'initials'}
+                          onClick={() => {
+                            if (closeTimerRef.current) {
+                              clearTimeout(closeTimerRef.current);
+                              closeTimerRef.current = null;
+                            }
+                            setSelectedAvatarId('initials');
+                            setIsPickerOpen(false);
+                          }}
+                          title={strings.avatarInitialsLabel}
+                          aria-label={strings.avatarInitialsLabel}
+                          className={`flex items-center justify-center p-1 rounded-full transition-transform hover:scale-110 cursor-pointer ${
+                            selectedAvatarId === 'initials'
+                              ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--surface)]'
+                              : 'hover:opacity-90'
+                          }`}
+                        >
+                          <UserAvatar
+                            name={currentDisplayName || userName}
+                            email={userEmail}
+                            avatarId="initials"
+                            size="md"
+                          />
+                        </button>
+
+                        {/* Options 2-11: 10 Thematic SVG Icons */}
+                        {THEME_AVATARS.map((avatar) => {
+                          const isSelected = selectedAvatarId === avatar.id;
+                          const title = lang === 'en' ? avatar.nameEn : avatar.nameFi;
+                          return (
+                            <button
+                              key={avatar.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={isSelected}
+                              onClick={() => {
+                                if (closeTimerRef.current) {
+                                  clearTimeout(closeTimerRef.current);
+                                  closeTimerRef.current = null;
+                                }
+                                setSelectedAvatarId(avatar.id);
+                                setIsPickerOpen(false);
+                              }}
+                              title={title}
+                              aria-label={title}
+                              className={`flex items-center justify-center p-1 rounded-full transition-transform hover:scale-110 cursor-pointer ${
+                                isSelected
+                                  ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--surface)]'
+                                  : 'hover:opacity-90'
+                              }`}
+                            >
+                              <UserAvatar
+                                email={userEmail}
+                                avatarId={avatar.id}
+                                size="md"
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <h2 className="text-sm font-semibold text-[var(--text)]">{strings.profileSectionTitle}</h2>
                   <p className="text-xs text-[var(--muted)]">{strings.profileSectionDesc}</p>
@@ -199,74 +348,6 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
                   value={userEmail}
                   className="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)]/50 border border-[var(--border-soft)] text-[var(--muted)] cursor-not-allowed"
                 />
-              </div>
-            </div>
-
-            {/* Avatar selection grid */}
-            <div className="pt-4 border-t border-[var(--border-soft)] space-y-3">
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--text)]">{strings.avatarSectionTitle}</h3>
-                <p className="text-xs text-[var(--muted)]">{strings.avatarSectionDesc}</p>
-              </div>
-
-              <input type="hidden" name="avatarId" value={selectedAvatarId} />
-
-              <div
-                role="radiogroup"
-                aria-label={strings.avatarSectionTitle}
-                className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5"
-              >
-                {/* Option 1: Monogram Initials */}
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={selectedAvatarId === 'initials'}
-                  onClick={() => setSelectedAvatarId('initials')}
-                  className={`flex flex-col items-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                    selectedAvatarId === 'initials'
-                      ? 'border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/30 font-medium'
-                      : 'border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--text)]'
-                  }`}
-                >
-                  <UserAvatar
-                    name={currentDisplayName || userName}
-                    email={userEmail}
-                    avatarId="initials"
-                    size="md"
-                  />
-                  <span className="text-[11px] truncate w-full">
-                    {strings.avatarInitialsLabel}
-                  </span>
-                </button>
-
-                {/* Options 2-11: 10 Thematic SVG Icons */}
-                {THEME_AVATARS.map((avatar) => {
-                  const isSelected = selectedAvatarId === avatar.id;
-                  const title = lang === 'en' ? avatar.nameEn : avatar.nameFi;
-                  return (
-                    <button
-                      key={avatar.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      onClick={() => setSelectedAvatarId(avatar.id)}
-                      className={`flex flex-col items-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-[var(--accent)] bg-[var(--accent)]/10 ring-2 ring-[var(--accent)]/30 font-medium'
-                          : 'border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--text)]'
-                      }`}
-                    >
-                      <UserAvatar
-                        email={userEmail}
-                        avatarId={avatar.id}
-                        size="md"
-                      />
-                      <span className="text-[11px] truncate w-full" title={title}>
-                        {title}
-                      </span>
-                    </button>
-                  );
-                })}
               </div>
             </div>
 

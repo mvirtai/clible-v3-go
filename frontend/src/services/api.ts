@@ -84,6 +84,9 @@ interface RawComparisonResult {
 interface UserResponse {
   id: string;
   email: string;
+  displayName?: string;
+  name?: string;
+  avatarId?: string;
 }
 
 /**

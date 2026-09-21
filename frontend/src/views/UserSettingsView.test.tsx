@@ -110,6 +110,16 @@ describe('UserSettingsView', () => {
       );
     });
 
+    // Initially popover is closed
+    expect(container?.querySelector('div[role="radiogroup"]')).toBeNull();
+
+    // Click the avatar trigger button to open the popover
+    const trigger = container?.querySelector('button[aria-haspopup="dialog"]') as HTMLButtonElement;
+    expect(trigger).not.toBeNull();
+    await act(async () => {
+      trigger.click();
+    });
+
     // Verify avatar picker radios exist (1 monogram + 10 theme avatars = 11 buttons)
     const radioButtons = container?.querySelectorAll('div[role="radiogroup"] button[role="radio"]');
     expect(radioButtons?.length).toBe(11);
@@ -122,7 +132,7 @@ describe('UserSettingsView', () => {
       (radioButtons?.[1] as HTMLButtonElement)?.click();
     });
 
-    expect(radioButtons?.[1]?.getAttribute('aria-checked')).toBe('true');
-    expect(radioButtons?.[0]?.getAttribute('aria-checked')).toBe('false');
+    // Popover closes on selection
+    expect(container?.querySelector('div[role="radiogroup"]')).toBeNull();
   });
 });
