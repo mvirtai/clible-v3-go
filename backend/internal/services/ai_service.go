@@ -123,12 +123,12 @@ type SearchPlan struct {
 
 // AIService defines backend's AI functionalities
 type AIService interface {
-	GetInsight(ctx context.Context, text, focus string) (*AIResponse, error)
-	GetTone(ctx context.Context, text, focus string) (*AIResponse, error)
+	GetInsight(ctx context.Context, text, focus, outputLanguage string) (*AIResponse, error)
+	GetTone(ctx context.Context, text, focus, outputLanguage string) (*AIResponse, error)
 	DeepDive(ctx context.Context, topic, outputLanguage string, contextData map[string]interface{}) (*AIResponse, error)
 	OriginalStudy(ctx context.Context, reference, sourceText, sourceLanguage, outputLanguage string, translations []map[string]string, scope, focus string) (*AIResponse, error)
 	AISearch(ctx context.Context, query, translationID, uiLanguage string) (map[string]interface{}, error)
-	GetComparison(ctx context.Context, reference, transA, textA, transB, textB, focus string) (*AIResponse, error)
+	GetComparison(ctx context.Context, reference, transA, textA, transB, textB, focus, outputLanguage string) (*AIResponse, error)
 }
 
 type aiServiceImpl struct {
@@ -318,7 +318,7 @@ func focusDirective(focus string) string {
 	return fmt.Sprintf("\n\n## Focus\n\nFocus specifically on: **%s**. Keep the overall structure, but make this the main emphasis.\n", f)
 }
 
-func (s *aiServiceImpl) GetInsight(ctx context.Context, text, focus string) (*AIResponse, error) {
+func (s *aiServiceImpl) GetInsight(ctx context.Context, text, focus, outputLanguage string) (*AIResponse, error) {
 	prompt := fmt.Sprintf("Analyze the Bible passage at the end of this message.\n\n"+
 		"## Structure (use real Markdown headings—word the titles yourself)\n\n"+
 		"Use **three** `##` sections **in this order**. Choose natural titles in **the same language as the passage** (do not keep English labels if the passage is not English).\n\n"+
@@ -343,6 +343,12 @@ func (s *aiServiceImpl) GetInsight(ctx context.Context, text, focus string) (*AI
 		"- After your Markdown answer, append the required JSON footer (see below).\n\n"+
 		"```json\n{ \"next_focus\": [ { \"label\": \"…\", \"kind\": \"theme\", \"reason\": \"…\" } ] }\n```", text, focusDirective(focus))
 
+	if strings.ToLower(outputLanguage) == "fi" {
+		prompt = "## Output language\nWrite the entire response in Finnish. All headings, labels, explanations, takeaways, and JSON footer must be in Finnish.\n\n" + prompt
+	} else if strings.ToLower(outputLanguage) == "en" {
+		prompt = "## Output language\nWrite the entire response in English. All headings, labels, explanations, takeaways, and JSON footer must be in English.\n\n" + prompt
+	}
+
 	raw, usage, err := s.callGemini(ctx, s.cfg.GeminiModelInsight, insightSystemInstruction, prompt, false)
 	if err != nil {
 		return nil, err
@@ -356,7 +362,7 @@ func (s *aiServiceImpl) GetInsight(ctx context.Context, text, focus string) (*AI
 	return resp, nil
 }
 
-func (s *aiServiceImpl) GetTone(ctx context.Context, text, focus string) (*AIResponse, error) {
+func (s *aiServiceImpl) GetTone(ctx context.Context, text, focus, outputLanguage string) (*AIResponse, error) {
 	prompt := fmt.Sprintf("Analyze the **tone**, **mood (atmosphere)**, and **linguistic style** of the passage at the end of this message.\n\n"+
 		"Your reply must follow this Markdown layout (do not copy the instruction labels below into the answer):\n\n"+
 		"**Language:** Write all headings and body text in the **same language as the passage**.\n\n"+
@@ -380,6 +386,12 @@ func (s *aiServiceImpl) GetTone(ctx context.Context, text, focus string) (*AIRes
 		"## Output rules\n\n"+
 		"- Append the required JSON footer as the final block.\n\n"+
 		"```json\n{ \"next_focus\": [ { \"label\": \"…\", \"kind\": \"theme\", \"reason\": \"…\" } ] }\n```", text, focusDirective(focus))
+
+	if strings.ToLower(outputLanguage) == "fi" {
+		prompt = "## Output language\nWrite the entire response in Finnish. All headings, labels, and analysis must be in Finnish.\n\n" + prompt
+	} else if strings.ToLower(outputLanguage) == "en" {
+		prompt = "## Output language\nWrite the entire response in English. All headings, labels, and analysis must be in English.\n\n" + prompt
+	}
 
 	raw, usage, err := s.callGemini(ctx, s.cfg.GeminiModelTone, toneSystemInstruction, prompt, false)
 	if err != nil {
@@ -740,12 +752,18 @@ const compareSystemInstruction = "You describe differences, style, and theologic
 	"Use real `##` / `###` headings for section titles. Focus on lexical changes, grammar choices, and theological impacts. " +
 	"Keep sections scannable with tight paragraphs and bullet lists."
 
-func (s *aiServiceImpl) GetComparison(ctx context.Context, reference, transA, textA, transB, textB, focus string) (*AIResponse, error) {
+func (s *aiServiceImpl) GetComparison(ctx context.Context, reference, transA, textA, transB, textB, focus, outputLanguage string) (*AIResponse, error) {
 	var userPrompt string
 	if focus != "" {
 		userPrompt = fmt.Sprintf("Passage: %s\n\nTranslation A (%s):\n%s\n\nTranslation B (%s):\n%s\n\nFocus Area: %s\n\nCompare these two translations, specifically focusing on the requested area.", reference, transA, textA, transB, textB, focus)
 	} else {
 		userPrompt = fmt.Sprintf("Passage: %s\n\nTranslation A (%s):\n%s\n\nTranslation B (%s):\n%s\n\nCompare these two translations and analyze their differences.", reference, transA, textA, transB, textB)
+	}
+
+	if strings.ToLower(outputLanguage) == "fi" {
+		userPrompt = "## Output language\nWrite the entire comparison response in Finnish (all headings, explanations, and JSON footer in Finnish).\n\n" + userPrompt
+	} else if strings.ToLower(outputLanguage) == "en" {
+		userPrompt = "## Output language\nWrite the entire comparison response in English (all headings, explanations, and JSON footer in English).\n\n" + userPrompt
 	}
 
 	raw, usage, err := s.callGemini(ctx, s.cfg.GeminiModelTone, compareSystemInstruction, userPrompt, false)

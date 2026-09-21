@@ -112,7 +112,7 @@ export function VerseReader({
     '2xl': 'text-2xl',
   };
 
-  const { lang, strings } = useLanguage();
+  const { lang, aiLang, strings } = useLanguage();
 
   const displayRef = data ? parseReferenceForDisplay(data.reference, lang) : null;
 
@@ -206,7 +206,7 @@ export function VerseReader({
     setAiInsight(null);
     try {
       const text = data.verses.map(v => `${v.verse}. ${v.text}`).join('\n');
-      const res = await apiService.getAiInsight(text);
+      const res = await apiService.getAiInsight(text, undefined, aiLang);
       setAiInsight(res);
       setAiLoading(false);
     } catch (err) {
@@ -253,7 +253,7 @@ export function VerseReader({
       setAiLoading(true);
       setAiError(null);
       try {
-        const res = await apiService.getAiDeepDive(it.label, lang, { reference: data?.reference || reference });
+        const res = await apiService.getAiDeepDive(it.label, aiLang, { reference: data?.reference || reference });
         setDeepDiveText(res.text);
         setDeepDiveUsage(res.geminiUsageMetadata || null);
         setAiLoading(false);

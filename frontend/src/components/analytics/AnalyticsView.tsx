@@ -76,7 +76,7 @@ export const AnalyticsView = ({
   loadedSavedDeepDive,
   activeReference,
 }: AnalyticsViewProps) => {
-  const { strings } = useLanguage();
+  const { strings, aiLang } = useLanguage();
   const [reference, setReference] = useState<string>(
     () => activeReference || "John 3",
   );
@@ -194,7 +194,7 @@ export const AnalyticsView = ({
         defaultTranslation,
       );
       const text = resData.verses.map((v) => v.text).join("\n");
-      const res = await apiService.getAiTone(text);
+      const res = await apiService.getAiTone(text, undefined, aiLang);
       setToneResult(res);
       setToneLoading(false);
     } catch (err) {
@@ -242,7 +242,7 @@ export const AnalyticsView = ({
       setToneLoading(true);
       setToneError(null);
       try {
-        const res = await apiService.getAiDeepDive(it.label, "fi", {
+        const res = await apiService.getAiDeepDive(it.label, aiLang, {
           reference,
         });
         setDeepDiveText(res.text);

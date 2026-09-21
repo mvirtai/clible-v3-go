@@ -9,6 +9,7 @@ type UserSettings struct {
 	Name                 string    `json:"name"`
 	AvatarID             string    `json:"avatarId"`
 	PreferredLanguage    string    `json:"preferredLanguage"`
+	AiLanguage           string    `json:"aiLanguage"`
 	ThemePreference      string    `json:"themePreference"`
 	DefaultTranslationID string    `json:"defaultTranslationId"`
 	SubscriptionTier     string    `json:"subscriptionTier"`
@@ -23,6 +24,7 @@ type UpdateUserSettingsInput struct {
 	DisplayName          string `json:"displayName"`
 	AvatarID             string `json:"avatarId"`
 	PreferredLang        string `json:"preferredLang"`
+	AiLanguage           string `json:"aiLanguage"`
 	ThemePreference      string `json:"themePreference"`
 	DefaultTranslationID string `json:"defaultTranslationId"`
 }

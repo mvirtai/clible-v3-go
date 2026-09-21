@@ -56,7 +56,7 @@ interface LoadedComparisonState {
 export function App() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { lang, strings } = useLanguage();
+  const { lang, aiLang, strings } = useLanguage();
 
   const [userSelectedTranslation, setUserSelectedTranslation] = useState<string>(
     () => localStorage.getItem('selectedTranslation') || ''
@@ -451,9 +451,11 @@ export function App() {
 
       const selectedTranslationMeta = installedTranslations.find((t) => t.id === translationIds[0]);
       const outputLanguage =
-        selectedTranslationMeta?.language === 'fi' || selectedTranslationMeta?.language === 'en'
-          ? selectedTranslationMeta.language
-          : lang;
+        aiLang === 'auto'
+          ? (selectedTranslationMeta?.language === 'fi' || selectedTranslationMeta?.language === 'en'
+            ? selectedTranslationMeta.language
+            : lang)
+          : aiLang;
 
       const res = await apiService.getAiOriginalStudy({
         reference: ref,

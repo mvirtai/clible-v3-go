@@ -107,6 +107,9 @@ func RunMigrations(db *sql.DB) error {
 					"CREATE INDEX IF NOT EXISTS idx_users_default_translation ON users(default_translation_id);",
 				}, "\n")
 			}
+			if filename == "018_ai_language_preference.sql" {
+				content = "ALTER TABLE users ADD COLUMN ai_language VARCHAR(16) NOT NULL DEFAULT 'fi';"
+			}
 		}
 
 		// Execute migration logic wrapped in a database transaction block

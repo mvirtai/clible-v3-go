@@ -399,6 +399,11 @@ export interface Messages {
   preferencesSectionDesc: string;
   defaultTranslationDesc: string;
   uiLanguageLabel: string;
+  aiLanguageLabel: string;
+  aiLanguageDesc: string;
+  aiLanguageAuto: string;
+  aiLanguageFinnish: string;
+  aiLanguageEnglish: string;
   themeLabel: string;
   themeSystem: string;
   themeLight: string;
@@ -827,6 +832,11 @@ export const strings: Record<UILanguage, Messages> = {
     preferencesSectionDesc: 'Configure your default Bible translation and application theme.',
     defaultTranslationDesc: 'Opened automatically in the reader view.',
     uiLanguageLabel: 'Interface Language',
+    aiLanguageLabel: 'AI Response Language',
+    aiLanguageDesc: 'Language for AI-generated analyses, deep dives, and summaries.',
+    aiLanguageAuto: 'Automatic (match passage)',
+    aiLanguageFinnish: 'Finnish (FI)',
+    aiLanguageEnglish: 'English (EN)',
     themeLabel: 'Theme',
     themeSystem: 'System',
     themeLight: 'Light',
@@ -1252,6 +1262,11 @@ export const strings: Record<UILanguage, Messages> = {
     preferencesSectionDesc: 'Määritä oletusraamattu ja sovelluksen teema.',
     defaultTranslationDesc: 'Avataan automaattisesti lukunäkymässä.',
     uiLanguageLabel: 'Käyttöliittymän kieli',
+    aiLanguageLabel: 'Tekoälyvastausten kieli',
+    aiLanguageDesc: 'Kieli, jolla tekoäly tuottaa analyysit, syväsukellukset ja yhteenvedot.',
+    aiLanguageAuto: 'Automaattinen (sama kuin tekstikohta)',
+    aiLanguageFinnish: 'Suomi (FI)',
+    aiLanguageEnglish: 'Englanti (EN)',
     themeLabel: 'Ulkoasuteema',
     themeSystem: 'Järjestelmä',
     themeLight: 'Vaalea',

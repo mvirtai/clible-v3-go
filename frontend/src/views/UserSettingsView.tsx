@@ -56,7 +56,7 @@ function invalidateSettingsResource(): void {
  * Inner view component rendered once suspense promise has resolved.
  */
 function UserSettingsContent({ userEmail, userName }: { userEmail: string; userName?: string }): JSX.Element {
-  const { lang, setLang, strings } = useLanguage();
+  const { lang, setLang, aiLang, setAiLang, strings } = useLanguage();
   const { updateUser } = useAuth();
   const navigate = useNavigate();
 
@@ -92,6 +92,7 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
         const displayName = (formData.get('displayName') as string) || '';
         const avatarId = (formData.get('avatarId') as string) || 'initials';
         const preferredLang = (formData.get('preferredLang') as string) || 'en';
+        const aiLanguage = (formData.get('aiLanguage') as 'fi' | 'en' | 'auto') || 'fi';
         const themePreference = (formData.get('themePreference') as string) || 'system';
         const defaultTranslationId = (formData.get('defaultTranslationId') as string) || 'web';
 
@@ -99,6 +100,7 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
           displayName,
           avatarId,
           preferredLang,
+          aiLanguage,
           themePreference,
           defaultTranslationId,
         });
@@ -117,6 +119,11 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
         // Instantly update active UI language if valid
         if (preferredLang === 'fi' || preferredLang === 'en') {
           setLang(preferredLang);
+        }
+
+        // Instantly update active AI response language
+        if (updated.aiLanguage) {
+          setAiLang(updated.aiLanguage);
         }
 
         // Instantly sync theme to document root
@@ -357,7 +364,7 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
                 <p className="text-xs text-[var(--muted)]">{strings.preferencesSectionDesc}</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Default Bible Translation */}
                 <div className="space-y-1.5">
                   <label htmlFor="trans-select" className="text-xs font-medium text-[var(--text)]">
@@ -390,6 +397,23 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
                   >
                     <option value="en">English (EN)</option>
                     <option value="fi">Suomi (FI)</option>
+                  </select>
+                </div>
+
+                {/* AI Response Language */}
+                <div className="space-y-1.5">
+                  <label htmlFor="ai-lang-select" className="text-xs font-medium text-[var(--text)]">
+                    {strings.aiLanguageLabel}
+                  </label>
+                  <select
+                    id="ai-lang-select"
+                    name="aiLanguage"
+                    defaultValue={settings?.aiLanguage || aiLang}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text)] focus:outline-hidden focus:ring-2 focus:ring-[var(--accent)] cursor-pointer"
+                  >
+                    <option value="fi">{strings.aiLanguageFinnish}</option>
+                    <option value="en">{strings.aiLanguageEnglish}</option>
+                    <option value="auto">{strings.aiLanguageAuto}</option>
                   </select>
                 </div>
 

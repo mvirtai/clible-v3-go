@@ -18,6 +18,7 @@ describe('UserSettingsView', () => {
     displayName: 'Test User',
     avatarId: 'initials',
     preferredLang: 'fi',
+    aiLanguage: 'fi',
     themePreference: 'dark',
     defaultTranslationId: 'fin-1992',
     subscriptionTier: 'supporter',
@@ -134,5 +135,36 @@ describe('UserSettingsView', () => {
 
     // Popover closes on selection
     expect(container?.querySelector('div[role="radiogroup"]')).toBeNull();
+  });
+
+  it('renders distinct select inputs for UI language and AI response language', async () => {
+    vi.spyOn(apiService, 'getMe').mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+    });
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <MemoryRouter>
+          <LanguageProvider>
+            <AuthProvider>
+              <UserSettingsView />
+            </AuthProvider>
+          </LanguageProvider>
+        </MemoryRouter>
+      );
+    });
+
+    const uiLangSelect = container?.querySelector('select#lang-select') as HTMLSelectElement;
+    expect(uiLangSelect).not.toBeNull();
+    expect(uiLangSelect.name).toBe('preferredLang');
+
+    const aiLangSelect = container?.querySelector('select#ai-lang-select') as HTMLSelectElement;
+    expect(aiLangSelect).not.toBeNull();
+    expect(aiLangSelect.name).toBe('aiLanguage');
+    expect(aiLangSelect.options.length).toBe(3);
+    const optionValues = Array.from(aiLangSelect.options).map((o) => o.value);
+    expect(optionValues).toEqual(['fi', 'en', 'auto']);
   });
 });

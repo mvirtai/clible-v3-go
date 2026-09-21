@@ -13,19 +13,19 @@ import (
 )
 
 type mockAIService struct {
-	getInsight    func(ctx context.Context, text, focus string) (*services.AIResponse, error)
-	getTone       func(ctx context.Context, text, focus string) (*services.AIResponse, error)
+	getInsight    func(ctx context.Context, text, focus, outputLanguage string) (*services.AIResponse, error)
+	getTone       func(ctx context.Context, text, focus, outputLanguage string) (*services.AIResponse, error)
 	deepDive      func(ctx context.Context, topic, outputLanguage string, contextData map[string]interface{}) (*services.AIResponse, error)
 	originalStudy func(ctx context.Context, reference, sourceText, sourceLanguage, outputLanguage string, translations []map[string]string, scope, focus string) (*services.AIResponse, error)
 	aiSearch      func(ctx context.Context, query, translationID, uiLanguage string) (map[string]interface{}, error)
-	getComparison func(ctx context.Context, reference, transA, textA, transB, textB, focus string) (*services.AIResponse, error)
+	getComparison func(ctx context.Context, reference, transA, textA, transB, textB, focus, outputLanguage string) (*services.AIResponse, error)
 }
 
-func (m *mockAIService) GetInsight(ctx context.Context, text, focus string) (*services.AIResponse, error) {
-	return m.getInsight(ctx, text, focus)
+func (m *mockAIService) GetInsight(ctx context.Context, text, focus, outputLanguage string) (*services.AIResponse, error) {
+	return m.getInsight(ctx, text, focus, outputLanguage)
 }
-func (m *mockAIService) GetTone(ctx context.Context, text, focus string) (*services.AIResponse, error) {
-	return m.getTone(ctx, text, focus)
+func (m *mockAIService) GetTone(ctx context.Context, text, focus, outputLanguage string) (*services.AIResponse, error) {
+	return m.getTone(ctx, text, focus, outputLanguage)
 }
 func (m *mockAIService) DeepDive(ctx context.Context, topic, outputLanguage string, contextData map[string]interface{}) (*services.AIResponse, error) {
 	return m.deepDive(ctx, topic, outputLanguage, contextData)
@@ -36,16 +36,16 @@ func (m *mockAIService) OriginalStudy(ctx context.Context, reference, sourceText
 func (m *mockAIService) AISearch(ctx context.Context, query, translationID, uiLanguage string) (map[string]interface{}, error) {
 	return m.aiSearch(ctx, query, translationID, uiLanguage)
 }
-func (m *mockAIService) GetComparison(ctx context.Context, reference, transA, textA, transB, textB, focus string) (*services.AIResponse, error) {
+func (m *mockAIService) GetComparison(ctx context.Context, reference, transA, textA, transB, textB, focus, outputLanguage string) (*services.AIResponse, error) {
 	if m.getComparison != nil {
-		return m.getComparison(ctx, reference, transA, textA, transB, textB, focus)
+		return m.getComparison(ctx, reference, transA, textA, transB, textB, focus, outputLanguage)
 	}
 	return &services.AIResponse{Text: "Mocked comparison"}, nil
 }
 
 func TestAIHandler_GetInsight_Success(t *testing.T) {
 	mockSvc := &mockAIService{
-		getInsight: func(ctx context.Context, text, focus string) (*services.AIResponse, error) {
+		getInsight: func(ctx context.Context, text, focus, outputLanguage string) (*services.AIResponse, error) {
 			return &services.AIResponse{
 				Text: "Mocked Insight text",
 				NextFocus: []services.NextFocusItem{
@@ -103,7 +103,7 @@ func TestAIHandler_GetInsight_MissingText(t *testing.T) {
 
 func TestAIHandler_GetInsight_Disabled(t *testing.T) {
 	mockSvc := &mockAIService{
-		getInsight: func(ctx context.Context, text, focus string) (*services.AIResponse, error) {
+		getInsight: func(ctx context.Context, text, focus, outputLanguage string) (*services.AIResponse, error) {
 			return nil, errors.New("Gemini API key is not configured")
 		},
 	}
@@ -175,7 +175,7 @@ func TestAIHandler_AISearch_Success(t *testing.T) {
 
 func TestAIHandler_GetComparison_Success(t *testing.T) {
 	mockSvc := &mockAIService{
-		getComparison: func(ctx context.Context, reference, transA, textA, transB, textB, focus string) (*services.AIResponse, error) {
+		getComparison: func(ctx context.Context, reference, transA, textA, transB, textB, focus, outputLanguage string) (*services.AIResponse, error) {
 			return &services.AIResponse{
 				Text: "Mocked comparative analysis",
 				NextFocus: []services.NextFocusItem{
@@ -209,7 +209,7 @@ func TestAIHandler_GetComparison_Success(t *testing.T) {
 
 func TestAIHandler_GetTone_Success(t *testing.T) {
 	mockSvc := &mockAIService{
-		getTone: func(ctx context.Context, text, focus string) (*services.AIResponse, error) {
+		getTone: func(ctx context.Context, text, focus, outputLanguage string) (*services.AIResponse, error) {
 			return &services.AIResponse{
 				Text: "Mocked Tone text",
 				GeminiUsageMetadata: services.GeminiUsageMetadata{

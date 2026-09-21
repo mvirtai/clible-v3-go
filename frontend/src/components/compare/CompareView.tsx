@@ -128,7 +128,7 @@ export function CompareView({
     const [saving, setSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-    const { strings } = useLanguage();
+    const { strings, aiLang } = useLanguage();
 
     // Restore saved comparison from workspace during render phase
     const [prevSavedComparison, setPrevSavedComparison] = useState(loadedSavedComparison);
@@ -194,7 +194,8 @@ export function CompareView({
                 translationA: leftTr,
                 textA: leftText,
                 translationB: rightTr,
-                textB: rightText
+                textB: rightText,
+                outputLanguage: aiLang,
             });
             setAiResult(res);
             setAiLoading(false);
@@ -247,7 +248,7 @@ export function CompareView({
                 const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
                 const res = await apiService.getAiDeepDive(
                     it.label,
-                    'fi',
+                    aiLang,
                     { reference: normalized, translationA: leftTr, textA: leftText, translationB: rightTr, textB: rightText }
                 );
                 setDeepDiveText(res.text);

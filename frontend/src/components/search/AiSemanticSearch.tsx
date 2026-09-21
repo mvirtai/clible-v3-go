@@ -54,7 +54,7 @@ export function AiSemanticSearch({
   loadedData,
 }: AiSemanticSearchProps) {
   const [queryInput, setQueryInput] = useState(loadedData?.query ?? '');
-  const { strings, lang } = useLanguage();
+  const { strings, lang, aiLang } = useLanguage();
 
   // Pure derived state: localized search suggestions
   const examples =
@@ -82,7 +82,8 @@ export function AiSemanticSearch({
       return { data: null, error: null };
     }
     try {
-      const resp = await apiService.executeAiSearch(q, translation, lang);
+      const targetLang = aiLang === 'auto' ? lang : (aiLang as 'fi' | 'en');
+      const resp = await apiService.executeAiSearch(q, translation, targetLang);
       return { data: resp, error: null };
     } catch (err: unknown) {
       console.error('Semantic search failed:', err);

@@ -136,6 +136,7 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 			DisplayName:          "Linus Torvalds",
 			AvatarID:             "dove",
 			PreferredLang:        "fi",
+			AiLanguage:           "fi",
 			ThemePreference:      "dark",
 			DefaultTranslationID: "fin-1992",
 		}
@@ -164,6 +165,9 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 		if updated.PreferredLang != "fi" {
 			t.Errorf("expected preferred lang 'fi', got %s", updated.PreferredLang)
 		}
+		if updated.AiLanguage != "fi" {
+			t.Errorf("expected aiLanguage 'fi', got %s", updated.AiLanguage)
+		}
 		if updated.ThemePreference != "dark" {
 			t.Errorf("expected theme 'dark', got %s", updated.ThemePreference)
 		}
@@ -177,6 +181,7 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 			DisplayName:          "  Trimmed Name  ",
 			AvatarID:             "invalid-avatar-choice",
 			PreferredLang:        "invalid-lang",
+			AiLanguage:           "invalid-ai-lang",
 			ThemePreference:      "unsupported-theme",
 			DefaultTranslationID: "",
 		}
@@ -204,6 +209,9 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 		}
 		if updated.PreferredLang != "en" {
 			t.Errorf("expected fallback lang 'en', got %s", updated.PreferredLang)
+		}
+		if updated.AiLanguage != "fi" {
+			t.Errorf("expected fallback aiLanguage 'fi', got %s", updated.AiLanguage)
 		}
 		if updated.ThemePreference != "system" {
 			t.Errorf("expected fallback theme 'system', got %s", updated.ThemePreference)

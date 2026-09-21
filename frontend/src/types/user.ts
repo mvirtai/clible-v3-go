@@ -8,6 +8,7 @@ export interface UserSettings {
   avatarId: string;
   name?: string;
   preferredLang: 'en' | 'fi';
+  aiLanguage: 'fi' | 'en' | 'auto';
   themePreference: 'system' | 'light' | 'dark';
   defaultTranslationId: string;
   subscriptionTier: 'free' | 'supporter' | 'pro';
@@ -24,6 +25,7 @@ export interface UpdateUserSettingsPayload {
   displayName: string;
   avatarId?: string;
   preferredLang: string;
+  aiLanguage?: string;
   themePreference: string;
   defaultTranslationId: string;
 }

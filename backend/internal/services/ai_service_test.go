@@ -90,7 +90,7 @@ func TestAIService_GetInsight(t *testing.T) {
 		client: mockClient,
 	}
 
-	resp, err := service.GetInsight(context.Background(), "John 3:16", "")
+	resp, err := service.GetInsight(context.Background(), "John 3:16", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestAIService_GetTone(t *testing.T) {
 		client: mockClient,
 	}
 
-	resp, err := service.GetTone(context.Background(), "Gen 1:1", "Creation")
+	resp, err := service.GetTone(context.Background(), "Gen 1:1", "Creation", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -318,7 +318,7 @@ func TestAIService_GetComparison(t *testing.T) {
 		client: mockClient,
 	}
 
-	resp, err := service.GetComparison(context.Background(), "John 3:16", "kr92", "Jumala rakasti", "web", "God loved", "")
+	resp, err := service.GetComparison(context.Background(), "John 3:16", "kr92", "Jumala rakasti", "web", "God loved", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -475,7 +475,7 @@ func TestAIService_UsageTracking(t *testing.T) {
 
 	t.Run("records authenticated user token usage", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), ctxkeys.UserIDKey, "user-test-456")
-		_, err := service.GetInsight(ctx, "John 3:16", "")
+		_, err := service.GetInsight(ctx, "John 3:16", "", "")
 		if err != nil {
 			t.Fatalf("GetInsight failed: %v", err)
 		}
@@ -499,7 +499,7 @@ func TestAIService_UsageTracking(t *testing.T) {
 	t.Run("records guest user token usage when context has no user id", func(t *testing.T) {
 		usageRepo.recorded = nil
 		ctx := context.Background()
-		_, err := service.GetInsight(ctx, "John 3:16", "")
+		_, err := service.GetInsight(ctx, "John 3:16", "", "")
 		if err != nil {
 			t.Fatalf("GetInsight failed: %v", err)
 		}
