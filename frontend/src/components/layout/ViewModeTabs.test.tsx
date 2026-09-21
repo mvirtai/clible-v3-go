@@ -50,4 +50,33 @@ describe('ViewModeTabs', () => {
     expect(text).toContain('Alkukieli');
     expect(text).toContain('Muistikirjat');
   });
+
+  it('renders with mobile-friendly scrollable pill classes and accessible min-height', () => {
+    const onSelect = vi.fn();
+    const onSelectNb = vi.fn();
+
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <ViewModeTabs
+            viewMode="search"
+            onSelectViewMode={onSelect}
+            onSelectNotebookId={onSelectNb}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const navContainer = container?.querySelector('div');
+    expect(navContainer?.className).toContain('overflow-x-auto');
+    expect(navContainer?.className).toContain('no-scrollbar');
+
+    const buttons = container?.querySelectorAll('button');
+    expect(buttons?.length).toBe(6);
+    buttons?.forEach((btn) => {
+      expect(btn.className).toContain('min-h-[40px]');
+      expect(btn.className).toContain('whitespace-nowrap');
+    });
+  });
 });

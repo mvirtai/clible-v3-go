@@ -89,7 +89,7 @@ export function UserMenuDropdown({
       <div
         className={`
           absolute right-0 top-[calc(100%+10px)] z-50
-          w-[360px] rounded-2xl p-1.5 pt-3
+          w-[min(calc(100vw-1.5rem),360px)] max-w-[calc(100vw-1.5rem)] rounded-2xl p-1.5 pt-3
           bg-[var(--surface)] border border-[var(--border)]
           shadow-xl
           backdrop-blur-xl

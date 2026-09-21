@@ -46,6 +46,9 @@ export function AppHeader({
         position: 'sticky',
         top: 0,
         zIndex: 50,
+        paddingTop: 'var(--safe-top)',
+        paddingLeft: 'var(--safe-left)',
+        paddingRight: 'var(--safe-right)',
       }}
     >
       <div className="max-w-5xl mx-auto px-3 sm:px-6 min-h-16 py-2.5 sm:py-0 flex items-center justify-between gap-2">
