@@ -78,15 +78,15 @@ sequenceDiagram
 ### 3. React 19.2 & React Compiler Compliance
 - **Zero `useEffect`**: Eliminated state-synchronization effects. Initial resource loading is driven by React 19 `use(getSettingsResource())` inside a dedicated `<Suspense>` boundary.
 - **`useActionState`**: Employed React 19 action states for asynchronous form submission (`settingsAction` and `pwdAction`), preserving form ergonomics and error boundaries.
-- **Thematic Avatar Selector**: Integrated interactive radio group allowing users to choose between monogram initials and 10 thematic SVGs (`scroll`, `dove`, `olive`, `codex`, `quill`, `menorah`, `alpha-omega`, `flame`, `anchor`, `cornerstone`) with immediate live preview.
-- **Instant UI Reactivity**: Immediate DOM theme class switching (`dark` / `light`) and language context switching (`setLang`) upon form submission without page reloads.
+- **Thematic Avatar Popover Selector**: Designed an interactive popover picker attached directly to the user avatar with a camera badge trigger, replacing bulky static cards. Includes a 350ms debounce delay and an invisible CSS hover bridge to prevent accidental closure during cursor transit. Allows users to choose between monogram initials and 10 thematic SVGs (`scroll`, `dove`, `olive`, `codex`, `quill`, `menorah`, `alpha-omega`, `flame`, `anchor`, `cornerstone`) with immediate live preview.
+- **Instant UI Reactivity & AuthContext Sync**: Immediate DOM theme class switching (`dark` / `light`), language context switching (`setLang`), and live `AuthContext.updateUser` synchronization so the top workspace header avatar and menu update instantly without page reloads.
 - **`SettingsErrorBoundary`**: Wrapped settings content in a localized error boundary that gracefully handles rejected promises and provides instant "Yritä uudelleen" / "Retry" recovery.
 
 ### 4. Dual-Driver DB Invariants & SQLite Test Parity
 - **Neon PostgreSQL & SQLite Parity**: Enhanced `backend/internal/db/migrations.go` to transparently adapt migration `017_user_preferences.sql` for SQLite in-memory test suites while keeping idempotent `IF NOT EXISTS` columns for production Neon DB.
 
 ### 5. Bilingual Localization (`i18n.ts`)
-- Added 31 localized keys to `Messages` interface (including `avatarSectionTitle`, `avatarSectionDesc`, `avatarInitialsLabel`, and `returnToApp: "Takaisin työtilaan"` / `"Back to workspace"`) and populated both Finnish (`fi`) and English (`en`) dictionaries with zero fallback omissions.
+- Added 31 localized keys to `Messages` interface (including `avatarSectionTitle`, `avatarSectionDesc`, `avatarInitialsLabel`, `changeAvatarLabel`, and `returnToApp: "Takaisin työtilaan"` / `"Back to workspace"`) and populated both Finnish (`fi`) and English (`en`) dictionaries with zero fallback omissions.
 
 ---
 
@@ -103,9 +103,10 @@ sequenceDiagram
 | `backend/internal/api/user_settings_handler_test.go` | Added | Comprehensive unit tests for handler endpoints with mock repos |
 | `backend/main.go` | Modified | Registered `/api/user/settings` and `/api/user/password` routes |
 | `frontend/src/types/user.ts` | Added | TypeScript interfaces for `UserSettings` and update payloads |
-| `frontend/src/services/api.ts` | Modified | Added `getUserSettings`, `updateUserSettings`, and `updatePassword` API methods |
-| `frontend/src/views/UserSettingsView.tsx` | Added | Declarative React 19.2 settings view with Avatar picker and `SettingsErrorBoundary` |
-| `frontend/src/views/UserSettingsView.test.tsx` | Added | Vitest test suite testing guest fallback, mock rendering, and avatar picker |
+| `frontend/src/services/api.ts` | Modified | Added `getUserSettings`, `updateUserSettings`, and `updatePassword` API methods; updated `UserResponse` with `avatarId` |
+| `frontend/src/context/AuthContext.tsx` | Modified | Added `displayName` and `avatarId` to `User`; exposed `updateUser` and `refreshUser` |
+| `frontend/src/views/UserSettingsView.tsx` | Added | Declarative React 19.2 settings view with interactive avatar popover, hover bridge, and `SettingsErrorBoundary` |
+| `frontend/src/views/UserSettingsView.test.tsx` | Added | Vitest test suite testing guest fallback, mock rendering, and avatar popover |
 | `frontend/src/components/layout/UserAvatar.tsx` | Modified | Added `avatarId` support for selecting between initials and 10 thematic SVGs |
 | `frontend/src/components/layout/UserAvatar.test.tsx` | Modified | Unit tests covering explicit theme avatar and initials rendering |
 | `frontend/src/components/layout/UserMenuDropdown.tsx` | Modified | Passes `avatarId` and `displayName` to header avatars |
