@@ -11,6 +11,8 @@ import { DeepDiveCard } from '../layout/DeepDiveCard';
 import { GeminiUsage } from '../layout/GeminiUsage';
 import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
 import { useLanguage } from '../../context/LanguageContext';
+import { useSmartClearInput } from '../../utils/useSmartClearInput';
+import { X } from 'lucide-react';
 
 /**
  * Properties for {@link CompareView}.
@@ -18,6 +20,10 @@ import { useLanguage } from '../../context/LanguageContext';
 export interface CompareViewProps {
     /** All translations currently installed and available in the workspace. */
     installedTranslations: InstalledTranslation[];
+    /** Default or globally active translation ID. */
+    defaultTranslation?: string;
+    /** Currently active scripture reference from reader/navigation. */
+    activeReference?: string;
     /** Active workspace (scope) identifier for persisting comparison snapshots. */
     activeScopeId?: string;
     /** Callback fired after saving a comparison to the workspace tree. */
@@ -54,24 +60,50 @@ function similarityBarHue(ratio01: number): string {
  */
 export function CompareView({
     installedTranslations,
+    defaultTranslation,
+    activeReference,
     activeScopeId,
     onWorkspaceUpdated,
     loadedSavedComparison,
     loadedSavedAi,
     loadedSavedDeepDive
 }: CompareViewProps) {
-    const [reference, setReference] = useState('John 3:16');
-    const [leftTr, setLeftTr] = useState('');
-    const [rightTr, setRightTr] = useState('');
-    const [result, setResult] = useState<ComparisonResult | null>(null);
+    const [reference, setReference] = useState(() => loadedSavedComparison?.reference ?? activeReference ?? 'John 3:16');
+    const [prevActiveReference, setPrevActiveReference] = useState(activeReference);
+    if (activeReference && activeReference !== prevActiveReference && !loadedSavedComparison) {
+        setPrevActiveReference(activeReference);
+        setReference(activeReference);
+    }
+
+    const [leftTr, setLeftTr] = useState(() => {
+        if (loadedSavedComparison?.translationA) return loadedSavedComparison.translationA;
+        if (defaultTranslation && installedTranslations.some((t) => t.id === defaultTranslation)) return defaultTranslation;
+        return installedTranslations[0]?.id ?? '';
+    });
+    const [rightTr, setRightTr] = useState(() => {
+        if (loadedSavedComparison?.translationB) return loadedSavedComparison.translationB;
+        const initialLeft = loadedSavedComparison?.translationA || (defaultTranslation && installedTranslations.some((t) => t.id === defaultTranslation) ? defaultTranslation : installedTranslations[0]?.id);
+        const alternative = installedTranslations.find((t) => t.id !== initialLeft);
+        return alternative?.id ?? '';
+    });
+
+    if (!leftTr && installedTranslations.length > 0) {
+        const initialLeft = defaultTranslation && installedTranslations.some((t) => t.id === defaultTranslation) ? defaultTranslation : installedTranslations[0].id;
+        setLeftTr(initialLeft);
+        const alt = installedTranslations.find((t) => t.id !== initialLeft);
+        if (alt && !rightTr) {
+            setRightTr(alt.id);
+        }
+    }
+    const [result, setResult] = useState<ComparisonResult | null>(() => loadedSavedComparison?.result ?? null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // AI states
-    const [aiResult, setAiResult] = useState<AiTextResponse | null>(null);
+    const [aiResult, setAiResult] = useState<AiTextResponse | null>(() => loadedSavedAi || null);
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
-    const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
+    const [deepDiveText, setDeepDiveText] = useState<string | null>(() => loadedSavedDeepDive || null);
     const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
     const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
@@ -96,7 +128,7 @@ export function CompareView({
     const [saving, setSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-    const { strings } = useLanguage();
+    const { strings, aiLang } = useLanguage();
 
     // Restore saved comparison from workspace during render phase
     const [prevSavedComparison, setPrevSavedComparison] = useState(loadedSavedComparison);
@@ -162,7 +194,8 @@ export function CompareView({
                 translationA: leftTr,
                 textA: leftText,
                 translationB: rightTr,
-                textB: rightText
+                textB: rightText,
+                outputLanguage: aiLang,
             });
             setAiResult(res);
             setAiLoading(false);
@@ -215,7 +248,7 @@ export function CompareView({
                 const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
                 const res = await apiService.getAiDeepDive(
                     it.label,
-                    'fi',
+                    aiLang,
                     { reference: normalized, translationA: leftTr, textA: leftText, translationB: rightTr, textB: rightText }
                 );
                 setDeepDiveText(res.text);
@@ -229,11 +262,21 @@ export function CompareView({
         }
     };
 
+    const smartClear = useSmartClearInput(reference, setReference);
+
     return (
         <div className="space-y-8 animate-fade-in">
 
             {/* Control Panel */}
-            <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4">
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!loading && leftTr && rightTr && reference.trim()) {
+                        runCompare();
+                    }
+                }}
+                className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-4"
+            >
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <GitCompareArrows size={22} className="text-[var(--accent)]" />
                     <span>{strings.tabCompare}</span>
@@ -244,14 +287,32 @@ export function CompareView({
                         <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
                             {strings.compareReferenceLabel}
                         </label>
-                        <input
-                            type="text"
-                            value={reference}
-                            onChange={(e) => setReference(e.target.value)}
-                            placeholder={strings.compareReferencePlaceholder}
-                            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm"
-                            disabled={installedTranslations.length < 2}
-                        />
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={reference}
+                                onChange={(e) => {
+                                    smartClear.markDirty();
+                                    setReference(e.target.value);
+                                }}
+                                onFocus={smartClear.onFocus}
+                                onKeyDown={smartClear.onKeyDown}
+                                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-4 pr-10 py-2 text-sm outline-none focus:border-[var(--accent)] transition-colors"
+                            />
+                            {reference && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setReference('');
+                                        smartClear.markDirty();
+                                    }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+                                    aria-label="Clear input"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -305,15 +366,14 @@ export function CompareView({
                 )}
 
                 <button
-                    type="button"
-                    onClick={runCompare}
+                    type="submit"
                     disabled={loading || !leftTr || !rightTr || !reference.trim()}
                     className="inline-flex items-center gap-2 rounded-full bg-[var(--text)] text-[var(--bg)] px-6 py-2.5 text-sm font-medium btn-tactile disabled:opacity-40 cursor-pointer"
                 >
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <GitCompareArrows size={18} />}
                     {strings.compareButtonLabel}
                 </button>
-            </div>
+            </form>
 
             {error && (
                 <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
@@ -541,64 +601,125 @@ export function CompareView({
                         </div>
                     )}
 
-                    {/* Detailed aligned table */}
+                    {/* Detailed aligned results */}
                     {result.alignedVerses.length > 0 && (
-                        <div className="overflow-hidden rounded-3xl border border-[var(--border)] shadow-sm bg-[var(--surface)]">
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full text-sm border-collapse">
-                                    <thead>
-                                        <tr className="bg-[var(--surface-2)] text-left text-[var(--muted)] uppercase text-[10px] tracking-wider border-b border-[var(--border)]">
-                                            <th className="px-4 py-3 whitespace-nowrap">{strings.verseLabel}</th>
-                                            <th className="px-4 py-3 min-w-[16rem]">{result.translationA}</th>
-                                            <th className="px-4 py-3 min-w-[16rem]">{result.translationB}</th>
-                                            <th className="px-4 py-3 w-[10rem]">{strings.similarityLabel}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {result.alignedVerses.map((row, index) => {
-                                            const pct = row.similarity * 100;
-                                            const refStr = `${row.bookId} ${row.chapter}:${row.verse}`;
-                                            return (
-                                                <tr key={index} className="align-top border-b border-[var(--border-soft)] hover:bg-[var(--accent-bg)]/5 transition-colors duration-200">
-                                                    <td className="px-4 py-3 font-mono text-[var(--muted)] whitespace-nowrap">
-                                                        {refStr}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <p className="text-[var(--text)] whitespace-pre-wrap break-words leading-relaxed">
-                                                            {row.textA?.trim() ? row.textA : <span className="italic text-[var(--muted)]">—</span>}
-                                                        </p>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <p className="text-[var(--text)] whitespace-pre-wrap break-words leading-relaxed">
-                                                            {row.textB?.trim() ? row.textB : <span className="italic text-[var(--muted)]">—</span>}
-                                                        </p>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="space-y-1">
-                                                            <span className="font-mono text-xs block">
-                                                                {pct.toFixed(1)}%
-                                                            </span>
-                                                            <div
-                                                                className="h-1.5 rounded-full bg-[var(--border-soft)] overflow-hidden border border-[var(--border-soft)]"
-                                                                role="presentation"
-                                                            >
-                                                                <div
-                                                                    className="h-full rounded-full transition-all"
-                                                                    style={{
-                                                                        width: `${pct}%`,
-                                                                        backgroundColor: similarityBarHue(row.similarity),
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                        <>
+                            {/* Mobile Stacked Cards (< 768px): No horizontal scroll, optimal reading ergonomics */}
+                            <div className="space-y-4 md:hidden">
+                                {result.alignedVerses.map((row, index) => {
+                                    const pct = row.similarity * 100;
+                                    const refStr = `${row.bookId} ${row.chapter}:${row.verse}`;
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xs space-y-3"
+                                        >
+                                            {/* Card Header: Verse Reference and Similarity Percentage */}
+                                            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-soft)]">
+                                                <span className="font-mono text-xs font-bold text-[var(--accent)]">
+                                                    {refStr}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-xs font-semibold text-[var(--muted)]">
+                                                        {pct.toFixed(1)}%
+                                                    </span>
+                                                    <div
+                                                        className="w-12 h-1.5 rounded-full bg-[var(--border-soft)] overflow-hidden"
+                                                        role="presentation"
+                                                    >
+                                                        <div
+                                                            className="h-full rounded-full transition-all"
+                                                            style={{
+                                                                width: `${pct}%`,
+                                                                backgroundColor: similarityBarHue(row.similarity),
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Translation A */}
+                                            <div className="space-y-1">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                                                    {result.translationA}
+                                                </span>
+                                                <p className="text-sm font-serif leading-relaxed text-[var(--text)]">
+                                                    {row.textA?.trim() ? row.textA : <span className="italic text-[var(--muted)]">—</span>}
+                                                </p>
+                                            </div>
+
+                                            {/* Translation B */}
+                                            <div className="space-y-1 pt-2 border-t border-[var(--border-soft)]/50">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                                                    {result.translationB}
+                                                </span>
+                                                <p className="text-sm font-serif leading-relaxed text-[var(--text)]">
+                                                    {row.textB?.trim() ? row.textB : <span className="italic text-[var(--muted)]">—</span>}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        </div>
+
+                            {/* Desktop Aligned Table (>= 768px): Traditional parallel multi-column comparison */}
+                            <div className="hidden md:block overflow-hidden rounded-3xl border border-[var(--border)] shadow-sm bg-[var(--surface)]">
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full text-sm border-collapse">
+                                        <thead>
+                                            <tr className="bg-[var(--surface-2)] text-left text-[var(--muted)] uppercase text-[10px] tracking-wider border-b border-[var(--border)]">
+                                                <th className="px-4 py-3 whitespace-nowrap">{strings.verseLabel}</th>
+                                                <th className="px-4 py-3 min-w-[16rem]">{result.translationA}</th>
+                                                <th className="px-4 py-3 min-w-[16rem]">{result.translationB}</th>
+                                                <th className="px-4 py-3 w-[10rem]">{strings.similarityLabel}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {result.alignedVerses.map((row, index) => {
+                                                const pct = row.similarity * 100;
+                                                const refStr = `${row.bookId} ${row.chapter}:${row.verse}`;
+                                                return (
+                                                    <tr key={index} className="align-top border-b border-[var(--border-soft)] hover:bg-[var(--accent-bg)]/5 transition-colors duration-200">
+                                                        <td className="px-4 py-3 font-mono text-[var(--muted)] whitespace-nowrap">
+                                                            {refStr}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <p className="text-[var(--text)] whitespace-pre-wrap break-words leading-relaxed">
+                                                                {row.textA?.trim() ? row.textA : <span className="italic text-[var(--muted)]">—</span>}
+                                                            </p>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <p className="text-[var(--text)] whitespace-pre-wrap break-words leading-relaxed">
+                                                                {row.textB?.trim() ? row.textB : <span className="italic text-[var(--muted)]">—</span>}
+                                                            </p>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="space-y-1">
+                                                                <span className="font-mono text-xs block">
+                                                                    {pct.toFixed(1)}%
+                                                                </span>
+                                                                <div
+                                                                    className="h-1.5 rounded-full bg-[var(--border-soft)] overflow-hidden border border-[var(--border-soft)]"
+                                                                    role="presentation"
+                                                                >
+                                                                    <div
+                                                                        className="h-full rounded-full transition-all"
+                                                                        style={{
+                                                                            width: `${pct}%`,
+                                                                            backgroundColor: similarityBarHue(row.similarity),
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </>
             )}

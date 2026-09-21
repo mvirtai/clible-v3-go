@@ -69,6 +69,9 @@ func (h *UserSettingsHandler) UpdateSettings(w http.ResponseWriter, r *http.Requ
 	if input.PreferredLang != "en" && input.PreferredLang != "fi" {
 		input.PreferredLang = "en"
 	}
+	if input.AiLanguage != "en" && input.AiLanguage != "fi" && input.AiLanguage != "auto" {
+		input.AiLanguage = "fi"
+	}
 	if input.ThemePreference != "light" && input.ThemePreference != "dark" {
 		input.ThemePreference = "system"
 	}
@@ -78,7 +81,7 @@ func (h *UserSettingsHandler) UpdateSettings(w http.ResponseWriter, r *http.Requ
 
 	err := h.userRepo.UpdateSettings(
 		r.Context(), userID, input.DisplayName, input.AvatarID, input.PreferredLang,
-		input.ThemePreference, input.DefaultTranslationID,
+		input.AiLanguage, input.ThemePreference, input.DefaultTranslationID,
 	)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "failed to update settings")

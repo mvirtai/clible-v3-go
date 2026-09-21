@@ -54,7 +54,7 @@ export function AiSemanticSearch({
   loadedData,
 }: AiSemanticSearchProps) {
   const [queryInput, setQueryInput] = useState(loadedData?.query ?? '');
-  const { strings, lang } = useLanguage();
+  const { strings, lang, aiLang } = useLanguage();
 
   // Pure derived state: localized search suggestions
   const examples =
@@ -82,7 +82,8 @@ export function AiSemanticSearch({
       return { data: null, error: null };
     }
     try {
-      const resp = await apiService.executeAiSearch(q, translation, lang);
+      const targetLang = aiLang === 'auto' ? lang : (aiLang as 'fi' | 'en');
+      const resp = await apiService.executeAiSearch(q, translation, targetLang);
       return { data: resp, error: null };
     } catch (err: unknown) {
       console.error('Semantic search failed:', err);
@@ -137,26 +138,31 @@ export function AiSemanticSearch({
         action={searchAction}
         className="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs space-y-4"
       >
-        <div className="relative">
-          <input
-            name="query"
-            type="text"
-            value={queryInput}
-            onChange={(e) => setQueryInput(e.target.value)}
-            placeholder={strings.semanticSearchPlaceholder}
-            className="w-full pl-11 pr-36 py-3 rounded-lg text-sm bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-          />
-          <Sparkles className="absolute left-3.5 top-3.5 w-4 h-4 text-[var(--accent)]" />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <input
+              name="query"
+              type="text"
+              value={queryInput}
+              onChange={(e) => setQueryInput(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 rounded-xl text-sm bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
+            />
+            <Sparkles className="absolute left-3.5 top-3.5 w-4 h-4 text-[var(--accent)]" />
+          </div>
 
           <button
             type="submit"
+            onClick={() => {
+              // Clear input immediately upon search click before loading state changes button text
+              setQueryInput('');
+            }}
             disabled={isPending || !queryInput.trim()}
-            className="absolute right-2 top-2 px-3.5 py-1.5 rounded-md text-xs font-medium bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5 cursor-pointer"
+            className="px-5 py-3 sm:py-2.5 rounded-xl text-xs font-semibold bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px] shrink-0"
           >
             {isPending ? (
-              <Loader2 size={13} className="animate-spin" />
+              <Loader2 size={15} className="animate-spin" />
             ) : (
-              <Search size={13} />
+              <Search size={15} />
             )}
             <span>
               {isPending

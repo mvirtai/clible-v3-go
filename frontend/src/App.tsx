@@ -11,10 +11,11 @@ import { CompareView } from './components/compare/CompareView';
 import { OriginalStudyView } from './components/original/OriginalStudyView';
 import { NotebookCanvasView } from './components/notebook/NotebookCanvasView';
 import { WorkspaceSidebar } from './components/layout/WorkspaceSidebar';
+import { WorkspaceDrawer } from './components/layout/WorkspaceDrawer';
 import { apiService } from './services/api';
 import { useAuth } from './context/AuthContext';
 import { useLanguage } from './context/LanguageContext';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Folder } from 'lucide-react';
 import { APP_VERSION } from './utils/version';
 import { getDefaultTranslationForLanguage } from './utils/translationDefaults';
 import type { InstalledTranslation, TextStats, ComparisonResult } from './types/bible';
@@ -55,7 +56,7 @@ interface LoadedComparisonState {
 export function App() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { lang, strings } = useLanguage();
+  const { lang, aiLang, strings } = useLanguage();
 
   const [userSelectedTranslation, setUserSelectedTranslation] = useState<string>(
     () => localStorage.getItem('selectedTranslation') || ''
@@ -88,6 +89,7 @@ export function App() {
   // Workspace configurations
   const [activeScopeId, setActiveScopeId] = useState<string>(() => localStorage.getItem('activeScopeId') || '');
   const [workspaceTrigger, setWorkspaceTrigger] = useState(false);
+  const [isMobileWorkspaceOpen, setIsMobileWorkspaceOpen] = useState(false);
 
   // Saved results states for quick loading
   const [loadedSearch, setLoadedSearch] = useState<LoadedSearchState | null>(null);
@@ -449,9 +451,11 @@ export function App() {
 
       const selectedTranslationMeta = installedTranslations.find((t) => t.id === translationIds[0]);
       const outputLanguage =
-        selectedTranslationMeta?.language === 'fi' || selectedTranslationMeta?.language === 'en'
-          ? selectedTranslationMeta.language
-          : lang;
+        aiLang === 'auto'
+          ? (selectedTranslationMeta?.language === 'fi' || selectedTranslationMeta?.language === 'en'
+            ? selectedTranslationMeta.language
+            : lang)
+          : aiLang;
 
       const res = await apiService.getAiOriginalStudy({
         reference: ref,
@@ -615,6 +619,8 @@ export function App() {
             {viewMode === 'compare' && (
               <CompareView
                 installedTranslations={installedTranslations}
+                defaultTranslation={selectedTranslation}
+                activeReference={activeReference}
                 activeScopeId={activeScopeId}
                 onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
                 loadedSavedComparison={loadedComparison}
@@ -665,8 +671,8 @@ export function App() {
             )}
           </div>
 
-          {/* Right: Persistent Workspace Sidebar */}
-          <div className="space-y-8">
+          {/* Right: Persistent Workspace Sidebar (Desktop only) */}
+          <div className="hidden lg:block space-y-8">
             <WorkspaceSidebar
               activeScopeId={activeScopeId}
               onScopeChanged={handleScopeChanged}
@@ -677,8 +683,39 @@ export function App() {
 
             {viewMode === 'reader' && <SearchHistory triggerRefresh={historyTrigger} />}
           </div>
+
+          {/* Mobile search history under reader content */}
+          <div className="lg:hidden">
+            {viewMode === 'reader' && <SearchHistory triggerRefresh={historyTrigger} />}
+          </div>
         </div>
       </main>
+
+      {/* ── Mobile Floating Workspace Button ── */}
+      <button
+        type="button"
+        onClick={() => setIsMobileWorkspaceOpen(true)}
+        aria-label={strings.workspacesTitle}
+        className="fixed z-40 lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-full shadow-xl btn-tactile btn-accent cursor-pointer border border-amber-400/30"
+        style={{
+          bottom: 'max(1.25rem, calc(var(--safe-bottom) + 0.75rem))',
+          right: 'max(1.25rem, calc(var(--safe-right) + 0.75rem))',
+        }}
+      >
+        <Folder size={16} />
+        <span className="text-xs font-semibold tracking-wide">{strings.workspacesTitle}</span>
+      </button>
+
+      {/* ── Mobile Workspace Drawer ── */}
+      <WorkspaceDrawer
+        isOpen={isMobileWorkspaceOpen}
+        onClose={() => setIsMobileWorkspaceOpen(false)}
+        activeScopeId={activeScopeId}
+        onScopeChanged={handleScopeChanged}
+        onLoadSavedSearch={handleLoadSavedSearch}
+        onLoadSavedAnalysis={handleLoadSavedAnalysis}
+        refreshTrigger={workspaceTrigger}
+      />
 
       {/* ── Footer ── */}
       <footer

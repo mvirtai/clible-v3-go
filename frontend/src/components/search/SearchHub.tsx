@@ -85,11 +85,11 @@ export function SearchHub({
         </div>
 
         {/* Sub-mode selector pills */}
-        <div className="inline-flex p-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] shrink-0">
+        <div className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex p-1 rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] shrink-0 gap-1">
           <button
             type="button"
             onClick={() => handleTabChange('lexical')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer min-h-[40px] sm:min-h-0 ${
               activeTab === 'lexical'
                 ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-xs'
                 : 'text-[var(--muted)] hover:text-[var(--text)]'
@@ -102,7 +102,7 @@ export function SearchHub({
           <button
             type="button"
             onClick={() => handleTabChange('semantic')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer min-h-[40px] sm:min-h-0 ${
               activeTab === 'semantic'
                 ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-xs'
                 : 'text-[var(--muted)] hover:text-[var(--text)]'

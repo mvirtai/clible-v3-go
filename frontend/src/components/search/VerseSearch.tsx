@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { apiService } from '../../services/api';
 import type { SearchVerse } from '../../types/search';
-import { Search, Loader2, Save } from 'lucide-react';
+import { Search, Loader2, Save, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useSmartClearInput } from '../../utils/useSmartClearInput';
 import bibleStructure from '../../data/bible_structure.json';
 
 const BIBLE_BOOKS = bibleStructure.books as Array<{ id: string; name: string }>;
@@ -138,6 +139,8 @@ export function VerseSearch({
     }
   };
 
+  const smartClear = useSmartClearInput(query, setQuery);
+
   return (
     <div className="rounded-3xl p-4 sm:p-8 space-y-4 sm:space-y-6" style={{
       background: 'var(--surface)',
@@ -149,41 +152,62 @@ export function VerseSearch({
 
       <form onSubmit={handleSearch} className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-2">
-          <input
-            type="text"
-            placeholder={strings.searchPlaceholderVerse}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 rounded-full px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
-            style={{
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text)',
-            }}
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => {
+                smartClear.markDirty();
+                setQuery(e.target.value);
+              }}
+              onFocus={smartClear.onFocus}
+              onKeyDown={smartClear.onKeyDown}
+              className="w-full rounded-full pl-4 sm:pl-5 pr-10 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
+              style={{
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+              }}
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  smartClear.markDirty();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+                aria-label="Clear input"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="rounded-full px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 btn-tactile btn-accent disabled:opacity-40 w-full sm:w-auto cursor-pointer"
+            className="rounded-full px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 btn-tactile btn-accent disabled:opacity-40 w-full sm:w-auto cursor-pointer min-h-[42px]"
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
             {strings.searchFindInScripture}
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs text-left">
-          <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'var(--muted)' }}>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-left">
+          <label className="flex items-center gap-2 cursor-pointer select-none py-1.5 px-2 rounded-lg hover:bg-[var(--surface-2)]" style={{ color: 'var(--muted)' }}>
             <input
               type="checkbox"
               checked={regex}
               onChange={(e) => setRegex(e.target.checked)}
-              className="rounded cursor-pointer"
+              className="w-4 h-4 rounded cursor-pointer accent-[var(--accent)]"
             />
-            {strings.regexLabel}
+            <span className="font-medium">{strings.regexLabel}</span>
           </label>
 
-          <div className="flex items-center gap-2">
-            <label htmlFor="search-scope-select" style={{ color: 'var(--muted)' }}>{strings.searchScopeLabel}:</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="search-scope-select" className="font-medium" style={{ color: 'var(--muted)' }}>
+              {strings.searchScopeLabel}:
+            </label>
             <select
               id="search-scope-select"
               value={searchScope}
@@ -191,7 +215,7 @@ export function VerseSearch({
                 setSearchScope(e.target.value as 'all' | 'ot' | 'nt' | 'book');
                 setScopeValue('');
               }}
-              className="rounded-lg border px-2 py-1 outline-none cursor-pointer"
+              className="rounded-xl border px-3 py-2 text-xs outline-none cursor-pointer min-h-[38px]"
               style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
             >
               <option value="all">{strings.scopeAll}</option>
@@ -205,7 +229,7 @@ export function VerseSearch({
                 aria-label={strings.selectBookAria}
                 value={scopeValue}
                 onChange={(e) => setScopeValue(e.target.value)}
-                className="rounded-lg border px-2 py-1 outline-none cursor-pointer max-w-[150px]"
+                className="rounded-xl border px-3 py-2 text-xs outline-none cursor-pointer min-h-[38px] max-w-[180px]"
                 style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
               >
                 <option value="">{strings.chooseBookPlaceholder}</option>

@@ -12,6 +12,8 @@ import type { NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
 import { NextFocusChips } from '../search/NextFocusChips';
 import { DeepDiveCard } from '../layout/DeepDiveCard';
 import { apiService } from '../../services/api';
+import { useSmartClearInput } from '../../utils/useSmartClearInput';
+import { X } from 'lucide-react';
 
 const GREEK_PACK_ID = 'sblgnt';
 const HEBREW_PACK_ID = 'heb-leningrad';
@@ -292,8 +294,18 @@ export function OriginalStudyView({
     </div>
   );
 
+  const smartClear = useSmartClearInput(reference, setReference);
+
   const renderForm = () => (
-    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-5">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (canRun) {
+          onStudy(reference.trim(), originalId, targetIds, scope);
+        }
+      }}
+      className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm space-y-5"
+    >
       <div className="space-y-1">
         <div className="flex flex-wrap gap-2 pb-2" role="tablist" aria-label={strings.originalScopeLabel}>
           {STUDY_SCOPES.map((nextScope) => {
@@ -319,13 +331,32 @@ export function OriginalStudyView({
         <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
           {strings.originalReferenceLabel}
         </label>
-        <input
-          type="text"
-          value={reference}
-          onChange={(e) => setReference(e.target.value)}
-          placeholder={strings.originalReferencePlaceholder}
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm"
-        />
+        <div className="relative">
+          <input
+            type="text"
+            value={reference}
+            onChange={(e) => {
+              smartClear.markDirty();
+              setReference(e.target.value);
+            }}
+            onFocus={smartClear.onFocus}
+            onKeyDown={smartClear.onKeyDown}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-4 pr-10 py-2.5 text-sm outline-none focus:border-[var(--accent)] transition-colors"
+          />
+          {reference && (
+            <button
+              type="button"
+              onClick={() => {
+                setReference('');
+                smartClear.markDirty();
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+              aria-label="Clear input"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <p className="text-xs text-[var(--muted)]">{scopeReferenceHint[scope]}</p>
       </div>
 
@@ -392,16 +423,15 @@ export function OriginalStudyView({
 
       <div>
         <button
-          type="button"
+          type="submit"
           disabled={!canRun}
-          onClick={() => onStudy(reference.trim(), originalId, targetIds, scope)}
           className="inline-flex items-center gap-2 rounded-full bg-[var(--text)] hover:opacity-90 px-6 py-2.5 text-sm font-medium text-[var(--surface)] disabled:opacity-40 btn-tactile cursor-pointer"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles size={18} />}
           {strings.originalRunButton}
         </button>
       </div>
-    </div>
+    </form>
   );
 
   const renderResult = () => {

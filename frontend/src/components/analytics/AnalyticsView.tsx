@@ -8,7 +8,9 @@ import {
   Sparkles,
   Cloud,
   Save,
+  X,
 } from "lucide-react";
+import { useSmartClearInput } from "../../utils/useSmartClearInput";
 import {
   BarChart,
   Bar,
@@ -74,7 +76,7 @@ export const AnalyticsView = ({
   loadedSavedDeepDive,
   activeReference,
 }: AnalyticsViewProps) => {
-  const { strings } = useLanguage();
+  const { strings, aiLang } = useLanguage();
   const [reference, setReference] = useState<string>(
     () => activeReference || "John 3",
   );
@@ -192,7 +194,7 @@ export const AnalyticsView = ({
         defaultTranslation,
       );
       const text = resData.verses.map((v) => v.text).join("\n");
-      const res = await apiService.getAiTone(text);
+      const res = await apiService.getAiTone(text, undefined, aiLang);
       setToneResult(res);
       setToneLoading(false);
     } catch (err) {
@@ -240,7 +242,7 @@ export const AnalyticsView = ({
       setToneLoading(true);
       setToneError(null);
       try {
-        const res = await apiService.getAiDeepDive(it.label, "fi", {
+        const res = await apiService.getAiDeepDive(it.label, aiLang, {
           reference,
         });
         setDeepDiveText(res.text);
@@ -275,6 +277,8 @@ export const AnalyticsView = ({
     }
   };
 
+  const smartClear = useSmartClearInput(reference, setReference);
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Search Header */}
@@ -283,17 +287,41 @@ export const AnalyticsView = ({
           <Activity size={20} className="text-[var(--accent)]" />
           <span>{strings.tabAnalytics}</span>
         </h2>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-            placeholder={strings.versePlaceholder}
-            className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm"
-          />
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            runAnalysis();
+          }}
+          className="flex flex-col sm:flex-row gap-3"
+        >
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={reference}
+              onChange={(e) => {
+                smartClear.markDirty();
+                setReference(e.target.value);
+              }}
+              onFocus={smartClear.onFocus}
+              onKeyDown={smartClear.onKeyDown}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-4 pr-10 py-2.5 text-sm outline-none focus:border-[var(--accent)] transition-colors"
+            />
+            {reference && (
+              <button
+                type="button"
+                onClick={() => {
+                  setReference('');
+                  smartClear.markDirty();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+                aria-label="Clear input"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
           <button
-            type="button"
-            onClick={runAnalysis}
+            type="submit"
             disabled={loading || !defaultTranslation}
             className="px-6 py-2.5 rounded-xl bg-[var(--text)] text-[var(--bg)] font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer btn-tactile"
           >
@@ -302,9 +330,9 @@ export const AnalyticsView = ({
             ) : (
               <Activity size={16} />
             )}
-            {strings.analyzePassage}
+            <span>{strings.analyzePassage}</span>
           </button>
-        </div>
+        </form>
         {activeReference &&
           reference.trim().toLowerCase() !==
             activeReference.trim().toLowerCase() && (

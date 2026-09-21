@@ -612,11 +612,11 @@ export class ApiService {
   /**
    * Fetches detailed AI insights on a Bible passage.
    */
-  async getAiInsight(text: string, focus?: string): Promise<AiTextResponse> {
+  async getAiInsight(text: string, focus?: string, outputLanguage?: string): Promise<AiTextResponse> {
     const res = await fetch(`${this.baseUrl}/ai/insight`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, focus }),
+      body: JSON.stringify({ text, focus, outputLanguage }),
       credentials: 'include',
     });
     if (!res.ok) throw new Error(`POST /ai/insight returned ${res.status}`);
@@ -626,11 +626,11 @@ export class ApiService {
   /**
    * Fetches linguistic and tone analysis on a Bible passage.
    */
-  async getAiTone(text: string, focus?: string): Promise<AiTextResponse> {
+  async getAiTone(text: string, focus?: string, outputLanguage?: string): Promise<AiTextResponse> {
     const res = await fetch(`${this.baseUrl}/ai/tone`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, focus }),
+      body: JSON.stringify({ text, focus, outputLanguage }),
       credentials: 'include',
     });
     if (!res.ok) throw new Error(`POST /ai/tone returned ${res.status}`);
@@ -715,6 +715,7 @@ export class ApiService {
     textA: string;
     translationB: string;
     textB: string;
+    outputLanguage?: string;
   }): Promise<AiTextResponse> {
     const res = await fetch(`${this.baseUrl}/ai/compare`, {
       method: 'POST',

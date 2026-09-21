@@ -46,8 +46,9 @@ func (h *AIHandler) GetInsight(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Text  string `json:"text"`
-		Focus string `json:"focus"`
+		Text           string `json:"text"`
+		Focus          string `json:"focus"`
+		OutputLanguage string `json:"outputLanguage"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -65,7 +66,7 @@ func (h *AIHandler) GetInsight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.aiService.GetInsight(r.Context(), req.Text, req.Focus)
+	resp, err := h.aiService.GetInsight(r.Context(), req.Text, req.Focus, req.OutputLanguage)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -84,8 +85,9 @@ func (h *AIHandler) GetTone(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Text  string `json:"text"`
-		Focus string `json:"focus"`
+		Text           string `json:"text"`
+		Focus          string `json:"focus"`
+		OutputLanguage string `json:"outputLanguage"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -103,7 +105,7 @@ func (h *AIHandler) GetTone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.aiService.GetTone(r.Context(), req.Text, req.Focus)
+	resp, err := h.aiService.GetTone(r.Context(), req.Text, req.Focus, req.OutputLanguage)
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -247,12 +249,13 @@ func (h *AIHandler) GetComparison(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Reference    string `json:"reference"`
-		TranslationA string `json:"translationA"`
-		TextA        string `json:"textA"`
-		TranslationB string `json:"translationB"`
-		TextB        string `json:"textB"`
-		Focus        string `json:"focus"`
+		Reference      string `json:"reference"`
+		TranslationA   string `json:"translationA"`
+		TextA          string `json:"textA"`
+		TranslationB   string `json:"translationB"`
+		TextB          string `json:"textB"`
+		Focus          string `json:"focus"`
+		OutputLanguage string `json:"outputLanguage"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -263,7 +266,7 @@ func (h *AIHandler) GetComparison(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.aiService.GetComparison(r.Context(), req.Reference, req.TranslationA, req.TextA, req.TranslationB, req.TextB, req.Focus)
+	resp, err := h.aiService.GetComparison(r.Context(), req.Reference, req.TranslationA, req.TextA, req.TranslationB, req.TextB, req.Focus, req.OutputLanguage)
 	if err != nil {
 		h.handleError(w, err)
 		return

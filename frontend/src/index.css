@@ -4,6 +4,11 @@
 
 /* ─── Design tokens – Light ─────────────────────────────────────────── */
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
   --bg: #fdfcfb;
   --surface: #ffffff;
   --surface-2: #faf9f6;
@@ -87,14 +92,17 @@ code {
 
 @layer base {
   /* ─── Layout ────────────────────────────────────────────────────────── */
+  html,
   body {
     margin: 0;
+    overflow-x: clip;
   }
 
   #root {
     min-height: 100svh;
     background: var(--bg);
     color: var(--text);
+    overflow-x: clip;
   }
 
   /* ─── Typography ────────────────────────────────────────────────────── */
@@ -148,6 +156,16 @@ code {
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 99px;
+}
+
+/* ─── Scrollbar suppression for horizontal mobile nav ────────────────── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Animations */
@@ -317,4 +335,12 @@ select:focus {
   font-weight: 700;
   vertical-align: super;
   letter-spacing: 0;
+}
+
+/* Notebook 2D Matrix mobile fallback: screens under 768px stretch card to 100% full width */
+@media (max-width: 767px) {
+  .notebook-matrix-card {
+    grid-column: span 24 !important;
+    min-height: auto !important;
+  }
 }

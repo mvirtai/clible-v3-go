@@ -399,6 +399,11 @@ export interface Messages {
   preferencesSectionDesc: string;
   defaultTranslationDesc: string;
   uiLanguageLabel: string;
+  aiLanguageLabel: string;
+  aiLanguageDesc: string;
+  aiLanguageAuto: string;
+  aiLanguageFinnish: string;
+  aiLanguageEnglish: string;
   themeLabel: string;
   themeSystem: string;
   themeLight: string;
@@ -422,6 +427,8 @@ export interface Messages {
   avatarSectionDesc: string;
   avatarInitialsLabel: string;
   changeAvatarLabel: string;
+  decreaseFontSize: string;
+  increaseFontSize: string;
 }
 
 
@@ -825,6 +832,11 @@ export const strings: Record<UILanguage, Messages> = {
     preferencesSectionDesc: 'Configure your default Bible translation and application theme.',
     defaultTranslationDesc: 'Opened automatically in the reader view.',
     uiLanguageLabel: 'Interface Language',
+    aiLanguageLabel: 'AI Response Language',
+    aiLanguageDesc: 'Language for AI-generated analyses, deep dives, and summaries.',
+    aiLanguageAuto: 'Automatic (match passage)',
+    aiLanguageFinnish: 'Finnish (FI)',
+    aiLanguageEnglish: 'English (EN)',
     themeLabel: 'Theme',
     themeSystem: 'System',
     themeLight: 'Light',
@@ -847,7 +859,9 @@ export const strings: Record<UILanguage, Messages> = {
     avatarSectionTitle: 'Avatar & Symbol',
     avatarSectionDesc: 'Choose how you appear: your initials or a thematic biblical symbol.',
     avatarInitialsLabel: 'Initials',
-    changeAvatarLabel: 'Change avatar'
+    changeAvatarLabel: 'Change avatar',
+    decreaseFontSize: 'Decrease font size',
+    increaseFontSize: 'Increase font size'
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -1248,6 +1262,11 @@ export const strings: Record<UILanguage, Messages> = {
     preferencesSectionDesc: 'Määritä oletusraamattu ja sovelluksen teema.',
     defaultTranslationDesc: 'Avataan automaattisesti lukunäkymässä.',
     uiLanguageLabel: 'Käyttöliittymän kieli',
+    aiLanguageLabel: 'Tekoälyvastausten kieli',
+    aiLanguageDesc: 'Kieli, jolla tekoäly tuottaa analyysit, syväsukellukset ja yhteenvedot.',
+    aiLanguageAuto: 'Automaattinen (sama kuin tekstikohta)',
+    aiLanguageFinnish: 'Suomi (FI)',
+    aiLanguageEnglish: 'Englanti (EN)',
     themeLabel: 'Ulkoasuteema',
     themeSystem: 'Järjestelmä',
     themeLight: 'Vaalea',
@@ -1270,7 +1289,9 @@ export const strings: Record<UILanguage, Messages> = {
     avatarSectionTitle: 'Avatar ja tunnuskuvake',
     avatarSectionDesc: 'Valitse miten näyt työtilassa: nimikirjaimina tai teemakuvakkeena.',
     avatarInitialsLabel: 'Nimikirjaimet',
-    changeAvatarLabel: 'Vaihda avatar'
+    changeAvatarLabel: 'Vaihda avatar',
+    decreaseFontSize: 'Pienennä tekstikokoa',
+    increaseFontSize: 'Suurenna tekstikokoa'
   }
 
 };

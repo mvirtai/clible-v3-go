@@ -14,6 +14,8 @@ import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../../t
 import { useLanguage } from '../../context/LanguageContext';
 import { getNextChapterRef, getPreviousChapterRef, getChapterCount, formatChapterRef } from '../../utils/readerNavigation';
 import { getBookGenre } from '../../utils/bookGenre';
+import { useSmartClearInput } from '../../utils/useSmartClearInput';
+import { X } from 'lucide-react';
 
 
 
@@ -81,7 +83,36 @@ export function VerseReader({
   const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
   const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
-  const { lang, strings } = useLanguage();
+  // Reader Font Size state (persisted in localStorage, defaulting to 'xl')
+  type ReaderFontSize = 'sm' | 'base' | 'lg' | 'xl' | '2xl';
+  const FONT_SIZES: ReaderFontSize[] = ['sm', 'base', 'lg', 'xl', '2xl'];
+  const [fontSize, setFontSize] = useState<ReaderFontSize>(() => {
+    if (typeof window === 'undefined') return 'xl';
+    const saved = localStorage.getItem('clible:reader_font_size') as ReaderFontSize | null;
+    return saved && FONT_SIZES.includes(saved) ? saved : 'xl';
+  });
+
+  const handleAdjustFontSize = (delta: number) => {
+    const currentIndex = FONT_SIZES.indexOf(fontSize);
+    const newIndex = Math.max(0, Math.min(FONT_SIZES.length - 1, currentIndex + delta));
+    const newSize = FONT_SIZES[newIndex];
+    setFontSize(newSize);
+    try {
+      localStorage.setItem('clible:reader_font_size', newSize);
+    } catch {
+      // Ignore localStorage errors in private browsing/sandboxed iframes
+    }
+  };
+
+  const fontSizeClassMap: Record<ReaderFontSize, string> = {
+    sm: 'text-sm',
+    base: 'text-base',
+    lg: 'text-lg',
+    xl: 'text-xl',
+    '2xl': 'text-2xl',
+  };
+
+  const { lang, aiLang, strings } = useLanguage();
 
   const displayRef = data ? parseReferenceForDisplay(data.reference, lang) : null;
 
@@ -175,7 +206,7 @@ export function VerseReader({
     setAiInsight(null);
     try {
       const text = data.verses.map(v => `${v.verse}. ${v.text}`).join('\n');
-      const res = await apiService.getAiInsight(text);
+      const res = await apiService.getAiInsight(text, undefined, aiLang);
       setAiInsight(res);
       setAiLoading(false);
     } catch (err) {
@@ -222,7 +253,7 @@ export function VerseReader({
       setAiLoading(true);
       setAiError(null);
       try {
-        const res = await apiService.getAiDeepDive(it.label, lang, { reference: data?.reference || reference });
+        const res = await apiService.getAiDeepDive(it.label, aiLang, { reference: data?.reference || reference });
         setDeepDiveText(res.text);
         setDeepDiveUsage(res.geminiUsageMetadata || null);
         setAiLoading(false);
@@ -275,6 +306,8 @@ export function VerseReader({
   };
 
 
+  const smartClear = useSmartClearInput(reference, setReference);
+
   return (
     <div className="rounded-3xl p-4 sm:p-8 space-y-4 sm:space-y-6" style={{
       background: 'var(--surface)',
@@ -285,27 +318,46 @@ export function VerseReader({
       </h2>
 
       <form onSubmit={handleFetch} className="flex flex-col sm:flex-row gap-2.5 sm:gap-2">
-        <input
-        type="text"
-        placeholder={strings.versePlaceholder}
-        value={reference}
-        onChange={(e) => setReference(e.target.value)}
-        className="flex-1 rounded-full px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
-        style={{
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border)',
-          color: 'var(--text)',
-        }}
-      />
-      <button
-        type="submit"
-        disabled={loading || !reference.trim()}
-        className="rounded-full px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 btn-tactile btn-accent disabled:opacity-40 w-full sm:w-auto"
-        style={{ cursor: 'pointer' }}
-      >
-        {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-        {strings.fetchButtonLabel}
-      </button>
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={reference}
+            onChange={(e) => {
+              smartClear.markDirty();
+              setReference(e.target.value);
+            }}
+            onFocus={smartClear.onFocus}
+            onKeyDown={smartClear.onKeyDown}
+            className="w-full rounded-full pl-4 sm:pl-5 pr-10 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
+            style={{
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
+            }}
+          />
+          {reference && (
+            <button
+              type="button"
+              onClick={() => {
+                setReference('');
+                smartClear.markDirty();
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+              aria-label="Clear input"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <button
+          type="submit"
+          disabled={loading || !reference.trim()}
+          className="rounded-full px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 btn-tactile btn-accent disabled:opacity-40 w-full sm:w-auto min-h-[42px]"
+          style={{ cursor: 'pointer' }}
+        >
+          {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+          {strings.fetchButtonLabel}
+        </button>
       </form>
 
       {error && (
@@ -316,44 +368,79 @@ export function VerseReader({
 
       {data && (
         <div className="space-y-6">
-          <div className="flex justify-between items-baseline pb-4"
+          <div className="flex justify-between items-center pb-4 gap-2 flex-wrap"
             style={{ borderBottom: '1px solid var(--border-soft)' }}>
-            <div className="space-y-1 text-left">
-              <h3 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+            <div className="space-y-1 text-left min-w-0">
+              <h3 className="text-xl sm:text-2xl font-bold tracking-tight truncate" style={{ color: 'var(--text)' }}>
                 {displayRef?.mainLabel}
               </h3>
               {displayRef?.subLabel && (
-                <div className="text-xs font-mono tracking-wider font-normal" style={{ color: 'var(--muted)' }}>
+                <div className="text-xs font-mono tracking-wider font-normal truncate" style={{ color: 'var(--muted)' }}>
                   {displayRef.subLabel}
                 </div>
               )}
             </div>
-            <span className="text-xs font-mono uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
-              {data.translationName}
-            </span>
+
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Font size toggle (A- / A+) */}
+              <div
+                className="flex items-center gap-1 rounded-xl p-1 border"
+                style={{
+                  background: 'var(--surface-2)',
+                  borderColor: 'var(--border-soft)',
+                }}
+                role="group"
+                aria-label="Font size controls"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleAdjustFontSize(-1)}
+                  disabled={fontSize === 'sm'}
+                  aria-label={strings.decreaseFontSize}
+                  className="px-2 py-1 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface)] text-[var(--text)] cursor-pointer"
+                >
+                  A-
+                </button>
+                <span className="text-[10px] font-mono px-1 text-[var(--muted)] uppercase">
+                  {fontSize}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleAdjustFontSize(1)}
+                  disabled={fontSize === '2xl'}
+                  aria-label={strings.increaseFontSize}
+                  className="px-2 py-1 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface)] text-[var(--text)] cursor-pointer"
+                >
+                  A+
+                </button>
+              </div>
+
+              <span className="text-xs font-mono uppercase tracking-widest hidden sm:inline" style={{ color: 'var(--muted)' }}>
+                {data.translationName}
+              </span>
+            </div>
           </div>
 
-          {/* Kontekstinavigaatio */}
+          {/* Kontekstinavigaatio (Yläpalkki) */}
           {!data.reference.includes(':') && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={handlePreviousChapter}
                 disabled={!prevChapterRef}
-                className="flex items-center gap-1.5 text-xs font-medium btn-tactile px-3 py-1.5 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile min-h-[44px] px-3.5 py-2 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                 style={{
                   color: 'var(--muted)',
                   borderColor: 'var(--border-soft)',
                   background: 'var(--surface-2)',
-                  cursor: prevChapterRef ? 'pointer' : 'default',
                 }}
               >
-                <ChevronLeft size={14} />
-                {strings.previousChapterLabel}
+                <ChevronLeft size={16} />
+                <span>{strings.previousChapterLabel}</span>
               </button>
 
               {totalChapters !== null && currentChapterInfo && (
-                <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>
+                <span className="text-xs font-mono px-2" style={{ color: 'var(--muted)' }}>
                   {currentChapterInfo.chapter}/{totalChapters}
                 </span>
               )}
@@ -362,16 +449,15 @@ export function VerseReader({
                 type="button"
                 onClick={handleNextChapter}
                 disabled={!nextChapterRef}
-                className="flex items-center gap-1.5 text-xs font-medium btn-tactile px-3 py-1.5 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile min-h-[44px] px-3.5 py-2 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                 style={{
                   color: 'var(--muted)',
                   borderColor: 'var(--border-soft)',
                   background: 'var(--surface-2)',
-                  cursor: nextChapterRef ? 'pointer' : 'default',
                 }}
               >
-                {strings.nextChapterLabel}
-                <ChevronRight size={14} />
+                <span>{strings.nextChapterLabel}</span>
+                <ChevronRight size={16} />
               </button>
             </div>
           )}
@@ -459,7 +545,7 @@ export function VerseReader({
               {data.verses.map((v, idx) => (
                 <div
                   key={`${v.chapter}-${v.verse}-${idx}`}
-                  className="flex gap-2 items-baseline rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--accent-bg)] cursor-pointer"
+                  className="flex gap-2 items-baseline rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--accent-bg)] active:bg-[var(--accent-bg)] cursor-pointer"
                   onClick={() => handleVerseClick(v)}
                   role="button"
                   tabIndex={0}
@@ -478,18 +564,18 @@ export function VerseReader({
                   >
                     {v.verse}
                   </sup>
-                  <span className="text-xl leading-relaxed font-serif" style={{ color: 'var(--text-2)' }}>
+                  <span className={`${fontSizeClassMap[fontSize]} leading-relaxed font-serif`} style={{ color: 'var(--text-2)' }}>
                     {v.text}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xl leading-relaxed font-serif max-w-[65ch]" style={{ color: 'var(--text-2)' }}>
+            <p className={`${fontSizeClassMap[fontSize]} leading-relaxed font-serif max-w-[65ch]`} style={{ color: 'var(--text-2)' }}>
               {data.verses.map((v, idx) => (
                 <span
                   key={`${v.chapter}-${v.verse}-${idx}`}
-                  className="inline px-1 py-0.5 rounded-md transition-colors hover:bg-[var(--accent-bg)] cursor-pointer"
+                  className="inline px-1 py-0.5 rounded-md transition-colors hover:bg-[var(--accent-bg)] active:bg-[var(--accent-bg)] cursor-pointer"
                   onClick={() => handleVerseClick(v)}
                   role="button"
                   tabIndex={0}
@@ -511,12 +597,53 @@ export function VerseReader({
             </p>
           )}
 
+          {/* Kontekstinavigaatio (Alapalkki - helpottaa mobiililukua luvun lopussa) */}
+          {!data.reference.includes(':') && (
+            <div className="flex items-center justify-between gap-2 pt-4 border-t border-[var(--border-soft)]">
+              <button
+                type="button"
+                onClick={handlePreviousChapter}
+                disabled={!prevChapterRef}
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile min-h-[44px] px-3.5 py-2 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                style={{
+                  color: 'var(--muted)',
+                  borderColor: 'var(--border-soft)',
+                  background: 'var(--surface-2)',
+                }}
+              >
+                <ChevronLeft size={16} />
+                <span>{strings.previousChapterLabel}</span>
+              </button>
+
+              {totalChapters !== null && currentChapterInfo && (
+                <span className="text-xs font-mono px-2" style={{ color: 'var(--muted)' }}>
+                  {currentChapterInfo.chapter}/{totalChapters}
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={handleNextChapter}
+                disabled={!nextChapterRef}
+                className="flex items-center gap-1.5 text-xs font-medium btn-tactile min-h-[44px] px-3.5 py-2 rounded-full border disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                style={{
+                  color: 'var(--muted)',
+                  borderColor: 'var(--border-soft)',
+                  background: 'var(--surface-2)',
+                }}
+              >
+                <span>{strings.nextChapterLabel}</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+
           {backReference && (
             <div className="flex justify-start pt-6">
               <button
                 type="button"
                 onClick={handleBackClick}
-                className="text-xs flex items-center gap-1.5 transition-colors hover:text-[var(--accent)] font-medium btn-tactile px-3.5 py-1.5 rounded-full border border-[var(--border-soft)] hover:border-[var(--accent-border)] bg-[var(--surface-2)]"
+                className="text-xs flex items-center gap-1.5 transition-colors hover:text-[var(--accent)] font-medium btn-tactile px-3.5 py-1.5 rounded-full border border-[var(--border-soft)] hover:border-[var(--accent-border)] bg-[var(--surface-2)] min-h-[40px]"
                 style={{ color: 'var(--muted)', cursor: 'pointer' }}
               >
                 <ArrowLeft size={12} />

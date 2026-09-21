@@ -356,7 +356,7 @@ export function WorkspaceSidebar({
                         <Search size={12} className="text-[var(--accent)]" />
                         {s.name}
                       </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
+                      <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-2 shrink-0">
                         <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -401,7 +401,7 @@ export function WorkspaceSidebar({
                         <BarChart3 size={12} className="text-[var(--accent)]" />
                         {a.name}
                       </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
+                      <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-2 shrink-0">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
