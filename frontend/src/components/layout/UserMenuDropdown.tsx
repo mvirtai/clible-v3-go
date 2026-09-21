@@ -130,7 +130,7 @@ export function UserMenuDropdown({
             <span>{strings.aiUsageTitle}</span>
           </button>
 
-          {/* Käännösten hallinta */}
+          {/* Translation management */}
           <button
             type="button"
             onClick={() => {
@@ -143,6 +143,19 @@ export function UserMenuDropdown({
             <span>
               {showManager ? strings.hideLabel : strings.translationsLabel}
             </span>
+          </button>
+
+          {/* User profile and settings */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+              navigate('/settings');
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+          >
+            <Settings size={14} className="text-[var(--accent)]" />
+            <span>{strings.settingsTitle}</span>
           </button>
         </div>
 

@@ -384,7 +384,41 @@ export interface Messages {
   saveSemanticSearchSuccess: string;
   saveSemanticSearchButton: string;
   savingSemanticSearch: string;
+
+  // User Settings & Profile
+  settingsSubtitle: string;
+  profileSectionTitle: string;
+  profileSectionDesc: string;
+  displayNameLabel: string;
+  displayNamePlaceholder: string;
+  emailAddressLabel: string;
+  accountStatusLabel: string;
+  statusVerified: string;
+  statusUnverified: string;
+  preferencesSectionTitle: string;
+  preferencesSectionDesc: string;
+  defaultTranslationDesc: string;
+  uiLanguageLabel: string;
+  themeLabel: string;
+  themeSystem: string;
+  themeLight: string;
+  themeDark: string;
+  securitySectionTitle: string;
+  securitySectionDesc: string;
+  currentPasswordLabel: string;
+  newPasswordLabel: string;
+  newPasswordHint: string;
+  saveSettingsButton: string;
+  saveSettingsSuccess: string;
+  changePasswordButton: string;
+  changePasswordSuccess: string;
+  errCurrentPasswordWrong: string;
+  errPasswordMismatch: string;
+  guestSettingsPrompt: string;
+  createAccountButton: string;
+  saving: string;
 }
+
 
 export const strings: Record<UILanguage, Messages> = {
   en: {
@@ -397,7 +431,7 @@ export const strings: Record<UILanguage, Messages> = {
         chooseTranslation: 'Choose translation',
         translationsLabel: 'Translations',
         hideLabel: 'Hide',
-        settingsTitle: 'Settings',
+        settingsTitle: 'User Settings & Profile',
         signOutTitle: 'Sign out',
         tabReader: 'Reader',
         tabAnalytics: 'Analytics',
@@ -771,6 +805,39 @@ export const strings: Record<UILanguage, Messages> = {
     saveSemanticSearchSuccess: 'Semantic search saved to workspace!',
     saveSemanticSearchButton: 'Save',
     savingSemanticSearch: 'Saving...',
+
+    // User Settings & Profile
+    settingsSubtitle: 'Manage your account details, reading preferences, and security.',
+    profileSectionTitle: 'Profile Details',
+    profileSectionDesc: 'Your name appears in the workspace and monogram.',
+    displayNameLabel: 'Display Name',
+    displayNamePlaceholder: 'E.g. Jane Doe',
+    emailAddressLabel: 'Email Address',
+    accountStatusLabel: 'Account Status',
+    statusVerified: 'Verified Account',
+    statusUnverified: 'Unverified (check your email)',
+    preferencesSectionTitle: 'Reading Preferences & Appearance',
+    preferencesSectionDesc: 'Configure your default Bible translation and application theme.',
+    defaultTranslationDesc: 'Opened automatically in the reader view.',
+    uiLanguageLabel: 'Interface Language',
+    themeLabel: 'Theme',
+    themeSystem: 'System',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    securitySectionTitle: 'Security & Password',
+    securitySectionDesc: 'Change your account password.',
+    currentPasswordLabel: 'Current Password',
+    newPasswordLabel: 'New Password',
+    newPasswordHint: 'At least 8 characters, uppercase letter, number, and special character.',
+    saveSettingsButton: 'Save Settings',
+    saveSettingsSuccess: 'Settings saved successfully!',
+    changePasswordButton: 'Update Password',
+    changePasswordSuccess: 'Password updated successfully!',
+    errCurrentPasswordWrong: 'Current password is incorrect.',
+    errPasswordMismatch: 'Passwords do not match or do not meet requirements.',
+    guestSettingsPrompt: 'You are in guest mode. Create a free account to save your preferences to the cloud!',
+    createAccountButton: 'Create Account',
+    saving: 'Saving...',
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -778,7 +845,7 @@ export const strings: Record<UILanguage, Messages> = {
     chooseTranslation: 'Valitse käännös',
     translationsLabel: 'Käännökset',
     hideLabel: 'Piilota',
-    settingsTitle: 'Asetukset',
+    settingsTitle: 'Käyttäjäasetukset ja profiili',
     signOutTitle: 'Kirjaudu ulos',
     tabReader: 'Lukija',
     tabAnalytics: 'Analytiikka',
@@ -1156,6 +1223,39 @@ export const strings: Record<UILanguage, Messages> = {
     saveSemanticSearchSuccess: 'Semanttinen haku tallennettu työtilaan!',
     saveSemanticSearchButton: 'Tallenna',
     savingSemanticSearch: 'Tallennetaan...',
+
+    // Käyttäjäasetukset ja profiili
+    settingsSubtitle: 'Hallitse tilitietojasi, lukupreferenssejäsi ja turvallisuutta.',
+    profileSectionTitle: 'Profiilitiedot',
+    profileSectionDesc: 'Nimesi näkyy työtilassa ja monogrammissa.',
+    displayNameLabel: 'Näyttönimi',
+    displayNamePlaceholder: 'Esim. Maria Meikäläinen',
+    emailAddressLabel: 'Sähköpostiosoite',
+    accountStatusLabel: 'Tilin tila',
+    statusVerified: 'Vahvistettu tili',
+    statusUnverified: 'Vahvistamaton (tarkista sähköposti)',
+    preferencesSectionTitle: 'Lukupreferenssit ja ulkoasu',
+    preferencesSectionDesc: 'Määritä oletusraamattu ja sovelluksen teema.',
+    defaultTranslationDesc: 'Avataan automaattisesti lukunäkymässä.',
+    uiLanguageLabel: 'Käyttöliittymän kieli',
+    themeLabel: 'Ulkoasuteema',
+    themeSystem: 'Järjestelmä',
+    themeLight: 'Vaalea',
+    themeDark: 'Tumma',
+    securitySectionTitle: 'Turvallisuus ja salasana',
+    securitySectionDesc: 'Vaihda tilisi salasana.',
+    currentPasswordLabel: 'Nykyinen salasana',
+    newPasswordLabel: 'Uusi salasana',
+    newPasswordHint: 'Vähintään 8 merkkiä, iso kirjain, numero ja erikoismerkki.',
+    saveSettingsButton: 'Tallenna asetukset',
+    saveSettingsSuccess: 'Asetukset tallennettu onnistuneesti!',
+    changePasswordButton: 'Päivitä salasana',
+    changePasswordSuccess: 'Salasana vaihdettu onnistuneesti!',
+    errCurrentPasswordWrong: 'Nykyinen salasana on virheellinen.',
+    errPasswordMismatch: 'Salasanat eivät täsmää tai eivät täytä vaatimuksia.',
+    guestSettingsPrompt: 'Olet vierastilassa. Luo ilmainen tili tallentaaksesi preferenssisi pilveen!',
+    createAccountButton: 'Luo tili',
+    saving: 'Tallennetaan...',
   }
 
 };
