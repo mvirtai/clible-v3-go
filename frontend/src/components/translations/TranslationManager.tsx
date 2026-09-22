@@ -1,161 +1,200 @@
 import { useState } from 'react';
 import { apiService } from '../../services/api';
-import { CheckCircle, PlusCircle, Loader2, MinusCircle } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import type { InstalledTranslation } from '../../types/bible';
 import { useLanguage } from '../../context/LanguageContext';
 
-/**
- * Properties for {@link TranslationManager}.
- */
 export interface TranslationManagerProps {
-  /** Complete catalogue of Bible translations with active installation state flags. */
   translations: InstalledTranslation[];
-  /** Optional callback fired when a translation is activated or deactivated. */
   onTranslationChanged?: () => void;
+  onClose?: () => void;
 }
 
-/**
- * Translation catalogue manager allowing users to link or unlink Bible translations for their user profile.
- *
- * @param props - Component properties conforming to {@link TranslationManagerProps}.
- * @returns Translation catalogue management modal/card.
- */
-export function TranslationManager({ translations, onTranslationChanged }: TranslationManagerProps) {
+export function TranslationManager({
+  translations,
+  onTranslationChanged,
+  onClose,
+}: TranslationManagerProps) {
   const { strings } = useLanguage();
-  const [loading, setLoading] = useState<string | null>(null); // stores the translationId being processed
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const handleActivate = async (translationId: string, name: string) => {
-    setLoading(translationId);
+  // Paikallinen tila estää välähdyksen: kun kytkintä painetaan, tila vaihtuu välittömästi
+  // ja pysyy siinä kunnes vanhemman asynkroninen uudelleenrenderöinti saapuu ja synkronoi
+  const [localOverrides, setLocalOverrides] = useState<Record<string, boolean>>({});
+
+  const handleToggle = async (tr: InstalledTranslation) => {
+    if (loadingId !== null) return;
+    const currentInstalled = localOverrides[tr.id] !== undefined ? localOverrides[tr.id] : tr.installed;
+    const nextInstalled = !currentInstalled;
+
+    // 1. Käännetään kytkin heti lokaalisti (0ms viive)
+    setLocalOverrides((prev) => ({ ...prev, [tr.id]: nextInstalled }));
+    setLoadingId(tr.id);
     setStatus(null);
+
     try {
-      await apiService.linkTranslation(translationId);
-      setStatus({ type: 'success', message: `"${name}" ${strings.translationActivatedMsg}` });
-      if (onTranslationChanged) onTranslationChanged();
-      setLoading(null);
+      if (!nextInstalled) {
+        await apiService.unlinkTranslation(tr.id);
+        setStatus({ type: 'success', message: `"${tr.name}" ${strings.translationDeactivatedMsg}` });
+      } else {
+        await apiService.linkTranslation(tr.id);
+        setStatus({ type: 'success', message: `"${tr.name}" ${strings.translationActivatedMsg}` });
+      }
+      // 2. Ilmoitetaan taustalle ilman että kytkin heilahtaa takaisin
+      if (onTranslationChanged) {
+        onTranslationChanged();
+      }
     } catch (err: unknown) {
+      // Virheen sattuessa peruutetaan paikallinen muutos
+      setLocalOverrides((prev) => {
+        const copy = { ...prev };
+        delete copy[tr.id];
+        return copy;
+      });
       const msg = err instanceof Error ? err.message : String(err);
-      setStatus({ type: 'error', message: msg || strings.translationActivationFailed });
-      setLoading(null);
+      setStatus({
+        type: 'error',
+        message: msg || (nextInstalled ? strings.translationActivationFailed : strings.translationDeactivationFailed),
+      });
+    } finally {
+      setLoadingId(null);
     }
   };
 
-  const handleDeactivate = async (translationId: string, name: string) => {
-    setLoading(translationId);
-    setStatus(null);
-    try {
-      await apiService.unlinkTranslation(translationId);
-      setStatus({ type: 'success', message: `"${name}" ${strings.translationDeactivatedMsg}` });
-      if (onTranslationChanged) onTranslationChanged();
-      setLoading(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatus({ type: 'error', message: msg || strings.translationDeactivationFailed });
-      setLoading(null);
-    }
-  };
+  // Yhdistetään propsina tuleva data ja paikalliset välittömät valinnat
+  const mergedTranslations = translations.map((t) => ({
+    ...t,
+    installed: localOverrides[t.id] !== undefined ? localOverrides[t.id] : t.installed,
+  }));
 
-  const installed = translations.filter(t => t.installed);
-  const available = translations.filter(t => !t.installed);
+  const groups = [
+    {
+      title: strings.translationGroupFinnish,
+      items: mergedTranslations.filter((t) => t.language === 'fi'),
+    },
+    {
+      title: strings.translationGroupEnglish,
+      items: mergedTranslations.filter((t) => t.language === 'en'),
+    },
+    {
+      title: strings.translationGroupOriginal,
+      items: mergedTranslations.filter((t) => t.language === 'he' || t.language === 'grc'),
+    },
+  ].filter((g) => g.items.length > 0);
 
   return (
-    <div className="rounded-3xl p-4 sm:p-8 space-y-4 sm:space-y-6" style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-    }}>
-      <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-        {strings.translationManagementTitle}
-      </h2>
+    <div
+      className="rounded-3xl p-4 sm:p-7 space-y-5 relative"
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
+            {strings.translationManagementTitle}
+          </h2>
+          <span className="text-xs text-[var(--muted)] font-mono">
+            {mergedTranslations.filter((t) => t.installed).length}/{mergedTranslations.length}
+          </span>
+        </div>
+
+        {/* Poistumistie / Sulje-painike */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={strings.aiUsageClose}
+            className="p-1.5 -mr-1 rounded-xl text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer flex items-center gap-1 text-xs font-medium"
+          >
+            <span className="hidden sm:inline">{strings.aiUsageClose}</span>
+            <X size={16} />
+          </button>
+        )}
+      </div>
 
       {status && (
-        <div className="p-4 rounded-2xl text-sm flex items-start gap-3" style={{
-          background: status.type === 'success' ? 'var(--success-bg)' : 'var(--error-bg)',
-          border: `1px solid ${status.type === 'success' ? 'var(--success-border)' : 'var(--error-border)'}`,
-          color: status.type === 'success' ? 'var(--success)' : 'var(--error)',
-        }}>
+        <div
+          className="p-3 rounded-2xl text-xs sm:text-sm flex items-start gap-2.5 animate-in fade-in duration-150"
+          style={{
+            background: status.type === 'success' ? 'var(--success-bg)' : 'var(--error-bg)',
+            border: `1px solid ${status.type === 'success' ? 'var(--success-border)' : 'var(--error-border)'}`,
+            color: status.type === 'success' ? 'var(--success)' : 'var(--error)',
+          }}
+        >
           <span className="leading-relaxed">{status.message}</span>
         </div>
       )}
 
-      {/* Active translations */}
-      {installed.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
-            {strings.activeTranslationsTitle}
-          </p>
-          <div className="space-y-2">
-            {installed.map(tr => (
-              <div
-                key={tr.id}
-                className="flex items-center justify-between rounded-2xl px-4 py-3"
-                style={{ background: 'rgba(52,168,83,0.06)', border: '1px solid rgba(52,168,83,0.2)' }}
-              >
-                <div className="flex items-center gap-3">
-                  <CheckCircle size={15} style={{ color: '#34a853', flexShrink: 0 }} />
-                  <div>
-                    <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{tr.name}</span>
-                    <span className="ml-2 text-xs" style={{ color: 'var(--muted)' }}>{tr.language.toUpperCase()}</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDeactivate(tr.id, tr.name)}
-                  disabled={loading !== null}
-                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
-                  style={{ background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid var(--error-border)', cursor: 'pointer' }}
-                  id={`deactivate-${tr.id}`}
-                >
-                  {loading === tr.id
-                    ? <Loader2 size={12} className="animate-spin" />
-                    : <MinusCircle size={12} />}
-                  {strings.removeTranslationLabel}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Selkeät kieliryhmät allekkain */}
+      <div className="space-y-6">
+        {groups.map((group) => (
+          <div key={group.title} className="space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] px-1">
+              {group.title}
+            </h3>
+            <div className="space-y-1.5">
+              {group.items.map((tr) => {
+                const isLoading = loadingId === tr.id;
+                return (
+                  <div
+                    key={tr.id}
+                    className="flex items-center justify-between p-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] transition-colors"
+                  >
+                    <div className="min-w-0 pr-3">
+                      <div className="text-sm font-medium text-[var(--text)] truncate">{tr.name}</div>
+                      <div className="text-xs text-[var(--muted)] font-mono">{tr.id}</div>
+                    </div>
 
-      {/* Available translations */}
-      {available.length > 0 && (
-        <div className="space-y-3" style={{ borderTop: installed.length > 0 ? '1px solid var(--border-soft)' : 'none', paddingTop: installed.length > 0 ? '1.5rem' : '0' }}>
-          <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
-            {strings.availableTranslationsTitle}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {available.map(tr => (
-              <button
-                key={tr.id}
-                type="button"
-                onClick={() => handleActivate(tr.id, tr.name)}
-                disabled={loading !== null}
-                className="rounded-2xl p-4 text-left flex items-center gap-3 transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{
-                  background: 'var(--surface-2)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text)',
-                  cursor: 'pointer',
-                }}
-                id={`activate-${tr.id}`}
-              >
-                {loading === tr.id
-                  ? <Loader2 size={15} className="animate-spin flex-shrink-0" style={{ color: 'var(--accent)' }} />
-                  : <PlusCircle size={15} className="flex-shrink-0" style={{ color: 'var(--accent)' }} />}
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold truncate">{tr.name}</div>
-                  <div className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{tr.language.toUpperCase()}</div>
-                </div>
-              </button>
-            ))}
+                    {/* Sulava, pätkimätön switch-kytkin */}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={tr.installed}
+                      aria-label={`${tr.name} (${tr.language.toUpperCase()})`}
+                      id={`toggle-${tr.id}`}
+                      disabled={loadingId !== null}
+                      onClick={() => handleToggle(tr)}
+                      className={`relative w-11 h-6 flex items-center rounded-full p-0.5 cursor-pointer transition-colors duration-200 focus:outline-hidden focus:ring-2 focus:ring-[var(--accent)] disabled:opacity-50 ${
+                        tr.installed ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white shadow-xs flex items-center justify-center transition-transform duration-200 ${
+                          tr.installed ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      >
+                        {isLoading && <Loader2 size={11} className="animate-spin text-[var(--muted)]" />}
+                      </div>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
       {translations.length === 0 && (
-        <p className="text-sm text-center py-4" style={{ color: 'var(--muted)' }}>
+        <p className="text-sm text-center py-6 text-[var(--muted)]">
           {strings.noTranslationsAdminHint}
         </p>
       )}
+
+      {/* Alareunan toissijainen sulkemispainike helppoon poistumiseen */}
+      {onClose && (
+        <div className="pt-2 border-t border-[var(--border-soft)] flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-xs font-medium bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] transition-colors cursor-pointer"
+          >
+            {strings.aiUsageClose}
+          </button>
+        </div>
+      )}
     </div>
   );
-};
+}

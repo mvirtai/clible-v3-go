@@ -542,6 +542,7 @@ export function App() {
             <TranslationManager
               translations={installedTranslations}
               onTranslationChanged={handleTranslationChanged}
+              onClose={() => setShowManager(false)}
             />
           </div>
         )}

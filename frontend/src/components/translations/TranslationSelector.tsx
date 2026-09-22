@@ -18,9 +18,10 @@ export interface TranslationSelectorProps {
  * Header dropdown selector enabling instant switching between active Bible translations.
  *
  * Automatically filters to active installed translations when available, or shows full catalogue.
+ * Organizes translations cleanly into language optgroups ("Finnish", "English", "Original Languages").
  *
  * @param props - Component properties conforming to {@link TranslationSelectorProps}.
- * @returns Accessible translation picker dropdown.
+ * @returns Accessible translation picker dropdown with grouped options.
  */
 export function TranslationSelector({
   selectedTranslation,
@@ -30,28 +31,50 @@ export function TranslationSelector({
   const { strings } = useLanguage();
 
   // If user has active translations, show only those. Otherwise show full catalogue for initial discovery.
-  const hasActive = translations.some(t => t.installed);
+  const hasActive = translations.some((t) => t.installed);
   const list = hasActive
-    ? translations.filter(t => t.installed)
+    ? translations.filter((t) => t.installed)
     : translations;
 
   if (!list || list.length === 0) {
     return (
-      <div className="text-xs px-3 py-1.5 rounded-full"
-        style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}>
+      <div
+        className="text-xs px-3 py-1.5 rounded-full"
+        style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}
+      >
         {strings.noTranslations}
       </div>
     );
   }
 
   // Show placeholder only when no valid translation is selected
-  const showPlaceholder = !selectedTranslation || !list.some(t => t.id === selectedTranslation);
+  const showPlaceholder = !selectedTranslation || !list.some((t) => t.id === selectedTranslation);
+
+  // Group translations into language families
+  const groups = [
+    {
+      label: strings.translationGroupFinnish,
+      items: list.filter((t) => t.language === 'fi'),
+    },
+    {
+      label: strings.translationGroupEnglish,
+      items: list.filter((t) => t.language === 'en'),
+    },
+    {
+      label: strings.translationGroupOriginal,
+      items: list.filter((t) => t.language === 'he' || t.language === 'grc'),
+    },
+  ].filter((g) => g.items.length > 0);
 
   return (
-    <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full max-w-[125px] sm:max-w-xs shrink"
-      style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+    <div
+      className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full max-w-[125px] sm:max-w-xs shrink"
+      style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
+    >
       <Globe size={13} className="shrink-0" style={{ color: 'var(--accent)' }} />
-      <label htmlFor="translation-select" className="sr-only" style={{ display: 'none' }}>{strings.chooseTranslation}</label>
+      <label htmlFor="translation-select" className="sr-only" style={{ display: 'none' }}>
+        {strings.chooseTranslation}
+      </label>
       <select
         id="translation-select"
         aria-label={strings.chooseTranslation}
@@ -65,15 +88,24 @@ export function TranslationSelector({
             {strings.translationPlaceholder}
           </option>
         )}
-        {list.map((t) => (
-          <option key={t.id} value={t.id} style={{ background: 'var(--surface)', color: 'var(--text)' }}>
-            {t.name} ({t.id.toUpperCase()})
-          </option>
+        {groups.map((group) => (
+          <optgroup
+            key={group.label}
+            label={group.label}
+            style={{ background: 'var(--surface)', color: 'var(--muted)', fontWeight: 600 }}
+          >
+            {group.items.map((t) => (
+              <option
+                key={t.id}
+                value={t.id}
+                style={{ background: 'var(--surface)', color: 'var(--text)', fontWeight: 400 }}
+              >
+                {t.name} ({t.id.toUpperCase()})
+              </option>
+            ))}
+          </optgroup>
         ))}
       </select>
     </div>
   );
-};
-
-
-
+}
