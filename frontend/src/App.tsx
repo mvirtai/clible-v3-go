@@ -10,6 +10,7 @@ import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { CompareView } from './components/compare/CompareView';
 import { OriginalStudyView } from './components/original/OriginalStudyView';
 import { NotebookCanvasView } from './components/notebook/NotebookCanvasView';
+import { LiturgicalView } from './views/LiturgicalView';
 import { WorkspaceSidebar } from './components/layout/WorkspaceSidebar';
 import { WorkspaceDrawer } from './components/layout/WorkspaceDrawer';
 import { apiService } from './services/api';
@@ -111,6 +112,7 @@ export function App() {
   useEffect(() => {
     let tabLabel = strings.tabReader;
     if (viewMode === 'search') tabLabel = strings.tabSearch;
+    else if (viewMode === 'liturgical') tabLabel = strings.tabLiturgical;
     else if (viewMode === 'analytics') tabLabel = strings.tabAnalytics;
     else if (viewMode === 'compare') tabLabel = strings.tabCompare;
     else if (viewMode === 'original') tabLabel = strings.tabOriginal;
@@ -668,6 +670,15 @@ export function App() {
                 onCreateNotebook={handleCreateNotebook}
                 onResetNotebookSizes={handleResetNotebookSizes}
                 isGuest={!user}
+              />
+            )}
+
+            {viewMode === 'liturgical' && (
+              <LiturgicalView
+                onSelectVerse={(ref) => {
+                  handleSelectReference(ref);
+                  setViewMode('reader');
+                }}
               />
             )}
           </div>

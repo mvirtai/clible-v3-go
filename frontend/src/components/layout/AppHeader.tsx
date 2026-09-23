@@ -6,7 +6,7 @@ import { APP_VERSION } from '@/utils/version';
 import type { InstalledTranslation } from '../../types/bible';
 import type { User } from '@/context/AuthContext';
 
-export type ViewMode = 'reader' | 'search' | 'analytics' | 'compare' | 'original' | 'notebooks';
+export type ViewMode = 'reader' | 'search' | 'analytics' | 'compare' | 'original' | 'notebooks' | 'liturgical';
 
 export interface AppHeaderProps {
   theme: 'light' | 'dark';
