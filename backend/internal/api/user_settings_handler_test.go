@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -218,6 +219,23 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 		}
 		if updated.DefaultTranslationID != "web" {
 			t.Errorf("expected fallback translation 'web', got %s", updated.DefaultTranslationID)
+		}
+	})
+
+	t.Run("display name exceeding 100 characters returns 400", func(t *testing.T) {
+		longName := strings.Repeat("a", 101)
+		payload := models.UpdateUserSettingsInput{
+			DisplayName: longName,
+		}
+		body, _ := json.Marshal(payload)
+
+		req := httptest.NewRequest(http.MethodPut, "/api/user/settings", bytes.NewReader(body))
+		ctx := context.WithValue(req.Context(), ctxkeys.UserIDKey, userID)
+		rec := httptest.NewRecorder()
+
+		handler.UpdateSettings(rec, req.WithContext(ctx))
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 Bad Request for display name > 100 chars, got %d", rec.Code)
 		}
 	})
 }
