@@ -22,6 +22,7 @@ dist/
 .envrc
 .DS_Store
 .vscode/
+.zed/
 *.log
 npm-debug.log*
 pnpm-debug.log*
