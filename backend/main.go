@@ -170,7 +170,7 @@ func main() {
 	mux.Handle("POST /api/ai/search", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.AISearch))))
 	mux.Handle("POST /api/ai/compare", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetComparison))))
 	mux.Handle("GET /api/ai/usage/me", requireAuth(http.HandlerFunc(aiUsageHandler.GetMyUsage)))
-	mux.Handle("GET /api/ai/usage/summary", optionalAuth(http.HandlerFunc(aiUsageHandler.GetSummary)))
+	mux.Handle("GET /api/ai/usage/summary", requireAuth(http.HandlerFunc(aiUsageHandler.GetSummary)))
 
 	// User settings and profile routes
 	mux.Handle("GET /api/user/settings", requireAuth(http.HandlerFunc(userSettingsHandler.GetSettings)))

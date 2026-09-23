@@ -98,43 +98,61 @@ func TestAiUsageHandler_GetMyUsage(t *testing.T) {
 }
 
 func TestAiUsageHandler_GetSummary(t *testing.T) {
-	expectedSummary := &models.AiUsageSummary{
-		UserStats: models.AiUsageStats{
-			TotalCalls:  10,
-			TotalTokens: 2000,
-		},
-		GuestStats: models.AiUsageStats{
-			TotalCalls:  5,
-			TotalTokens: 1000,
-		},
-		GlobalStats: models.AiUsageStats{
-			TotalCalls:  15,
-			TotalTokens: 3000,
-		},
-		ByFeature: map[string]models.AiUsageStats{
-			"insight": {TotalCalls: 10, TotalTokens: 2000},
-		},
-	}
-	svc := &mockAiUsageService{
-		summary: expectedSummary,
-	}
-	handler := api.NewAiUsageHandler(svc)
+	t.Run("unauthorized when user id is missing from context", func(t *testing.T) {
+		svc := &mockAiUsageService{}
+		handler := api.NewAiUsageHandler(svc)
 
-	req := httptest.NewRequest("GET", "/api/ai/usage/summary", nil)
-	rr := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/api/ai/usage/summary", nil)
+		rr := httptest.NewRecorder()
 
-	handler.GetSummary(rr, req)
+		handler.GetSummary(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rr.Code)
-	}
+		if rr.Code != http.StatusUnauthorized {
+			t.Errorf("expected status 401, got %d", rr.Code)
+		}
+	})
 
-	var resp models.AiUsageSummary
-	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
-		t.Fatalf("failed to decode summary: %v", err)
-	}
+	t.Run("returns summary when authenticated", func(t *testing.T) {
+		expectedSummary := &models.AiUsageSummary{
+			UserStats: models.AiUsageStats{
+				TotalCalls:  10,
+				TotalTokens: 2000,
+			},
+			GuestStats: models.AiUsageStats{
+				TotalCalls:  5,
+				TotalTokens: 1000,
+			},
+			GlobalStats: models.AiUsageStats{
+				TotalCalls:  15,
+				TotalTokens: 3000,
+			},
+			ByFeature: map[string]models.AiUsageStats{
+				"insight": {TotalCalls: 10, TotalTokens: 2000},
+			},
+		}
+		svc := &mockAiUsageService{
+			summary: expectedSummary,
+		}
+		handler := api.NewAiUsageHandler(svc)
 
-	if resp.GlobalStats.TotalTokens != 3000 {
-		t.Errorf("expected 3000 total global tokens, got %d", resp.GlobalStats.TotalTokens)
-	}
+		req := httptest.NewRequest("GET", "/api/ai/usage/summary", nil)
+		ctx := context.WithValue(req.Context(), ctxkeys.UserIDKey, "user-admin-123")
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		handler.GetSummary(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rr.Code)
+		}
+
+		var resp models.AiUsageSummary
+		if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode summary: %v", err)
+		}
+
+		if resp.GlobalStats.TotalTokens != 3000 {
+			t.Errorf("expected 3000 total global tokens, got %d", resp.GlobalStats.TotalTokens)
+		}
+	})
 }
