@@ -95,6 +95,20 @@ func main() {
 	aiUsageHandler := api.NewAiUsageHandler(aiUsageService)
 	notebookHandler := api.NewNotebookHandler(notebookService)
 	dslHandler := api.NewDSLHandler(cliService)
+	// Liturgical calendar service
+	liturgicalDataPath := "backend/internal/parsers/data/kirkkovuosi_2026.json"
+	if _, err := os.Stat(liturgicalDataPath); err != nil {
+		liturgicalDataPath = "internal/parsers/data/kirkkovuosi_2026.json"
+	}
+	liturgicalService, err := services.NewLiturgicalService(liturgicalDataPath)
+	if err != nil {
+		slog.Warn("Liturgical service initialization warning", "error", err)
+	}
+	var liturgicalHandler *api.LiturgicalHandler
+	if liturgicalService != nil {
+		liturgicalHandler = api.NewLiturgicalHandler(liturgicalService)
+	}
+
 	userSettingsHandler := api.NewUserSettingsHandler(userRepo)
 	versionHandler := api.NewVersionHandler()
 
@@ -114,6 +128,13 @@ func main() {
 	// Book metadata endpoints
 	mux.HandleFunc("GET /api/books", bookHandler.GetBooks)
 	mux.HandleFunc("GET /api/books/{id}", bookHandler.GetBookByID)
+
+	// Liturgical calendar & daily prayer offices (Public)
+	if liturgicalHandler != nil {
+		mux.HandleFunc("GET /api/liturgical/today", liturgicalHandler.GetToday)
+		mux.HandleFunc("GET /api/liturgical/day", liturgicalHandler.GetDay)
+		mux.HandleFunc("GET /api/liturgical/month", liturgicalHandler.GetMonth)
+	}
 
 	// Auth endpoints
 	mux.HandleFunc("POST /api/auth/register", authHandler.Register)
