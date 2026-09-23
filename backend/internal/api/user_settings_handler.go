@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -30,7 +31,8 @@ func (h *UserSettingsHandler) GetSettings(w http.ResponseWriter, r *http.Request
 
 	settings, err := h.userRepo.GetSettings(r.Context(), userID)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to load settings: "+err.Error())
+		slog.Error("failed to load user settings", "error", err, "userId", userID)
+		writeJSONError(w, http.StatusInternalServerError, "failed to load settings")
 		return
 	}
 	if settings == nil {
@@ -58,6 +60,10 @@ func (h *UserSettingsHandler) UpdateSettings(w http.ResponseWriter, r *http.Requ
 
 	// Sanitize and validate input
 	input.DisplayName = strings.TrimSpace(input.DisplayName)
+	if len(input.DisplayName) > 100 {
+		writeJSONError(w, http.StatusBadRequest, "display name too long (max 100 characters)")
+		return
+	}
 	input.AvatarID = strings.TrimSpace(input.AvatarID)
 	switch input.AvatarID {
 	case "scroll", "dove", "olive", "codex", "quill", "menorah", "alpha-omega", "flame", "anchor", "cornerstone":
