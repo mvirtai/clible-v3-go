@@ -32,6 +32,9 @@ export interface Messages {
   translationManagementTitle: string;
   activeTranslationsTitle: string;
   availableTranslationsTitle: string;
+  translationGroupEnglish: string;
+  translationGroupFinnish: string;
+  translationGroupOriginal: string;
   removeTranslationLabel: string;
   noTranslationsAdminHint: string;
   translationActivatedMsg: string;
@@ -56,6 +59,9 @@ export interface Messages {
   backToBroaderText: string;
   aiAnalysisTitle: string;
   aiUsageTitle: string;
+  aiUsagePersonalTitle: string;
+  aiUsageGuestPrompt: string;
+  aiUsageGuestAction: string;
   aiTokensTotal: string;
   aiTokensPrompt: string;
   aiTokensCandidates: string;
@@ -484,6 +490,9 @@ export const strings: Record<UILanguage, Messages> = {
     translationManagementTitle: 'Translation Management',
     activeTranslationsTitle: 'Active Translations',
     availableTranslationsTitle: 'Available Translations',
+    translationGroupEnglish: 'English',
+    translationGroupFinnish: 'Finnish',
+    translationGroupOriginal: 'Original Languages',
     removeTranslationLabel: 'Remove',
     noTranslationsAdminHint: 'No translations available. Please contact an administrator.',
     translationActivatedMsg: 'activated successfully!',
@@ -499,6 +508,9 @@ export const strings: Record<UILanguage, Messages> = {
     backToBroaderText: 'Back to broader text',
     aiAnalysisTitle: 'AI Analysis (Gemini)',
     aiUsageTitle: 'AI Token Usage',
+    aiUsagePersonalTitle: 'Personal AI Usage',
+    aiUsageGuestPrompt: 'Sign in to track your personal AI token consumption.',
+    aiUsageGuestAction: 'Sign in',
     aiTokensTotal: 'Total Tokens',
     aiTokensPrompt: 'Prompt Tokens',
     aiTokensCandidates: 'Candidate Tokens',
@@ -907,6 +919,9 @@ export const strings: Record<UILanguage, Messages> = {
     translationManagementTitle: 'Käännösten hallinta',
     activeTranslationsTitle: 'Käytössä olevat käännökset',
     availableTranslationsTitle: 'Saatavilla olevat käännökset',
+    translationGroupEnglish: 'Englanti',
+    translationGroupFinnish: 'Suomi',
+    translationGroupOriginal: 'Alkukielet',
     removeTranslationLabel: 'Poista käytöstä',
     noTranslationsAdminHint: 'Ei saatavilla olevia käännöksiä. Ota yhteyttä ylläpitoon.',
     translationActivatedMsg: 'aktivoitu onnistuneesti!',
@@ -922,6 +937,9 @@ export const strings: Record<UILanguage, Messages> = {
     backToBroaderText: 'Takaisin laajempaan tekstiin',
     aiAnalysisTitle: 'Tekoäly-analyysi (Gemini)',
     aiUsageTitle: 'Tekoälyn token-kulutus',
+    aiUsagePersonalTitle: 'Oma tekoälyn kulutus',
+    aiUsageGuestPrompt: 'Kirjaudu sisään seurataksesi henkilökohtaista tekoälyn token-kulutustasi.',
+    aiUsageGuestAction: 'Kirjaudu sisään',
     aiTokensTotal: 'Tokeneita yhteensä',
     aiTokensPrompt: 'Kehotetokent',
     aiTokensCandidates: 'Vastaustokenit',
