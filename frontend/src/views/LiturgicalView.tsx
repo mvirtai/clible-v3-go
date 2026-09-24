@@ -85,7 +85,7 @@ export function LiturgicalPoem({
 
         // If cadence marks are hidden, strip <u> tags and asterisk
         if (!showCadence) {
-          const cleanLine = line.replace(/<[^>]*>/g, '').replace(/\s*\*\s*/g, ' ').trimEnd();
+          const cleanLine = line.replace(/<\/?u>/gi, '').replace(/\s*\*\s*/g, ' ').trimEnd();
           return (
             <div
               key={idx}
