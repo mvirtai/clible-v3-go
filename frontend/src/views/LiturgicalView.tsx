@@ -53,10 +53,11 @@ function addDaysToISO(iso: string, days: number): string {
 }
 
 /**
- * Strips HTML tags (such as <u> and </u>) for clean clipboard copying.
+ * Removes HTML angle brackets for clean clipboard copying.
+ * Using single-character sanitization avoids incomplete multi-character stripping.
  */
 function cleanTextForCopy(rawText: string): string {
-  return rawText.replace(/<[^>]*>/g, '').trim();
+  return rawText.replace(/[<>]/g, '').trim();
 }
 
 /**
