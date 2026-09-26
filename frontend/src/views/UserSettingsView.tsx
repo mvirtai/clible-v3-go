@@ -95,6 +95,7 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
         const aiLanguage = (formData.get('aiLanguage') as 'fi' | 'en' | 'auto') || 'fi';
         const themePreference = (formData.get('themePreference') as string) || 'system';
         const defaultTranslationId = (formData.get('defaultTranslationId') as string) || 'web';
+        const liturgicalViewMode = (formData.get('liturgicalViewMode') as 'drawers' | 'tabs') || 'drawers';
 
         const updated = await apiService.updateUserSettings({
           displayName,
@@ -103,7 +104,12 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
           aiLanguage,
           themePreference,
           defaultTranslationId,
+          liturgicalViewMode,
         });
+
+        if (updated.liturgicalViewMode) {
+          localStorage.setItem('clible_liturgical_view_mode', updated.liturgicalViewMode);
+        }
 
         invalidateSettingsResource();
         setSettings(updated);
@@ -431,6 +437,25 @@ function UserSettingsContent({ userEmail, userName }: { userEmail: string; userN
                     <option value="system">{strings.themeSystem}</option>
                     <option value="light">{strings.themeLight}</option>
                     <option value="dark">{strings.themeDark}</option>
+                  </select>
+                </div>
+
+                {/* Church Year Default View */}
+                <div className="space-y-1.5 sm:col-span-2 lg:col-span-4">
+                  <label htmlFor="liturgical-mode-select" className="text-xs font-medium text-[var(--text)]">
+                    {strings.liturgicalViewModeSettingLabel}
+                  </label>
+                  <p className="text-[11px] text-[var(--muted)] pb-1">
+                    {strings.liturgicalViewModeSettingDesc}
+                  </p>
+                  <select
+                    id="liturgical-mode-select"
+                    name="liturgicalViewMode"
+                    defaultValue={settings?.liturgicalViewMode || (typeof localStorage !== 'undefined' ? localStorage.getItem('clible_liturgical_view_mode') as 'drawers' | 'tabs' : null) || 'drawers'}
+                    className="w-full sm:max-w-md px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text)] focus:outline-hidden focus:ring-2 focus:ring-[var(--accent)] cursor-pointer"
+                  >
+                    <option value="drawers">{strings.liturgicalViewModeDrawersOption}</option>
+                    <option value="tabs">{strings.liturgicalViewModeTabsOption}</option>
                   </select>
                 </div>
               </div>

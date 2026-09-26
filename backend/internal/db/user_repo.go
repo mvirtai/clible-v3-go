@@ -17,6 +17,7 @@ type User struct {
 	AiLanguage           string    `json:"aiLanguage"`
 	ThemePreference      string    `json:"themePreference"`
 	DefaultTranslationID string    `json:"defaultTranslationId"`
+	LiturgicalViewMode   string    `json:"liturgicalViewMode"`
 	SubscriptionTier     string    `json:"subscriptionTier"`
 	SubscriptionStatus   string    `json:"subscriptionStatus"`
 	PasswordHash         string    `json:"-"`
@@ -232,7 +233,7 @@ func (r *UserRepository) MarkUserVerified(ctx context.Context, userID string, ve
 func (r *UserRepository) GetSettings(ctx context.Context, userID string) (*User, error) {
 	query := `
 		SELECT id, email, display_name, avatar_id, preferred_lang, ai_language, theme_preference,
-			   default_translation_id, subscription_tier, subscription_status,
+			   default_translation_id, liturgical_view_mode, subscription_tier, subscription_status,
 			   is_verified, created_at, updated_at
 		FROM users
 		WHERE id = $1
@@ -248,6 +249,7 @@ func (r *UserRepository) GetSettings(ctx context.Context, userID string) (*User,
 		&u.AiLanguage,
 		&u.ThemePreference,
 		&u.DefaultTranslationID,
+		&u.LiturgicalViewMode,
 		&u.SubscriptionTier,
 		&u.SubscriptionStatus,
 		&u.IsVerified,
@@ -265,15 +267,15 @@ func (r *UserRepository) GetSettings(ctx context.Context, userID string) (*User,
 }
 
 // UpdateSettings updates user display name, avatar, and workspace preferences
-func (r *UserRepository) UpdateSettings(ctx context.Context, userID, displayName, avatarID, preferredLang, aiLanguage, theme, defaultTransID string) error {
+func (r *UserRepository) UpdateSettings(ctx context.Context, userID, displayName, avatarID, preferredLang, aiLanguage, theme, defaultTransID, liturgicalViewMode string) error {
 	query := `
 		UPDATE users
 		SET display_name = $1, avatar_id = $2, preferred_lang = $3, ai_language = $4, theme_preference = $5,
-			default_translation_id = $6, updated_at = $7
-		WHERE id = $8
+			default_translation_id = $6, liturgical_view_mode = $7, updated_at = $8
+		WHERE id = $9
 	`
 	now := time.Now()
-	res, err := r.db.ExecContext(ctx, query, displayName, avatarID, preferredLang, aiLanguage, theme, defaultTransID, now, userID)
+	res, err := r.db.ExecContext(ctx, query, displayName, avatarID, preferredLang, aiLanguage, theme, defaultTransID, liturgicalViewMode, now, userID)
 	if err != nil {
 		return fmt.Errorf("failed to update user settings: %w", err)
 	}

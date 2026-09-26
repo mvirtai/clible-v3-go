@@ -30,7 +30,7 @@ export interface LiturgicalViewProps {
   initialDate?: string;
 }
 
-type OfficeType = 'morning' | 'noon' | 'evening' | 'eve' | 'apocrypha';
+type OfficeType = 'morning' | 'noon' | 'evening' | 'eve' | 'completorium' | 'apocrypha';
 type DisplayMode = 'drawers' | 'tabs';
 type ActiveTab = 'readings' | 'psalms' | 'offices' | 'prayers' | 'hymns';
 
@@ -171,7 +171,20 @@ export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewPro
   const [activeOffice, setActiveOffice] = useState<OfficeType>('morning');
   const [activeVolume, setActiveVolume] = useState<'current' | 'I' | 'II' | 'III'>('current');
   const [psalmType, setPsalmType] = useState<'day' | 'week'>('day');
-  const [displayMode, setDisplayMode] = useState<DisplayMode>('drawers');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('clible_liturgical_view_mode');
+      if (saved === 'tabs' || saved === 'drawers') return saved;
+    }
+    return 'drawers';
+  });
+
+  const handleSetDisplayMode = (mode: DisplayMode) => {
+    setDisplayMode(mode);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('clible_liturgical_view_mode', mode);
+    }
+  };
   const [activeTab, setActiveTab] = useState<ActiveTab>('readings');
   const [showImages, setShowImages] = useState(false);
   const [showCadence, setShowCadence] = useState(true);
@@ -339,7 +352,7 @@ export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewPro
           <div className="flex items-center p-0.5 rounded-xl bg-[var(--surface)] border border-[var(--border-soft)] text-xs font-semibold">
             <button
               type="button"
-              onClick={() => setDisplayMode('drawers')}
+              onClick={() => handleSetDisplayMode('drawers')}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
                 displayMode === 'drawers'
                   ? 'bg-[var(--surface-2)] text-[var(--accent)] font-bold shadow-2xs'
@@ -352,7 +365,7 @@ export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewPro
             </button>
             <button
               type="button"
-              onClick={() => setDisplayMode('tabs')}
+              onClick={() => handleSetDisplayMode('tabs')}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
                 displayMode === 'tabs'
                   ? 'bg-[var(--surface-2)] text-[var(--accent)] font-bold shadow-2xs'
@@ -918,6 +931,7 @@ export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewPro
                         { id: 'noon', label: strings.liturgicalNoon, count: offices?.noon?.length || 0 },
                         { id: 'evening', label: strings.liturgicalEvening, count: offices?.evening?.length || 0 },
                         { id: 'eve', label: strings.liturgicalEve, count: offices?.eve?.length || 0 },
+                        { id: 'completorium', label: strings.liturgicalCompletorium, count: offices?.completorium?.length || 0 },
                         { id: 'apocrypha', label: strings.liturgicalApocrypha, count: offices?.apocrypha?.length || 0 },
                       ] as const
                     ).map((tab) => {

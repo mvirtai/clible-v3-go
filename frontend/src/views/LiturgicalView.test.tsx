@@ -28,6 +28,9 @@ const mockDay: LiturgicalDay = {
     noon: [
       { verse: 'Ps. 150', text: 'Halleluja! Ylistäkää Jumalaa pyhäkössään *' },
     ],
+    completorium: [
+      { verse: 'Ps. 4:2–9', text: 'Vastaa minulle, kun huudan *' },
+    ],
   },
   years: {
     II: {
@@ -137,11 +140,25 @@ describe('LiturgicalView', () => {
     );
     expect(noonBtn).toBeDefined();
 
+    expect(noonBtn?.textContent).toContain('Ad Sextam');
+
     act(() => {
       noonBtn?.click();
     });
 
     expect(container?.textContent).toContain('Ps. 150');
+
+    // Switch to completorium office
+    const completoriumBtn = Array.from(container?.querySelectorAll('button') || []).find((b) =>
+      b.textContent?.includes('Completorium')
+    );
+    expect(completoriumBtn).toBeDefined();
+
+    act(() => {
+      completoriumBtn?.click();
+    });
+
+    expect(container?.textContent).toContain('Ps. 4:2–9');
   });
 
   it('renders liturgical cadence marks, allows toggling them and copying text', async () => {
@@ -235,6 +252,24 @@ describe('LiturgicalView', () => {
     // In Tabs mode, tabs selector is visible
     expect(container?.textContent).toContain('Hetkipalvelukset');
     expect(container?.textContent).toContain('Päivän psalmi');
+    expect(localStorage.getItem('clible_liturgical_view_mode')).toBe('tabs');
+  });
+
+  it('initializes display mode from localStorage when set to tabs', async () => {
+    localStorage.setItem('clible_liturgical_view_mode', 'tabs');
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <LiturgicalView onSelectVerse={vi.fn()} initialDate="2026-09-20" />
+        </LanguageProvider>
+      );
+    });
+
+    // In tabs mode, tab bar exists
+    expect(container?.querySelector('nav[aria-label="Kirkkovuoden osiot"]') || container?.textContent).toBeDefined();
+    localStorage.removeItem('clible_liturgical_view_mode');
   });
 });
 

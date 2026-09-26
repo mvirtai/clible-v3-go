@@ -30,6 +30,7 @@ export interface Messages {
   liturgicalNoon: string;
   liturgicalEvening: string;
   liturgicalEve: string;
+  liturgicalCompletorium: string;
   liturgicalApocrypha: string;
   liturgicalReadings: string;
   liturgicalCycle: string;
@@ -452,6 +453,10 @@ export interface Messages {
   themeSystem: string;
   themeLight: string;
   themeDark: string;
+  liturgicalViewModeSettingLabel: string;
+  liturgicalViewModeSettingDesc: string;
+  liturgicalViewModeDrawersOption: string;
+  liturgicalViewModeTabsOption: string;
   securitySectionTitle: string;
   securitySectionDesc: string;
   currentPasswordLabel: string;
@@ -504,9 +509,10 @@ export const strings: Record<UILanguage, Messages> = {
         liturgicalWeekPsalm: 'Psalm of the Week',
         liturgicalOffices: 'Daily Prayer Offices',
         liturgicalMorning: 'Morning Prayer (Lauds)',
-        liturgicalNoon: 'Midday Prayer (Sext)',
+        liturgicalNoon: 'Midday Prayer (Ad Sextam)',
         liturgicalEvening: 'Evening Prayer (Vespers)',
         liturgicalEve: 'Eve Prayer (Vigil)',
+        liturgicalCompletorium: 'Night Prayer (Compline)',
         liturgicalApocrypha: 'Apocrypha',
         liturgicalReadings: 'Lectionary Readings',
         liturgicalCycle: 'Cycle',
@@ -929,6 +935,10 @@ export const strings: Record<UILanguage, Messages> = {
     themeSystem: 'System',
     themeLight: 'Light',
     themeDark: 'Dark',
+    liturgicalViewModeSettingLabel: 'Church Year Default View',
+    liturgicalViewModeSettingDesc: 'Choose whether church year sections are shown as expandable drawers or tabs by default.',
+    liturgicalViewModeDrawersOption: 'Expandable Drawers (All Sections)',
+    liturgicalViewModeTabsOption: 'Tabs (One Section at a Time)',
     securitySectionTitle: 'Security & Password',
     securitySectionDesc: 'Change your account password.',
     currentPasswordLabel: 'Current Password',
@@ -974,9 +984,10 @@ export const strings: Record<UILanguage, Messages> = {
     liturgicalWeekPsalm: 'Viikon psalmi',
     liturgicalOffices: 'Hetkipalvelukset',
     liturgicalMorning: 'Aamurukous (Laudes)',
-    liturgicalNoon: 'Päivärukous (Seksti)',
+    liturgicalNoon: 'Päivärukous (Ad Sextam)',
     liturgicalEvening: 'Iltarukous (Vesper)',
     liturgicalEve: 'Aattorukous (Vigilia)',
+    liturgicalCompletorium: 'Yörukous (Completorium)',
     liturgicalApocrypha: 'Apokryfikirjojen tekstit',
     liturgicalReadings: 'Päivän lukukappaleet',
     liturgicalCycle: 'Vuosikerta',
@@ -1403,6 +1414,10 @@ export const strings: Record<UILanguage, Messages> = {
     themeSystem: 'Järjestelmä',
     themeLight: 'Vaalea',
     themeDark: 'Tumma',
+    liturgicalViewModeSettingLabel: 'Kirkkovuosinäkymän oletustila',
+    liturgicalViewModeSettingDesc: 'Valitse näytetäänkö kirkkovuoden osiot oletuksena avattavina laatikkoina vai välilehtinä.',
+    liturgicalViewModeDrawersOption: 'Avattavat laatikot (Kaikki osiot)',
+    liturgicalViewModeTabsOption: 'Välilehdet (Yksi osio kerrallaan)',
     securitySectionTitle: 'Turvallisuus ja salasana',
     securitySectionDesc: 'Vaihda tilisi salasana.',
     currentPasswordLabel: 'Nykyinen salasana',
