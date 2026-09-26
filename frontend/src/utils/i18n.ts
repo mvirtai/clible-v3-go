@@ -56,6 +56,9 @@ export interface Messages {
   liturgicalCopied: string;
   liturgicalPsalmMelodies: string;
   liturgicalPsalmMelodiesInfo: string;
+  liturgicalExportToNotebook: string;
+  liturgicalExportToNotebookTooltip: string;
+  liturgicalExportToNotebookSuccess: string;
   appBootLoading: string;
   errFailedLoadTranslations: string;
   errSelectTranslationFirst: string;
@@ -538,6 +541,9 @@ export const strings: Record<UILanguage, Messages> = {
         liturgicalCopied: 'Copied!',
         liturgicalPsalmMelodies: 'Psalm Tones (1–10)',
         liturgicalPsalmMelodiesInfo: 'Underlines indicate pitch changes for psalm tone cadences. The asterisk (*) marks the pause between hemistichs.',
+        liturgicalExportToNotebook: 'Export to Notebook',
+        liturgicalExportToNotebookTooltip: 'Create an interactive ISLA notebook from today’s texts (Alt+N)',
+        liturgicalExportToNotebookSuccess: 'Church year texts exported to notebook',
         appBootLoading: 'Loading...',
             noTranslations: 'No translations',
             translationPlaceholder: 'Select translation...',
@@ -1013,6 +1019,9 @@ export const strings: Record<UILanguage, Messages> = {
     liturgicalCopied: 'Kopioitu leikepöydälle!',
     liturgicalPsalmMelodies: 'Tietoa psalmisävelmistä ja kadensseista',
     liturgicalPsalmMelodiesInfo: 'Alleviivaukset osoittavat tavut, joilla sävelaskel vaihtuu psalmisävelmän (1–10 tai kirkkosävellajien I–VIII) kadenssille. Tähti (*) merkitsee puolisäkeen hengähdystaukoa (mediatio).',
+    liturgicalExportToNotebook: 'Vie muistikirjaksi',
+    liturgicalExportToNotebookTooltip: 'Luo päivän teksteistä interaktiivinen ISLA-muistikirja (Alt+N)',
+    liturgicalExportToNotebookSuccess: 'Kirkkovuoden tekstit viety muistikirjaan',
     appBootLoading: 'Ladataan...',
     notebookTitle: 'Muistikirjat',
     createNotebook: 'Luo muistikirja',

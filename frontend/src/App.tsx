@@ -25,13 +25,16 @@ import type { SearchVerse } from './types/search';
 import type { OriginalStudyResult } from './types/originalStudy';
 import type { AiTextResponse } from './types/ai';
 import type { AiSearchResponse } from './types/aiSearch';
-import type { Notebook } from './components/notebook/types';
+import type { Notebook, Cell } from './components/notebook/types';
+import type { LiturgicalDay } from './types/liturgical';
 import { useViewModeNavigation } from './hooks/useViewModeNavigation';
 import {
   getGuestNotebooks,
   createGuestNotebook,
   updateGuestNotebook,
+  saveGuestCells,
 } from './utils/guestNotebookStorage';
+import { liturgicalToISLA } from './utils/liturgicalIslaExport';
 
 interface LoadedSearchState {
   query: string;
@@ -176,6 +179,68 @@ export function App() {
       }
     } catch (err) {
       console.error('Creating notebook failed:', err);
+    }
+  };
+
+  const handleExportLiturgicalToNotebook = async (day: LiturgicalDay) => {
+    const title = `${day.title || day.day_title || strings.tabLiturgical} (${day.date})`;
+    const islaContent = liturgicalToISLA(day, lang);
+
+    if (!user) {
+      const newNotebook = createGuestNotebook(title, lang);
+      const initialCell: Cell = {
+        id: `guest-cell-${Date.now()}`,
+        notebookId: newNotebook.id,
+        type: 'markdown',
+        content: islaContent,
+        position: 0,
+        resultJson: null,
+      };
+      saveGuestCells(newNotebook.id, [initialCell]);
+      newNotebook.cells = [initialCell];
+      newNotebook.cellCounts = { markdown: 1 };
+
+      setNotebooks((prev) => [newNotebook, ...prev]);
+      setSelectedNotebookId(newNotebook.id);
+      setViewMode('notebooks');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/notebooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          scopeId: activeScopeId || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        const newNotebook: Notebook = await res.json();
+        // Add initial cell containing generated ISLA content
+        const cellRes = await fetch(`/api/notebooks/${newNotebook.id}/cells`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'markdown',
+            content: islaContent,
+            position: 0,
+          }),
+        });
+
+        if (cellRes.ok) {
+          const createdCell: Cell = await cellRes.json();
+          newNotebook.cells = [createdCell];
+          newNotebook.cellCounts = { markdown: 1 };
+        }
+
+        setNotebooks((prev) => [newNotebook, ...prev]);
+        setSelectedNotebookId(newNotebook.id);
+        setViewMode('notebooks');
+      }
+    } catch (err) {
+      console.error('Exporting liturgical texts to notebook failed:', err);
     }
   };
 
@@ -679,6 +744,7 @@ export function App() {
                   handleSelectReference(ref);
                   setViewMode('reader');
                 }}
+                onExportToNotebook={handleExportLiturgicalToNotebook}
               />
             )}
           </div>

@@ -1,4 +1,4 @@
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import {
   Calendar,
   ChevronLeft,
@@ -20,6 +20,7 @@ import {
   Send,
   Check,
   Copy,
+  FileText,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { getLiturgicalDay } from '../api/liturgical';
@@ -28,6 +29,7 @@ import type { LiturgicalDay } from '../types/liturgical';
 export interface LiturgicalViewProps {
   onSelectVerse: (reference: string) => void;
   initialDate?: string;
+  onExportToNotebook?: (day: LiturgicalDay) => void;
 }
 
 type OfficeType = 'morning' | 'noon' | 'evening' | 'eve' | 'completorium' | 'apocrypha';
@@ -162,7 +164,7 @@ export function LiturgicalPoem({
   );
 }
 
-export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewProps) {
+export function LiturgicalView({ onSelectVerse, initialDate, onExportToNotebook }: LiturgicalViewProps) {
   const { strings } = useLanguage();
   const todayISO = getTodayISODate();
 
@@ -277,6 +279,27 @@ export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewPro
       // Fallback
     }
   };
+
+  const handleExport = () => {
+    if (dayData && onExportToNotebook) {
+      onExportToNotebook(dayData);
+    }
+  };
+
+  // Keyboard shortcut: Alt+N exports today's liturgical texts to notebook
+  useEffect(() => {
+    if (!onExportToNotebook || !dayData) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        onExportToNotebook(dayData);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [dayData, onExportToNotebook]);
 
   const colorBadgeStyles: Record<string, string> = {
     vihreä: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
@@ -449,11 +472,29 @@ export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewPro
                 )}
               </div>
 
-              {dayData.period && (
-                <span className="text-xs text-[var(--muted)] font-medium">
-                  {dayData.period}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {onExportToNotebook && (
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)] border border-[var(--border-soft)] transition-colors cursor-pointer group shadow-2xs"
+                    title={strings.liturgicalExportToNotebookTooltip}
+                    aria-label={strings.liturgicalExportToNotebook}
+                  >
+                    <FileText size={13} className="text-[var(--accent)] group-hover:text-current" />
+                    <span>{strings.liturgicalExportToNotebook}</span>
+                    <span className="hidden sm:inline-block px-1.5 py-0.2 rounded text-[10px] bg-[var(--surface)] text-[var(--muted)] group-hover:bg-white/20 group-hover:text-white border border-[var(--border-soft)] font-mono">
+                      Alt+N
+                    </span>
+                  </button>
+                )}
+
+                {dayData.period && (
+                  <span className="text-xs text-[var(--muted)] font-medium">
+                    {dayData.period}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1">
