@@ -67,3 +67,5 @@ isla_ideointi.md
 # local demos and keys
 demos/
 agent-ssh-gh*
+
+.agents/skills/*
