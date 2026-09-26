@@ -6,6 +6,7 @@ import {
   bookName,
   bookNameLocalized,
   resolveBookId,
+  normalizeReference,
 } from './bookNames';
 
 describe('bookNames utilities', () => {
@@ -83,6 +84,12 @@ describe('bookNames utilities', () => {
       expect(resolveBookId('1 Moos')).toBe('GEN');
       expect(resolveBookId('1Moos')).toBe('GEN');
       expect(resolveBookId('Ensimmäinen Mooseksen kirja')).toBe('GEN');
+      expect(resolveBookId('Ap. t.')).toBe('ACT');
+      expect(resolveBookId('Ap. t')).toBe('ACT');
+      expect(resolveBookId('Apt')).toBe('ACT');
+      expect(resolveBookId('Hoos.')).toBe('HOS');
+      expect(resolveBookId('Laul. l.')).toBe('SNG');
+      expect(resolveBookId('Valit.')).toBe('LAM');
     });
 
     it('returns null for unknown book representations', () => {
@@ -90,4 +97,26 @@ describe('bookNames utilities', () => {
       expect(resolveBookId('')).toBeNull();
     });
   });
+
+  describe('normalizeReference', () => {
+    it('normalizes standard references', () => {
+      expect(normalizeReference('John 3:16')).toBe('JHN 3:16');
+      expect(normalizeReference('JHN 3')).toBe('JHN 3');
+      expect(normalizeReference('Joh. 3:16')).toBe('JHN 3:16');
+    });
+
+    it('normalizes liturgical references with en-dashes and Finnish abbreviations', () => {
+      expect(normalizeReference('Luuk. 7:11–16')).toBe('LUK 7:11-16');
+      expect(normalizeReference('Ap. t. 4:8–12')).toBe('ACT 4:8-12');
+      expect(normalizeReference('1. Moos. 17:1–8')).toBe('GEN 17:1-8');
+      expect(normalizeReference('Job 14:1–6, 13–15')).toBe('JOB 14:1-6, 13-15');
+      expect(normalizeReference('Joh. 11:21–29 (30–31) 32–45')).toBe('JHN 11:21-29 (30-31) 32-45');
+    });
+
+    it('handles empty input gracefully', () => {
+      expect(normalizeReference('')).toBe('');
+      expect(normalizeReference('   ')).toBe('');
+    });
+  });
 });
+

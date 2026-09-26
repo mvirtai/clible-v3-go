@@ -178,6 +178,105 @@ func TestParseReference_TableDriven(t *testing.T) {
 			},
 		},
 
+		// --- Liturgical calendar & complex church year formats ---
+		{
+			name:  "Liturgical en-dash verse range: Luuk. 7:11–16",
+			input: "Luuk. 7:11–16",
+			expectedRef: &ParsedReference{
+				BookName:   "LUK",
+				Chapter:    7,
+				VerseStart: 11,
+				VerseEnd:   16,
+				Scope:      ScopeVerse,
+			},
+		},
+		{
+			name:  "Liturgical book with embedded space and en-dash: Ap. t. 4:8–12",
+			input: "Ap. t. 4:8–12",
+			expectedRef: &ParsedReference{
+				BookName:   "ACT",
+				Chapter:    4,
+				VerseStart: 8,
+				VerseEnd:   12,
+				Scope:      ScopeVerse,
+			},
+		},
+		{
+			name:  "Discontinuous verse range with comma and en-dash: Job 14:1–6, 13–15",
+			input: "Job 14:1–6, 13–15",
+			expectedRef: &ParsedReference{
+				BookName:   "JOB",
+				Chapter:    14,
+				VerseStart: 1,
+				VerseEnd:   15,
+				Scope:      ScopeVerse,
+			},
+		},
+		{
+			name:  "Complex gospel reading with optional verses in parentheses: Joh. 11:21–29 (30–31) 32–45",
+			input: "Joh. 11:21–29 (30–31) 32–45",
+			expectedRef: &ParsedReference{
+				BookName:   "JHN",
+				Chapter:    11,
+				VerseStart: 21,
+				VerseEnd:   45,
+				Scope:      ScopeVerse,
+			},
+		},
+		{
+			name:  "Old Testament reading with space after colon and optional verses: 1. Moos. 3: 1–7 (8–19)",
+			input: "1. Moos. 3: 1–7 (8–19)",
+			expectedRef: &ParsedReference{
+				BookName:   "GEN",
+				Chapter:    3,
+				VerseStart: 1,
+				VerseEnd:   19,
+				Scope:      ScopeVerse,
+			},
+		},
+		{
+			name:  "Chapter scope with parenthesized commentary: 1. Kor. 13 (1. vuosikerta)",
+			input: "1. Kor. 13 (1. vuosikerta)",
+			expectedRef: &ParsedReference{
+				BookName: "1CO",
+				Chapter:  13,
+				Scope:    ScopeChapter,
+			},
+		},
+		{
+			name:  "Liturgical prophets: Hoos. 14:2–10",
+			input: "Hoos. 14:2–10",
+			expectedRef: &ParsedReference{
+				BookName:   "HOS",
+				Chapter:    14,
+				VerseStart: 2,
+				VerseEnd:   10,
+				Scope:      ScopeVerse,
+			},
+		},
+		{
+			name:  "Liturgical poetry: Laul. l. 2:10–13",
+			input: "Laul. l. 2:10–13",
+			expectedRef: &ParsedReference{
+				BookName:   "SNG",
+				Chapter:    2,
+				VerseStart: 10,
+				VerseEnd:   13,
+				Scope:      ScopeVerse,
+			},
+		},
+		{
+			name:  "Liturgical lamentations: Valit. 3:22–26",
+			input: "Valit. 3:22–26",
+			expectedRef: &ParsedReference{
+				BookName:   "LAM",
+				Chapter:    3,
+				VerseStart: 22,
+				VerseEnd:   26,
+				Scope:      ScopeVerse,
+			},
+		},
+
 		// --- Error cases ---
 		{
 			name:        "Empty input returns error",
@@ -267,6 +366,11 @@ func TestBuildAliasMap(t *testing.T) {
 		{"psa", "PSA"},
 		{"ps", "PSA"},
 		{"psalmit", "PSA"},
+		{"ap t", "ACT"},
+		{"apt", "ACT"},
+		{"hoos", "HOS"},
+		{"laul l", "SNG"},
+		{"valit", "LAM"},
 	}
 
 	for _, c := range checks {

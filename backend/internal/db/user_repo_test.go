@@ -206,7 +206,7 @@ func TestUserRepository(t *testing.T) {
 		}
 
 		// Update settings
-		err = repo.UpdateSettings(ctx, userID, "Grace Hopper", "quill", "fi", "fi", "dark", "fin-1992")
+		err = repo.UpdateSettings(ctx, userID, "Grace Hopper", "quill", "fi", "fi", "dark", "fin-1992", "tabs")
 		if err != nil {
 			t.Fatalf("failed to update user settings: %v", err)
 		}
@@ -234,9 +234,12 @@ func TestUserRepository(t *testing.T) {
 		if updated.DefaultTranslationID != "fin-1992" {
 			t.Errorf("expected default_translation_id 'fin-1992', got %s", updated.DefaultTranslationID)
 		}
+		if updated.LiturgicalViewMode != "tabs" {
+			t.Errorf("expected liturgical_view_mode 'tabs', got %s", updated.LiturgicalViewMode)
+		}
 
 		// Non-existent user should return error on update
-		err = repo.UpdateSettings(ctx, "non-existent-user-id", "Nobody", "initials", "en", "en", "light", "web")
+		err = repo.UpdateSettings(ctx, "non-existent-user-id", "Nobody", "initials", "en", "en", "light", "web", "drawers")
 		if err == nil {
 			t.Errorf("expected error when updating non-existent user, got nil")
 		}

@@ -140,6 +140,7 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 			AiLanguage:           "fi",
 			ThemePreference:      "dark",
 			DefaultTranslationID: "fin-1992",
+			LiturgicalViewMode:   "tabs",
 		}
 		body, _ := json.Marshal(payload)
 
@@ -174,6 +175,9 @@ func TestUserSettingsHandler_UpdateSettings(t *testing.T) {
 		}
 		if updated.DefaultTranslationID != "fin-1992" {
 			t.Errorf("expected translation 'fin-1992', got %s", updated.DefaultTranslationID)
+		}
+		if updated.LiturgicalViewMode != "tabs" {
+			t.Errorf("expected liturgical view mode 'tabs', got %s", updated.LiturgicalViewMode)
 		}
 	})
 

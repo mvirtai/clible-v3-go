@@ -45,6 +45,7 @@ describe('ViewModeTabs', () => {
 
     const text = container?.textContent || '';
     expect(text).toContain('Lukija');
+    expect(text).toContain('Kirkkovuosi');
     expect(text).toContain('Analytiikka');
     expect(text).toContain('Käännösvertailu');
     expect(text).toContain('Alkukieli');
@@ -80,7 +81,7 @@ describe('ViewModeTabs', () => {
     expect(desktopContainer).not.toBeNull();
 
     const desktopButtons = desktopContainer?.querySelectorAll('button');
-    expect(desktopButtons?.length).toBe(6);
+    expect(desktopButtons?.length).toBe(7);
     desktopButtons?.forEach((btn) => {
       expect(btn.className).toContain('min-h-[44px]');
       expect(btn.className).toContain('whitespace-nowrap');
@@ -115,13 +116,13 @@ describe('ViewModeTabs', () => {
     const menu = container?.querySelector('[role="menu"]');
     expect(menu).not.toBeNull();
     const menuItems = menu?.querySelectorAll('[role="menuitem"]');
-    expect(menuItems?.length).toBe(6);
+    expect(menuItems?.length).toBe(7);
 
     // Clicking a menu item selects it and closes the dropdown
     act(() => {
       (menuItems![1] as HTMLButtonElement).click();
     });
-    expect(onSelect).toHaveBeenCalledWith('search');
+    expect(onSelect).toHaveBeenCalledWith('liturgical');
     expect(container?.querySelector('[role="menu"]')).toBeNull();
   });
 });

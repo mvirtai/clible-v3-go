@@ -8,6 +8,7 @@ const VALID_MODES: readonly ViewMode[] = [
     'compare',
     'original',
     'notebooks',
+    'liturgical',
 ] as const;
 
 function isValidViewMode(value: string | null): value is ViewMode {

@@ -110,6 +110,9 @@ func RunMigrations(db *sql.DB) error {
 			if filename == "018_ai_language_preference.sql" {
 				content = "ALTER TABLE users ADD COLUMN ai_language VARCHAR(16) NOT NULL DEFAULT 'fi';"
 			}
+			if filename == "019_liturgical_view_mode.sql" {
+				content = "ALTER TABLE users ADD COLUMN liturgical_view_mode VARCHAR(16) NOT NULL DEFAULT 'drawers';"
+			}
 		}
 
 		// Execute migration logic wrapped in a database transaction block

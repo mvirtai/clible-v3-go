@@ -84,10 +84,13 @@ func (h *UserSettingsHandler) UpdateSettings(w http.ResponseWriter, r *http.Requ
 	if input.DefaultTranslationID == "" {
 		input.DefaultTranslationID = "web"
 	}
+	if input.LiturgicalViewMode != "tabs" {
+		input.LiturgicalViewMode = "drawers"
+	}
 
 	err := h.userRepo.UpdateSettings(
 		r.Context(), userID, input.DisplayName, input.AvatarID, input.PreferredLang,
-		input.AiLanguage, input.ThemePreference, input.DefaultTranslationID,
+		input.AiLanguage, input.ThemePreference, input.DefaultTranslationID, input.LiturgicalViewMode,
 	)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "failed to update settings")

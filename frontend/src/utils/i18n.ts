@@ -17,6 +17,45 @@ export interface Messages {
   tabCompare: string;
   tabOriginal: string;
   tabNotebooks: string;
+  tabLiturgical: string;
+  liturgicalToday: string;
+  liturgicalPrevDay: string;
+  liturgicalNextDay: string;
+  liturgicalColor: string;
+  liturgicalCandles: string;
+  liturgicalPsalm: string;
+  liturgicalWeekPsalm: string;
+  liturgicalOffices: string;
+  liturgicalMorning: string;
+  liturgicalNoon: string;
+  liturgicalEvening: string;
+  liturgicalEve: string;
+  liturgicalCompletorium: string;
+  liturgicalApocrypha: string;
+  liturgicalReadings: string;
+  liturgicalCycle: string;
+  liturgicalHymns: string;
+  liturgicalPrayers: string;
+  liturgicalOpenReader: string;
+  liturgicalPeriod: string;
+  liturgicalLoading: string;
+  liturgicalNotFound: string;
+  liturgicalCadenceMark: string;
+  liturgicalShowImages: string;
+  liturgicalHideImages: string;
+  liturgicalExpandAll: string;
+  liturgicalCollapseAll: string;
+  liturgicalViewModeDrawers: string;
+  liturgicalViewModeTabs: string;
+  liturgicalOldTestament: string;
+  liturgicalEpistle: string;
+  liturgicalGospel: string;
+  liturgicalHideCadence: string;
+  liturgicalShowCadence: string;
+  liturgicalCopyText: string;
+  liturgicalCopied: string;
+  liturgicalPsalmMelodies: string;
+  liturgicalPsalmMelodiesInfo: string;
   appBootLoading: string;
   errFailedLoadTranslations: string;
   errSelectTranslationFirst: string;
@@ -414,6 +453,10 @@ export interface Messages {
   themeSystem: string;
   themeLight: string;
   themeDark: string;
+  liturgicalViewModeSettingLabel: string;
+  liturgicalViewModeSettingDesc: string;
+  liturgicalViewModeDrawersOption: string;
+  liturgicalViewModeTabsOption: string;
   securitySectionTitle: string;
   securitySectionDesc: string;
   currentPasswordLabel: string;
@@ -456,6 +499,45 @@ export const strings: Record<UILanguage, Messages> = {
         tabCompare: 'Compare',
         tabOriginal: 'Original',
         tabNotebooks: 'Notebooks',
+        tabLiturgical: 'Church Year',
+        liturgicalToday: 'Today',
+        liturgicalPrevDay: 'Previous Day',
+        liturgicalNextDay: 'Next Day',
+        liturgicalColor: 'Liturgical Color',
+        liturgicalCandles: 'Altar Candles',
+        liturgicalPsalm: 'Psalm of the Day',
+        liturgicalWeekPsalm: 'Psalm of the Week',
+        liturgicalOffices: 'Daily Prayer Offices',
+        liturgicalMorning: 'Morning Prayer (Lauds)',
+        liturgicalNoon: 'Midday Prayer (Ad Sextam)',
+        liturgicalEvening: 'Evening Prayer (Vespers)',
+        liturgicalEve: 'Eve Prayer (Vigil)',
+        liturgicalCompletorium: 'Night Prayer (Compline)',
+        liturgicalApocrypha: 'Apocrypha',
+        liturgicalReadings: 'Lectionary Readings',
+        liturgicalCycle: 'Cycle',
+        liturgicalHymns: 'Hymn Recommendations',
+        liturgicalPrayers: 'Collect Prayers',
+        liturgicalOpenReader: 'Read Scripture',
+        liturgicalPeriod: 'Season',
+        liturgicalLoading: 'Loading church year calendar...',
+        liturgicalNotFound: 'No liturgical information found for this date.',
+        liturgicalCadenceMark: 'Cadence mark (caesura / pause)',
+        liturgicalShowImages: 'Show festive altar images',
+        liturgicalHideImages: 'Hide images',
+        liturgicalExpandAll: 'Expand all drawers',
+        liturgicalCollapseAll: 'Compact view',
+        liturgicalViewModeDrawers: 'Drawers',
+        liturgicalViewModeTabs: 'Tabs',
+        liturgicalOldTestament: 'Old Testament',
+        liturgicalEpistle: 'Epistle',
+        liturgicalGospel: 'Gospel',
+        liturgicalHideCadence: 'Hide cadence marks',
+        liturgicalShowCadence: 'Show cadence marks',
+        liturgicalCopyText: 'Copy text',
+        liturgicalCopied: 'Copied!',
+        liturgicalPsalmMelodies: 'Psalm Tones (1–10)',
+        liturgicalPsalmMelodiesInfo: 'Underlines indicate pitch changes for psalm tone cadences. The asterisk (*) marks the pause between hemistichs.',
         appBootLoading: 'Loading...',
             noTranslations: 'No translations',
             translationPlaceholder: 'Select translation...',
@@ -853,6 +935,10 @@ export const strings: Record<UILanguage, Messages> = {
     themeSystem: 'System',
     themeLight: 'Light',
     themeDark: 'Dark',
+    liturgicalViewModeSettingLabel: 'Church Year Default View',
+    liturgicalViewModeSettingDesc: 'Choose whether church year sections are shown as expandable drawers or tabs by default.',
+    liturgicalViewModeDrawersOption: 'Expandable Drawers (All Sections)',
+    liturgicalViewModeTabsOption: 'Tabs (One Section at a Time)',
     securitySectionTitle: 'Security & Password',
     securitySectionDesc: 'Change your account password.',
     currentPasswordLabel: 'Current Password',
@@ -888,6 +974,45 @@ export const strings: Record<UILanguage, Messages> = {
     tabCompare: 'Käännösvertailu',
     tabOriginal: 'Alkukieli',
     tabNotebooks: 'Muistikirjat',
+    tabLiturgical: 'Kirkkovuosi',
+    liturgicalToday: 'Tänään',
+    liturgicalPrevDay: 'Edellinen päivä',
+    liturgicalNextDay: 'Seuraava päivä',
+    liturgicalColor: 'Liturginen väri',
+    liturgicalCandles: 'Alttarikynttilät',
+    liturgicalPsalm: 'Päivän psalmi',
+    liturgicalWeekPsalm: 'Viikon psalmi',
+    liturgicalOffices: 'Hetkipalvelukset',
+    liturgicalMorning: 'Aamurukous (Laudes)',
+    liturgicalNoon: 'Päivärukous (Ad Sextam)',
+    liturgicalEvening: 'Iltarukous (Vesper)',
+    liturgicalEve: 'Aattorukous (Vigilia)',
+    liturgicalCompletorium: 'Yörukous (Completorium)',
+    liturgicalApocrypha: 'Apokryfikirjojen tekstit',
+    liturgicalReadings: 'Päivän lukukappaleet',
+    liturgicalCycle: 'Vuosikerta',
+    liturgicalHymns: 'Virsisuositukset',
+    liturgicalPrayers: 'Päivän rukoukset',
+    liturgicalOpenReader: 'Lue Raamatusta',
+    liturgicalPeriod: 'Kirkkovuoden jakso',
+    liturgicalLoading: 'Ladataan kirkkovuosikalenteria...',
+    liturgicalNotFound: 'Tälle päivälle ei löytynyt kirkkovuositietoja.',
+    liturgicalCadenceMark: 'Kadenssimerkki (puolisäe / tauko)',
+    liturgicalShowImages: 'Näytä alttari- ja päivän kuvat',
+    liturgicalHideImages: 'Piilota kuvat',
+    liturgicalExpandAll: 'Avaa kaikki laatikot',
+    liturgicalCollapseAll: 'Tiivistä laatikot',
+    liturgicalViewModeDrawers: 'Laatikot',
+    liturgicalViewModeTabs: 'Välilehdet',
+    liturgicalOldTestament: 'Vanha testamentti',
+    liturgicalEpistle: 'Epistola',
+    liturgicalGospel: 'Evankeliumi',
+    liturgicalHideCadence: 'Piilota kadenssimerkit',
+    liturgicalShowCadence: 'Näytä kadenssimerkit',
+    liturgicalCopyText: 'Kopioi teksti',
+    liturgicalCopied: 'Kopioitu leikepöydälle!',
+    liturgicalPsalmMelodies: 'Tietoa psalmisävelmistä ja kadensseista',
+    liturgicalPsalmMelodiesInfo: 'Alleviivaukset osoittavat tavut, joilla sävelaskel vaihtuu psalmisävelmän (1–10 tai kirkkosävellajien I–VIII) kadenssille. Tähti (*) merkitsee puolisäkeen hengähdystaukoa (mediatio).',
     appBootLoading: 'Ladataan...',
     notebookTitle: 'Muistikirjat',
     createNotebook: 'Luo muistikirja',
@@ -1289,6 +1414,10 @@ export const strings: Record<UILanguage, Messages> = {
     themeSystem: 'Järjestelmä',
     themeLight: 'Vaalea',
     themeDark: 'Tumma',
+    liturgicalViewModeSettingLabel: 'Kirkkovuosinäkymän oletustila',
+    liturgicalViewModeSettingDesc: 'Valitse näytetäänkö kirkkovuoden osiot oletuksena avattavina laatikkoina vai välilehtinä.',
+    liturgicalViewModeDrawersOption: 'Avattavat laatikot (Kaikki osiot)',
+    liturgicalViewModeTabsOption: 'Välilehdet (Yksi osio kerrallaan)',
     securitySectionTitle: 'Turvallisuus ja salasana',
     securitySectionDesc: 'Vaihda tilisi salasana.',
     currentPasswordLabel: 'Nykyinen salasana',

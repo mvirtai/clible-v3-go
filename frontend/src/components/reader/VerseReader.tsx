@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { apiService } from '../../services/api';
 import type { BibleResponse, Verse } from '../../types/bible';
 import { Search, Loader2, ArrowLeft, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
-import { resolveBookId, parseReferenceForDisplay } from '../../utils/bookNames';
+import { parseReferenceForDisplay, normalizeReference } from '../../utils/bookNames';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
@@ -145,10 +145,7 @@ export function VerseReader({
     }
     const trimmed = activeReference.trim();
     if (trimmed && translation) {
-      const normalized = trimmed.replace(
-        /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
-        (match) => resolveBookId(match) ?? match,
-      );
+      const normalized = normalizeReference(trimmed);
       apiService.getVerses(normalized, translation)
         .then(setData)
         .catch(() => setError(strings.errSearchFailed));
@@ -174,11 +171,8 @@ export function VerseReader({
     const trimmed = ref.trim();
     if (!trimmed || !translation) return;
 
-    // Normalise book name → canonical DB id (e.g. "Joh." → "JHN")
-    const normalized = trimmed.replace(
-      /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
-      (match) => resolveBookId(match) ?? match,
-    );
+    // Normalise book name → canonical DB id (e.g. "Joh." → "JHN") and dashes
+    const normalized = normalizeReference(trimmed);
 
     setLoading(true);
     setError(null);

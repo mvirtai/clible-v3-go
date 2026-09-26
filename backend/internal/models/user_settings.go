@@ -12,6 +12,7 @@ type UserSettings struct {
 	AiLanguage           string    `json:"aiLanguage"`
 	ThemePreference      string    `json:"themePreference"`
 	DefaultTranslationID string    `json:"defaultTranslationId"`
+	LiturgicalViewMode   string    `json:"liturgicalViewMode"`
 	SubscriptionTier     string    `json:"subscriptionTier"`
 	SubscriptionStatus   string    `json:"subscriptionStatus"`
 	IsVerified           bool      `json:"isVerified"`
@@ -27,6 +28,7 @@ type UpdateUserSettingsInput struct {
 	AiLanguage           string `json:"aiLanguage"`
 	ThemePreference      string `json:"themePreference"`
 	DefaultTranslationID string `json:"defaultTranslationId"`
+	LiturgicalViewMode   string `json:"liturgicalViewMode"`
 }
 
 // ChangePasswordInput defines the payload for updating the user account password.

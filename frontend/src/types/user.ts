@@ -11,6 +11,7 @@ export interface UserSettings {
   aiLanguage: 'fi' | 'en' | 'auto';
   themePreference: 'system' | 'light' | 'dark';
   defaultTranslationId: string;
+  liturgicalViewMode?: 'drawers' | 'tabs';
   subscriptionTier: 'free' | 'supporter' | 'pro';
   subscriptionStatus: 'active' | 'cancelled' | 'canceled' | 'past_due' | 'incomplete';
   isVerified: boolean;
@@ -28,4 +29,5 @@ export interface UpdateUserSettingsPayload {
   aiLanguage?: string;
   themePreference: string;
   defaultTranslationId: string;
+  liturgicalViewMode?: 'drawers' | 'tabs';
 }

@@ -167,4 +167,32 @@ describe('UserSettingsView', () => {
     const optionValues = Array.from(aiLangSelect.options).map((o) => o.value);
     expect(optionValues).toEqual(['fi', 'en', 'auto']);
   });
+
+  it('renders liturgical view mode select with drawers and tabs options', async () => {
+    vi.spyOn(apiService, 'getMe').mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+    });
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <MemoryRouter>
+          <LanguageProvider>
+            <AuthProvider>
+              <UserSettingsView />
+            </AuthProvider>
+          </LanguageProvider>
+        </MemoryRouter>
+      );
+    });
+
+    const liturgicalModeSelect = container?.querySelector('select#liturgical-mode-select') as HTMLSelectElement;
+    expect(liturgicalModeSelect).not.toBeNull();
+    expect(liturgicalModeSelect.name).toBe('liturgicalViewMode');
+    expect(liturgicalModeSelect.options.length).toBe(2);
+    const optionValues = Array.from(liturgicalModeSelect.options).map((o) => o.value);
+    expect(optionValues).toEqual(['drawers', 'tabs']);
+  });
 });
+

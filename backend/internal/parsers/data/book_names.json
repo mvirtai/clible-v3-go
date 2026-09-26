@@ -210,7 +210,11 @@
     "aliases_fi": [
       "Laulujen laulu",
       "Veisu korkeasta",
-      "kor veis"
+      "kor veis",
+      "Laul. l.",
+      "Laul.l.",
+      "Laul.",
+      "Laul"
     ],
     "abbr_fi": "kor veis"
   },
@@ -240,7 +244,9 @@
     "aliases_fi": [
       "Valitusvirsien kirja",
       "val",
-      "val."
+      "val.",
+      "Valit.",
+      "Valit"
     ],
     "abbr_fi": "val"
   },
@@ -270,7 +276,9 @@
     "aliases_fi": [
       "Hoosean kirja",
       "hosea",
-      "hosea."
+      "hosea.",
+      "Hoos.",
+      "Hoos"
     ],
     "abbr_fi": "hosea"
   },
@@ -449,7 +457,11 @@
     "aliases_fi": [
       "Teot",
       "teot.",
-      "Apost."
+      "Apost.",
+      "Ap. t.",
+      "Ap.t.",
+      "Apt",
+      "Ap. t"
     ],
     "abbr_fi": "ap"
   },

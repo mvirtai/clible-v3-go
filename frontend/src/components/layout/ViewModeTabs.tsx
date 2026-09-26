@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, Search, Activity, GitCompare, Languages, FileText, ChevronDown } from 'lucide-react';
+import { BookOpen, Search, Activity, GitCompare, Languages, FileText, ChevronDown, Calendar } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import type { ViewMode } from './AppHeader';
 
@@ -17,12 +17,13 @@ export interface ViewModeTabsProps {
 
 interface ViewOption {
   id: ViewMode;
-  labelKey: 'tabReader' | 'tabSearch' | 'tabAnalytics' | 'tabCompare' | 'tabOriginal' | 'tabNotebooks';
+  labelKey: 'tabReader' | 'tabLiturgical' | 'tabSearch' | 'tabAnalytics' | 'tabCompare' | 'tabOriginal' | 'tabNotebooks';
   icon: typeof BookOpen;
 }
 
 const VIEW_OPTIONS: ViewOption[] = [
   { id: 'reader', labelKey: 'tabReader', icon: BookOpen },
+  { id: 'liturgical', labelKey: 'tabLiturgical', icon: Calendar },
   { id: 'search', labelKey: 'tabSearch', icon: Search },
   { id: 'analytics', labelKey: 'tabAnalytics', icon: Activity },
   { id: 'compare', labelKey: 'tabCompare', icon: GitCompare },
