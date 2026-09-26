@@ -156,3 +156,65 @@ func TestLiturgicalService_ActualFile(t *testing.T) {
 		t.Errorf("expected Christmas eve image to be present")
 	}
 }
+
+func TestLiturgicalService_CompletoriumAndEveShift(t *testing.T) {
+	sampleJSON := `[
+		{
+			"date": "3.1.2026",
+			"iso_date": "2026-01-03",
+			"day_of_week": "lauantai",
+			"day_title": "Lauantai 3.1.2026",
+			"title": "Lauantai",
+			"prayer_offices": {
+				"morning": [{"verse": "Ps. 102", "text": "Herra katsoo"}]
+			}
+		},
+		{
+			"date": "4.1.2026",
+			"iso_date": "2026-01-04",
+			"day_of_week": "sunnuntai",
+			"day_title": "Sunnuntai 4.1.2026",
+			"title": "2. sunnuntai joulusta",
+			"prayer_offices": {
+				"morning": [{"verse": "Ps. 118", "text": "Avatkaa portit"}],
+				"eve": [{"verse": "Ps. 122", "text": "Ilo valtasi minut"}]
+			}
+		}
+	]`
+
+	svc, err := NewLiturgicalServiceFromBytes([]byte(sampleJSON))
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
+
+	sat, ok := svc.GetByDate("2026-01-03")
+	if !ok {
+		t.Fatalf("Saturday 2026-01-03 not found")
+	}
+
+	sun, ok := svc.GetByDate("2026-01-04")
+	if !ok {
+		t.Fatalf("Sunday 2026-01-04 not found")
+	}
+
+	// 1. Eve shift verification: Saturday must have received Sunday's Eve office
+	if len(sat.PrayerOffices.Eve) != 1 || sat.PrayerOffices.Eve[0].Verse != "Ps. 122" {
+		t.Errorf("expected Saturday to receive eve office Ps. 122, got %+v", sat.PrayerOffices.Eve)
+	}
+
+	// Sunday's Eve office must have been cleared (it belongs to the eve on Saturday)
+	if len(sun.PrayerOffices.Eve) != 0 {
+		t.Errorf("expected Sunday's eve office to be cleared, got %+v", sun.PrayerOffices.Eve)
+	}
+
+	// 2. Completorium verification: both days should have default Completorium items
+	if len(sat.PrayerOffices.Completorium) != 4 {
+		t.Errorf("expected 4 completorium items for Saturday, got %d", len(sat.PrayerOffices.Completorium))
+	}
+	if len(sun.PrayerOffices.Completorium) != 4 {
+		t.Errorf("expected 4 completorium items for Sunday, got %d", len(sun.PrayerOffices.Completorium))
+	}
+	if sat.PrayerOffices.Completorium[3].Verse != "Luuk. 2:29–32" {
+		t.Errorf("expected Nunc Dimittis (Luuk. 2:29–32), got %q", sat.PrayerOffices.Completorium[3].Verse)
+	}
+}

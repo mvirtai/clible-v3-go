@@ -58,7 +58,65 @@ func NewLiturgicalServiceFromBytes(data []byte) (*LiturgicalService, error) {
 		}
 	}
 
+	svc.normalizePrayerOffices()
+
 	return svc, nil
+}
+
+// defaultCompletorium contains standard Kirkkokäsikirja night prayer (Completorium) texts.
+var defaultCompletorium = []models.CleanTextItem{
+	{
+		Verse: "Ps. 4:2–9",
+		Text:  "Vastaa minulle, kun huudan, * sinä minun vanhurskas Jumalani.\nAhdingossa sinä avasit minulle tien. * Ole minulle armollinen ja kuule rukoukseni.\nKuinka kauan te ihmiset häpäisette minun kunniaani, * miksi rakastatte turhuutta ja etsitte valhetta?\nTietäkää: Herra tekee ihmeitä hurskaalleen. * Hän kuulee minua, kun huudan häntä avukseni.\nVaviskaa ja lakatkaa tekemästä syntiä! * Puhukaa sydämessänne vuoteellanne ja olkaa vaiti.\nUhratkaa oikeita uhreja * ja luottakaa Herraan.\nMonet sanovat: »Kuka antaisi meille onnea?» * Herra, käännä meihin kasvojesi valkeus!\nSinä olet antanut sydämeeni suuremman ilon * kuin heillä on runsaasta viljasta ja viinistä.\nRauhassa minä käyn levolle ja nukahdan, * sillä sinä, Herra, yksin annat minun asua turvassa.\nKunnia Isälle ja Pojalle * ja Pyhälle Hengelle,\nniin kuin oli alussa, nyt on ja aina, * iankaikkisesta iankaikkiseen. Aamen.",
+	},
+	{
+		Verse: "Ps. 91:1–16",
+		Text:  "Se, joka asuu Korkeimman suojassa * ja yöpyy Kaikkivaltiaan varjossa,\nsanoo näin: * »Sinä, Herra, olet minun turvani ja linnani, Jumalani, johon minä luotan.»\nHän pelastaa sinut linnustajan ansasta * ja tuhoavalta rutolta.\nHän suojaa sinua siivillään, * ja sinä löydät turvan hänen sulkiensa alla. Hänen uskollisuutensa on kilpi ja suojus.\nEt pelkää yön kauhuja * etkä päivällä lentävää nuolta,\net ruttoa, joka liikkuu pimeässä, * etkä ruttotautia, joka riehuu keskipäivällä.\nVaikka viereltäsi kaatuisi tuhat ja oikealta puoleltasi kymmenentuhatta, * sinuun se ei koske.\nOmin silmin sinä saat katsella * ja nähdä jumalattomien palkan.\nSinun turvanasi on Herra, * olet ottanut Korkeimman asuinsijaksesi.\nOnnettomuus ei sinua kohtaa, * eikä vitsaus lähesty sinun majaasi.\nHän antaa enkeleilleen käskyn varjella sinua kaikilla teilläsi. * He kantavat sinua käsillään, ettet loukkaisi jalkaasi kiveen.\nSinä astut leijonan ja kyyn päälle, * tallaat maahan nuoren leijonan ja lohikäärmeen.\n»Koska hän riippuu minussa kiinni, minä pelastan hänet. * Minä suojelen häntä, koska hän tuntee minun nimeni.\nHän huutaa minua avukseen, ja minä vastaan hänelle. * Ahdingossa minä olen hänen kanssaan, minä vapautan hänet ja saatan hänet kunniaan.\nMinä tyydytän hänet pitkällä iällä * ja annan hänen nähdä minun pelastukseni.»\nKunnia Isälle ja Pojalle * ja Pyhälle Hengelle,\nniin kuin oli alussa, nyt on ja aina, * iankaikkisesta iankaikkiseen. Aamen.",
+	},
+	{
+		Verse: "Ps. 134",
+		Text:  "Tulkaa, kiittäkää Herraa, * kaikki te Herran palvelijat,\nte jotka toimitatte palvelusta Herran temppelissä * öiseen aikaan!\nKohottakaa kätenne pyhäkköä kohti * ja kiittäkää Herraa!\nSiunatkoon sinua Siionista Herra, * hän, joka on tehnyt taivaan ja maan.\nKunnia Isälle ja Pojalle * ja Pyhälle Hengelle,\nniin kuin oli alussa, nyt on ja aina, * iankaikkisesta iankaikkiseen. Aamen.",
+	},
+	{
+		Verse: "Luuk. 2:29–32",
+		Text:  "Herra, nyt sinä sallit palvelijasi lähteä rauhassa, * sanasi mukaan.\nMinun silmäni ovat nähneet sinun pelastuksesi, * jonka olet valmistanut kaikkien kansojen nähdä:\nvalon, joka koittaa pakanakansoille, * kirkkauden, joka loistaa kansallesi Israelille.\nKunnia Isälle ja Pojalle * ja Pyhälle Hengelle,\nniin kuin oli alussa, nyt on ja aina, * iankaikkisesta iankaikkiseen. Aamen.",
+	},
+}
+
+// normalizePrayerOffices ensures Completorium is present and places eve offices on the actual eve (D-1).
+func (s *LiturgicalService) normalizePrayerOffices() {
+	// 1. Populate default Completorium if not already present
+	for _, d := range s.allDays {
+		if len(d.PrayerOffices.Completorium) == 0 {
+			d.PrayerOffices.Completorium = defaultCompletorium
+		}
+	}
+
+	// 2. Shift eve prayer offices to the preceding day (actual eve D-1)
+	type eveShift struct {
+		targetISO string
+		items     []models.CleanTextItem
+	}
+	var shifts []eveShift
+	for _, d := range s.allDays {
+		if len(d.PrayerOffices.Eve) > 0 && d.ISODate != "" {
+			t, err := time.Parse("2006-01-02", d.ISODate)
+			if err == nil {
+				prevISO := t.AddDate(0, 0, -1).Format("2006-01-02")
+				shifts = append(shifts, eveShift{
+					targetISO: prevISO,
+					items:     d.PrayerOffices.Eve,
+				})
+				d.PrayerOffices.Eve = nil
+			}
+		}
+	}
+
+	for _, shift := range shifts {
+		if prevDay, ok := s.daysByISO[shift.targetISO]; ok {
+			prevDay.PrayerOffices.Eve = shift.items
+		}
+	}
 }
 
 // GetToday returns the liturgical day for the current local time.

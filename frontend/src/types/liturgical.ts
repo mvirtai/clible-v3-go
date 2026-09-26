@@ -8,6 +8,7 @@ export interface CleanPrayerOffices {
   noon?: CleanTextItem[];
   evening?: CleanTextItem[];
   eve?: CleanTextItem[];
+  completorium?: CleanTextItem[];
   apocrypha?: CleanTextItem[];
 }
 

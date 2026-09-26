@@ -234,11 +234,12 @@ type CleanTextItem struct {
 
 // CleanPrayerOffices holds the standard Finnish Lutheran daily prayer offices (hetkipalvelukset).
 type CleanPrayerOffices struct {
-	Morning   []CleanTextItem `json:"morning,omitempty"`   // Aamurukous (Laudes)
-	Noon      []CleanTextItem `json:"noon,omitempty"`      // Päivärukous (Seksti)
-	Evening   []CleanTextItem `json:"evening,omitempty"`   // Iltarukous (Vesper)
-	Eve       []CleanTextItem `json:"eve,omitempty"`       // Aattorukous (Vigilia)
-	Apocrypha []CleanTextItem `json:"apocrypha,omitempty"` // Apokryfikirjojen tekstit
+	Morning      []CleanTextItem `json:"morning,omitempty"`      // Aamurukous (Laudes)
+	Noon         []CleanTextItem `json:"noon,omitempty"`         // Päivärukous (Ad Sextam)
+	Evening      []CleanTextItem `json:"evening,omitempty"`      // Iltarukous (Vesper)
+	Eve          []CleanTextItem `json:"eve,omitempty"`          // Aattorukous (Vigilia)
+	Completorium []CleanTextItem `json:"completorium,omitempty"` // Yörukous (Completorium)
+	Apocrypha    []CleanTextItem `json:"apocrypha,omitempty"`    // Apokryfikirjojen tekstit
 }
 
 // CleanHymnGroup holds a named collection of hymns.

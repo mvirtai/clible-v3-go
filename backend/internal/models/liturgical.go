@@ -32,11 +32,12 @@ type CleanTextItem struct {
 
 // CleanPrayerOffices holds daily prayer offices (hetkipalvelukset).
 type CleanPrayerOffices struct {
-	Morning   []CleanTextItem `json:"morning,omitempty"`
-	Noon      []CleanTextItem `json:"noon,omitempty"`
-	Evening   []CleanTextItem `json:"evening,omitempty"`
-	Eve       []CleanTextItem `json:"eve,omitempty"`
-	Apocrypha []CleanTextItem `json:"apocrypha,omitempty"`
+	Morning      []CleanTextItem `json:"morning,omitempty"`
+	Noon         []CleanTextItem `json:"noon,omitempty"`
+	Evening      []CleanTextItem `json:"evening,omitempty"`
+	Eve          []CleanTextItem `json:"eve,omitempty"`
+	Completorium []CleanTextItem `json:"completorium,omitempty"`
+	Apocrypha    []CleanTextItem `json:"apocrypha,omitempty"`
 }
 
 // CleanHymnGroup contains a category of hymns.
