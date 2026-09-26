@@ -5,6 +5,7 @@
 For Christian scripture reading, spiritual devotion, pastoral theology, and theological research, the rhythm of the Church Year (*kirkkovuosi*) and the daily prayer offices (*hetkipalvelukset*) form a foundational daily cadence. Historically, believers, pastors, cantors, and scholars have had to consult external liturgical manuals, lectionaries, or multiple disconnected websites to determine the liturgical day, its liturgical color, altar candle tradition, lectionary scripture readings across the 3-year cycle, day psalms, and prayer texts for morning, noon, evening, and night.
 
 This architectural addition introduces an integrated, comprehensive liturgical calendar and prayer office subsystem directly within Clible v3:
+
 1. **Harvester CLI Pipeline (`backend/cmd/harvester`):** An automated, resilient Go-based harvester designed for respectful, non-disruptive ingestion of public ecclesiastical texts from `kirkkovuosikalenteri.fi` / `kirkkovuosikirja.fi`. It extracts complete daily prayer offices, scripture lections, poetic psalm stanzas, and hymn recommendations.
 2. **High-Performance In-Memory Backend Service (`backend/internal/services/liturgical_service.go`):** An $O(1)$ memory-indexed caching and lookup engine supporting instant lookups by ISO date (`YYYY-MM-DD`) and localized Finnish date (`D.M.YYYY`), serving endpoints for today's devotions, specific dates, and monthly calendars.
 3. **Liturgical Tradition Accuracy & Completorium:** Renaming the midday office to the official Finnish *Kirkkokäsikirja* rubric **Päivärukous (Ad Sextam)**, adding the missing night prayer **Completorium** with traditional fixed psalms and Simeon's song (*Nunc Dimittis*), and automatically shifting eve prayer offices (*vigilia / eve*) to the actual preceding eve evening ($D-1$) where they are liturgically celebrated.
@@ -101,48 +102,48 @@ flowchart TD
 
 ### 1. Resilient Go Harvester Engine (`backend/cmd/harvester/main.go`)
 
-- **Resilience Against PHP/WordPress `false` Serialization:**
+* **Resilience Against PHP/WordPress `false` Serialization:**
   WordPress REST API endpoints and ACF repeater fields serialize empty lists as boolean `false` instead of empty arrays (`[]`) when no records exist for a specific weekday. Custom unmarshal types (`WPLectionaryItems`, `WPHymnGroups`, `WPPrayerOfficesRaw`) implement tailored `UnmarshalJSON` methods that cleanly decode boolean `false` into `nil` slices without crashing the parser.
-- **HTML Poetic Cadence Formatting:**
+* **HTML Poetic Cadence Formatting:**
   Liturgical psalms and canticles feature liturgical asterisk cadence markers (`*`) and stanza line breaks. The parser transforms `<br />` and paragraph boundaries into structured newlines while stripping excess HTML tags and decoding HTML entities.
-- **Liturgical Color Resolution with Altar Image Heuristics:**
+* **Liturgical Color Resolution with Altar Image Heuristics:**
   Liturgical colors are fetched from `/wp-json/liturgicalColors/v1/{year}/{month}`. When the daily endpoint returns `null`, the harvester inspects the day's liturgical altar image filename/URL (e.g. `vihrea-kaksi-kynttilaa.jpg`) to determine the liturgical color accurately.
-- **Configurable CLI Execution:**
+* **Configurable CLI Execution:**
   Supports `-year 2026`, `-start 2026-01-01`, `-end 2026-12-31`, `-sample`, `-delay 150ms`, and `-out <path>`.
 
 ### 2. High-Performance In-Memory Backend Service & Liturgical Refinements
 
-- **$O(1)$ Dual-Key In-Memory Map:**
+* **$O(1)$ Dual-Key In-Memory Map:**
   `LiturgicalService` parses `kirkkovuosi_2026.json` once at application startup and builds dual index lookup tables: `daysByISO` (`2026-09-20`) and `daysByFI` (`20.9.2026`), plus month-based slices.
-- **Ad Sextam Rubric Naming:**
+* **Ad Sextam Rubric Naming:**
   Renamed the midday prayer office to its authentic liturgical name **Päivärukous (Ad Sextam)** in both backend models and UI localization (`i18n.ts`).
-- **Completorium (Night Prayer) Integration:**
+* **Completorium (Night Prayer) Integration:**
   Integrated the concluding prayer office of the day, missing from the upstream calendar API. Embedded official Church of Finland *Kirkkokäsikirja* texts with cadence markers:
-  - **Ps. 4:2–9** (Evening prayer of peace and trust)
-  - **Ps. 91:1–16** (Dwelling in the shelter of the Most High)
-  - **Ps. 134** (Nightly praise in the house of the Lord)
-  - **Luuk. 2:29–32** (Simeon's Canticle / *Nunc Dimittis*)
-- **Eve Office Preceding Day Placement:**
+  * **Ps. 4:2–9** (Evening prayer of peace and trust)
+  * **Ps. 91:1–16** (Dwelling in the shelter of the Most High)
+  * **Ps. 134** (Nightly praise in the house of the Lord)
+  * **Luuk. 2:29–32** (Simeon's Canticle / *Nunc Dimittis*)
+* **Eve Office Preceding Day Placement:**
   In church tradition, feast days begin on their eve at 18:00. Upstream data bundled `eve` with the Sunday/feast day itself. `LiturgicalService.normalizePrayerOffices()` automatically relocates `eve` offices to the preceding day ($D-1$, Saturday) and clears them from Sunday, ensuring prayers appear exactly when they are celebrated.
 
 ### 3. Scripture Reference Parser Normalization (`reference_parser.go`)
 
-- **Unicode Dash Normalization:**
+* **Unicode Dash Normalization:**
   Translates en-dashes (`–`, U+2013), em-dashes (`—`, U+2014), and minus signs (`−`, U+2212) into standard hyphens (`-`).
-- **Multi-Segment Verse Ranges:**
+* **Multi-Segment Verse Ranges:**
   Normalizes complex liturgical readings (e.g. `Job 14:1–6, 13–15` $\rightarrow$ `Job 14:1-15`) and parenthesized optional readings (e.g. `Joh. 11:21–29 (30–31) 32–45` $\rightarrow$ `Joh. 11:21-45`).
-- **Book Alias Synchronization:**
+* **Book Alias Synchronization:**
   Added missing Finnish abbreviations to `book_names.json` in both backend and frontend: `ACT` (`Ap. t.`, `Ap.t.`), `HOS` (`Hoos.`, `Hoos`), `SNG` (`Laul. l.`, `Laul.l.`, `Laul`), and `LAM` (`Valit.`, `Valit`).
-- **Clean Reader Navigation:**
+* **Clean Reader Navigation:**
   Clicking any lectionary reading in `LiturgicalView` now routes cleanly to `VerseReader` without 400 Bad Request errors.
 
 ### 4. User Settings & Default View Mode Preference (`019_liturgical_view_mode.sql`)
 
-- **Database Migration 019:**
+* **Database Migration 019:**
   Added `liturgical_view_mode VARCHAR(16) NOT NULL DEFAULT 'drawers'` to `users` table with dual Neon PostgreSQL and SQLite test compatibility.
-- **Profile Preference Control:**
+* **Profile Preference Control:**
   Added a selection control in `UserSettingsView` allowing authenticated users to select whether the church year calendar opens by default as **Avattavat laatikot (Drawers)** or **Välilehdet (Tabs)**.
-- **Instant `localStorage` Synchronization:**
+* **Instant `localStorage` Synchronization:**
   Syncs with `localStorage.getItem('clible_liturgical_view_mode')`, ensuring preferences take effect immediately across tabs and remain active even in guest mode.
 
 ---
@@ -174,7 +175,7 @@ flowchart TD
 ## Files Changed
 
 | File | Change Summary |
-|------|----------------|
+| ------ | ---------------- |
 | `.gitignore` | Ignored local agent skill directories (`.agents/skills/*`) |
 | `VERSION` | Bumped version to `3.9.0` |
 | `backend/cmd/harvester/main.go` | Go harvester CLI fetching, parsing, and cleaning 365 days of liturgical data |
