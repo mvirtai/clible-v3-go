@@ -162,4 +162,26 @@ const ALIAS_INDEX: Map<string, string> = buildAliasIndex();
 export const resolveBookId = (raw: string): string | null => {
   const key = raw.toLowerCase().replace(/\./g, '').replace(/\s+/g, '').trim();
   return ALIAS_INDEX.get(key) ?? null;
+};
+
+/**
+ * Normalizes a user-entered or liturgical Bible reference:
+ * - Replaces full/abbreviated book name with canonical 3-letter book ID (e.g. "Luuk." -> "LUK", "Ap. t." -> "ACT")
+ * - Converts Unicode dashes (–, —, −) to standard hyphens (-)
+ * - Cleans up spacing
+ */
+export function normalizeReference(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const bookRe = /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)\.?\s*/;
+  const match = trimmed.match(bookRe);
+  let normalized = trimmed;
+  if (match) {
+    const bookId = resolveBookId(match[1]);
+    if (bookId) {
+      const rest = trimmed.slice(match[0].length).trim();
+      normalized = rest ? `${bookId} ${rest}` : bookId;
+    }
+  }
+  return normalized.replace(/[\u2013\u2014\u2212]/g, '-');
 }
