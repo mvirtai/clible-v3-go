@@ -80,7 +80,7 @@ export function liturgicalToISLA(
   if (dayPsalm && dayPsalm.verse) {
     const formattedRef = formatIslaReference(dayPsalm.verse);
     lines.push(`## ${isFi ? 'Päivän psalmi' : 'Psalm of the Day'} (${dayPsalm.verse})`);
-    lines.push(`${formattedRef} >>`);
+    lines.push(`! @(${formattedRef})`);
     lines.push('');
   }
 
@@ -98,7 +98,7 @@ export function liturgicalToISLA(
       for (const otRef of readings.old_testament) {
         const formattedRef = formatIslaReference(otRef);
         lines.push(`## ${isFi ? '1. Lukukappale' : 'First Reading'} (${otRef})`);
-        lines.push(`${formattedRef} >>`);
+        lines.push(`! @(${formattedRef})`);
         lines.push('');
       }
     }
@@ -108,7 +108,7 @@ export function liturgicalToISLA(
       for (const epRef of readings.epistle) {
         const formattedRef = formatIslaReference(epRef);
         lines.push(`## ${isFi ? '2. Lukukappale / Epistola' : 'Second Reading / Epistle'} (${epRef})`);
-        lines.push(`${formattedRef} >>`);
+        lines.push(`! @(${formattedRef})`);
         lines.push('');
       }
     }
@@ -118,7 +118,7 @@ export function liturgicalToISLA(
       for (const gospRef of readings.gospel) {
         const formattedRef = formatIslaReference(gospRef);
         lines.push(`## ${isFi ? 'Evankeliumi' : 'Gospel'} (${gospRef})`);
-        lines.push(`${formattedRef} >>`);
+        lines.push(`! @(${formattedRef})`);
         lines.push('');
       }
     }
@@ -148,7 +148,7 @@ export function liturgicalToISLA(
         lines.push(`### ${office.name}`);
         for (const it of office.items) {
           if (it.verse) {
-            lines.push(`${formatIslaReference(it.verse)} >>`);
+            lines.push(`! @(${formatIslaReference(it.verse)})`);
           }
         }
         lines.push('');

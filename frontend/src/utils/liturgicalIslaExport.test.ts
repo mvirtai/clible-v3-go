@@ -67,13 +67,13 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('**Päivämäärä:** 29.11.2026 | **Liturginen väri:** valkoinen | **Alttarikynttilät:** 4 alttarikynttilää');
       expect(output).toContain('*Vuosikerta I*');
       expect(output).toContain('## Päivän psalmi (Ps. 24:7–10)');
-      expect(output).toContain('Ps 24:7-10 >>');
+      expect(output).toContain('! @(Ps 24:7-10)');
       expect(output).toContain('## 1. Lukukappale (Sak. 9:9–10)');
-      expect(output).toContain('Sak 9:9-10 >>');
+      expect(output).toContain('! @(Sak 9:9-10)');
       expect(output).toContain('## 2. Lukukappale / Epistola (Room. 13:11–14)');
-      expect(output).toContain('Room 13:11-14 >>');
+      expect(output).toContain('! @(Room 13:11-14)');
       expect(output).toContain('## Evankeliumi (Matt. 21:1–9)');
-      expect(output).toContain('Matt 21:1-9 >>');
+      expect(output).toContain('! @(Matt 21:1-9)');
       expect(output).toContain('## Päivän rukous (Collecta)');
       expect(output).toContain('> Herra Jumala, taivaallinen Isä, sinä lähetit Poikasi vanhurskaana ja auttajana.');
       expect(output).toContain('> Me rukoilemme sinua: valmista sydämemme ottamaan hänet vastaan.');
@@ -88,7 +88,7 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('**Date:** 29.11.2026 | **Liturgical color:** valkoinen | **Altar candles:** 4 alttarikynttilää');
       expect(output).toContain('*Cycle I*');
       expect(output).toContain('## Psalm of the Day (Ps. 24:7–10)');
-      expect(output).toContain('Ps 24:7-10 >>');
+      expect(output).toContain('! @(Ps 24:7-10)');
       expect(output).toContain('## First Reading (Sak. 9:9–10)');
       expect(output).toContain('## Second Reading / Epistle (Room. 13:11–14)');
       expect(output).toContain('## Gospel (Matt. 21:1–9)');
@@ -112,14 +112,14 @@ describe('liturgicalIslaExport', () => {
       const output = liturgicalToISLA(minimalDay, 'fi');
       expect(output).toContain('# Arki');
       expect(output).toContain('**Päivämäärä:** 25.09.2026 | **Liturginen väri:** vihreä');
-      expect(output).not.toContain('>>');
+      expect(output).not.toContain('! @(');
     });
 
     it('includes prayer offices when option is enabled', () => {
       const output = liturgicalToISLA(sampleDay, 'fi', { includeCollect: true, includeHymns: true, includeOffices: true });
       expect(output).toContain('## Hetkipalvelukset');
       expect(output).toContain('### Aamurukous (Laudes)');
-      expect(output).toContain('Ps 118:19-29 >>');
+      expect(output).toContain('! @(Ps 118:19-29)');
     });
   });
 });
