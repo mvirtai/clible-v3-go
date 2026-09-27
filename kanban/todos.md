@@ -1,83 +1,5 @@
 # Clible Kanban Board
 
-## In Progress
-
-### Cliblen SEO & GEO (Generative Engine Optimization) -kokonaisuudistus
-
-  - due: 2026-10-02
-  - tags: [seo, geo, ai, llms-txt, schema-org, disambiguation, vitepress]
-  - priority: high
-  - workload: Medium
-  - defaultExpanded: true
-  - steps:
-      - [x] Luodaan frontend/public/llms.txt ja llms-full.txt (AI-koneellinen luettavuus & RAG)
-      - [x] Päivitetään frontend/index.html Schema.org JSON-LD (SoftwareApplication + FAQPage disambiguaatio)
-      - [x] Päivitetään hreflang-tagit (fi, en, x-default) ja metatiedot
-      - [x] Sallitaan AI-botit frontend/public/robots.txt (GPTBot, ClaudeBot, PerplexityBot, Google-Extended)
-      - [x] Päivitetään sitemap.xml ja varmistetaan staattinen/noscript-semanttinen runko
-      - [x] Optimoidaan GitHub Topics ja README.md entiteettiankkurointi
-      - [x] Validoidaan JSON-LD Schema ja ajetaan laatuportit (task frontend:check)
-    ```md
-    Suunnitelma: [.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md](file:///home/vivaldev/code/clible-v3-go/.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md)
-    Korjataan Google-indeksointi ja tekoälybotti-tunnistus (GEO). Estetään AI-mallien harha 'Clible on kirjoitusvirhe sanasta Bible' luomalla llms.txt, Schema.org FAQPage/SoftwareApplication -entiteettiankkurointi ja AI-indeksointituki.
-    ```
-
-### Kirkkovuoden tekstien ISLA DSL -kooste muistiinpanoihin ja pikanäppäin
-
-  - due: 2026-09-28
-  - tags: [liturgical, isla, dsl, notebook, export, keyboard-shortcut, frontend]
-  - priority: high
-  - workload: Medium
-  - defaultExpanded: true
-  - steps:
-      - [x] Toteuta puhdas ISLA-tekstigeneraattori liturgicalToISLA() frontend/src/utils/liturgicalIslaExport.ts
-      - [x] Lisää Vitest-yksikkötestit generaattorille (liturgicalIslaExport.test.ts)
-      - [x] Lisää kaksikieliset i18n-käännökset vientitoiminnolle ja pikanäppäinvihjeille
-      - [x] Lisää handleExportLiturgicalToNotebook()-reititys App.tsx:ään (kirjautunut + vierastila)
-      - [x] Lisää LiturgicalView.tsx-näkymään toimintopainike ja Alt+N -pikanäppäinkuuntelija
-      - [x] Varmista laatuportit (task frontend:check ja task check)
-    ```md
-    Suunnitelma: [.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md)
-    Kokoaa päivän liturgiset tekstit, teemat, rukoukset ja lukukappaleet suoraan interaktiiviseksi ISLA v2 DSL -muistikirjasoluksi yhdellä pikanäppäimellä (Alt+N) tai painikkeella.
-    ```
-
-### Semanttisen haun jakeiden kuratointi ja Swipe-triage (Mobiili & Työpöytä)
-
-  - due: 2026-09-28
-  - tags: [search, ai, mobile, swipe, gestures, curation, frontend]
-  - priority: high
-  - defaultExpanded: true
-  - steps:
-      - [ ] CuratedVerseCard.tsx -komponentti mobiilin kosketuspyyhkäisyillä (Swipe Right = hyväksy, Swipe Left = hylkää)
-      - [ ] Työpöydän nopeat hyväksy/hylkää-pikapainikkeet ja pikanäppäintuki
-      - [ ] VerseCurationHeader.tsx -suodatuspalkki (Kaikki | Hyväksytyt | Hylätyt) ja tilastolaskurit
-      - [ ] Kumoa/palauta-toiminto hylätyille jakeille
-      - [ ] Kaksikieliset i18n.ts-käännökset kuratointieleille ja opastukselle
-      - [ ] Työtilaan tallennus: tallenna ensisijaisesti vain hyväksytyt kuratoidut jakeet
-      - [ ] Yksikkötestit CuratedVerseCardille ja AiSemanticSearch-integraatiolle
-    ```md
-    Suunnitelma: [.plans/02-luku-ja-haku/30-semanttisen-haun-jakeiden-kuratointi-ja-swipe-triage.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/30-semanttisen-haun-jakeiden-kuratointi-ja-swipe-triage.md)
-    Mahdollistaa semanttisen haun löytämien jakeiden nopean kuratoinnin ja karsinnan. Puhelimella jakeita voi pyyhkäistä (swipe) hyväksytyiksi tai hylätyiksi luonnollisilla eleillä, ja työpöydällä kuratointi hoituu intuitiivisilla pikanapeilla ja pikanäppäimillä.
-    ```
-
-### Käyttäjäasetukset ja profiilinäkymä (User Settings & Profile View)
-
-  - due: 2026-09-26
-  - tags: [ui, settings, user, profile, preferences, frontend, backend]
-  - priority: high
-  - defaultExpanded: true
-  - steps:
-      - [ ] Tietokantamigraatio backend/migrations/016_user_preferences.sql (kieli, teema, oletuskäännös)
-      - [ ] Backend API /api/user/settings (GET & PUT) ja user_repo.go -kyselyt
-      - [ ] Kaksikieliset käännösavaimet i18n.ts asetussivulle (FI/EN)
-      - [ ] UserSettingsView.tsx -sivun luonti ja /settings -reititys
-      - [ ] UserMenuDropdown.tsx -valikon "Asetukset"-painikkeen kytkeminen navigointiin
-      - [ ] Yksikkötestit ja laatuporttien varmistus (task check)
-    ```md
-    Suunnitelma: [.plans/14-kayttaja-ja-tili/29-kayttaja-asetukset-ja-profiilinakyma.md](file:///home/vivaldev/code/clible-v3-go/.plans/14-kayttaja-ja-tili/29-kayttaja-asetukset-ja-profiilinakyma.md)
-    Toteuttaa keskitetyn käyttäjäasetukset- ja profiilinäkymän, josta käyttäjä voi hallita nimeään, oletuskäännöstä, teemaa, käyttöliittymäkieltä sekä tarkastella tilaustaan ja AI-kiintiötään.
-    ```
-
 ## To Do
 
 ### Reader Viewin käyttöliittymäuudistus ja kutsuva lukunäkymä
@@ -138,114 +60,83 @@
     Suunnitelma: [.plans/todos/04-pagespeed-performance-and-cwv-optimizations.md](file:///home/vivaldev/code/clible-v3-go/.plans/todos/04-pagespeed-performance-and-cwv-optimizations.md)
     ```
 
-## Backlog
+## In Progress
 
-### Käyttäjädata, AI-kiintiöt ja lukutilastot (Study Analytics & Reading Streaks)
+### Kirkkovuoden tekstien ISLA DSL -kooste muistiinpanoihin ja pikanäppäin
 
-  - due: 2026-11-01
-  - tags: [analytics, streaks, quotas, database, backend]
-  - priority: medium
-  - defaultExpanded: false
-  - steps:
-      - [ ] Taulu user_study_stats (lukupäivät, lukupäiväputki, jakeiden määrä)
-      - [ ] Taulu user_ai_daily_usage päivittäisille AI-tokenkiintiöille
-      - [ ] Backend-rajapinta ja lukutilastojen automaattinen kasvatus lukunäkymässä
-      - [ ] Frontend-tilastokortti käyttäjäasetusten yhteyteen
-    ```md
-    Suunnitelma: [.plans/14-kayttaja-ja-tili/17-kayttajadata-ja-tilausarkkitehtuuri.md](file:///home/vivaldev/code/clible-v3-go/.plans/14-kayttaja-ja-tili/17-kayttajadata-ja-tilausarkkitehtuuri.md)
-    Mahdollistaa käyttäjän oman lukuhistorian, aktiivisuusseurannan ja lukupäiväputkien (reading streaks) visualisoinnin.
-    ```
-
-### ISLA Frontier 1: Alkukielet ja morfologinen analyysi (Strong-numerot)
-
-  - due: 2026-11-05
-  - tags: [isla, greek, hebrew, morphology, backend]
-  - priority: medium
-  - workload: Hard
-  - defaultExpanded: false
-  - steps:
-      - [ ] Tietokantataulut greek_words ja hebrew_words (lemma, Strong-numero, jae-FK)
-      - [ ] ISLA `.greek()`, `.hebrew()` ja `.morphology()` -metodit AST-tasolle ja suoritukseen
-      - [ ] Frontendin MorphologyCard kieliopilliselle tiedolle
-    ```md
-    Visio: [.visions/01-isla-language-horizon.md](file:///home/vivaldev/code/clible-v3-go/.visions/01-isla-language-horizon.md)
-    Mahdollistaa kreikan ja heprean kieliopilliset sanaselitykset ja Strong-numerot suoraan jaevirran päälle.
-    ```
-
-### ISLA Frontier 2: Algebralliset joukko-operaatiot
-
-  - due: 2026-11-10
-  - tags: [isla, sets, dsl, backend]
-  - priority: medium
-  - defaultExpanded: false
-  - steps:
-      - [ ] `IntersectNode`, `UnionNode` ja `DiffNode` AST-solmut
-      - [ ] SQL INTERSECT / UNION / EXCEPT alikyselyt repositoriotasolle
-      - [ ] Metodit `.intersect()`, `.union()` ja `.diff()` parseriin
-    ```md
-    Visio: [.visions/01-isla-language-horizon.md](file:///home/vivaldev/code/clible-v3-go/.visions/01-isla-language-horizon.md)
-    Antaa käyttäjän yhdistää hakuobjekteja ja jaejoukkoja joukko-opin säännöillä (`search("valkeus").intersect(search("elämä"))`).
-    ```
-
-### ISLA Frontier 4: Visuaaliset analytiikkadiagrammit
-
-  - due: 2026-11-15
-  - tags: [isla, charts, analytics, frontend]
-  - priority: low
-  - defaultExpanded: false
-  - steps:
-      - [ ] `.chart(kind: bar | treemap | radar)` -metodi ISLA-dataputkeen
-      - [ ] CLIResult.Data["chart"] -rakenne backendissä
-      - [ ] Frontend-kaaviokortit teemoille, frekvensseille ja tyylianalyyseille
-    ```md
-    Visio: [.visions/01-isla-language-horizon.md](file:///home/vivaldev/code/clible-v3-go/.visions/01-isla-language-horizon.md)
-    Muodostaa frekvenssi- ja teemakyselyistä suoraan visuaalisia diagrammeja soluun.
-    ```
-
-### pgvector-vektoriupotukset ja lokaali samankaltaisuus (Frontier 3)
-
-  - due: 2026-11-20
-  - tags: [ai, pgvector, embeddings, postgresql]
-  - priority: medium
-  - workload: Hard
-  - defaultExpanded: false
-  - steps:
-      - [ ] Upotusmallin valinta ja jakeiden vektorointiputki (text-embedding-3-small)
-      - [ ] Neon PostgreSQL pgvector -laajennus ja verse_embeddings -taulu
-      - [ ] ISLA `.similar(threshold: 0.8)` -metodi suoritustasolle
-    ```md
-    Visio: [.visions/01-isla-language-horizon.md](file:///home/vivaldev/code/clible-v3-go/.visions/01-isla-language-horizon.md)
-    Täydentää Gemini API -semanttista hakua lokaalilla pgvector-samankaltaisuudella suoraan tietokantatasolla.
-    ```
-
-### Yhtenäinen API-virheenkäsittely (VULN-004)
-
-  - due: 2026-11-25
-  - tags: [backend, api, security, refactor]
+  - due: 2026-09-28
+  - tags: [liturgical, isla, dsl, notebook, export, keyboard-shortcut, frontend]
   - priority: high
-  - defaultExpanded: false
+  - defaultExpanded: true
   - steps:
-      - [ ] Refaktoroi käsittelijät käyttämään api.ErrorResponse-rakennetta
-      - [ ] Estä raakojen virheviestien ja tietokantarakenteiden paljastuminen
-      - [ ] Yhdenmukainen virheiden lokitus slog.Error:lla
+      - [x] Toteuta puhdas ISLA-tekstigeneraattori liturgicalToISLA() frontend/src/utils/liturgicalIslaExport.ts
+      - [x] Lisää Vitest-yksikkötestit generaattorille (liturgicalIslaExport.test.ts)
+      - [x] Lisää kaksikieliset i18n-käännökset vientitoiminnolle ja pikanäppäinvihjeille
+      - [x] Lisää handleExportLiturgicalToNotebook()-reititys App.tsx:ään (kirjautunut + vierastila)
+      - [x] Lisää LiturgicalView.tsx-näkymään toimintopainike ja Alt+N -pikanäppäinkuuntelija
+      - [x] Varmista laatuportit (task frontend:check ja task check)
     ```md
-    Refaktorointikohde: scope_handler, analytics_handler, notebook_handler, translation_handler, book_handler, history_handler.
+    Suunnitelma: [.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md)
+    Kokoaa päivän liturgiset tekstit, teemat, rukoukset ja lukukappaleet suoraan interaktiiviseksi ISLA v2 DSL -muistikirjasoluksi yhdellä pikanäppäimellä (Alt+N) tai painikkeella.
     ```
 
-### VitePress-dokumentaatio: Kaksikielinen ISLA-opas ja arkkitehtuuri
+### Semanttisen haun jakeiden kuratointi ja Swipe-triage (Mobiili & Työpöytä)
 
-  - due: 2026-12-10
-  - tags: [docs, vitepress, dsl, i18n]
-  - priority: low
-  - defaultExpanded: false
+  - due: 2026-09-28
+  - tags: [search, ai, mobile, swipe, gestures, curation, frontend]
+  - priority: high
+  - defaultExpanded: true
   - steps:
-      - [ ] Kirjoita kaksikielinen (FI/EN) DSL-kielioppiopas VitePressiin
-      - [ ] Liitä interaktiiviset koodiesimerkit ja visuaaliset arkkitehtuurikaaviot
+      - [ ] CuratedVerseCard.tsx -komponentti mobiilin kosketuspyyhkäisyillä (Swipe Right = hyväksy, Swipe Left = hylkää)
+      - [ ] Työpöydän nopeat hyväksy/hylkää-pikapainikkeet ja pikanäppäintuki
+      - [ ] VerseCurationHeader.tsx -suodatuspalkki (Kaikki | Hyväksytyt | Hylätyt) ja tilastolaskurit
+      - [ ] Kumoa/palauta-toiminto hylätyille jakeille
+      - [ ] Kaksikieliset i18n.ts-käännökset kuratointieleille ja opastukselle
+      - [ ] Työtilaan tallennus: tallenna ensisijaisesti vain hyväksytyt kuratoidut jakeet
+      - [ ] Yksikkötestit CuratedVerseCardille ja AiSemanticSearch-integraatiolle
     ```md
-    Suunnitelma: [.plans/15-docs-ja-viestinta/15-vitepress-bilingual-i18n-architecture.md](file:///home/vivaldev/code/clible-v3-go/.plans/15-docs-ja-viestinta/15-vitepress-bilingual-i18n-architecture.md)
+    Suunnitelma: [.plans/02-luku-ja-haku/30-semanttisen-haun-jakeiden-kuratointi-ja-swipe-triage.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/30-semanttisen-haun-jakeiden-kuratointi-ja-swipe-triage.md)
+    Mahdollistaa semanttisen haun löytämien jakeiden nopean kuratoinnin ja karsinnan. Puhelimella jakeita voi pyyhkäistä (swipe) hyväksytyiksi tai hylätyiksi luonnollisilla eleillä, ja työpöydällä kuratointi hoituu intuitiivisilla pikanapeilla ja pikanäppäimillä.
+    ```
+
+### Käyttäjäasetukset ja profiilinäkymä (User Settings & Profile View)
+
+  - due: 2026-09-26
+  - tags: [ui, settings, user, profile, preferences, frontend, backend]
+  - priority: high
+  - defaultExpanded: true
+  - steps:
+      - [ ] Tietokantamigraatio backend/migrations/016_user_preferences.sql (kieli, teema, oletuskäännös)
+      - [ ] Backend API /api/user/settings (GET & PUT) ja user_repo.go -kyselyt
+      - [ ] Kaksikieliset käännösavaimet i18n.ts asetussivulle (FI/EN)
+      - [ ] UserSettingsView.tsx -sivun luonti ja /settings -reititys
+      - [ ] UserMenuDropdown.tsx -valikon "Asetukset"-painikkeen kytkeminen navigointiin
+      - [ ] Yksikkötestit ja laatuporttien varmistus (task check)
+    ```md
+    Suunnitelma: [.plans/14-kayttaja-ja-tili/29-kayttaja-asetukset-ja-profiilinakyma.md](file:///home/vivaldev/code/clible-v3-go/.plans/14-kayttaja-ja-tili/29-kayttaja-asetukset-ja-profiilinakyma.md)
+    Toteuttaa keskitetyn käyttäjäasetukset- ja profiilinäkymän, josta käyttäjä voi hallita nimeään, oletuskäännöstä, teemaa, käyttöliittymäkieltä sekä tarkastella tilaustaan ja AI-kiintiötään.
     ```
 
 ## Done
+
+### Cliblen SEO & GEO (Generative Engine Optimization) -kokonaisuudistus
+
+  - due: 2026-10-02
+  - tags: [seo, geo, ai, llms-txt, schema-org, disambiguation, vitepress]
+  - priority: high
+  - defaultExpanded: true
+  - steps:
+      - [x] Luodaan frontend/public/llms.txt ja llms-full.txt (AI-koneellinen luettavuus & RAG)
+      - [x] Päivitetään frontend/index.html Schema.org JSON-LD (SoftwareApplication + FAQPage disambiguaatio)
+      - [x] Päivitetään hreflang-tagit (fi, en, x-default) ja metatiedot
+      - [x] Sallitaan AI-botit frontend/public/robots.txt (GPTBot, ClaudeBot, PerplexityBot, Google-Extended)
+      - [x] Päivitetään sitemap.xml ja varmistetaan staattinen/noscript-semanttinen runko
+      - [x] Optimoidaan GitHub Topics ja README.md entiteettiankkurointi
+      - [x] Validoidaan JSON-LD Schema ja ajetaan laatuportit (task frontend:check)
+    ```md
+    Suunnitelma: [.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md](file:///home/vivaldev/code/clible-v3-go/.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md)
+    Korjataan Google-indeksointi ja tekoälybotti-tunnistus (GEO). Estetään AI-mallien harha 'Clible on kirjoitusvirhe sanasta Bible' luomalla llms.txt, Schema.org FAQPage/SoftwareApplication -entiteettiankkurointi ja AI-indeksointituki.
+    ```
 
 ### Kirkkovuoden hetkipalvelusten tarkennukset: Ad Sextam, Completorium ja Aattorukous
 
@@ -523,5 +414,112 @@
       - [x] Sisäiset [[Viite]]-taikalinkit ja esikatselut
     ```md
     Suunnitelma: [.plans/todos/02-poetry-formatting-and-magic-links.md](file:///home/vivaldev/code/clible-v3-go/.plans/todos/02-poetry-formatting-and-magic-links.md)
+    ```
+
+## Backlog
+
+### Käyttäjädata, AI-kiintiöt ja lukutilastot (Study Analytics & Reading Streaks)
+
+  - due: 2026-11-01
+  - tags: [analytics, streaks, quotas, database, backend]
+  - priority: medium
+  - defaultExpanded: false
+  - steps:
+      - [ ] Taulu user_study_stats (lukupäivät, lukupäiväputki, jakeiden määrä)
+      - [ ] Taulu user_ai_daily_usage päivittäisille AI-tokenkiintiöille
+      - [ ] Backend-rajapinta ja lukutilastojen automaattinen kasvatus lukunäkymässä
+      - [ ] Frontend-tilastokortti käyttäjäasetusten yhteyteen
+    ```md
+    Suunnitelma: [.plans/14-kayttaja-ja-tili/17-kayttajadata-ja-tilausarkkitehtuuri.md](file:///home/vivaldev/code/clible-v3-go/.plans/14-kayttaja-ja-tili/17-kayttajadata-ja-tilausarkkitehtuuri.md)
+    Mahdollistaa käyttäjän oman lukuhistorian, aktiivisuusseurannan ja lukupäiväputkien (reading streaks) visualisoinnin.
+    ```
+
+### ISLA Frontier 1: Alkukielet ja morfologinen analyysi (Strong-numerot)
+
+  - due: 2026-11-05
+  - tags: [isla, greek, hebrew, morphology, backend]
+  - priority: medium
+  - workload: Hard
+  - defaultExpanded: false
+  - steps:
+      - [ ] Tietokantataulut greek_words ja hebrew_words (lemma, Strong-numero, jae-FK)
+      - [ ] ISLA `.greek()`, `.hebrew()` ja `.morphology()` -metodit AST-tasolle ja suoritukseen
+      - [ ] Frontendin MorphologyCard kieliopilliselle tiedolle
+    ```md
+    Visio: [.visions/01-isla-language-horizon.md](file:///home/vivaldev/code/clible-v3-go/.visions/01-isla-language-horizon.md)
+    Mahdollistaa kreikan ja heprean kieliopilliset sanaselitykset ja Strong-numerot suoraan jaevirran päälle.
+    ```
+
+### ISLA Frontier 2: Algebralliset joukko-operaatiot
+
+  - due: 2026-11-10
+  - tags: [isla, sets, dsl, backend]
+  - priority: medium
+  - defaultExpanded: false
+  - steps:
+      - [ ] `IntersectNode`, `UnionNode` ja `DiffNode` AST-solmut
+      - [ ] SQL INTERSECT / UNION / EXCEPT alikyselyt repositoriotasolle
+      - [ ] Metodit `.intersect()`, `.union()` ja `.diff()` parseriin
+    ```md
+    Visio: [.visions/01-isla-language-horizon.md](file:///home/vivaldev/code/clible-v3-go/.visions/01-isla-language-horizon.md)
+    Antaa käyttäjän yhdistää hakuobjekteja ja jaejoukkoja joukko-opin säännöillä (`search("valkeus").intersect(search("elämä"))`).
+    ```
+
+### ISLA Frontier 4: Visuaaliset analytiikkadiagrammit
+
+  - due: 2026-11-15
+  - tags: [isla, charts, analytics, frontend]
+  - priority: low
+  - defaultExpanded: false
+  - steps:
+      - [ ] `.chart(kind: bar | treemap | radar)` -metodi ISLA-dataputkeen
+      - [ ] CLIResult.Data["chart"] -rakenne backendissä
+      - [ ] Frontend-kaaviokortit teemoille, frekvensseille ja tyylianalyyseille
+    ```md
+    Visio: [.visions/01-isla-language-horizon.md](file:///home/vivaldev/code/clible-v3-go/.visions/01-isla-language-horizon.md)
+    Muodostaa frekvenssi- ja teemakyselyistä suoraan visuaalisia diagrammeja soluun.
+    ```
+
+### pgvector-vektoriupotukset ja lokaali samankaltaisuus (Frontier 3)
+
+  - due: 2026-11-20
+  - tags: [ai, pgvector, embeddings, postgresql]
+  - priority: medium
+  - workload: Hard
+  - defaultExpanded: false
+  - steps:
+      - [ ] Upotusmallin valinta ja jakeiden vektorointiputki (text-embedding-3-small)
+      - [ ] Neon PostgreSQL pgvector -laajennus ja verse_embeddings -taulu
+      - [ ] ISLA `.similar(threshold: 0.8)` -metodi suoritustasolle
+    ```md
+    Visio: [.visions/01-isla-language-horizon.md](file:///home/vivaldev/code/clible-v3-go/.visions/01-isla-language-horizon.md)
+    Täydentää Gemini API -semanttista hakua lokaalilla pgvector-samankaltaisuudella suoraan tietokantatasolla.
+    ```
+
+### Yhtenäinen API-virheenkäsittely (VULN-004)
+
+  - due: 2026-11-25
+  - tags: [backend, api, security, refactor]
+  - priority: high
+  - defaultExpanded: false
+  - steps:
+      - [ ] Refaktoroi käsittelijät käyttämään api.ErrorResponse-rakennetta
+      - [ ] Estä raakojen virheviestien ja tietokantarakenteiden paljastuminen
+      - [ ] Yhdenmukainen virheiden lokitus slog.Error:lla
+    ```md
+    Refaktorointikohde: scope_handler, analytics_handler, notebook_handler, translation_handler, book_handler, history_handler.
+    ```
+
+### VitePress-dokumentaatio: Kaksikielinen ISLA-opas ja arkkitehtuuri
+
+  - due: 2026-12-10
+  - tags: [docs, vitepress, dsl, i18n]
+  - priority: low
+  - defaultExpanded: false
+  - steps:
+      - [ ] Kirjoita kaksikielinen (FI/EN) DSL-kielioppiopas VitePressiin
+      - [ ] Liitä interaktiiviset koodiesimerkit ja visuaaliset arkkitehtuurikaaviot
+    ```md
+    Suunnitelma: [.plans/15-docs-ja-viestinta/15-vitepress-bilingual-i18n-architecture.md](file:///home/vivaldev/code/clible-v3-go/.plans/15-docs-ja-viestinta/15-vitepress-bilingual-i18n-architecture.md)
     ```
 

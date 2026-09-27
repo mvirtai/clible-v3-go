@@ -258,6 +258,10 @@ export function liturgicalToISLA(
         }
         lines.push(...pLines);
         lines.push('');
+        if (idx < day.prayers!.length - 1) {
+          lines.push('---');
+          lines.push('');
+        }
       }
     });
   }
@@ -444,6 +448,8 @@ export function officesToISLA(
     lines.push('');
 
     // 2. Virsi (Hymnus)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '2. Virsi (Hymnus)' : '2. Hymn (Hymnus)'}`);
     lines.push('');
     if (day.hymns && day.hymns.length > 0) {
@@ -490,6 +496,8 @@ export function officesToISLA(
     lines.push('');
 
     // 3. Psalmi (Psalmodia)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '3. Psalmi (Psalmodia)' : '3. Psalm (Psalmodia)'}`);
     lines.push('');
     if (psalmItems.length > 0) {
@@ -508,6 +516,8 @@ export function officesToISLA(
     }
 
     // 4. Raamatunluku (Lectio)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '4. Raamatunluku (Lectio)' : '4. Scripture Reading (Lectio)'}`);
     lines.push('');
     if (readingItems.length > 0) {
@@ -526,6 +536,8 @@ export function officesToISLA(
     }
 
     // 5. Responsorio (Vastauslaulu)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '5. Responsorio (Vastauslaulu)' : '5. Responsory (Responsorium)'}`);
     lines.push('');
     if (key === 'morning') {
@@ -617,6 +629,8 @@ export function officesToISLA(
     // 6. Kiitosvirsi / Canticum (tai Kiitos Ad Sextam)
     const canticleInfo = getCanticleForOffice(key, lang);
     if (canticleInfo) {
+      lines.push('---');
+      lines.push('');
       lines.push(`### ${canticleInfo.title}`);
       lines.push('');
       lines.push(`*${canticleInfo.subtitle}*`);
@@ -625,6 +639,8 @@ export function officesToISLA(
       lines.push(`! @(${targetRef})`);
       lines.push('');
     } else if (key === 'noon') {
+      lines.push('---');
+      lines.push('');
       lines.push(`### ${isFi ? '6. Kiitoshymni (Kiitos)' : '6. Hymn of Praise (Kiitos)'}`);
       lines.push('');
       if (isFi) {
@@ -638,7 +654,11 @@ export function officesToISLA(
     }
 
     // 7. Rukousjakso & Päivän rukous (Preces & Collecta)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '7. Rukousjakso & Päivän rukous (Preces & Collecta)' : '7. Prayers & Collect (Preces & Collecta)'}`);
+    lines.push('');
+    lines.push(`#### ${isFi ? 'Esirukous (Kyrie)' : 'Kyrie Litany'}`);
     lines.push('');
     // Kyrie
     if (isFi) {
@@ -654,22 +674,30 @@ export function officesToISLA(
 
     // Päivän kollehtarukous
     if (day.prayers && day.prayers.length > 0) {
+      lines.push('---');
+      lines.push('');
       day.prayers.forEach((prayer, idx) => {
         const pLines = formatPrayerLines(prayer);
         if (pLines.length > 0) {
           const subTitle = isFi
-            ? (day.prayers!.length > 1 ? `Päivän rukous ${idx + 1}` : 'Päivän rukous (Collecta)')
+            ? (day.prayers!.length > 1 ? `Päivän rukous ${idx + 1} (Collecta)` : 'Päivän rukous (Collecta)')
             : (day.prayers!.length > 1 ? `Collect of the Day ${idx + 1}` : 'Collect of the Day');
           lines.push(`#### ${subTitle}`);
           lines.push('');
           lines.push(...pLines);
           lines.push('');
+          if (idx < day.prayers!.length - 1) {
+            lines.push('---');
+            lines.push('');
+          }
         }
       });
     }
 
     // Yörukouksen perinteinen rukous
     if (key === 'completorium') {
+      lines.push('---');
+      lines.push('');
       lines.push(`#### ${isFi ? 'Yörukous' : 'Night Prayer'}`);
       lines.push('');
       if (isFi) {
@@ -686,6 +714,8 @@ export function officesToISLA(
     }
 
     // 8. Isä meidän (Oratio Dominica)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '8. Isä meidän (Oratio Dominica)' : '8. The Lord\'s Prayer (Oratio Dominica)'}`);
     lines.push('');
     if (isFi) {
@@ -710,6 +740,8 @@ export function officesToISLA(
     lines.push('');
 
     // 9. Ylistys ja Päätössiunaus (Benedictio)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '9. Ylistys ja Päätössiunaus (Benedictio)' : '9. Blessing (Benedictio)'}`);
     lines.push('');
     if (key === 'completorium') {
