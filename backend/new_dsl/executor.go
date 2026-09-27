@@ -861,13 +861,39 @@ func aggregateCount(verses []models.Verse, text string, unit string) int {
 	}
 }
 
+var fallbackStopWords = map[string]bool{
+	"virsi": true, "virret": true, "virren": true, "virsiä": true, "virsikirja": true,
+	"hymni": true, "hymnit": true, "psalmi": true, "psalmit": true,
+	"minä": true, "minun": true, "minua": true, "minut": true,
+	"sinä": true, "sinun": true, "sinua": true, "sinut": true,
+	"hän": true, "hänen": true, "häntä": true, "hänet": true,
+	"me": true, "meidän": true, "meitä": true, "meidät": true, "meille": true, "meiltä": true,
+	"te": true, "teidän": true, "teitä": true, "teidät": true, "teille": true,
+	"he": true, "heidän": true, "heitä": true, "heidät": true, "heille": true,
+	"itse": true, "itseämme": true, "itsemme": true, "itseään": true,
+	"se": true, "sen": true, "sitä": true, "siinä": true, "siitä": true, "sille": true, "sillä": true,
+	"tämä": true, "tämän": true, "tätä": true, "tässä": true, "tästä": true, "tälle": true, "tällä": true,
+	"ne": true, "niiden": true, "niitä": true, "nämä": true, "näiden": true, "näitä": true,
+	"joka": true, "jota": true, "jonka": true, "joita": true, "jossa": true, "johon": true, "jotka": true,
+	"mikä": true, "mitä": true, "minkä": true, "kuka": true, "kenen": true,
+	"on": true, "oli": true, "olen": true, "olet": true, "olemme": true, "olette": true, "ovat": true,
+	"ollut": true, "olleet": true, "olisi": true, "ole": true,
+	"ei": true, "en": true, "et": true, "emme": true, "ette": true, "eivät": true,
+	"niin": true, "kuin": true, "kun": true, "jos": true, "että": true, "sekä": true,
+	"mutta": true, "vaan": true, "tai": true, "vai": true, "myös": true, "nyt": true,
+	"aina": true, "vielä": true, "jo": true, "vaikka": true, "koska": true, "jotta": true,
+	"sitten": true, "kaikki": true, "kaiken": true, "vain": true, "siis": true,
+	"https": true, "http": true, "www": true, "url": true,
+	"-": true, "–": true, "—": true,
+}
+
 func extractTopFrequencies(text string, limit int) []models.ThemeItem {
 	clean := nonAlphaRegex.ReplaceAllString(text, " ")
 	words := strings.Fields(clean)
 	counts := make(map[string]int)
 	for _, w := range words {
 		l := strings.ToLower(w)
-		if len([]rune(l)) >= 3 {
+		if len([]rune(l)) >= 3 && !fallbackStopWords[l] {
 			counts[l]++
 		}
 	}

@@ -114,6 +114,7 @@ var stopWords = map[string]bool{
 	"evening": true, "morning": true, "midday": true,
 	"blessing": true, "blessings": true, "benediction": true, "benedictions": true,
 	"suggestion": true, "suggestions": true, "alternative": true, "alternatively": true,
+	"-": true, "–": true, "—": true,
 }
 
 // IsStopWord returns true if the normalized word is in the global stopWords dictionary.
