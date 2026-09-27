@@ -1,5 +1,7 @@
 package services
 
+import "strings"
+
 // List of common words to ignore during analysis in Finnish and English.
 var stopWords = map[string]bool{
 	// Finnish general stop words (conjunctions, prepositions, pronouns, adverbs)
@@ -20,6 +22,8 @@ var stopWords = map[string]bool{
 	"teidän": true, "meitä": true, "meidät": true, "teitä": true, "teidät": true,
 	"heitä": true, "heidät": true, "häntä": true, "hänet": true, "minua": true,
 	"minut": true, "sinua": true, "sinut": true,
+	"itse": true, "itseämme": true, "itsemme": true, "itseään": true, "itseensä": true, "itseäni": true,
+	"jota": true, "tätä": true, "tämän": true, "tästä": true, "tällä": true, "tältä": true,
 
 	// Finnish common auxiliary verbs & forms of "olla"
 	"olla": true, "olen": true, "olet": true, "olemme": true, "olette": true, "ovat": true,
@@ -110,4 +114,10 @@ var stopWords = map[string]bool{
 	"evening": true, "morning": true, "midday": true,
 	"blessing": true, "blessings": true, "benediction": true, "benedictions": true,
 	"suggestion": true, "suggestions": true, "alternative": true, "alternatively": true,
+}
+
+// IsStopWord returns true if the normalized word is in the global stopWords dictionary.
+func IsStopWord(word string) bool {
+	w := strings.ToLower(strings.TrimSpace(word))
+	return stopWords[w]
 }

@@ -79,6 +79,7 @@ func main() {
 		slog.Error("Critical analytics service initialization failed", "error", err)
 		os.Exit(1)
 	}
+	cliService.SetAnalyticService(analyticService)
 
 	aiUsageService := services.NewAiUsageService(aiUsageRepo)
 	aiService := services.NewAIService(cfg, verseRepo, aiUsageRepo)

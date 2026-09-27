@@ -131,6 +131,10 @@ func NewAnalyticService(verseRepo *db.VerseRepository, filterStopwords bool, lan
 				}
 			}
 		}
+
+		for w := range stopWords {
+			stopwordsMap[w] = true
+		}
 	}
 
 	return &AnalyticService{
