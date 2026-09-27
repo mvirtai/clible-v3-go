@@ -1,4 +1,4 @@
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import {
   Calendar,
   ChevronLeft,
@@ -20,14 +20,17 @@ import {
   Send,
   Check,
   Copy,
+  FileText,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { getLiturgicalDay } from '../api/liturgical';
 import type { LiturgicalDay } from '../types/liturgical';
+import { officesToISLA } from '../utils/liturgicalIslaExport';
 
 export interface LiturgicalViewProps {
   onSelectVerse: (reference: string) => void;
   initialDate?: string;
+  onExportToNotebook?: (day: LiturgicalDay, customTitle?: string, customContent?: string) => void;
 }
 
 type OfficeType = 'morning' | 'noon' | 'evening' | 'eve' | 'completorium' | 'apocrypha';
@@ -162,8 +165,8 @@ export function LiturgicalPoem({
   );
 }
 
-export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewProps) {
-  const { strings } = useLanguage();
+export function LiturgicalView({ onSelectVerse, initialDate, onExportToNotebook }: LiturgicalViewProps) {
+  const { strings, lang } = useLanguage();
   const todayISO = getTodayISODate();
 
   const [date, setDate] = useState<string>(() => initialDate || todayISO);
@@ -277,6 +280,27 @@ export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewPro
       // Fallback
     }
   };
+
+  const handleExport = () => {
+    if (dayData && onExportToNotebook) {
+      onExportToNotebook(dayData);
+    }
+  };
+
+  // Keyboard shortcut: Alt+N exports today's liturgical texts to notebook
+  useEffect(() => {
+    if (!onExportToNotebook || !dayData) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        onExportToNotebook(dayData);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [dayData, onExportToNotebook]);
 
   const colorBadgeStyles: Record<string, string> = {
     vihreä: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
@@ -449,11 +473,29 @@ export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewPro
                 )}
               </div>
 
-              {dayData.period && (
-                <span className="text-xs text-[var(--muted)] font-medium">
-                  {dayData.period}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {onExportToNotebook && (
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)] border border-[var(--border-soft)] transition-colors cursor-pointer group shadow-2xs"
+                    title={strings.liturgicalExportToNotebookTooltip}
+                    aria-label={strings.liturgicalExportToNotebook}
+                  >
+                    <FileText size={13} className="text-[var(--accent)] group-hover:text-current" />
+                    <span>{strings.liturgicalExportToNotebook}</span>
+                    <span className="hidden sm:inline-block px-1.5 py-0.2 rounded text-[10px] bg-[var(--surface)] text-[var(--muted)] group-hover:bg-white/20 group-hover:text-white border border-[var(--border-soft)] font-mono">
+                      Alt+N
+                    </span>
+                  </button>
+                )}
+
+                {dayData.period && (
+                  <span className="text-xs text-[var(--muted)] font-medium">
+                    {dayData.period}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -923,41 +965,66 @@ export function LiturgicalView({ onSelectVerse, initialDate }: LiturgicalViewPro
               {/* Drawer Content */}
               {(displayMode === 'tabs' || openDrawers.offices) && (
                 <div className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-6">
-                  {/* Office selection tabs */}
-                  <div className="flex flex-wrap gap-1.5 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-soft)] w-fit pt-2">
-                    {(
-                      [
-                        { id: 'morning', label: strings.liturgicalMorning, count: offices?.morning?.length || 0 },
-                        { id: 'noon', label: strings.liturgicalNoon, count: offices?.noon?.length || 0 },
-                        { id: 'evening', label: strings.liturgicalEvening, count: offices?.evening?.length || 0 },
-                        { id: 'eve', label: strings.liturgicalEve, count: offices?.eve?.length || 0 },
-                        { id: 'completorium', label: strings.liturgicalCompletorium, count: offices?.completorium?.length || 0 },
-                        { id: 'apocrypha', label: strings.liturgicalApocrypha, count: offices?.apocrypha?.length || 0 },
-                      ] as const
-                    ).map((tab) => {
-                      if (tab.count === 0 && tab.id === 'eve' && activeOffice !== 'eve') return null;
-                      if (tab.count === 0 && tab.id === 'apocrypha' && activeOffice !== 'apocrypha') return null;
-                      const isSelected = activeOffice === tab.id;
-                      return (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setActiveOffice(tab.id)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all btn-tactile cursor-pointer ${
-                            isSelected
-                              ? 'bg-[var(--surface)] text-[var(--text)] shadow-xs border border-[var(--border-soft)]'
-                              : 'text-[var(--muted)] hover:text-[var(--text)]'
-                          }`}
-                        >
-                          <span>{tab.label}</span>
-                          {tab.count > 0 && (
-                            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-[var(--surface-2)] text-[var(--muted)] font-mono">
-                              {tab.count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+                  {/* Office selection tabs & Export Offices button */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-b border-[var(--border-soft)] pb-3">
+                    <div className="flex flex-wrap gap-1.5 p-1 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-soft)] w-fit">
+                      {(
+                        [
+                          { id: 'morning', label: strings.liturgicalMorning, count: offices?.morning?.length || 0 },
+                          { id: 'noon', label: strings.liturgicalNoon, count: offices?.noon?.length || 0 },
+                          { id: 'evening', label: strings.liturgicalEvening, count: offices?.evening?.length || 0 },
+                          { id: 'eve', label: strings.liturgicalEve, count: offices?.eve?.length || 0 },
+                          { id: 'completorium', label: strings.liturgicalCompletorium, count: offices?.completorium?.length || 0 },
+                          { id: 'apocrypha', label: strings.liturgicalApocrypha, count: offices?.apocrypha?.length || 0 },
+                        ] as const
+                      ).map((tab) => {
+                        if (tab.count === 0 && tab.id === 'eve' && activeOffice !== 'eve') return null;
+                        if (tab.count === 0 && tab.id === 'apocrypha' && activeOffice !== 'apocrypha') return null;
+                        const isSelected = activeOffice === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setActiveOffice(tab.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all btn-tactile cursor-pointer ${
+                              isSelected
+                                ? 'bg-[var(--surface)] text-[var(--text)] shadow-xs border border-[var(--border-soft)]'
+                                : 'text-[var(--muted)] hover:text-[var(--text)]'
+                            }`}
+                          >
+                            <span>{tab.label}</span>
+                            {tab.count > 0 && (
+                              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-[var(--surface-2)] text-[var(--muted)] font-mono">
+                                {tab.count}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {onExportToNotebook && dayData && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const officeContent = officesToISLA(dayData, lang, activeOffice);
+                          const activeOfficeLabel =
+                            activeOffice === 'morning' ? strings.liturgicalMorning :
+                            activeOffice === 'noon' ? strings.liturgicalNoon :
+                            activeOffice === 'evening' ? strings.liturgicalEvening :
+                            activeOffice === 'eve' ? strings.liturgicalEve :
+                            activeOffice === 'completorium' ? strings.liturgicalCompletorium :
+                            activeOffice === 'apocrypha' ? strings.liturgicalApocrypha : strings.liturgicalOffices;
+                          const title = `${activeOfficeLabel} – ${dayData.title || dayData.day_title || strings.tabLiturgical} (${dayData.date})`;
+                          onExportToNotebook(dayData, title, officeContent);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 border border-purple-500/25 transition-all btn-tactile cursor-pointer"
+                        title={strings.liturgicalExportOfficesTooltip}
+                      >
+                        <FileText size={14} />
+                        <span>{strings.liturgicalExportOffices}</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Office readings list with Cadence Markers & Copy Button */}

@@ -271,5 +271,97 @@ describe('LiturgicalView', () => {
     expect(container?.querySelector('nav[aria-label="Kirkkovuoden osiot"]') || container?.textContent).toBeDefined();
     localStorage.removeItem('clible_liturgical_view_mode');
   });
+
+  it('triggers onExportToNotebook when export button is clicked', async () => {
+    const onExport = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <LiturgicalView
+            onSelectVerse={vi.fn()}
+            initialDate="2026-09-20"
+            onExportToNotebook={onExport}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const exportBtn = Array.from(container?.querySelectorAll('button') || []).find((b) =>
+      b.getAttribute('aria-label') === 'Vie muistikirjaksi' || b.textContent?.includes('Vie muistikirjaksi')
+    );
+    expect(exportBtn).toBeDefined();
+
+    act(() => {
+      exportBtn?.click();
+    });
+
+    expect(onExport).toHaveBeenCalledTimes(1);
+    expect(onExport).toHaveBeenCalledWith(mockDay);
+  });
+
+  it('triggers onExportToNotebook when Alt+N keyboard shortcut is pressed', async () => {
+    const onExport = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <LiturgicalView
+            onSelectVerse={vi.fn()}
+            initialDate="2026-09-20"
+            onExportToNotebook={onExport}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    // Simulate Alt+N keydown event on window
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'n',
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    });
+
+    expect(onExport).toHaveBeenCalledTimes(1);
+    expect(onExport).toHaveBeenCalledWith(mockDay);
+  });
+
+  it('triggers onExportToNotebook when export offices button is clicked', async () => {
+    const onExport = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <LiturgicalView
+            onSelectVerse={vi.fn()}
+            initialDate="2026-09-20"
+            onExportToNotebook={onExport}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const exportOfficesBtn = Array.from(container?.querySelectorAll('button') || []).find((b) =>
+      b.textContent?.includes('Vie hetkipalvelukset') || b.textContent?.includes('Export Offices')
+    );
+    expect(exportOfficesBtn).toBeDefined();
+
+    act(() => {
+      exportOfficesBtn?.click();
+    });
+
+    expect(onExport).toHaveBeenCalledTimes(1);
+    expect(onExport.mock.calls[0][0]).toEqual(mockDay);
+    expect(onExport.mock.calls[0][1]).toContain('Aamurukous');
+    expect(onExport.mock.calls[0][2]).toContain('! @(Ps 118:19-29)');
+  });
 });
 
