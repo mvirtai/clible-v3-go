@@ -293,6 +293,74 @@ export function MarkdownCell({
         </code>
       );
     },
+    h1: ({ children }: { children?: React.ReactNode }) => (
+      <h1 className="text-2xl font-bold tracking-tight mt-6 mb-3 text-[var(--text)] border-b border-[var(--border-soft)] pb-2 first:mt-0">
+        {children}
+      </h1>
+    ),
+    h2: ({ children }: { children?: React.ReactNode }) => (
+      <h2 className="text-xl font-bold tracking-tight mt-6 mb-3 text-[var(--text)] border-b border-[var(--border-soft)] pb-1.5 first:mt-0">
+        {children}
+      </h2>
+    ),
+    h3: ({ children }: { children?: React.ReactNode }) => (
+      <h3 className="text-lg font-semibold tracking-tight mt-5 mb-2 text-[var(--accent)] first:mt-0">
+        {children}
+      </h3>
+    ),
+    h4: ({ children }: { children?: React.ReactNode }) => (
+      <h4 className="text-base font-semibold tracking-tight mt-4 mb-2 text-[var(--text)] first:mt-0">
+        {children}
+      </h4>
+    ),
+    h5: ({ children }: { children?: React.ReactNode }) => (
+      <h5 className="text-sm font-semibold tracking-tight mt-3 mb-1.5 text-[var(--muted)] first:mt-0">
+        {children}
+      </h5>
+    ),
+    h6: ({ children }: { children?: React.ReactNode }) => (
+      <h6 className="text-xs font-semibold uppercase tracking-wider mt-2.5 mb-1 text-[var(--muted)] first:mt-0">
+        {children}
+      </h6>
+    ),
+    p: ({ children }: { children?: React.ReactNode }) => (
+      <p className="my-2.5 leading-relaxed text-[var(--text)]">
+        {children}
+      </p>
+    ),
+    blockquote: ({ children }: { children?: React.ReactNode }) => (
+      <blockquote className="my-3.5 pl-4 py-2 border-l-4 border-amber-500/70 bg-amber-500/5 dark:bg-amber-500/10 rounded-r-lg text-[var(--text)] italic leading-relaxed">
+        {children}
+      </blockquote>
+    ),
+    hr: () => (
+      <hr className="my-5 border-0 border-t border-[var(--border)] opacity-60" />
+    ),
+    ul: ({ children }: { children?: React.ReactNode }) => (
+      <ul className="list-disc pl-5 my-2.5 space-y-1 text-[var(--text)]">
+        {children}
+      </ul>
+    ),
+    ol: ({ children }: { children?: React.ReactNode }) => (
+      <ol className="list-decimal pl-5 my-2.5 space-y-1 text-[var(--text)]">
+        {children}
+      </ol>
+    ),
+    li: ({ children }: { children?: React.ReactNode }) => (
+      <li className="pl-0.5 leading-relaxed">
+        {children}
+      </li>
+    ),
+    strong: ({ children }: { children?: React.ReactNode }) => (
+      <strong className="font-semibold text-[var(--text)]">
+        {children}
+      </strong>
+    ),
+    em: ({ children }: { children?: React.ReactNode }) => (
+      <em className="italic">
+        {children}
+      </em>
+    ),
   };
 
   const { strings } = useLanguage();

@@ -63,25 +63,30 @@ graph LR
 ### 1. Pure Functional ISLA Generator (`frontend/src/utils/liturgicalIslaExport.ts`)
 
 - **Executable Directives:** Scripture references in both lectionary and prayer offices use executable ISLA directives (`! @(viite)`), omitting redundant raw text quotes.
-- **Authentic 9-Step Liturgical Structure:**
-  1. `1. Johdanto (Invitatorium)`: Versicles (`V:` / `R:`) and Gloria Patri.
-  2. `2. Virsi (Hymnus)`: Day hymns and thematic office hymn suggestions.
+- **Authentic 9-Step Liturgical Structure (Kirkkokäsikirja III: Rukoushetket):**
+  1. `1. Johdanto (Invitatorium)`: Authentic Finnish liturgical versicles (`E:` / `S:`) and Gloria Patri with sign of the cross `(+)`.
+  2. `2. Virsi (Hymnus)`: Day hymns and thematic office hymn suggestions formatted with direct clickable Markdown links to `https://virsikirja.fi/<number>`.
   3. `3. Psalmi (Psalmodia)`: Daily office psalm or day psalm formatted with `! @(...)`.
   4. `4. Raamatunluku (Lectio)`: Canonical scripture reading formatted with `! @(...)`.
-  5. `5. Responsorio (Vastauslaulu)`: Authentic responsories for morning, midday, evening, and night prayers.
+  5. `5. Responsorio (Vastauslaulu)`: Authentic liturgical responsories (refrain repetition by congregation, Gloria Patri) for morning (Ps. 143:8), midday (Ps. 36:6), evening (Ps. 141:2), and night prayers (Ps. 31:6).
   6. `6. Kiitosvirsi (Canticum)`: Evangelical canticles—Benedictus (`Luuk 1:68-79`), Magnificat (`Luuk 1:46-55`), and Nunc dimittis (`Luuk 2:29-32`).
-  7. `7. Rukousjakso (Preces & Collecta)`: Kyrie, numbered day collect prayers, and the traditional Compline night prayer.
+  7. `7. Rukousjakso (Preces & Collecta)`: Kyrie (`E:` / `S:`), numbered day collect prayers, and the traditional Compline night prayer.
   8. `8. Isä meidän (Oratio Dominica)`: Stanza-spaced Lord's Prayer.
-  9. `9. Ylistys ja Päätössiunaus (Benedictio)`: Blessings and versicles.
-- **Markdown Line-Break Hygiene:** `formatPrayerLines` injects double-space (`  `) line endings and blockquote spacing so stanzas and versicles never collapse into merged walls of text.
+  9. `9. Ylistys ja Päätössiunaus (Benedictio)`: Blessings (`(+)`) and versicles (`E:` / `S:`).
+- **Markdown Line-Break Hygiene & Visual Dividers:** `formatPrayerLines` injects double-space (`  `) line endings and blockquote spacing. Clear `---` visual dividers and semantic subheadings (`####`) separate prayers, Kyrie litany, and each of the 9 prayer office steps.
+- **Hymn Hyperlinking:** `formatHymnLink` automatically produces structured links `[Virsi X (Nimi)](https://virsikirja.fi/X)` for both general liturgical exports and daily prayer offices.
 
-### 2. Liturgical View Export Actions & Keyboard Shortcut (`LiturgicalView.tsx`)
+### 2. Rich MarkdownCell Typography Components (`MarkdownCell.tsx`)
+
+- **Bespoke HTML Heading & Element Styling:** Enhanced `MarkdownCell.tsx`'s `ReactMarkdown` component map to explicitly render `h1`-`h6` with hierarchical font-sizes and tracking, distinct `blockquote` styling with left border tint (`border-l-4 border-amber-500/70 bg-amber-500/5`), `hr` horizontal dividers, and styled paragraphs and lists. Prevents Tailwind v4 preflight CSS resets from collapsing markdown headings and quotes into plain text.
+
+### 3. Liturgical View Export Actions & Keyboard Shortcut (`LiturgicalView.tsx`)
 
 - **Celebration Header Action Button:** Dedicated "Vie muistikirjaksi" button with keyboard shortcut badge (`Alt+N`).
 - **Prayer Offices Header Action Button:** Dedicated "Vie hetkipalvelukset" button allowing one-click export of current office or all daily offices.
 - **Window Keyboard Listener:** Memory-safe window `keydown` listener capturing `Alt+N` with unmount cleanup.
 
-### 3. Application-Level Router Integration (`App.tsx`)
+### 4. Application-Level Router Integration (`App.tsx`)
 
 - **State Transition & Navigation:** `handleExportLiturgicalToNotebook` accepts optional `customTitle` and `customContent`, persisting via `PUT /api/notebooks/{id}/cells` with cell array payload.
 
@@ -89,10 +94,10 @@ graph LR
 
 ## Improvement Metrics & Key Figures
 
-* **Vitest Test Suite:** 13 comprehensive unit tests in `liturgicalIslaExport.test.ts` and 9 integration tests in `LiturgicalView.test.tsx` (all 357 frontend tests pass 100%).
+* **Vitest Test Suite:** 14 comprehensive unit tests in `liturgicalIslaExport.test.ts`, 14 tests in `MarkdownCell.test.tsx`, and 9 integration tests in `LiturgicalView.test.tsx` (all 359 frontend tests pass 100%).
 * **Quality Gates:** 100% clean execution across `task frontend:check`, `task backend:check`, and `task check`.
 * **Backend Test Coverage:** 76.6% overall statement coverage maintained across all Go internal packages.
-* **Semantic Versioning:** Set application version to `3.9.1` (`task version:set VER=3.9.1`).
+* **Semantic Versioning:** Set application version to `3.9.2` (`task version:set VER=3.9.2`).
 
 ---
 
@@ -109,16 +114,18 @@ graph LR
 
 | File | Change Summary |
 |------|----------------|
-| `frontend/src/utils/liturgicalIslaExport.ts` | Created pure ISLA v2 markdown generator with full 9-step liturgy structure, canticles, and responses |
-| `frontend/src/utils/liturgicalIslaExport.test.ts` | 13 unit tests verifying reference normalization, 9-step liturgy, canticles, and responsories |
+| `frontend/src/utils/liturgicalIslaExport.ts` | Created pure ISLA v2 markdown generator with full 9-step liturgy structure, canticles, responses, clean subheadings, dividers, and virsikirja.fi links |
+| `frontend/src/utils/liturgicalIslaExport.test.ts` | 14 unit tests verifying reference normalization, 9-step liturgy, canticles, responsories, and hymn links |
+| `frontend/src/components/notebook/cells/MarkdownCell.tsx` | Added rich typography component map (h1-h6, blockquote, hr, p, lists) to render styled markdown headings, quotes, and dividers |
+| `frontend/src/components/notebook/cells/MarkdownCell.test.tsx` | Added unit test verifying rich typography rendering in preview mode |
 | `frontend/src/utils/i18n.ts` | Added bilingual translation strings for day and offices export buttons and tooltips |
 | `frontend/src/views/LiturgicalView.tsx` | Added day export and offices export buttons, `onExportToNotebook` prop, and `Alt+N` shortcut listener |
 | `frontend/src/views/LiturgicalView.test.tsx` | Added component tests verifying day export, office export, and `Alt+N` keyboard event |
 | `frontend/src/App.tsx` | Implemented `handleExportLiturgicalToNotebook` supporting custom titles and contents via PUT /cells |
-| `frontend/src/utils/version.ts` | Version set to `3.9.1` |
-| `frontend/package.json` | Version set to `3.9.1` |
-| `backend/internal/version/version.go` | Version set to `3.9.1` |
-| `VERSION` | Version set to `3.9.1` |
+| `frontend/src/utils/version.ts` | Version set to `3.9.2` |
+| `frontend/package.json` | Version set to `3.9.2` |
+| `backend/internal/version/version.go` | Version set to `3.9.2` |
+| `VERSION` | Version set to `3.9.2` |
 | `pr_stories/095-feat-liturgical-isla-notebook-export.md` | Documented feature, architecture, and verification results |
 
 ---
@@ -138,8 +145,8 @@ All local quality checks passed flawlessly!
 ### Automated Frontend Tests
 
 ```text
- ✓ src/utils/liturgicalIslaExport.test.ts (13 tests) 38ms
+ ✓ src/utils/liturgicalIslaExport.test.ts (14 tests) 29ms
  ✓ src/views/LiturgicalView.test.tsx (9 tests) 790ms
  Test Files  46 passed (46)
-      Tests  357 passed (357)
+      Tests  358 passed (358)
 ```

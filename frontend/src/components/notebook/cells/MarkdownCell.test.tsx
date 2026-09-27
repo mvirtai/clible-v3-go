@@ -650,5 +650,43 @@ describe('MarkdownCell', () => {
     expect(textarea).toBeTruthy();
     expect(textarea?.value).toBe('! ');
   });
+
+  it('renders rich typography with headings, blockquotes, and dividers correctly in preview', async () => {
+    const cell = {
+      id: 'cell-typography',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '# Heading 1\n\n## Heading 2\n\n### Heading 3\n\n#### Heading 4\n\n> Liturgical prayer blockquote\n\n---',
+    };
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={vi.fn()} />
+        </LanguageProvider>
+      );
+    });
+
+    const h1 = container?.querySelector('h1');
+    const h2 = container?.querySelector('h2');
+    const h3 = container?.querySelector('h3');
+    const h4 = container?.querySelector('h4');
+    const blockquote = container?.querySelector('blockquote');
+    const hr = container?.querySelector('hr');
+
+    expect(h1).toBeTruthy();
+    expect(h1?.className).toContain('text-2xl');
+    expect(h2).toBeTruthy();
+    expect(h2?.className).toContain('text-xl');
+    expect(h3).toBeTruthy();
+    expect(h3?.className).toContain('text-lg');
+    expect(h4).toBeTruthy();
+    expect(h4?.className).toContain('text-base');
+    expect(blockquote).toBeTruthy();
+    expect(blockquote?.className).toContain('border-l-4');
+    expect(blockquote?.textContent).toContain('Liturgical prayer blockquote');
+    expect(hr).toBeTruthy();
+  });
 });
 

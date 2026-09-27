@@ -53,6 +53,17 @@ export function formatPrayerLines(prayerText: string): string[] {
 }
 
 /**
+ * Formats a hymn reference with a direct markdown link to virsikirja.fi.
+ */
+export function formatHymnLink(hymn: { number: string; name?: string; url?: string }, lang: UILanguage = 'fi'): string {
+  const isFi = lang === 'fi';
+  const prefix = isFi ? 'Virsi' : 'Hymn';
+  const url = hymn.url || `https://virsikirja.fi/${encodeURIComponent(hymn.number)}`;
+  const label = hymn.name ? `${prefix} ${hymn.number} (${hymn.name})` : `${prefix} ${hymn.number}`;
+  return `[${label}](${url})`;
+}
+
+/**
  * Checks if a reference string is a Psalm reference.
  */
 export function isPsalmRef(ref: string): boolean {
@@ -247,6 +258,10 @@ export function liturgicalToISLA(
         }
         lines.push(...pLines);
         lines.push('');
+        if (idx < day.prayers!.length - 1) {
+          lines.push('---');
+          lines.push('');
+        }
       }
     });
   }
@@ -263,7 +278,7 @@ export function liturgicalToISLA(
         lines.push('');
       }
       for (const hymn of group.hymns) {
-        lines.push(`- Virsi ${hymn.number} (${hymn.name})`);
+        lines.push(`- ${formatHymnLink(hymn, lang)}`);
       }
       lines.push('');
     }
@@ -365,88 +380,124 @@ export function officesToISLA(
     lines.push('');
     if (key === 'completorium') {
       if (isFi) {
-        lines.push('> **V:** Auttajaamme on Herra,  ');
-        lines.push('> **R:** joka on tehnyt taivaan ja maan.');
+        lines.push('> **E:** Auttajaamme on Herra,  ');
+        lines.push('> **S:** joka on tehnyt taivaan ja maan.');
         lines.push('>');
         lines.push('> *Synnintunnustus ja anteeksianto:*  ');
         lines.push('> Tunnustan Jumalalle, Kaikkivaltiaalle, ja teille, sisaret ja veljet, että olen tehnyt syntiä ajatuksin, sanoin, teoin ja laiminlyönnein.  ');
         lines.push('> Kaikkivaltias Jumala armahtakoon meitä, antakoon syntimme anteeksi ja johdattakoon meidät iankaikkiseen elämään. Aamen.');
         lines.push('>');
-        lines.push('> **V:** Jumala, tule minun avukseni.  ');
-        lines.push('> **R:** Herra, riennä minua auttamaan.');
+        lines.push('> **E:** Jumala, ole armollinen, pelasta minut.  ');
+        lines.push('> **S:** Riennä avukseni, Herra.');
         lines.push('>');
-        lines.push('> *Kunnia Isälle ja Pojalle ja Pyhälle Hengelle, niin kuin oli alussa, nyt on ja aina, iankaikkisesta iankaikkiseen. Aamen. (Halleluja.)*');
+        lines.push('> **Kaikki:** Kunnia (+) Isälle ja Pojalle ja Pyhälle Hengelle,  ');
+        lines.push('> niin kuin oli alussa, nyt on ja aina,  ');
+        lines.push('> iankaikkisesta iankaikkiseen. Aamen. (Halleluja.)');
       } else {
-        lines.push('> **V:** Our help is in the name of the Lord,  ');
-        lines.push('> **R:** the maker of heaven and earth.');
+        lines.push('> **L:** Our help is in the name of the Lord,  ');
+        lines.push('> **C:** the maker of heaven and earth.');
         lines.push('>');
         lines.push('> *Confession of Sins & Absolution:*  ');
         lines.push('> I confess to Almighty God, and to you, brothers and sisters, that I have sinned in thought, word, deed, and omission.  ');
         lines.push('> May Almighty God have mercy on us, forgive us our sins, and bring us to everlasting life. Amen.');
         lines.push('>');
-        lines.push('> **V:** O God, come to my assistance.  ');
-        lines.push('> **R:** O Lord, make haste to help me.');
+        lines.push('> **L:** O God, be gracious to me and save me.  ');
+        lines.push('> **C:** O Lord, make haste to help me.');
         lines.push('>');
-        lines.push('> *Glory to the Father and to the Son and to the Holy Spirit, as it was in the beginning, is now, and will be forever. Amen. (Alleluia.)*');
+        lines.push('> **All:** Glory (+) to the Father and to the Son and to the Holy Spirit,  ');
+        lines.push('> as it was in the beginning, is now, and will be forever. Amen. (Alleluia.)');
       }
-    } else if (key === 'morning') {
+    } else if (key === 'noon') {
       if (isFi) {
-        lines.push('> **V:** Herra, avaa minun huuleni,  ');
-        lines.push('> **R:** jotta suuni julistaisi sinun ylistystäsi.');
+        lines.push('> **E:** Jumala, ole armollinen, pelasta minut.  ');
+        lines.push('> **S:** Riennä avukseni, Herra.');
         lines.push('>');
-        lines.push('> **V:** Jumala, tule minun avukseni.  ');
-        lines.push('> **R:** Herra, riennä minua auttamaan.');
-        lines.push('>');
-        lines.push('> *Kunnia Isälle ja Pojalle ja Pyhälle Hengelle, niin kuin oli alussa, nyt on ja aina, iankaikkisesta iankaikkiseen. Aamen. Halleluja!*');
+        lines.push('> **Kaikki:** Kunnia (+) Isälle ja Pojalle ja Pyhälle Hengelle,  ');
+        lines.push('> niin kuin oli alussa, nyt on ja aina,  ');
+        lines.push('> iankaikkisesta iankaikkiseen. Aamen. Halleluja!');
       } else {
-        lines.push('> **V:** O Lord, open my lips,  ');
-        lines.push('> **R:** and my mouth shall declare your praise.');
+        lines.push('> **L:** O God, be gracious to me and save me.  ');
+        lines.push('> **C:** O Lord, make haste to help me.');
         lines.push('>');
-        lines.push('> **V:** O God, come to my assistance.  ');
-        lines.push('> **R:** O Lord, make haste to help me.');
-        lines.push('>');
-        lines.push('> *Glory to the Father and to the Son and to the Holy Spirit, as it was in the beginning, is now, and will be forever. Amen. Alleluia!*');
+        lines.push('> **All:** Glory (+) to the Father and to the Son and to the Holy Spirit,  ');
+        lines.push('> as it was in the beginning, is now, and will be forever. Amen. Alleluia!');
       }
     } else {
+      // Morning (Laudes), Evening (Vesper), Eve (Vigilia)
       if (isFi) {
-        lines.push('> **V:** Jumala, tule minun avukseni.  ');
-        lines.push('> **R:** Herra, riennä minua auttamaan.');
+        lines.push('> **E:** Herra, avaa minun huuleni,  ');
+        lines.push('> **S:** niin suuni julistaa sinun kunniaasi.');
         lines.push('>');
-        lines.push('> *Kunnia Isälle ja Pojalle ja Pyhälle Hengelle, niin kuin oli alussa, nyt on ja aina, iankaikkisesta iankaikkiseen. Aamen. Halleluja!*');
+        lines.push('> **E:** Jumala, ole armollinen, pelasta minut.  ');
+        lines.push('> **S:** Riennä avukseni, Herra.');
+        lines.push('>');
+        lines.push('> **Kaikki:** Kunnia (+) Isälle ja Pojalle ja Pyhälle Hengelle,  ');
+        lines.push('> niin kuin oli alussa, nyt on ja aina,  ');
+        lines.push('> iankaikkisesta iankaikkiseen. Aamen. (Halleluja!)');
       } else {
-        lines.push('> **V:** O God, come to my assistance.  ');
-        lines.push('> **R:** O Lord, make haste to help me.');
+        lines.push('> **L:** O Lord, open my lips,  ');
+        lines.push('> **C:** and my mouth shall declare your praise.');
         lines.push('>');
-        lines.push('> *Glory to the Father and to the Son and to the Holy Spirit, as it was in the beginning, is now, and will be forever. Amen. Alleluia!*');
+        lines.push('> **L:** O God, be gracious to me and save me.  ');
+        lines.push('> **C:** O Lord, make haste to help me.');
+        lines.push('>');
+        lines.push('> **All:** Glory (+) to the Father and to the Son and to the Holy Spirit,  ');
+        lines.push('> as it was in the beginning, is now, and will be forever. Amen. (Alleluia!)');
       }
     }
     lines.push('');
 
     // 2. Virsi (Hymnus)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '2. Virsi (Hymnus)' : '2. Hymn (Hymnus)'}`);
     lines.push('');
     if (day.hymns && day.hymns.length > 0) {
-      lines.push(`*${isFi ? 'Päivän virsi:' : 'Hymn of the Day:'}*`);
+      lines.push(`*${isFi ? 'Päivän virret:' : 'Hymns of the Day:'}*`);
       for (const group of day.hymns) {
         for (const hymn of group.hymns) {
-          lines.push(`- Virsi ${hymn.number} (${hymn.name})`);
+          lines.push(`- ${formatHymnLink(hymn, lang)}`);
         }
       }
       lines.push('');
     }
-    // Specific recommendation
+    // Specific recommendations with virsikirja.fi links
     if (key === 'morning') {
-      lines.push(`*${isFi ? 'Ehdotus: Aamuvirsi (esim. virret 535–548)' : 'Suggestion: Morning hymn (e.g. hymns 535–548)'}*`);
+      if (isFi) {
+        lines.push('*Ehdotus: Aamuvirsi* – esim. [Virsi 547](https://virsikirja.fi/547) (*Joka aamu on armo uus*), [Virsi 541](https://virsikirja.fi/541) tai [Virsi 538](https://virsikirja.fi/538) ([Aamuvirret 535–548](https://virsikirja.fi/535))');
+      } else {
+        lines.push('*Suggestion: Morning hymn* – e.g. [Hymn 547](https://virsikirja.fi/547) (*Every morning mercies new*), [Hymn 541](https://virsikirja.fi/541), or [Hymn 538](https://virsikirja.fi/538) ([Morning hymns 535–548](https://virsikirja.fi/535))');
+      }
     } else if (key === 'noon') {
-      lines.push(`*${isFi ? 'Ehdotus: Keskipäivän virsi tai päivän virsi' : 'Suggestion: Midday hymn or hymn of the day'}*`);
+      if (isFi) {
+        lines.push('*Ehdotus: Keskipäivän virsi tai päivän virsi* – esim. [Virsi 532](https://virsikirja.fi/532) tai [Virsi 531](https://virsikirja.fi/531)');
+      } else {
+        lines.push('*Suggestion: Midday hymn or hymn of the day* – e.g. [Hymn 532](https://virsikirja.fi/532) or [Hymn 531](https://virsikirja.fi/531)');
+      }
     } else if (key === 'evening' || key === 'eve') {
-      lines.push(`*${isFi ? 'Ehdotus: Iltavirsi (esim. virret 550–564)' : 'Suggestion: Evening hymn (e.g. hymns 550–564)'}*`);
+      if (isFi) {
+        lines.push('*Ehdotus: Iltavirsi* – esim. [Virsi 555](https://virsikirja.fi/555) (*Oi Herra, luoksein jää*), [Virsi 550](https://virsikirja.fi/550) tai [Virsi 563](https://virsikirja.fi/563) ([Iltavirret 550–564](https://virsikirja.fi/550))');
+      } else {
+        lines.push('*Suggestion: Evening hymn* – e.g. [Hymn 555](https://virsikirja.fi/555) (*Abide with me*), [Hymn 550](https://virsikirja.fi/550), or [Hymn 563](https://virsikirja.fi/563) ([Evening hymns 550–564](https://virsikirja.fi/550))');
+      }
     } else if (key === 'completorium') {
-      lines.push(`*${isFi ? 'Ehdotus: Yövirsi (esim. virret 552, 558 tai 559)' : 'Suggestion: Night hymn (e.g. hymns 552, 558, or 559)'}*`);
+      if (isFi) {
+        lines.push('*Ehdotus: Yövirsi* – esim. [Virsi 552](https://virsikirja.fi/552) (*Mua siipeis suojaan kätke*), [Virsi 558](https://virsikirja.fi/558) tai [Virsi 559](https://virsikirja.fi/559)');
+      } else {
+        lines.push('*Suggestion: Night hymn* – e.g. [Hymn 552](https://virsikirja.fi/552) (*Keep me under thy wings*), [Hymn 558](https://virsikirja.fi/558), or [Hymn 559](https://virsikirja.fi/559)');
+      }
+    } else if (key === 'apocrypha') {
+      if (isFi) {
+        lines.push('*Ehdotus: Mietiskelyvirsi* – esim. [Virsi 440](https://virsikirja.fi/440)');
+      } else {
+        lines.push('*Suggestion: Meditation hymn* – e.g. [Hymn 440](https://virsikirja.fi/440)');
+      }
     }
     lines.push('');
 
     // 3. Psalmi (Psalmodia)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '3. Psalmi (Psalmodia)' : '3. Psalm (Psalmodia)'}`);
     lines.push('');
     if (psalmItems.length > 0) {
@@ -465,6 +516,8 @@ export function officesToISLA(
     }
 
     // 4. Raamatunluku (Lectio)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '4. Raamatunluku (Lectio)' : '4. Scripture Reading (Lectio)'}`);
     lines.push('');
     if (readingItems.length > 0) {
@@ -483,70 +536,92 @@ export function officesToISLA(
     }
 
     // 5. Responsorio (Vastauslaulu)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '5. Responsorio (Vastauslaulu)' : '5. Responsory (Responsorium)'}`);
     lines.push('');
     if (key === 'morning') {
       if (isFi) {
-        lines.push('> **V:** Sinun sanasi on lamppu, joka valaisee askeleeni,  ');
-        lines.push('> **R:** ja valo minun matkallani.');
+        lines.push('> **E:** Laupeuteesi minä turvaan jo varhaisesta aamusta,  ');
+        lines.push('> **S:** laupeuteesi minä turvaan jo varhaisesta aamusta.');
         lines.push('>');
-        lines.push('> **V:** Kunnia Isälle ja Pojalle ja Pyhälle Hengelle.');
-        lines.push('> **R:** Sinun sanasi on lamppu, joka valaisee askeleeni.');
+        lines.push('> **E:** Sinun puoleesi minä käännyn, opeta minulle tie, jota kulkea.  ');
+        lines.push('> **S:** Laupeuteesi minä turvaan jo varhaisesta aamusta.');
+        lines.push('>');
+        lines.push('> **E:** Kunnia Isälle ja Pojalle ja Pyhälle Hengelle.  ');
+        lines.push('> **S:** Laupeuteesi minä turvaan jo varhaisesta aamusta.');
       } else {
-        lines.push('> **V:** Your word is a lamp to my feet,  ');
-        lines.push('> **R:** and a light to my path.');
+        lines.push('> **L:** Satisfy us in the morning with your unfailing love,  ');
+        lines.push('> **C:** satisfy us in the morning with your unfailing love.');
         lines.push('>');
-        lines.push('> **V:** Glory to the Father and to the Son and to the Holy Spirit.');
-        lines.push('> **R:** Your word is a lamp to my feet.');
+        lines.push('> **L:** That we may sing for joy and be glad all our days.  ');
+        lines.push('> **C:** Satisfy us in the morning with your unfailing love.');
+        lines.push('>');
+        lines.push('> **L:** Glory to the Father and to the Son and to the Holy Spirit.  ');
+        lines.push('> **C:** Satisfy us in the morning with your unfailing love.');
       }
     } else if (key === 'noon') {
       if (isFi) {
-        lines.push('> **V:** Herra, sinun armosi ulottuu taivaisiin,  ');
-        lines.push('> **R:** sinun uskollisuutesi pilviin saakka.');
+        lines.push('> **E:** Herra, sinun armosi ulottuu taivaisiin,  ');
+        lines.push('> **S:** sinun uskollisuutesi pilviin saakka.');
         lines.push('>');
-        lines.push('> **V:** Kunnia Isälle ja Pojalle ja Pyhälle Hengelle.');
-        lines.push('> **R:** Herra, sinun armosi ulottuu taivaisiin.');
+        lines.push('> **E:** Sinun vanhurskautesi on vuorten kaltainen, oikeutesi kuin syvä meri.  ');
+        lines.push('> **S:** Herra, sinun armosi ulottuu taivaisiin.');
+        lines.push('>');
+        lines.push('> **E:** Kunnia Isälle ja Pojalle ja Pyhälle Hengelle.  ');
+        lines.push('> **S:** Herra, sinun armosi ulottuu taivaisiin.');
       } else {
-        lines.push('> **V:** Your love, Lord, reaches to the heavens,  ');
-        lines.push('> **R:** your faithfulness to the skies.');
+        lines.push('> **L:** Your love, Lord, reaches to the heavens,  ');
+        lines.push('> **C:** your faithfulness to the skies.');
         lines.push('>');
-        lines.push('> **V:** Glory to the Father and to the Son and to the Holy Spirit.');
-        lines.push('> **R:** Your love, Lord, reaches to the heavens.');
+        lines.push('> **L:** Your righteousness is like the highest mountains, your justice like the great deep.  ');
+        lines.push('> **C:** Your love, Lord, reaches to the heavens.');
+        lines.push('>');
+        lines.push('> **L:** Glory to the Father and to the Son and to the Holy Spirit.  ');
+        lines.push('> **C:** Your love, Lord, reaches to the heavens.');
       }
     } else if (key === 'completorium') {
       if (isFi) {
-        lines.push('> **V:** Sinun käsiisi, Herra, minä annan henkeni.  ');
-        lines.push('> **R:** Sinun käsiisi, Herra, minä annan henkeni.');
+        lines.push('> **E:** Sinun käsiisi, Herra, minä annan henkeni,  ');
+        lines.push('> **S:** sinun käsiisi, Herra, minä annan henkeni.');
         lines.push('>');
-        lines.push('> **V:** Sinä lunastat minut, Herra, uskollinen Jumala.  ');
-        lines.push('> **R:** Minä annan henkeni.');
+        lines.push('> **E:** Sinä lunastat minut, Herra, uskollinen Jumala.  ');
+        lines.push('> **S:** Minä annan henkeni.');
         lines.push('>');
-        lines.push('> **V:** Kunnia Isälle ja Pojalle ja Pyhälle Hengelle.');
-        lines.push('> **R:** Sinun käsiisi, Herra, minä annan henkeni.');
+        lines.push('> **E:** Kunnia Isälle ja Pojalle ja Pyhälle Hengelle.  ');
+        lines.push('> **S:** Sinun käsiisi, Herra, minä annan henkeni.');
       } else {
-        lines.push('> **V:** Into your hands, Lord, I commend my spirit.  ');
-        lines.push('> **R:** Into your hands, Lord, I commend my spirit.');
+        lines.push('> **L:** Into your hands, Lord, I commend my spirit,  ');
+        lines.push('> **C:** into your hands, Lord, I commend my spirit.');
         lines.push('>');
-        lines.push('> **V:** You have redeemed me, Lord, faithful God.  ');
-        lines.push('> **R:** I commend my spirit.');
+        lines.push('> **L:** You have redeemed me, Lord, faithful God.  ');
+        lines.push('> **C:** Into your hands, Lord, I commend my spirit.');
         lines.push('>');
-        lines.push('> **V:** Glory to the Father and to the Son and to the Holy Spirit.');
-        lines.push('> **R:** Into your hands, Lord, I commend my spirit.');
+        lines.push('> **L:** Glory to the Father and to the Son and to the Holy Spirit.  ');
+        lines.push('> **C:** Into your hands, Lord, I commend my spirit.');
       }
     } else {
-      // Evening / Eve
+      // Evening (Vesper) & Eve (Vigilia)
       if (isFi) {
-        lines.push('> **V:** Koko sydämestäni minä etsin sinua,  ');
-        lines.push('> **R:** älä salli minun eksyä käskyistäsi.');
+        lines.push('> **E:** Nouskoon minun rukoukseni suitsutuksena sinun kasvojesi eteen,  ');
+        lines.push('> **S:** nouskoon minun rukoukseni suitsutuksena sinun kasvojesi eteen.');
         lines.push('>');
-        lines.push('> **V:** Kunnia Isälle ja Pojalle ja Pyhälle Hengelle.');
-        lines.push('> **R:** Koko sydämestäni minä etsin sinua.');
+        lines.push('> **E:** Kätteni kohottaminen olkoon iltauhri.  ');
+        lines.push('> **S:** Nouskoon minun rukoukseni suitsutuksena sinun kasvojesi eteen.');
+        lines.push('>');
+        lines.push('> **E:** Kunnia Isälle ja Pojalle ja Pyhälle Hengelle.  ');
+        lines.push('> **S:** Nouskoon minun rukoukseni suitsutuksena sinun kasvojesi eteen.');
+        lines.push('>');
+        lines.push('*Tai vaihtoehtoisesti kirkkovuoden vastauslaulu Virsikirjan liitteestä [791–800](https://virsikirja.fi/791) tai virsi*');
       } else {
-        lines.push('> **V:** With all my heart I seek you;  ');
-        lines.push('> **R:** do not let me stray from your commands.');
+        lines.push('> **L:** Let my prayer rise before you as incense,  ');
+        lines.push('> **C:** let my prayer rise before you as incense.');
         lines.push('>');
-        lines.push('> **V:** Glory to the Father and to the Son and to the Holy Spirit.');
-        lines.push('> **R:** With all my heart I seek you.');
+        lines.push('> **L:** The lifting up of my hands as an evening sacrifice.  ');
+        lines.push('> **C:** Let my prayer rise before you as incense.');
+        lines.push('>');
+        lines.push('> **L:** Glory to the Father and to the Son and to the Holy Spirit.  ');
+        lines.push('> **C:** Let my prayer rise before you as incense.');
       }
     }
     lines.push('');
@@ -554,6 +629,8 @@ export function officesToISLA(
     // 6. Kiitosvirsi / Canticum (tai Kiitos Ad Sextam)
     const canticleInfo = getCanticleForOffice(key, lang);
     if (canticleInfo) {
+      lines.push('---');
+      lines.push('');
       lines.push(`### ${canticleInfo.title}`);
       lines.push('');
       lines.push(`*${canticleInfo.subtitle}*`);
@@ -562,6 +639,8 @@ export function officesToISLA(
       lines.push(`! @(${targetRef})`);
       lines.push('');
     } else if (key === 'noon') {
+      lines.push('---');
+      lines.push('');
       lines.push(`### ${isFi ? '6. Kiitoshymni (Kiitos)' : '6. Hymn of Praise (Kiitos)'}`);
       lines.push('');
       if (isFi) {
@@ -575,38 +654,50 @@ export function officesToISLA(
     }
 
     // 7. Rukousjakso & Päivän rukous (Preces & Collecta)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '7. Rukousjakso & Päivän rukous (Preces & Collecta)' : '7. Prayers & Collect (Preces & Collecta)'}`);
+    lines.push('');
+    lines.push(`#### ${isFi ? 'Esirukous (Kyrie)' : 'Kyrie Litany'}`);
     lines.push('');
     // Kyrie
     if (isFi) {
-      lines.push('> **V:** Herra, armahda meitä.  ');
-      lines.push('> **R:** Kristus, armahda meitä.  ');
-      lines.push('> **V:** Herra, armahda meitä.');
+      lines.push('> **E:** Herra, armahda meitä.  ');
+      lines.push('> **S:** Kristus, armahda meitä.  ');
+      lines.push('> **E:** Herra, armahda meitä.');
     } else {
-      lines.push('> **V:** Lord, have mercy.  ');
-      lines.push('> **R:** Christ, have mercy.  ');
-      lines.push('> **V:** Lord, have mercy.');
+      lines.push('> **L:** Lord, have mercy.  ');
+      lines.push('> **C:** Christ, have mercy.  ');
+      lines.push('> **L:** Lord, have mercy.');
     }
     lines.push('');
 
     // Päivän kollehtarukous
     if (day.prayers && day.prayers.length > 0) {
+      lines.push('---');
+      lines.push('');
       day.prayers.forEach((prayer, idx) => {
         const pLines = formatPrayerLines(prayer);
         if (pLines.length > 0) {
           const subTitle = isFi
-            ? (day.prayers!.length > 1 ? `Päivän rukous ${idx + 1}` : 'Päivän rukous (Collecta)')
+            ? (day.prayers!.length > 1 ? `Päivän rukous ${idx + 1} (Collecta)` : 'Päivän rukous (Collecta)')
             : (day.prayers!.length > 1 ? `Collect of the Day ${idx + 1}` : 'Collect of the Day');
           lines.push(`#### ${subTitle}`);
           lines.push('');
           lines.push(...pLines);
           lines.push('');
+          if (idx < day.prayers!.length - 1) {
+            lines.push('---');
+            lines.push('');
+          }
         }
       });
     }
 
     // Yörukouksen perinteinen rukous
     if (key === 'completorium') {
+      lines.push('---');
+      lines.push('');
       lines.push(`#### ${isFi ? 'Yörukous' : 'Night Prayer'}`);
       lines.push('');
       if (isFi) {
@@ -623,6 +714,8 @@ export function officesToISLA(
     }
 
     // 8. Isä meidän (Oratio Dominica)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '8. Isä meidän (Oratio Dominica)' : '8. The Lord\'s Prayer (Oratio Dominica)'}`);
     lines.push('');
     if (isFi) {
@@ -647,31 +740,37 @@ export function officesToISLA(
     lines.push('');
 
     // 9. Ylistys ja Päätössiunaus (Benedictio)
+    lines.push('---');
+    lines.push('');
     lines.push(`### ${isFi ? '9. Ylistys ja Päätössiunaus (Benedictio)' : '9. Blessing (Benedictio)'}`);
     lines.push('');
     if (key === 'completorium') {
       if (isFi) {
-        lines.push('> **V:** Rauhassa minä käyn levolle ja nukahdan.  ');
-        lines.push('> **R:** Sinä, Herra, annat minun asua turvassa.');
+        lines.push('> **E:** Rauhassa minä käyn levolle ja nukahdan.  ');
+        lines.push('> **S:** Sinä, Herra, annat minun asua turvassa.');
         lines.push('>');
-        lines.push('> *Siunatkoon meitä kaikkivaltias ja laupias Jumala, Isä, Poika ja Pyhä Henki. Aamen.*');
+        lines.push('> **E:** Siunatkoon meitä kaikkivaltias ja laupias Jumala, Isä, (+) Poika ja Pyhä Henki.  ');
+        lines.push('> **S:** Aamen.');
       } else {
-        lines.push('> **V:** In peace I will lie down and sleep.  ');
-        lines.push('> **R:** For you alone, Lord, make me dwell in safety.');
+        lines.push('> **L:** In peace I will lie down and sleep.  ');
+        lines.push('> **C:** For you alone, Lord, make me dwell in safety.');
         lines.push('>');
-        lines.push('> *May the almighty and merciful God bless us: the Father, the Son, and the Holy Spirit. Amen.*');
+        lines.push('> **L:** May the almighty and merciful God bless us: the Father, the (+) Son, and the Holy Spirit.  ');
+        lines.push('> **C:** Amen.');
       }
     } else {
       if (isFi) {
-        lines.push('> **V:** Kiittäkäämme Herraa.  ');
-        lines.push('> **R:** Jumalalle kiitos.');
+        lines.push('> **E:** Kiittäkäämme Herraa.  ');
+        lines.push('> **S:** Jumalalle kiitos.');
         lines.push('>');
-        lines.push('> *Herran Jeesuksen Kristuksen armo, Jumalan rakkaus ja Pyhän Hengen osallisuus olkoon meidän kaikkien kanssa. Aamen.*');
+        lines.push('> **E:** Herran Jeesuksen Kristuksen armo, Jumalan rakkaus ja Pyhän Hengen osallisuus olkoon meidän kaikkien kanssa.  ');
+        lines.push('> **S:** Aamen.');
       } else {
-        lines.push('> **V:** Let us bless the Lord.  ');
-        lines.push('> **R:** Thanks be to God.');
+        lines.push('> **L:** Let us bless the Lord.  ');
+        lines.push('> **C:** Thanks be to God.');
         lines.push('>');
-        lines.push('> *The grace of our Lord Jesus Christ, and the love of God, and the communion of the Holy Spirit be with us all. Amen.*');
+        lines.push('> **L:** The grace of our Lord Jesus Christ, and the love of God, and the communion of the Holy Spirit be with us all.  ');
+        lines.push('> **C:** Amen.');
       }
     }
     lines.push('');
