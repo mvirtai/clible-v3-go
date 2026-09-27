@@ -32,6 +32,17 @@ This PR introduces end-to-end **GEO (Generative Engine Optimization)** and moder
 ### 4. Repository & Ecosystem Entity Framing
 
 - Enhanced [`README.md`](file:///home/vivaldev/code/clible-v3-go/README.md) opening summary to unambiguously define the Clible name and link directly to `llms.txt` and `llms-full.txt`.
+- Added the Top-5 Everyday Use Cases table to [`README.md`](file:///home/vivaldev/code/clible-v3-go/README.md) showing how single-line ISLA directives replace dozens of lines of raw PostgreSQL SQL queries.
+
+### 5. Official VitePress Documentation (`docs/guide/isla-guide.md`)
+
+- Modernized [`docs/guide/isla-guide.md`](file:///home/vivaldev/code/clible-v3-go/docs/guide/isla-guide.md) by introducing Section 2: "Top-5 Everyday Use Cases: ISLA vs. Raw SQL" with concrete comparative queries:
+  1. Parallel Translation Matrix vs. Multiple SQL Joins
+  2. Scoped Lexical Search vs. PostgreSQL `to_tsvector` and `ts_rank`
+  3. Quantitative Exegesis (TTR & Vocabulary Density) vs. Token CTE Aggregations
+  4. Canonical Cross-References vs. Foreign Key Relationship Queries
+  5. Multi-Corpus Counting vs. `COUNT(DISTINCT book_id)` Aggregations
+- Verified that `task docs:build` completes with 100% success.
 
 ---
 
