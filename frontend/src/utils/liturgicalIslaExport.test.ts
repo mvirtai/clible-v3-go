@@ -208,6 +208,10 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('## Aamurukous (Laudes)');
       expect(output).toContain('### 1. Johdanto (Invitatorium)');
       expect(output).toContain('Herra, avaa minun huuleni');
+      expect(output).toContain('niin suuni julistaa sinun kunniaasi');
+      expect(output).toContain('Jumala, ole armollinen, pelasta minut');
+      expect(output).toContain('Riennä avukseni, Herra');
+      expect(output).toContain('Kunnia (+) Isälle ja Pojalle ja Pyhälle Hengelle');
       expect(output).toContain('### 2. Virsi (Hymnus)');
       expect(output).toContain('[Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)');
       expect(output).toContain('https://virsikirja.fi/547');
@@ -216,7 +220,7 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('### 4. Raamatunluku (Lectio)');
       expect(output).toContain('! @(1Moos 17:1-8)');
       expect(output).toContain('### 5. Responsorio (Vastauslaulu)');
-      expect(output).toContain('Sinun sanasi on lamppu, joka valaisee askeleeni');
+      expect(output).toContain('Laupeuteesi minä turvaan jo varhaisesta aamusta');
       expect(output).toContain('### 6. Kiitosvirsi – Sakariaan kiitosvirsi (Benedictus)');
       expect(output).toContain('! @(Luuk 1:68-79)');
       expect(output).toContain('### 7. Rukousjakso & Päivän rukous (Preces & Collecta)');
@@ -226,7 +230,7 @@ describe('liturgicalIslaExport', () => {
 
       // Check Vesper
       expect(output).toContain('## Iltarukous (Vesper)');
-      expect(output).toContain('Koko sydämestäni minä etsin sinua');
+      expect(output).toContain('Nouskoon minun rukoukseni suitsutuksena sinun kasvojesi eteen');
       expect(output).toContain('### 6. Kiitosvirsi – Marian kiitosvirsi (Magnificat)');
       expect(output).toContain('! @(Luuk 1:46-55)');
 
@@ -261,7 +265,7 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('3. Psalm (Psalmodia)');
       expect(output).toContain('4. Scripture Reading (Lectio)');
       expect(output).toContain('5. Responsory (Responsorium)');
-      expect(output).toContain('Your word is a lamp to my feet');
+      expect(output).toContain('Satisfy us in the morning with your unfailing love');
       expect(output).toContain('6. Canticle – The Song of Zechariah (Benedictus)');
       expect(output).toContain('7. Prayers & Collect (Preces & Collecta)');
       expect(output).toContain('Lord, have mercy');
