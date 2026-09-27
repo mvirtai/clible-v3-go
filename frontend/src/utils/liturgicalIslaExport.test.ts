@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { liturgicalToISLA, formatIslaReference } from './liturgicalIslaExport';
+import { liturgicalToISLA, formatIslaReference, officesToISLA } from './liturgicalIslaExport';
 import type { LiturgicalDay } from '../types/liturgical';
 
 const sampleDay: LiturgicalDay = {
@@ -119,6 +119,23 @@ describe('liturgicalIslaExport', () => {
       const output = liturgicalToISLA(sampleDay, 'fi', { includeCollect: true, includeHymns: true, includeOffices: true });
       expect(output).toContain('## Hetkipalvelukset');
       expect(output).toContain('### Aamurukous (Laudes)');
+      expect(output).toContain('! @(Ps 118:19-29)');
+    });
+  });
+
+  describe('officesToISLA', () => {
+    it('exports all offices for the day with ! @(ref) syntax', () => {
+      const output = officesToISLA(sampleDay, 'fi');
+      expect(output).toContain('# Hetkipalvelukset – 1. adventtisunnuntai');
+      expect(output).toContain('## Aamurukous (Laudes)');
+      expect(output).toContain('### Ps. 118:19–29');
+      expect(output).toContain('! @(Ps 118:19-29)');
+      expect(output).toContain('> Avatkaa portit');
+    });
+
+    it('exports single specific office when selected', () => {
+      const output = officesToISLA(sampleDay, 'fi', 'morning');
+      expect(output).toContain('# Aamurukous (Laudes) – 1. adventtisunnuntai');
       expect(output).toContain('! @(Ps 118:19-29)');
     });
   });

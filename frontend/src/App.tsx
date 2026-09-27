@@ -182,9 +182,9 @@ export function App() {
     }
   };
 
-  const handleExportLiturgicalToNotebook = async (day: LiturgicalDay) => {
-    const title = `${day.title || day.day_title || strings.tabLiturgical} (${day.date})`;
-    const islaContent = liturgicalToISLA(day, lang);
+  const handleExportLiturgicalToNotebook = async (day: LiturgicalDay, customTitle?: string, customContent?: string) => {
+    const title = customTitle || `${day.title || day.day_title || strings.tabLiturgical} (${day.date})`;
+    const islaContent = customContent || liturgicalToISLA(day, lang);
 
     if (!user) {
       const newNotebook = createGuestNotebook(title, lang);

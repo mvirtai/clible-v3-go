@@ -186,3 +186,82 @@ export function liturgicalToISLA(
 
   return lines.join('\n').trim();
 }
+
+/**
+ * Generates an interactive ISLA v2 Markdown note representation specifically for Prayer Offices (Hetkipalvelukset).
+ * If specificOffice is provided, exports only that office; otherwise exports all available offices for the day.
+ */
+export function officesToISLA(
+  day: LiturgicalDay,
+  lang: UILanguage = 'fi',
+  specificOffice?: 'morning' | 'noon' | 'evening' | 'eve' | 'completorium' | 'apocrypha'
+): string {
+  const isFi = lang === 'fi';
+  const lines: string[] = [];
+
+  const dayTitle = day.title || day.day_title || day.date;
+  const offices = day.prayer_offices || {};
+
+  const officeNames: Record<string, { fi: string; en: string }> = {
+    morning: { fi: 'Aamurukous (Laudes)', en: 'Morning Prayer (Lauds)' },
+    noon: { fi: 'Päivärukous (Ad Sextam)', en: 'Midday Prayer (Ad Sextam)' },
+    evening: { fi: 'Iltarukous (Vesper)', en: 'Evening Prayer (Vespers)' },
+    eve: { fi: 'Aattorukous (Vigilia)', en: 'Eve Prayer (Vigil)' },
+    completorium: { fi: 'Yörukous (Completorium)', en: 'Night Prayer (Compline)' },
+    apocrypha: { fi: 'Apokryfikirjojen lukukappaleet', en: 'Apocrypha Readings' },
+  };
+
+  if (specificOffice && officeNames[specificOffice]) {
+    const name = isFi ? officeNames[specificOffice].fi : officeNames[specificOffice].en;
+    lines.push(`# ${name} – ${dayTitle}`);
+  } else {
+    lines.push(`# ${isFi ? 'Hetkipalvelukset' : 'Prayer Offices'} – ${dayTitle}`);
+  }
+
+  // Metadata badge line
+  const metaParts: string[] = [];
+  if (day.date) {
+    metaParts.push(`**${isFi ? 'Päivämäärä:' : 'Date:'}** ${day.date}`);
+  }
+  if (day.color) {
+    metaParts.push(`**${isFi ? 'Liturginen väri:' : 'Liturgical color:'}** ${day.color}`);
+  }
+  if (metaParts.length > 0) {
+    lines.push(metaParts.join(' | '));
+  }
+
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+
+  const keysToProcess = specificOffice ? [specificOffice] : (['morning', 'noon', 'evening', 'eve', 'completorium', 'apocrypha'] as const);
+
+  for (const key of keysToProcess) {
+    const items = offices[key as keyof typeof offices];
+    if (items && items.length > 0) {
+      const officeTitle = isFi ? officeNames[key]?.fi || key : officeNames[key]?.en || key;
+      lines.push(`## ${officeTitle}`);
+      lines.push('');
+      for (const it of items) {
+        if (it.verse) {
+          lines.push(`### ${it.verse}`);
+          lines.push(`! @(${formatIslaReference(it.verse)})`);
+          lines.push('');
+        }
+        if (it.text && it.text.trim()) {
+          // Strip raw HTML tags (e.g. <u>...</u> cadence markers) for clean Markdown rendering
+          const cleanText = it.text.replace(/<\/?u>/g, '').trim();
+          const textLines = cleanText.split('\n');
+          for (const tl of textLines) {
+            lines.push(`> ${tl}`);
+          }
+          lines.push('');
+        }
+      }
+      lines.push('---');
+      lines.push('');
+    }
+  }
+
+  return lines.join('\n').trim();
+}

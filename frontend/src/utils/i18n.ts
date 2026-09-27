@@ -59,6 +59,8 @@ export interface Messages {
   liturgicalExportToNotebook: string;
   liturgicalExportToNotebookTooltip: string;
   liturgicalExportToNotebookSuccess: string;
+  liturgicalExportOffices: string;
+  liturgicalExportOfficesTooltip: string;
   appBootLoading: string;
   errFailedLoadTranslations: string;
   errSelectTranslationFirst: string;
@@ -544,6 +546,8 @@ export const strings: Record<UILanguage, Messages> = {
         liturgicalExportToNotebook: 'Export to Notebook',
         liturgicalExportToNotebookTooltip: 'Create an interactive ISLA notebook from today’s texts (Alt+N)',
         liturgicalExportToNotebookSuccess: 'Church year texts exported to notebook',
+        liturgicalExportOffices: 'Export Offices',
+        liturgicalExportOfficesTooltip: 'Create an interactive ISLA notebook from daily prayer offices',
         appBootLoading: 'Loading...',
             noTranslations: 'No translations',
             translationPlaceholder: 'Select translation...',
@@ -1022,6 +1026,8 @@ export const strings: Record<UILanguage, Messages> = {
     liturgicalExportToNotebook: 'Vie muistikirjaksi',
     liturgicalExportToNotebookTooltip: 'Luo päivän teksteistä interaktiivinen ISLA-muistikirja (Alt+N)',
     liturgicalExportToNotebookSuccess: 'Kirkkovuoden tekstit viety muistikirjaan',
+    liturgicalExportOffices: 'Vie hetkipalvelukset',
+    liturgicalExportOfficesTooltip: 'Luo hetkipalvelusten lukukappaleista interaktiivinen ISLA-muistikirja',
     appBootLoading: 'Ladataan...',
     notebookTitle: 'Muistikirjat',
     createNotebook: 'Luo muistikirja',

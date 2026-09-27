@@ -332,5 +332,36 @@ describe('LiturgicalView', () => {
     expect(onExport).toHaveBeenCalledTimes(1);
     expect(onExport).toHaveBeenCalledWith(mockDay);
   });
+
+  it('triggers onExportToNotebook when export offices button is clicked', async () => {
+    const onExport = vi.fn();
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <LiturgicalView
+            onSelectVerse={vi.fn()}
+            initialDate="2026-09-20"
+            onExportToNotebook={onExport}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const exportOfficesBtn = Array.from(container?.querySelectorAll('button') || []).find((b) =>
+      b.textContent?.includes('Vie hetkipalvelukset') || b.textContent?.includes('Export Offices')
+    );
+    expect(exportOfficesBtn).toBeDefined();
+
+    act(() => {
+      exportOfficesBtn?.click();
+    });
+
+    expect(onExport).toHaveBeenCalledTimes(1);
+    expect(onExport.mock.calls[0][0]).toEqual(mockDay);
+    expect(onExport.mock.calls[0][1]).toContain('Aamurukous');
+    expect(onExport.mock.calls[0][2]).toContain('! @(Ps 118:19-29)');
+  });
 });
 
