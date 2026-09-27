@@ -94,11 +94,33 @@ func TestLemmatizeFI_GeneralMorphology(t *testing.T) {
 		{"talolle", "talo"},
 		{"kirjakin", "kirja"},
 		{"kaupungissa", "kaupunki"}, // stemmer or prefix
+		// Possessives & clitics
+		{"taloni", "talo"},
+		{"talomme", "talo"},
+		{"talonne", "talo"},
+		{"talonsa", "talo"},
+		{"talosi", "talo"},
+		{"talossakin", "talo"},
+		{"kirjahan", "kirja"},
+		{"onpa", "on"},
+		{"onko", "on"},
+		// Cases & plural forms
+		{"vuorilta", "vuori"},
+		{"kirkkoon", "kirkko"},
+		{"puutarhaan", "puutarha"},
+		{"valkeudeksi", "valkeus"},
+		{"pimeydeksi", "pimeys"},
+		// Trimming boundary checks
+		{"", ""},
+		{"a", "a"},
+		{"tie", "tie"},
 	}
 
 	for _, tt := range tests {
 		actual := LemmatizeFI(tt.input)
-		if actual == "" {
+		if tt.input == "" && actual != "" {
+			t.Errorf("LemmatizeFI(%q) expected empty string, got %q", tt.input, actual)
+		} else if tt.input != "" && actual == "" {
 			t.Errorf("LemmatizeFI(%q) returned empty string", tt.input)
 		}
 	}

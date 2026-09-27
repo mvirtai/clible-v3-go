@@ -998,5 +998,96 @@ func TestDSLExecutor_FunctionalPipelines(t *testing.T) {
 			t.Errorf("expected count 2 for # \"köyhät\", got %+v", resHash.Data)
 		}
 	})
+
+	t.Run("Execute Top with Lemma, Cluster, and Categorize", func(t *testing.T) {
+		// Context with lemmatizer injected
+		lemmaCtx := &ExecutionContext{
+			Ctx:           context.Background(),
+			DefaultTrans:  "KR92",
+			VerseSearcher: searcher,
+			Lemmatizer: func(w string) string {
+				if w == "koyhat" || w == "koyhät" || w == "köyhät" {
+					return "köyhä"
+				}
+				return w
+			},
+		}
+
+		// 1. Pipeline top(5) => lemma()
+		nodeLemma, err := Parse(`? "köyhät" => top(5) => lemma()`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resLemma, err := Execute(lemmaCtx, nodeLemma)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resLemma.Type != "words" {
+			t.Fatalf("expected words type, got %s", resLemma.Type)
+		}
+
+		// 2. Pipeline top(5) => cluster()
+		nodeCluster, err := Parse(`? "köyhät" => top(5) => cluster()`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCluster, err := Execute(lemmaCtx, nodeCluster)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCluster.Type != "words" {
+			t.Fatalf("expected words type, got %s", resCluster.Type)
+		}
+
+		// 3. Pipeline top(5) => categorize()
+		nodeCat, err := Parse(`? "köyhät" => top(5) => categorize()`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCat, err := Execute(lemmaCtx, nodeCat)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resCat.Type != "words" {
+			t.Fatalf("expected words type, got %s", resCat.Type)
+		}
+
+		// 4. ClusteredAnalyticsFinder explicit injection on left pipeline
+		customCtx := &ExecutionContext{
+			Ctx:           context.Background(),
+			DefaultTrans:  "KR92",
+			VerseSearcher: searcher,
+			ClusteredAnalyticsFinder: func(verses []models.Verse, text string, limit int) AnalyticsData {
+				return AnalyticsData{
+					TopWords: []models.ThemeItem{{Word: "köyhä", Count: 2}},
+				}
+			},
+		}
+		nodeLeftCluster, err := Parse(`? "köyhät" => cluster() => top(5)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resCustom, err := Execute(customCtx, nodeLeftCluster)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		words := resCustom.Data["words"].([]models.ThemeItem)
+		if len(words) != 1 || words[0].Word != "köyhä" {
+			t.Errorf("expected custom clustered analytics, got %+v", words)
+		}
+
+		// 5. Explicit lemma=false / lemma(0)
+		nodeDisabled, err := Parse(`? "köyhät" => lemma(false) => top(5)`)
+		if err != nil {
+			t.Fatalf("parse failed: %v", err)
+		}
+		resDisabled, err := Execute(lemmaCtx, nodeDisabled)
+		if err != nil {
+			t.Fatalf("execute failed: %v", err)
+		}
+		if resDisabled.Type != "words" {
+			t.Errorf("expected words type, got %s", resDisabled.Type)
+		}
+	})
 }
 
