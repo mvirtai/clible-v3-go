@@ -690,7 +690,6 @@ var (
 	dslLiturgicalCrossRegex  = regexp.MustCompile(`\(\+\)`)
 	dslBlockquoteLeaderRegex = regexp.MustCompile(`(?m)^\s*>\s?`)
 	dslDividerLineRegex      = regexp.MustCompile(`(?m)^\s*---+.*$`)
-	dslMarkdownBulletRegex   = regexp.MustCompile(`(?m)^\s*[-*+]\s+`)
 	dslVerseRefExtractRegex  = regexp.MustCompile(`@(?:\(([^)]+)\)|([1-3]?[A-Za-zäöÄÖåÅ]+(?:\s+\d+(?::\d+(?:-\d+)?)?)?))`)
 )
 
