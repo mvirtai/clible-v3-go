@@ -248,15 +248,6 @@ export function officesToISLA(
           lines.push(`! @(${formatIslaReference(it.verse)})`);
           lines.push('');
         }
-        if (it.text && it.text.trim()) {
-          // Strip raw HTML tags (e.g. <u>...</u> cadence markers) for clean Markdown rendering
-          const cleanText = it.text.replace(/<\/?u>/g, '').trim();
-          const textLines = cleanText.split('\n');
-          for (const tl of textLines) {
-            lines.push(`> ${tl}`);
-          }
-          lines.push('');
-        }
       }
       lines.push('---');
       lines.push('');

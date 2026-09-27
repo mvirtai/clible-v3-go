@@ -130,7 +130,6 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('## Aamurukous (Laudes)');
       expect(output).toContain('### Ps. 118:19–29');
       expect(output).toContain('! @(Ps 118:19-29)');
-      expect(output).toContain('> Avatkaa portit');
     });
 
     it('exports single specific office when selected', () => {
