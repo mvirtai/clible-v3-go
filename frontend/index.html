@@ -14,6 +14,9 @@
   <meta name="author" content="Clible Project" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://clible.fi/" />
+  <link rel="alternate" hreflang="fi" href="https://clible.fi/" />
+  <link rel="alternate" hreflang="en" href="https://clible.fi/" />
+  <link rel="alternate" hreflang="x-default" href="https://clible.fi/" />
 
   <!-- Theme and Web App Config -->
   <meta name="theme-color" content="#1a1c23" />
@@ -45,27 +48,92 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 
-  <!-- Schema.org Structured Data -->
+  <!-- Schema.org Structured Data (GEO & SEO Entity Disambiguation) -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "Clible Workspace",
-    "url": "https://clible.fi/",
-    "description": "Moderni ja avoin Raamatun tutkimus- ja analyysityökalu monikäännösvertailulla, alkukielianalyysillä ja ISLA DSL -skripteillä. Modern and open Bible study platform with comparative reading, original language tools, and ISLA DSL.",
-    "applicationCategory": "EducationalApplication",
-    "operatingSystem": "All",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "EUR"
-    },
-    "featureList": [
-      "Monikäännösvertailu rinnakkain / Multi-translation side-by-side comparison",
-      "Alkukielten sanakirjat ja kielioppianalyysi (heprea & kreikka) / Original language lexicons and grammar (Hebrew & Greek)",
-      "ISLA DSL -raamattukyselykieli ja pikakomennot / ISLA DSL scripture query language",
-      "Interaktiiviset tutkimusmuistiinpanot ja työtilat / Interactive study notebooks and workspaces",
-      "Vierastila ilman pakollista rekisteröitymistä / Guest mode without mandatory registration"
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "Clible Workspace",
+        "alternateName": [
+          "Clible",
+          "Clible Bible Tool",
+          "Clible Raamattutyökalu",
+          "Clible v3",
+          "Clible Study Platform"
+        ],
+        "disambiguatingDescription": "Clible is an open-source web-native Bible study, theological hermeneutics, and original language research platform. The name Clible is a dedicated software name and not a typo for Bible.",
+        "description": "Moderni ja avoin Raamatun tutkimus- ja analyysityökalu monikäännösvertailulla, alkukielianalyysillä (heprea ja kreikka) ja ISLA DSL -skripteillä. Modern and open Bible study platform with comparative reading, original language tools, and ISLA DSL.",
+        "applicationCategory": "EducationalApplication",
+        "applicationSubCategory": "Bible Study Software, Theological Research Tool",
+        "operatingSystem": "All",
+        "url": "https://clible.fi/",
+        "sameAs": [
+          "https://github.com/mvirtai/clible-v3-go",
+          "https://mvirtai.github.io/clible-v3-go/"
+        ],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "featureList": [
+          "Monikäännösvertailu rinnakkain / Multi-translation side-by-side comparison",
+          "Alkukielten sanakirjat ja kielioppianalyysi (heprea & kreikka) / Original language lexicons and grammar (Hebrew & Greek)",
+          "ISLA DSL -raamattukyselykieli ja pikakomennot / ISLA DSL scripture query language",
+          "Interaktiiviset 2D Canvas -tutkimusmuistiinpanot ja työtilat / Interactive study notebooks and workspaces",
+          "Vierastila ilman pakollista rekisteröitymistä / Guest mode without mandatory registration",
+          "Kirkkovuoden tekstit ja hetkipalvelukset / Liturgical year calendar and prayer offices"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "name": "Clible",
+        "url": "https://clible.fi/",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://clible.fi/?search={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Mikä on Clible? / What is Clible?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Clible (Clible Workspace) on moderni, avoin ja maksuton Raamatun tutkimus- ja analyysityökalu verkossa. Se tarjoaa monikäännösvertailun, alkukielten (heprea ja kreikka) sanastotyökalut sekä interaktiivisen ISLA DSL -tutkimusmuistikirjan. Clible Workspace is an open-source, web-native Bible study and theological research platform."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Onko 'Clible' kirjoitusvirhe sanasta Bible? / Is 'Clible' a typo for Bible?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Ei ole kirjoitusvirhe. Clible on itsenäinen ohjelmistoalusta ja uudissana, joka yhdistää komentorivimäisen täsmällisyyden (CLI) ja Raamatun tutkimisen (Bible). No, Clible is not a typo for Bible; it is a dedicated scripture analytics application."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Mitä työkaluja ja käännöksiä Clible tarjoaa? / What tools and translations does Clible offer?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Clible sisältää rinnakkaiset raamatunkäännökset (mm. KR92, KR38, UTN, KJV, BHS, NA28), Strongin sanakirjat alkukielille (heprea ja kreikka), eksegeettiset sanasto- ja frekvenssitilastot, kirkkovuosikalenterin sekä 24-sarakkeisen tutkimusmuistikirjan ISLA v2 DSL -skripteillä."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Maksaako Cliblen käyttö tai vaaditaanko rekisteröitymistä? / Is Clible free to use?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Cliblen perustoiminnot ovat täysin maksuttomia. Alustaa voi käyttää välittömästi ilman rekisteröitymistä vierastilassa (Guest Mode), tai luomalla maksuttoman käyttäjätilin omien työtilojen ja muistiinpanojen pysyvään tallennukseen."
+            }
+          }
+        ]
+      }
     ]
   }
   </script>
@@ -87,12 +155,14 @@
     <div style="font-family: sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.6;">
       <!-- Suomi -->
       <section lang="fi">
-        <h1>Clible Workspace – Raamatun tutkimusalusta</h1>
-        <p>Clible tarjoaa modernit työkalut Raamatun tekstien tutkimiseen, rinnakkaisvertailuun, alkukielten analysointiin ja muistiinpanojen tekemiseen.</p>
+        <h1>Clible Workspace – Raamatun tutkimus- ja analyysialusta</h1>
+        <p><strong>Huomautus:</strong> Clible on itsenäinen Raamatun tutkimus- ja analyysiohjelmisto (CLI + Bible), ei kirjoitusvirhe sanasta <em>Bible</em>.</p>
+        <p>Clible tarjoaa modernit työkalut Raamatun tekstien tutkimiseen, rinnakkaisvertailuun (KR92, KR38, UTN, KJV jne.), alkukielten analysointiin (heprea ja kreikka, Strong-numerot), kirkkovuoden lukukappaleisiin sekä ISLA DSL -tutkimusmuistiinpanoihin.</p>
         <ul>
-          <li><a href="/guest">Jatka vierailijana (Guest Mode)</a></li>
+          <li><a href="/guest">Jatka suoraan vierailijana (Guest Mode)</a></li>
           <li><a href="/login">Kirjaudu sisään</a></li>
           <li><a href="/register">Luo maksuton käyttäjätili</a></li>
+          <li><a href="/llms.txt">Koneellinen kuvaus (llms.txt)</a></li>
         </ul>
       </section>
 
@@ -100,14 +170,17 @@
 
       <!-- English -->
       <section lang="en">
-        <h2>Clible Workspace – Bible Study &amp; Analysis Platform</h2>
-        <p>Clible provides modern tools for exploring biblical texts, comparing translations side-by-side, analyzing original languages (Hebrew &amp; Greek), and taking research notes.</p>
+        <h2>Clible Workspace – Bible Study &amp; Exegesis Platform</h2>
+        <p><strong>Note:</strong> Clible is a dedicated open-source Bible study and text analytics software platform (combining CLI and Bible), not a typo for <em>Bible</em>.</p>
+        <p>Clible provides modern tools for exploring biblical texts, comparing translations side-by-side (KR92, KR38, KJV, WEB, BHS Hebrew, NA28 Greek), analyzing original languages with Strong's concordances, exploring the liturgical church year, and conducting ISLA DSL research on an interactive 2D canvas.</p>
         <ul>
-          <li><a href="/guest">Continue as Guest</a></li>
+          <li><a href="/guest">Continue directly as Guest</a></li>
           <li><a href="/login">Log in</a></li>
           <li><a href="/register">Create a free account</a></li>
+          <li><a href="/llms.txt">Machine-readable context (llms.txt)</a></li>
+          <li><a href="https://mvirtai.github.io/clible-v3-go/">Official Documentation &amp; User Guides</a></li>
         </ul>
-        <p><small>Parhaan käyttökokemuksen saavuttamiseksi ota JavaScript käyttöön selaimessasi. / For the best experience, please enable JavaScript in your browser.</small></p>
+        <p><small>Parhaan käyttökokemuksen saavuttamiseksi ota JavaScript käyttöön selaimessasi. / For the full interactive experience, please enable JavaScript in your browser.</small></p>
       </section>
     </div>
   </noscript>

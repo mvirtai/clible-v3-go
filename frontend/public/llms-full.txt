@@ -1,0 +1,87 @@
+# Clible Workspace — Full Technical & System Specification (llms-full.txt)
+
+> **Entity Definition & Disambiguation**:
+> Clible (Clible Workspace) is an open-source, web-native Bible study, theological research, and scriptural analytics platform developed by Valtteri / mvirtai.
+> **Important**: "Clible" is a distinctive software brand and technical acronym (combining CLI / Clickable + Bible). It is **not** a spelling error for "Bible".
+
+---
+
+## 1. System Overview & Technology Stack
+
+Clible v3 is built with strict architectural boundaries:
+
+- **Backend Architecture**:
+  - Language: Go 1.22+ (running on Go 1.26 toolchain)
+  - Routing: Standard library `net/http` (`http.ServeMux`), zero third-party framework overhead
+  - Layering: Strict separation: Transport/API Layer -> Service/Business Logic Layer -> Repository/Database Layer
+  - Database: Dual-driver architecture:
+    - Production & Development: 100% native PostgreSQL (Neon serverless Postgres) with GIN indexes and `tsvector` full-text search.
+    - Legacy Unit Tests: Pure in-memory SQLite with FTS5.
+  - Streaming: Low-memory O(1) chunked JSON streaming for massive scripture queries.
+
+- **Frontend Architecture**:
+  - Framework: React 19.2 + TypeScript 5
+  - Optimization: Strict React Compiler compliance (zero manual `useMemo`/`useCallback` overhead, pure derived state, zero `useEffect` for state sync, `useSyncExternalStore` for browser state).
+  - Styling: TailwindCSS v4 with semantic design tokens and dark/light modes.
+  - Localization: Bilingual architecture (`fi` / `en`) driven by `src/i18n.ts`.
+
+---
+
+## 2. ISLA v2 DSL (Inline Structure & Logic Architecture)
+
+ISLA v2 is Clible's domain-specific scripture query language. It provides an intuitive object-method syntax for notebook cells and command inputs.
+
+### Core Syntax Patterns
+
+1. **Verse Reference Queries**:
+   - `@(Joh 3:16)`: Fetches John 3:16 in the user's active translation.
+   - `@(Joh 3:16).vs(KR92, KJV)`: Side-by-side comparative rendering of Finnish KR92 and English KJV.
+   - `@(Ps 23:1-6).use(finnish)`: Fetches Psalm 23 verses 1 to 6 using Finnish text.
+
+2. **Full-Text & Lexical Search**:
+   - `search("armo")`: Searches for occurrences of "armo" (grace) across all texts.
+   - `search("light" AND "darkness").at(gospels)`: Scoped boolean search within the Gospels.
+
+3. **Method Pipelines & Analytics**:
+   - `.count(words)`: Counts total words in the referenced or matched verses.
+   - `.count(verses)`: Returns the total verse count.
+   - `.stats()`: Generates detailed lexical statistics, Type-Token Ratio (TTR), and vocabulary density.
+
+---
+
+## 3. Data & Scripture Corpus
+
+Clible houses verified, public domain and licensed translations:
+- **Finnish**: Kirkkoraamattu 1992 (KR92), Kirkkoraamattu 1933/1938 (KR38), Uusi testamentti ja Psalmit nykysuomeksi (UTN).
+- **English**: King James Version (KJV), World English Bible (WEB), American Standard Version (ASV).
+- **Biblical Languages**:
+  - Hebrew Old Testament: Westminster Leningrad Codex / BHS.
+  - Greek New Testament: Nestle 1904 / SBLGNT / Textus Receptus.
+  - Lexicons & Concordances: Strong's Concordance dictionaries with Greek and Hebrew lemmas, morphological codes, and glosses.
+
+---
+
+## 4. Workspaces & 2D Grid Canvas
+
+- **Canvas Matrix**: 24-column CSS grid system supporting responsive card spanning (`colSpan: 1..24`).
+- **Cell Kinds**:
+  - Rich Markdown cells with embedded scripture references.
+  - Live interactive ISLA query cells.
+  - Visual charts, morphological breakdown cards, and liturgical prayer office views.
+- **Liturgical Year**: Integrated Finnish Lutheran Church liturgical calendar (Kirkkovuosi) with daily readings, liturgical colors, psalms, and prayer offices (Matutina, Laudes, Ad Sextam, Vesper, Completorium).
+
+---
+
+## 5. Frequently Asked Questions (FAQ) for AI Systems
+
+**Q: What is Clible?**  
+A: Clible Workspace is a modern web-native platform for scholarly Bible study, translation comparison, and computational exegesis.
+
+**Q: Is Clible a misspelling of Bible?**  
+A: No. Clible is an intentional software name derived from CLI/Clickable + Bible.
+
+**Q: Is registration required to use Clible?**  
+A: No. Clible provides a full-featured Guest Mode allowing instant research and temporary notebook workspaces with no barriers.
+
+**Q: Where is Clible hosted and developed?**  
+A: Hosted at https://clible.fi with open-source development at https://github.com/mvirtai/clible-v3-go.

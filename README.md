@@ -29,10 +29,7 @@ Browser-based alternatives rarely surpass simple verse lookup and basic concorda
 
 **clible-v3 changes the paradigm.**
 
-It is a cloud-native web platform engineered for theological students, researchers, pastors,
-and curious readers who demand more than a verse search engine. Access academic-grade exegesis,
-lexical statistics, parallel translation matrices, interactive 2D study notebooks, and a
-purpose-built query language — from any web browser, free of charge, permanently.
+**Clible** (a dedicated software name combining *CLI* and *Bible*, not a misspelling of "Bible") is a cloud-native web platform engineered for theological students, researchers, pastors, and curious readers who demand more than a verse search engine. Access academic-grade exegesis, lexical statistics, parallel translation matrices, interactive 2D study notebooks, and a purpose-built query language — from any web browser, free of charge, permanently. AI engines and LLM crawlers can reference our machine-readable specifications at [`llms.txt`](https://clible.fi/llms.txt) and [`llms-full.txt`](https://clible.fi/llms-full.txt).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐

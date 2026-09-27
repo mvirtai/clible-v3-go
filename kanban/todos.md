@@ -2,26 +2,43 @@
 
 ## In Progress
 
-### Kirkkovuoden hetkipalvelusten tarkennukset: Ad Sextam, Completorium ja Aattorukous
+### Cliblen SEO & GEO (Generative Engine Optimization) -kokonaisuudistus
 
-  - due: 2026-09-27
-  - tags: [liturgical, church-year, prayer-offices, completorium, ad-sextam, eve, backend, frontend]
+  - due: 2026-10-02
+  - tags: [seo, geo, ai, llms-txt, schema-org, disambiguation, vitepress]
   - priority: high
-  - workload: Easy
+  - workload: Medium
   - defaultExpanded: true
   - steps:
-      - [x] Korjaa Päivärukouksen nimi muotoon "Päivärukous (Ad Sextam)" i18n.ts-tiedostossa
-      - [x] Lisää Completorium (yörukous) Kirkkokäsikirjan pysyvin tekstein (Ps. 4, Ps. 91, Ps. 134, Luuk. 2:29–32)
-      - [x] Siirrä pyhäpäivien aattorukous (eve) edeltävän päivän aattoiltaan (D-1) LiturgicalService-palvelussa
-      - [x] Käyttäjäasetus kirkkovuosikalenterin oletusnäkymälle (laatikot vs välilehdet) tietokantaan ja profiilinäkymään
-      - [x] Päivitä CleanPrayerOffices- ja UserSettings-mallit Go- ja TypeScript-rajapinnoissa
-      - [x] Yksikkötestit ja laatuporttien varmistus (task backend:check ja task frontend:check)
+      - [x] Luodaan frontend/public/llms.txt ja llms-full.txt (AI-koneellinen luettavuus & RAG)
+      - [x] Päivitetään frontend/index.html Schema.org JSON-LD (SoftwareApplication + FAQPage disambiguaatio)
+      - [x] Päivitetään hreflang-tagit (fi, en, x-default) ja metatiedot
+      - [x] Sallitaan AI-botit frontend/public/robots.txt (GPTBot, ClaudeBot, PerplexityBot, Google-Extended)
+      - [x] Päivitetään sitemap.xml ja varmistetaan staattinen/noscript-semanttinen runko
+      - [x] Optimoidaan GitHub Topics ja README.md entiteettiankkurointi
+      - [x] Validoidaan JSON-LD Schema ja ajetaan laatuportit (task frontend:check)
     ```md
-    Tarkentaa kirkkovuoden hetkipalveluksia ja näkymäpreferenssejä:
-    1. Keskipäivän hetkipalveluksen nimi on korjattu virallisen Kirkkokäsikirjan mukaiseen muotoon "Päivärukous (Ad Sextam)".
-    2. Lisätty päivän päättävä hetkipalvelus eli Completorium (yörukous) vakiintunein psalmein ja Simeonin kiitosvirsin.
-    3. Aattoiltahetkipalvelus (eve / vigilia) on siirretty liturgisen perinteemme mukaisesti edeltävän päivän aattoiltaan.
-    4. Lisätty käyttäjäasetuksiin (UserSettingsView) valinta kirkkovuosinäkymän oletustilasta (avattavat laatikot vs. välilehdet) sekä tietokantaan (019_liturgical_view_mode.sql) että selaimeen (localStorage).
+    Suunnitelma: [.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md](file:///home/vivaldev/code/clible-v3-go/.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md)
+    Korjataan Google-indeksointi ja tekoälybotti-tunnistus (GEO). Estetään AI-mallien harha 'Clible on kirjoitusvirhe sanasta Bible' luomalla llms.txt, Schema.org FAQPage/SoftwareApplication -entiteettiankkurointi ja AI-indeksointituki.
+    ```
+
+### Kirkkovuoden tekstien ISLA DSL -kooste muistiinpanoihin ja pikanäppäin
+
+  - due: 2026-09-28
+  - tags: [liturgical, isla, dsl, notebook, export, keyboard-shortcut, frontend]
+  - priority: high
+  - workload: Medium
+  - defaultExpanded: true
+  - steps:
+      - [x] Toteuta puhdas ISLA-tekstigeneraattori liturgicalToISLA() frontend/src/utils/liturgicalIslaExport.ts
+      - [x] Lisää Vitest-yksikkötestit generaattorille (liturgicalIslaExport.test.ts)
+      - [x] Lisää kaksikieliset i18n-käännökset vientitoiminnolle ja pikanäppäinvihjeille
+      - [x] Lisää handleExportLiturgicalToNotebook()-reititys App.tsx:ään (kirjautunut + vierastila)
+      - [x] Lisää LiturgicalView.tsx-näkymään toimintopainike ja Alt+N -pikanäppäinkuuntelija
+      - [x] Varmista laatuportit (task frontend:check ja task check)
+    ```md
+    Suunnitelma: [.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md)
+    Kokoaa päivän liturgiset tekstit, teemat, rukoukset ja lukukappaleet suoraan interaktiiviseksi ISLA v2 DSL -muistikirjasoluksi yhdellä pikanäppäimellä (Alt+N) tai painikkeella.
     ```
 
 ### Semanttisen haun jakeiden kuratointi ja Swipe-triage (Mobiili & Työpöytä)
@@ -62,26 +79,6 @@
     ```
 
 ## To Do
-
-### Cliblen SEO & GEO (Generative Engine Optimization) -kokonaisuudistus
-
-  - due: 2026-10-02
-  - tags: [seo, geo, ai, llms-txt, schema-org, disambiguation, vitepress]
-  - priority: high
-  - workload: Medium
-  - defaultExpanded: true
-  - steps:
-      - [ ] Luodaan frontend/public/llms.txt ja llms-full.txt (AI-koneellinen luettavuus & RAG)
-      - [ ] Päivitetään frontend/index.html Schema.org JSON-LD (SoftwareApplication + FAQPage disambiguaatio)
-      - [ ] Päivitetään hreflang-tagit (fi, en, x-default) ja metatiedot
-      - [ ] Sallitaan AI-botit frontend/public/robots.txt (GPTBot, ClaudeBot, PerplexityBot, Google-Extended)
-      - [ ] Päivitetään sitemap.xml ja varmistetaan staattinen/noscript-semanttinen runko
-      - [ ] Optimoidaan GitHub Topics ja README.md entiteettiankkurointi
-      - [ ] Validoidaan JSON-LD Schema ja ajetaan laatuportit (task frontend:check)
-    ```md
-    Suunnitelma: [.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md](file:///home/vivaldev/code/clible-v3-go/.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md)
-    Korjataan Google-indeksointi ja tekoälybotti-tunnistus (GEO). Estetään AI-mallien harha 'Clible on kirjoitusvirhe sanasta Bible' luomalla llms.txt, Schema.org FAQPage/SoftwareApplication -entiteettiankkurointi ja AI-indeksointituki.
-    ```
 
 ### Reader Viewin käyttöliittymäuudistus ja kutsuva lukunäkymä
 
@@ -249,6 +246,25 @@
     ```
 
 ## Done
+
+### Kirkkovuoden hetkipalvelusten tarkennukset: Ad Sextam, Completorium ja Aattorukous
+
+  - due: 2026-09-27
+  - tags: [liturgical, church-year, prayer-offices, completorium, ad-sextam, eve, backend, frontend]
+  - priority: high
+  - workload: Easy
+  - defaultExpanded: false
+  - steps:
+      - [x] Korjaa Päivärukouksen nimi muotoon "Päivärukous (Ad Sextam)" i18n.ts-tiedostossa
+      - [x] Lisää Completorium (yörukous) Kirkkokäsikirjan pysyvin tekstein (Ps. 4, Ps. 91, Ps. 134, Luuk. 2:29–32)
+      - [x] Siirrä pyhäpäivien aattorukous (eve) edeltävän päivän aattoiltaan (D-1) LiturgicalService-palvelussa
+      - [x] Käyttäjäasetus kirkkovuosikalenterin oletusnäkymälle (laatikot vs välilehdet) tietokantaan ja profiilinäkymään
+      - [x] Päivitä CleanPrayerOffices- ja UserSettings-mallit Go- ja TypeScript-rajapinnoissa
+      - [x] Yksikkötestit ja laatuporttien varmistus (task backend:check ja task frontend:check)
+    ```md
+    Toteutettu PR-tarinassa #94 ja yhdistetty haaraan main (#101).
+    Keskipäivän hetkipalvelus korjattu (Ad Sextam), lisätty Completorium pysyvin tekstein, siirretty vigilia edeltävälle päivälle ja lisätty oletusnäkymäasetus käyttäjälle.
+    ```
 
 ### Clible v3.* Asiantuntija-arkkitehti ja Spesifit Subagentit (Clible v3.* Expert & Subagents)
 
