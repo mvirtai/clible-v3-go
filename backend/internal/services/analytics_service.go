@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
@@ -153,8 +154,21 @@ func (s *AnalyticService) Tokenize(text string) []string {
 	for _, w := range words {
 		token := strings.ToLower(w)
 		token = s.punctuation.ReplaceAllString(token, "")
-		token = strings.Trim(token, ".,?!;:\"'()[]{}«»—–- \t\n\r")
-		if token == "" || token == "-" || token == "–" || token == "—" {
+		token = strings.TrimFunc(token, func(r rune) bool {
+			return unicode.IsPunct(r) || unicode.IsSymbol(r) || unicode.IsSpace(r)
+		})
+		if token == "" {
+			continue
+		}
+		// A valid word token must contain at least one letter.
+		hasLetter := false
+		for _, r := range token {
+			if unicode.IsLetter(r) {
+				hasLetter = true
+				break
+			}
+		}
+		if !hasLetter {
 			continue
 		}
 		if s.filterStopwords && (s.stopwords[token] || stopWords[token]) {
@@ -165,8 +179,24 @@ func (s *AnalyticService) Tokenize(text string) []string {
 	return tokens
 }
 
+// AnalysisOptions configures verse analysis parameters like lemmatization/clustering.
+type AnalysisOptions struct {
+	TopN      int
+	Lemmatize bool
+}
+
 // AnalyzeVerses calculates analytics metrics over an array of domain verses.
 func (s *AnalyticService) AnalyzeVerses(verses []models.Verse, topN int) AnalysisResult {
+	return s.AnalyzeVersesWithOptions(verses, AnalysisOptions{TopN: topN, Lemmatize: false})
+}
+
+// AnalyzeVersesClustered analyzes verses grouping Finnish inflections into base lemmas.
+func (s *AnalyticService) AnalyzeVersesClustered(verses []models.Verse, topN int) AnalysisResult {
+	return s.AnalyzeVersesWithOptions(verses, AnalysisOptions{TopN: topN, Lemmatize: true})
+}
+
+// AnalyzeVersesWithOptions calculates analytics metrics with configurable clustering.
+func (s *AnalyticService) AnalyzeVersesWithOptions(verses []models.Verse, opts AnalysisOptions) AnalysisResult {
 	if len(verses) == 0 {
 		return AnalysisResult{}
 	}
@@ -193,8 +223,15 @@ func (s *AnalyticService) AnalyzeVerses(verses []models.Verse, topN int) Analysi
 	}
 
 	uniqueTokens := make(map[string]int)
-	for _, t := range allTokens {
-		uniqueTokens[t]++
+	if opts.Lemmatize {
+		for _, t := range allTokens {
+			lemma := LemmatizeFI(t)
+			uniqueTokens[lemma]++
+		}
+	} else {
+		for _, t := range allTokens {
+			uniqueTokens[t]++
+		}
 	}
 
 	avgWordLen := float64(totalCharCount) / float64(rawWordCount)
@@ -206,9 +243,9 @@ func (s *AnalyticService) AnalyzeVerses(verses []models.Verse, topN int) Analysi
 		TypeTokenRatio:    ttr,
 		CharacterCount:    totalCharCount,
 		AverageWordLength: avgWordLen,
-		TopWords:          s.extractTopFrequencies(uniqueTokens, topN),
-		TopBigrams:        s.extractNGrams(allTokens, 2, topN),
-		TopTrigrams:       s.extractNGrams(allTokens, 3, topN),
+		TopWords:          s.extractTopFrequencies(uniqueTokens, opts.TopN),
+		TopBigrams:        s.extractNGrams(allTokens, 2, opts.TopN),
+		TopTrigrams:       s.extractNGrams(allTokens, 3, opts.TopN),
 	}
 }
 

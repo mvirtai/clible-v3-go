@@ -142,3 +142,51 @@ func TestAnalyticService_CompareTranslations_ExactMatch(t *testing.T) {
 		t.Errorf("expected 1 exact match, got %d", result.Summary.ExactMatches)
 	}
 }
+
+func TestAnalyticService_AnalyzeVersesClustered(t *testing.T) {
+	svc, err := NewAnalyticService(nil, false, "fi")
+	if err != nil {
+		t.Fatalf("failed to initialize analytic service: %v", err)
+	}
+
+	// Verses with multiple inflections of "Jeesus" and "Herra"
+	verses := []models.Verse{
+		{BookID: "Joh", Chapter: 1, Verse: 1, Text: "Jeesus sanoi heille. Jeesuksen sanat olivat totuus."},
+		{BookID: "Joh", Chapter: 1, Verse: 2, Text: "He seurasivat Jeesusta ja huusivat Herralle ja kiittivät Herraa."},
+		{BookID: "Joh", Chapter: 1, Verse: 3, Text: "Herra on hyvä, ja Herran armo pysyy."},
+	}
+
+	// Standard unclustered analysis: "Jeesus", "Jeesuksen", "Jeesusta" would be separate
+	unclustered := svc.AnalyzeVerses(verses, 10)
+	// Clustered analysis: should group into canonical "Jeesus" (count=3) and "Herra" (count=4)
+	clustered := svc.AnalyzeVersesClustered(verses, 10)
+
+	if len(clustered.TopWords) == 0 {
+		t.Fatal("expected top words from clustered analysis")
+	}
+
+	var jeesusCount int
+	var herraCount int
+	for _, tw := range clustered.TopWords {
+		if tw.Word == "Jeesus" {
+			jeesusCount = tw.Count
+		}
+		if tw.Word == "Herra" {
+			herraCount = tw.Count
+		}
+	}
+
+	if jeesusCount != 3 {
+		t.Errorf("expected clustered Jeesus count 3, got %d", jeesusCount)
+	}
+	if herraCount != 4 {
+		t.Errorf("expected clustered Herra count 4, got %d", herraCount)
+	}
+
+	// Clustered unique tokens should be fewer than unclustered
+	if clustered.UniqueTokenCount >= unclustered.UniqueTokenCount {
+		t.Errorf("expected clustered unique tokens (%d) < unclustered unique tokens (%d)",
+			clustered.UniqueTokenCount, unclustered.UniqueTokenCount)
+	}
+}
+
