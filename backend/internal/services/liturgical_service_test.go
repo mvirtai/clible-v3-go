@@ -157,6 +157,35 @@ func TestLiturgicalService_ActualFile(t *testing.T) {
 	}
 }
 
+func TestLiturgicalService_DefaultEmbedded(t *testing.T) {
+	svc, err := NewDefaultLiturgicalService()
+	if err != nil {
+		t.Fatalf("failed to initialize default embedded liturgical service: %v", err)
+	}
+
+	if count := svc.Count(); count != 365 {
+		t.Errorf("expected 365 days from embedded dataset, got %d", count)
+	}
+
+	// Verify the exact date from production screenshot (2026-09-28)
+	day, ok := svc.GetByDate("2026-09-28")
+	if !ok {
+		t.Fatalf("liturgical day for 2026-09-28 not found in embedded dataset")
+	}
+	if day.DayTitle != "Maanantai 28.9.2026" {
+		t.Errorf("expected day title 'Maanantai 28.9.2026', got %q", day.DayTitle)
+	}
+	if day.Title != "18. sunnuntai helluntaista" {
+		t.Errorf("expected title '18. sunnuntai helluntaista', got %q", day.Title)
+	}
+
+	// Also verify Finnish format lookup
+	dayFI, okFI := svc.GetByDate("28.9.2026")
+	if !okFI || dayFI.ISODate != "2026-09-28" {
+		t.Errorf("expected 28.9.2026 to resolve to 2026-09-28, got %v, ok=%v", dayFI, okFI)
+	}
+}
+
 func TestLiturgicalService_CompletoriumAndEveShift(t *testing.T) {
 	sampleJSON := `[
 		{
