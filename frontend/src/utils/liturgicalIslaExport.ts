@@ -5,6 +5,32 @@ export interface IslaExportOptions {
   includeCollect?: boolean;
   includeHymns?: boolean;
   includeOffices?: boolean;
+  stripLinks?: boolean;
+}
+
+/**
+ * Cleans raw text from URLs (http/https), markdown link formatting,
+ * and specific stop-words/web protocols that can interfere with ISLA commands or clean display.
+ * E.g.:
+ * - '[Virsi 547](https://virsikirja.fi/547)' -> 'Virsi 547'
+ * - '([Aamuvirret 535–548](https://virsikirja.fi/535))' -> '(Aamuvirret 535–548)'
+ * - 'katso https://virsikirja.fi/547' -> 'katso'
+ */
+export function cleanStopWordsAndUrls(text: string): string {
+  if (!text) return '';
+
+  return text
+    // Convert markdown links [Label](url) -> Label
+    .replace(/\[([^\]]+)\]\((?:https?:\/\/[^\s)]+|[^)]+)\)/g, '$1')
+    // Remove standalone URLs (https://... or http://...)
+    .replace(/https?:\/\/[^\s)]+/g, '')
+    // Remove lingering protocol prefixes or domain artifacts
+    .replace(/\b(?:https?|ftp):\/\/\S*/gi, '')
+    // Collapse multi-spaces created by removals
+    .replace(/[ \t]+/g, ' ')
+    // Remove redundant spaces before punctuation
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim();
 }
 
 /**
@@ -53,13 +79,20 @@ export function formatPrayerLines(prayerText: string): string[] {
 }
 
 /**
- * Formats a hymn reference with a direct markdown link to virsikirja.fi.
+ * Formats a hymn reference with a direct markdown link or plain text when stripped.
  */
-export function formatHymnLink(hymn: { number: string; name?: string; url?: string }, lang: UILanguage = 'fi'): string {
+export function formatHymnLink(
+  hymn: { number: string; name?: string; url?: string },
+  lang: UILanguage = 'fi',
+  stripLinks: boolean = false
+): string {
   const isFi = lang === 'fi';
   const prefix = isFi ? 'Virsi' : 'Hymn';
-  const url = hymn.url || `https://virsikirja.fi/${encodeURIComponent(hymn.number)}`;
   const label = hymn.name ? `${prefix} ${hymn.number} (${hymn.name})` : `${prefix} ${hymn.number}`;
+  if (stripLinks) {
+    return label;
+  }
+  const url = hymn.url || `https://virsikirja.fi/${encodeURIComponent(hymn.number)}`;
   return `[${label}](${url})`;
 }
 
@@ -278,7 +311,7 @@ export function liturgicalToISLA(
         lines.push('');
       }
       for (const hymn of group.hymns) {
-        lines.push(`- ${formatHymnLink(hymn, lang)}`);
+        lines.push(`- ${formatHymnLink(hymn, lang, options.stripLinks)}`);
       }
       lines.push('');
     }
@@ -304,10 +337,15 @@ export function liturgicalToISLA(
 export function officesToISLA(
   day: LiturgicalDay,
   lang: UILanguage = 'fi',
-  specificOffice?: 'morning' | 'noon' | 'evening' | 'eve' | 'completorium' | 'apocrypha'
+  optionsOrOffice?: ('morning' | 'noon' | 'evening' | 'eve' | 'completorium' | 'apocrypha') | IslaExportOptions & { specificOffice?: 'morning' | 'noon' | 'evening' | 'eve' | 'completorium' | 'apocrypha' }
 ): string {
   const isFi = lang === 'fi';
   const lines: string[] = [];
+
+  const specificOffice = typeof optionsOrOffice === 'string'
+    ? optionsOrOffice
+    : optionsOrOffice?.specificOffice;
+  const stripLinks = typeof optionsOrOffice === 'object' ? Boolean(optionsOrOffice.stripLinks) : false;
 
   const dayTitle = day.title || day.day_title || day.date;
   const offices = day.prayer_offices || {};
@@ -456,42 +494,37 @@ export function officesToISLA(
       lines.push(`*${isFi ? 'Päivän virret:' : 'Hymns of the Day:'}*`);
       for (const group of day.hymns) {
         for (const hymn of group.hymns) {
-          lines.push(`- ${formatHymnLink(hymn, lang)}`);
+          lines.push(`- ${formatHymnLink(hymn, lang, stripLinks)}`);
         }
       }
       lines.push('');
     }
     // Specific recommendations with virsikirja.fi links
+    let suggestionLine = '';
     if (key === 'morning') {
-      if (isFi) {
-        lines.push('*Ehdotus: Aamuvirsi* – esim. [Virsi 547](https://virsikirja.fi/547) (*Joka aamu on armo uus*), [Virsi 541](https://virsikirja.fi/541) tai [Virsi 538](https://virsikirja.fi/538) ([Aamuvirret 535–548](https://virsikirja.fi/535))');
-      } else {
-        lines.push('*Suggestion: Morning hymn* – e.g. [Hymn 547](https://virsikirja.fi/547) (*Every morning mercies new*), [Hymn 541](https://virsikirja.fi/541), or [Hymn 538](https://virsikirja.fi/538) ([Morning hymns 535–548](https://virsikirja.fi/535))');
-      }
+      suggestionLine = isFi
+        ? '*Ehdotus: Aamuvirsi* – esim. [Virsi 547](https://virsikirja.fi/547) (*Joka aamu on armo uus*), [Virsi 541](https://virsikirja.fi/541) tai [Virsi 538](https://virsikirja.fi/538) ([Aamuvirret 535–548](https://virsikirja.fi/535))'
+        : '*Suggestion: Morning hymn* – e.g. [Hymn 547](https://virsikirja.fi/547) (*Every morning mercies new*), [Hymn 541](https://virsikirja.fi/541), or [Hymn 538](https://virsikirja.fi/538) ([Morning hymns 535–548](https://virsikirja.fi/535))';
     } else if (key === 'noon') {
-      if (isFi) {
-        lines.push('*Ehdotus: Keskipäivän virsi tai päivän virsi* – esim. [Virsi 532](https://virsikirja.fi/532) tai [Virsi 531](https://virsikirja.fi/531)');
-      } else {
-        lines.push('*Suggestion: Midday hymn or hymn of the day* – e.g. [Hymn 532](https://virsikirja.fi/532) or [Hymn 531](https://virsikirja.fi/531)');
-      }
+      suggestionLine = isFi
+        ? '*Ehdotus: Keskipäivän virsi tai päivän virsi* – esim. [Virsi 532](https://virsikirja.fi/532) tai [Virsi 531](https://virsikirja.fi/531)'
+        : '*Suggestion: Midday hymn or hymn of the day* – e.g. [Hymn 532](https://virsikirja.fi/532) or [Hymn 531](https://virsikirja.fi/531)';
     } else if (key === 'evening' || key === 'eve') {
-      if (isFi) {
-        lines.push('*Ehdotus: Iltavirsi* – esim. [Virsi 555](https://virsikirja.fi/555) (*Oi Herra, luoksein jää*), [Virsi 550](https://virsikirja.fi/550) tai [Virsi 563](https://virsikirja.fi/563) ([Iltavirret 550–564](https://virsikirja.fi/550))');
-      } else {
-        lines.push('*Suggestion: Evening hymn* – e.g. [Hymn 555](https://virsikirja.fi/555) (*Abide with me*), [Hymn 550](https://virsikirja.fi/550), or [Hymn 563](https://virsikirja.fi/563) ([Evening hymns 550–564](https://virsikirja.fi/550))');
-      }
+      suggestionLine = isFi
+        ? '*Ehdotus: Iltavirsi* – esim. [Virsi 555](https://virsikirja.fi/555) (*Oi Herra, luoksein jää*), [Virsi 550](https://virsikirja.fi/550) tai [Virsi 563](https://virsikirja.fi/563) ([Iltavirret 550–564](https://virsikirja.fi/550))'
+        : '*Suggestion: Evening hymn* – e.g. [Hymn 555](https://virsikirja.fi/555) (*Abide with me*), [Hymn 550](https://virsikirja.fi/550), or [Hymn 563](https://virsikirja.fi/563) ([Evening hymns 550–564](https://virsikirja.fi/550))';
     } else if (key === 'completorium') {
-      if (isFi) {
-        lines.push('*Ehdotus: Yövirsi* – esim. [Virsi 552](https://virsikirja.fi/552) (*Mua siipeis suojaan kätke*), [Virsi 558](https://virsikirja.fi/558) tai [Virsi 559](https://virsikirja.fi/559)');
-      } else {
-        lines.push('*Suggestion: Night hymn* – e.g. [Hymn 552](https://virsikirja.fi/552) (*Keep me under thy wings*), [Hymn 558](https://virsikirja.fi/558), or [Hymn 559](https://virsikirja.fi/559)');
-      }
+      suggestionLine = isFi
+        ? '*Ehdotus: Yövirsi* – esim. [Virsi 552](https://virsikirja.fi/552) (*Mua siipeis suojaan kätke*), [Virsi 558](https://virsikirja.fi/558) tai [Virsi 559](https://virsikirja.fi/559)'
+        : '*Suggestion: Night hymn* – e.g. [Hymn 552](https://virsikirja.fi/552) (*Keep me under thy wings*), [Hymn 558](https://virsikirja.fi/558), or [Hymn 559](https://virsikirja.fi/559)';
     } else if (key === 'apocrypha') {
-      if (isFi) {
-        lines.push('*Ehdotus: Mietiskelyvirsi* – esim. [Virsi 440](https://virsikirja.fi/440)');
-      } else {
-        lines.push('*Suggestion: Meditation hymn* – e.g. [Hymn 440](https://virsikirja.fi/440)');
-      }
+      suggestionLine = isFi
+        ? '*Ehdotus: Mietiskelyvirsi* – esim. [Virsi 440](https://virsikirja.fi/440)'
+        : '*Suggestion: Meditation hymn* – e.g. [Hymn 440](https://virsikirja.fi/440)';
+    }
+
+    if (suggestionLine) {
+      lines.push(stripLinks ? cleanStopWordsAndUrls(suggestionLine) : suggestionLine);
     }
     lines.push('');
 
@@ -612,7 +645,8 @@ export function officesToISLA(
         lines.push('> **E:** Kunnia Isälle ja Pojalle ja Pyhälle Hengelle.  ');
         lines.push('> **S:** Nouskoon minun rukoukseni suitsutuksena sinun kasvojesi eteen.');
         lines.push('>');
-        lines.push('*Tai vaihtoehtoisesti kirkkovuoden vastauslaulu Virsikirjan liitteestä [791–800](https://virsikirja.fi/791) tai virsi*');
+        const altResponseLine = '*Tai vaihtoehtoisesti kirkkovuoden vastauslaulu Virsikirjan liitteestä [791–800](https://virsikirja.fi/791) tai virsi*';
+        lines.push(stripLinks ? cleanStopWordsAndUrls(altResponseLine) : altResponseLine);
       } else {
         lines.push('> **L:** Let my prayer rise before you as incense,  ');
         lines.push('> **C:** let my prayer rise before you as incense.');

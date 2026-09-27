@@ -7,6 +7,7 @@ import {
   officesToISLA,
   isPsalmRef,
   isCanticleRef,
+  cleanStopWordsAndUrls,
 } from './liturgicalIslaExport';
 import type { LiturgicalDay } from '../types/liturgical';
 
@@ -66,6 +67,25 @@ const sampleDay: LiturgicalDay = {
 };
 
 describe('liturgicalIslaExport', () => {
+  describe('cleanStopWordsAndUrls', () => {
+    it('unpacks markdown links into clean plain text', () => {
+      const raw = '*Ehdotus: Aamuvirsi* – esim. [Virsi 547](https://virsikirja.fi/547) (*Joka aamu on armo uus*)';
+      expect(cleanStopWordsAndUrls(raw)).toBe(
+        '*Ehdotus: Aamuvirsi* – esim. Virsi 547 (*Joka aamu on armo uus*)'
+      );
+    });
+
+    it('removes standalone http/https links and cleans excess spacing', () => {
+      const text = 'Lue lisää https://virsikirja.fi/547 tai http://kirkkokasikirja.fi nyt.';
+      expect(cleanStopWordsAndUrls(text)).toBe('Lue lisää tai nyt.');
+    });
+
+    it('handles empty or blank input gracefully', () => {
+      expect(cleanStopWordsAndUrls('')).toBe('');
+      expect(cleanStopWordsAndUrls('   ')).toBe('');
+    });
+  });
+
   describe('formatIslaReference', () => {
     it('normalizes Finnish abbreviation dots, en-dashes and numbers correctly', () => {
       expect(formatIslaReference('Ps. 24:7–10')).toBe('Ps 24:7-10');
@@ -271,6 +291,23 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('Lord, have mercy');
       expect(output).toContain('8. The Lord\'s Prayer (Oratio Dominica)');
       expect(output).toContain('9. Blessing (Benedictio)');
+    });
+
+    it('removes URLs and unpacks markdown links when stripLinks is true', () => {
+      const output = officesToISLA(sampleDay, 'fi', { specificOffice: 'morning', stripLinks: true });
+      expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
+      expect(output).not.toContain('https://virsikirja.fi');
+      expect(output).toContain('Virsi 547 (*Joka aamu on armo uus*)');
+      expect(output).toContain('(Aamuvirret 535–548)');
+    });
+  });
+
+  describe('stripLinks in liturgicalToISLA', () => {
+    it('strips hymn markdown links when stripLinks option is enabled', () => {
+      const output = liturgicalToISLA(sampleDay, 'fi', { stripLinks: true });
+      expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
+      expect(output).not.toContain('[Virsi 13');
+      expect(output).not.toContain('https://virsikirja.fi');
     });
   });
 });
