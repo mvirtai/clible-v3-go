@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { liturgicalToISLA, formatIslaReference, officesToISLA } from './liturgicalIslaExport';
+import {
+  liturgicalToISLA,
+  formatIslaReference,
+  formatPrayerLines,
+  officesToISLA,
+  isPsalmRef,
+  isCanticleRef,
+} from './liturgicalIslaExport';
 import type { LiturgicalDay } from '../types/liturgical';
 
 const sampleDay: LiturgicalDay = {
@@ -41,7 +48,19 @@ const sampleDay: LiturgicalDay = {
     },
   ],
   prayer_offices: {
-    morning: [{ verse: 'Ps. 118:19–29', text: 'Avatkaa portit' }],
+    morning: [
+      { verse: '1. Moos. 17:1–8', text: 'Kun Abram oli 99-vuotias' },
+      { verse: 'Ps. 118:19–29', text: 'Avatkaa portit' },
+    ],
+    evening: [
+      { verse: 'Ps. 71:14–23', text: 'Minä en luovu' },
+    ],
+    completorium: [
+      { verse: 'Ps. 4:2–9', text: 'Vastaa minulle' },
+      { verse: 'Ps. 91:1–16', text: 'Se joka asuu' },
+      { verse: 'Ps. 134', text: 'Tulkaa kiittäkää' },
+      { verse: 'Luuk. 2:29–32', text: 'Herra nyt sinä sallit' },
+    ],
   },
 };
 
@@ -56,6 +75,37 @@ describe('liturgicalIslaExport', () => {
 
     it('handles empty strings safely', () => {
       expect(formatIslaReference('')).toBe('');
+    });
+  });
+
+  describe('formatPrayerLines', () => {
+    it('formats prayer lines with double trailing space and blockquote prefix', () => {
+      const prayer = 'Line one\nLine two\n\nStanza two';
+      const formatted = formatPrayerLines(prayer);
+      expect(formatted).toEqual([
+        '> Line one  ',
+        '> Line two',
+        '>',
+        '> Stanza two',
+      ]);
+    });
+  });
+
+  describe('isPsalmRef & isCanticleRef', () => {
+    it('identifies psalms correctly', () => {
+      expect(isPsalmRef('Ps. 24:7–10')).toBe(true);
+      expect(isPsalmRef('Ps 113')).toBe(true);
+      expect(isPsalmRef('Psalmi 23')).toBe(true);
+      expect(isPsalmRef('Luuk. 1:68–79')).toBe(false);
+      expect(isPsalmRef('1. Moos. 17:1–8')).toBe(false);
+    });
+
+    it('identifies gospel canticles correctly', () => {
+      expect(isCanticleRef('Luuk. 1:46–55')).toBe(true);
+      expect(isCanticleRef('Luuk. 1:68–79')).toBe(true);
+      expect(isCanticleRef('Luuk. 2:29–32')).toBe(true);
+      expect(isCanticleRef('Luuk. 4:16–22')).toBe(false);
+      expect(isCanticleRef('Ps. 113')).toBe(false);
     });
   });
 
@@ -77,8 +127,21 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('## Päivän rukous (Collecta)');
       expect(output).toContain('> Herra Jumala, taivaallinen Isä, sinä lähetit Poikasi vanhurskaana ja auttajana.');
       expect(output).toContain('> Me rukoilemme sinua: valmista sydämemme ottamaan hänet vastaan.');
-      expect(output).toContain('## Päivän virsi');
+      expect(output).toContain('## Päivän virret');
       expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
+    });
+
+    it('numbers multiple collect prayers cleanly', () => {
+      const dayWithMultiplePrayers: LiturgicalDay = {
+        ...sampleDay,
+        prayers: ['Ensimmäinen rukous.', 'Toinen rukous.'],
+      };
+      const output = liturgicalToISLA(dayWithMultiplePrayers, 'fi');
+      expect(output).toContain('## Päivän rukoukset (Collecta)');
+      expect(output).toContain('### 1. Rukous');
+      expect(output).toContain('> Ensimmäinen rukous.');
+      expect(output).toContain('### 2. Rukous');
+      expect(output).toContain('> Toinen rukous.');
     });
 
     it('generates structured ISLA v2 markdown in English', () => {
@@ -124,22 +187,72 @@ describe('liturgicalIslaExport', () => {
   });
 
   describe('officesToISLA', () => {
-    it('exports all offices for the day with ! @(ref) syntax, liturgy structure and prayers', () => {
+    it('exports all offices with full 9-step liturgy structure, canticles and responsories', () => {
       const output = officesToISLA(sampleDay, 'fi');
       expect(output).toContain('# Hetkipalvelukset – 1. adventtisunnuntai');
+
+      // Check Laudes
       expect(output).toContain('## Aamurukous (Laudes)');
-      expect(output).toContain('### Johdanto');
-      expect(output).toContain('#### Ps. 118:19–29');
+      expect(output).toContain('### 1. Johdanto (Invitatorium)');
+      expect(output).toContain('Herra, avaa minun huuleni');
+      expect(output).toContain('### 2. Virsi (Hymnus)');
+      expect(output).toContain('Virsi 13 (Käy, kansa, laulamaan)');
+      expect(output).toContain('### 3. Psalmi (Psalmodia)');
       expect(output).toContain('! @(Ps 118:19-29)');
-      expect(output).toContain('### Päivän rukous (Collecta)');
-      expect(output).toContain('### Isä meidän & Päätössiunaus');
+      expect(output).toContain('### 4. Raamatunluku (Lectio)');
+      expect(output).toContain('! @(1Moos 17:1-8)');
+      expect(output).toContain('### 5. Responsorio (Vastauslaulu)');
+      expect(output).toContain('Sinun sanasi on lamppu, joka valaisee askeleeni');
+      expect(output).toContain('### 6. Kiitosvirsi – Sakariaan kiitosvirsi (Benedictus)');
+      expect(output).toContain('! @(Luuk 1:68-79)');
+      expect(output).toContain('### 7. Rukousjakso & Päivän rukous (Preces & Collecta)');
+      expect(output).toContain('Herra, armahda meitä');
+      expect(output).toContain('### 8. Isä meidän (Oratio Dominica)');
+      expect(output).toContain('### 9. Ylistys ja Päätössiunaus (Benedictio)');
+
+      // Check Vesper
+      expect(output).toContain('## Iltarukous (Vesper)');
+      expect(output).toContain('Koko sydämestäni minä etsin sinua');
+      expect(output).toContain('### 6. Kiitosvirsi – Marian kiitosvirsi (Magnificat)');
+      expect(output).toContain('! @(Luuk 1:46-55)');
+
+      // Check Completorium
+      expect(output).toContain('## Yörukous (Completorium)');
+      expect(output).toContain('Auttajaamme on Herra');
+      expect(output).toContain('Synnintunnustus ja anteeksianto');
+      expect(output).toContain('Sinun käsiisi, Herra, minä annan henkeni');
+      expect(output).toContain('### 6. Kiitosvirsi – Simeonin kiitosvirsi (Nunc dimittis)');
+      expect(output).toContain('! @(Luuk 2:29-32)');
+      expect(output).toContain('Valaise pimeytemme, Herra');
+      expect(output).toContain('Rauhassa minä käyn levolle ja nukahdan');
     });
 
     it('exports single specific office when selected with complete liturgy order', () => {
       const output = officesToISLA(sampleDay, 'fi', 'morning');
       expect(output).toContain('# Aamurukous (Laudes) – 1. adventtisunnuntai');
       expect(output).toContain('! @(Ps 118:19-29)');
+      expect(output).toContain('! @(1Moos 17:1-8)');
+      expect(output).toContain('! @(Luuk 1:68-79)');
       expect(output).toContain('Isä meidän');
+      expect(output).not.toContain('## Iltarukous (Vesper)');
+      expect(output).not.toContain('## Yörukous (Completorium)');
+    });
+
+    it('exports English prayer office liturgy correctly', () => {
+      const output = officesToISLA(sampleDay, 'en', 'morning');
+      expect(output).toContain('# Morning Prayer (Lauds) – 1. adventtisunnuntai');
+      expect(output).toContain('1. Opening Response (Invitatorium)');
+      expect(output).toContain('O Lord, open my lips');
+      expect(output).toContain('2. Hymn (Hymnus)');
+      expect(output).toContain('3. Psalm (Psalmodia)');
+      expect(output).toContain('4. Scripture Reading (Lectio)');
+      expect(output).toContain('5. Responsory (Responsorium)');
+      expect(output).toContain('Your word is a lamp to my feet');
+      expect(output).toContain('6. Canticle – The Song of Zechariah (Benedictus)');
+      expect(output).toContain('7. Prayers & Collect (Preces & Collecta)');
+      expect(output).toContain('Lord, have mercy');
+      expect(output).toContain('8. The Lord\'s Prayer (Oratio Dominica)');
+      expect(output).toContain('9. Blessing (Benedictio)');
     });
   });
 });

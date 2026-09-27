@@ -2,18 +2,20 @@
 
 ## Business Context
 
-In the church year calendar (`LiturgicalView`), users can explore seasonal themes, liturgical colors, altar candle counts, lectionary readings across three cycles (I, II, III), the Psalm of the Day, and daily prayer offices. Previously, utilizing these curated liturgical passages for sermon preparation, theological exegesis, or personal devotion required manually copying references into new notebooks and reformatting text passages.
+In the church year calendar (`LiturgicalView`), users can explore seasonal themes, liturgical colors, altar candle counts, lectionary readings across three cycles (I, II, III), the Psalm of the Day, and daily prayer offices (hetkipalvelukset). Previously, utilizing these curated liturgical passages for sermon preparation, theological exegesis, or personal devotion required manually copying references into new notebooks and reformatting text passages.
 
-This capability introduces automated, one-click export of church year readings into interactive **ISLA v2 DSL** notebooks:
-1. **Interactive Notebook Compilation:** Formats lectionary passages (OT, Epistle, Gospel), the Psalm of the Day, liturgical collect prayers, and hymns into executable ISLA v2 expressions (e.g., `Ps 24:7-10 >>`, `Matt 21:1-9 >>`).
-2. **Keyboard Accessibility (`Alt+N`):** Enables instant notebook generation from any church year date via the `Alt+N` global shortcut or a dedicated celebration header button.
-3. **Dual Persistence Architecture:** Works seamlessly for authenticated users (persisting to Neon PostgreSQL via `/api/notebooks` and `/cells`) and anonymous guests (persisting locally via `GuestNotebookStore`).
+This capability introduces automated, one-click export of church year readings and prayer offices into interactive **ISLA v2 DSL** notebooks:
+1. **Interactive Notebook Compilation:** Formats lectionary passages (OT, Epistle, Gospel), the Psalm of the Day, liturgical collect prayers, and hymns into executable ISLA v2 expressions (e.g., `! @(Ps 24:7-10)`, `! @(Matt 21:1-9)`).
+2. **Dedicated Prayer Offices Export (Hetkipalvelukset):** Enables instant notebook generation for Daily Offices (Laudes, Ad Sextam, Vesper, Vigilia, Completorium) featuring the authentic 9-step Finnish Lutheran prayer office liturgy (Kirkkokäsikirja III).
+3. **Structured Liturgical Formatting:** Includes complete Invitatorium, Hymnus suggestions/links, Psalmodia, Lectio, Responsorium, Canticles (Benedictus, Magnificat, Nunc dimittis), Preces (Kyrie), Collect prayers, The Lord's Prayer, and Benedictio with proper markdown line breaks (`  `) and clear numbering.
+4. **Keyboard Accessibility (`Alt+N`):** Enables instant notebook generation from any church year date via the `Alt+N` global shortcut or celebration header action buttons.
+5. **Dual Persistence Architecture:** Works seamlessly for authenticated users (persisting to Neon PostgreSQL via `/api/notebooks` and `/cells`) and anonymous guests (persisting locally via `GuestNotebookStore`).
 
 ---
 
 ## Architectural & Process Flows
 
-### 1. Liturgical-to-Notebook Export Sequence
+### 1. Liturgical & Prayer Offices Export Sequence
 
 ```mermaid
 sequenceDiagram
@@ -24,12 +26,16 @@ sequenceDiagram
     participant Backend as Go Backend / Storage
     participant NB as NotebookCanvasView
 
-    User->>LV: Press Alt+N or click "Export to Notebook"
-    LV->>EXP: liturgicalToISLA(dayData, lang)
-    EXP-->>LV: Structured ISLA v2 Markdown
-    LV->>App: onExportToNotebook(dayData)
+    User->>LV: Click "Export to Notebook" or "Export Offices" (or press Alt+N)
+    alt Export Day Liturgy
+        LV->>EXP: liturgicalToISLA(dayData, lang)
+    else Export Prayer Offices
+        LV->>EXP: officesToISLA(dayData, lang, activeOffice)
+    end
+    EXP-->>LV: Structured ISLA v2 Markdown with 9-step Liturgy
+    LV->>App: onExportToNotebook(dayData, customTitle, customContent)
     alt Authenticated User
-        App->>Backend: POST /api/notebooks + POST /cells
+        App->>Backend: PUT /api/notebooks/{id}/cells (Array Payload)
         Backend-->>App: Notebook & Cell Data
     else Guest Mode
         App->>Backend: createGuestNotebook + saveGuestCells (localStorage)
@@ -47,7 +53,7 @@ graph LR
     B --> C["Normalize unicode dashes (– / — to -)"]
     C --> D["Normalize numbered books ('1. Kor.' to '1Kor')"]
     D --> E["Remove abbreviation dots ('Ps.' to 'Ps')"]
-    E --> F["Executable ISLA Query ('Ps 24:7-10 >>')"]
+    E --> F["Executable ISLA Directive ('! @(Ps 24:7-10)')"]
 ```
 
 ---
@@ -56,34 +62,34 @@ graph LR
 
 ### 1. Pure Functional ISLA Generator (`frontend/src/utils/liturgicalIslaExport.ts`)
 
-- **Functional Decoupling:** Implemented pure functions `formatIslaReference(rawRef: string)` and `liturgicalToISLA(day: LiturgicalDay, lang: UILanguage, options?: IslaExportOptions)`.
-- **Reference Sanitation:** Normalizes Finnish ecclesiastical abbreviations (e.g., `1. Kor. 13:1–13` to `1Kor 13:1-13`, `Sak. 9:9–10` to `Sak 9:9-10`) ensuring seamless compilation by the ISLA AST parser.
-- **Bilingual Markdown Structure:** Automatically localizes markdown headers, metadata badges (Date, Liturgical Color, Altar Candles), cycle descriptors, collect quotes, and hymn listings based on user UI language.
+- **Executable Directives:** Scripture references in both lectionary and prayer offices use executable ISLA directives (`! @(viite)`), omitting redundant raw text quotes.
+- **Authentic 9-Step Liturgical Structure:**
+  1. `1. Johdanto (Invitatorium)`: Versicles (`V:` / `R:`) and Gloria Patri.
+  2. `2. Virsi (Hymnus)`: Day hymns and thematic office hymn suggestions.
+  3. `3. Psalmi (Psalmodia)`: Daily office psalm or day psalm formatted with `! @(...)`.
+  4. `4. Raamatunluku (Lectio)`: Canonical scripture reading formatted with `! @(...)`.
+  5. `5. Responsorio (Vastauslaulu)`: Authentic responsories for morning, midday, evening, and night prayers.
+  6. `6. Kiitosvirsi (Canticum)`: Evangelical canticles—Benedictus (`Luuk 1:68-79`), Magnificat (`Luuk 1:46-55`), and Nunc dimittis (`Luuk 2:29-32`).
+  7. `7. Rukousjakso (Preces & Collecta)`: Kyrie, numbered day collect prayers, and the traditional Compline night prayer.
+  8. `8. Isä meidän (Oratio Dominica)`: Stanza-spaced Lord's Prayer.
+  9. `9. Ylistys ja Päätössiunaus (Benedictio)`: Blessings and versicles.
+- **Markdown Line-Break Hygiene:** `formatPrayerLines` injects double-space (`  `) line endings and blockquote spacing so stanzas and versicles never collapse into merged walls of text.
 
-```typescript
-export function liturgicalToISLA(
-  day: LiturgicalDay,
-  lang: UILanguage = 'fi',
-  options: IslaExportOptions = { includeCollect: true, includeHymns: true, includeOffices: false }
-): string {
-  // Formats lectionary cycles, day psalms, and collect prayers into executable ISLA Markdown
-}
-```
+### 2. Liturgical View Export Actions & Keyboard Shortcut (`LiturgicalView.tsx`)
 
-### 2. Liturgical View Export Action & Keyboard Shortcut (`LiturgicalView.tsx`)
-
-- **Celebration Header Action Button:** Added an "Export to Notebook" tactile button with keyboard shortcut badge (`Alt+N`) to the celebration header card.
-- **Window Keyboard Listener:** Registered a clean window `keydown` listener capturing `Alt+N` while keeping memory leak prevention intact with component lifecycle teardown.
+- **Celebration Header Action Button:** Dedicated "Vie muistikirjaksi" button with keyboard shortcut badge (`Alt+N`).
+- **Prayer Offices Header Action Button:** Dedicated "Vie hetkipalvelukset" button allowing one-click export of current office or all daily offices.
+- **Window Keyboard Listener:** Memory-safe window `keydown` listener capturing `Alt+N` with unmount cleanup.
 
 ### 3. Application-Level Router Integration (`App.tsx`)
 
-- **State Transition & Navigation:** Connected `handleExportLiturgicalToNotebook(day: LiturgicalDay)` in `App.tsx` which constructs the initial markdown cell, persists to either Neon PostgreSQL or `GuestNotebookStore`, and immediately shifts the view mode to `notebooks`.
+- **State Transition & Navigation:** `handleExportLiturgicalToNotebook` accepts optional `customTitle` and `customContent`, persisting via `PUT /api/notebooks/{id}/cells` with cell array payload.
 
 ---
 
 ## Improvement Metrics & Key Figures
 
-* **Vitest Test Suite:** Added 6 dedicated unit tests in `liturgicalIslaExport.test.ts` and 2 integration tests in `LiturgicalView.test.tsx` (all 349 frontend tests pass).
+* **Vitest Test Suite:** 13 comprehensive unit tests in `liturgicalIslaExport.test.ts` and 9 integration tests in `LiturgicalView.test.tsx` (all 357 frontend tests pass 100%).
 * **Quality Gates:** 100% clean execution across `task frontend:check`, `task backend:check`, and `task check`.
 * **Backend Test Coverage:** 76.6% overall statement coverage maintained across all Go internal packages.
 * **Semantic Versioning:** Set application version to `3.9.1` (`task version:set VER=3.9.1`).
@@ -92,7 +98,7 @@ export function liturgicalToISLA(
 
 ## Security & Compliance
 
-* **Input Sanitization:** Scripture references and prayer texts are processed without dangerous HTML injection, using pure string tokenization.
+* **Input Sanitization:** Scripture references and prayer texts are processed without dangerous HTML injection, stripping cadence tags and normalizing typography.
 * **State Isolation:** Guest sessions continue to isolate data to localStorage with automatic 1-hour TTL without exposing unauthorized API endpoints.
 * **Zero useEffect State Leaks:** The keyboard listener is bound only when the view is mounted and automatically unregisters upon unmount.
 * **Endpoint Compatibility:** Utilizes `PUT /api/notebooks/{id}/cells` with an array payload to persist initial cell state reliably without relying on non-existent endpoints.
@@ -103,17 +109,17 @@ export function liturgicalToISLA(
 
 | File | Change Summary |
 |------|----------------|
-| `frontend/src/utils/liturgicalIslaExport.ts` | Created pure ISLA v2 markdown generator and reference normalizer |
-| `frontend/src/utils/liturgicalIslaExport.test.ts` | Unit tests for reference normalization and bilingual ISLA compilation |
-| `frontend/src/utils/i18n.ts` | Added bilingual translation strings for liturgical export button and tooltips |
-| `frontend/src/views/LiturgicalView.tsx` | Added export button, `onExportToNotebook` prop, and `Alt+N` shortcut listener |
-| `frontend/src/views/LiturgicalView.test.tsx` | Added component tests verifying export click and `Alt+N` keyboard event |
-| `frontend/src/App.tsx` | Implemented `handleExportLiturgicalToNotebook` for authenticated and guest users with PUT /cells array payload |
+| `frontend/src/utils/liturgicalIslaExport.ts` | Created pure ISLA v2 markdown generator with full 9-step liturgy structure, canticles, and responses |
+| `frontend/src/utils/liturgicalIslaExport.test.ts` | 13 unit tests verifying reference normalization, 9-step liturgy, canticles, and responsories |
+| `frontend/src/utils/i18n.ts` | Added bilingual translation strings for day and offices export buttons and tooltips |
+| `frontend/src/views/LiturgicalView.tsx` | Added day export and offices export buttons, `onExportToNotebook` prop, and `Alt+N` shortcut listener |
+| `frontend/src/views/LiturgicalView.test.tsx` | Added component tests verifying day export, office export, and `Alt+N` keyboard event |
+| `frontend/src/App.tsx` | Implemented `handleExportLiturgicalToNotebook` supporting custom titles and contents via PUT /cells |
 | `frontend/src/utils/version.ts` | Version set to `3.9.1` |
 | `frontend/package.json` | Version set to `3.9.1` |
 | `backend/internal/version/version.go` | Version set to `3.9.1` |
 | `VERSION` | Version set to `3.9.1` |
-| `kanban/todos.md` | Marked all task steps completed |
+| `pr_stories/095-feat-liturgical-isla-notebook-export.md` | Documented feature, architecture, and verification results |
 
 ---
 
@@ -132,8 +138,8 @@ All local quality checks passed flawlessly!
 ### Automated Frontend Tests
 
 ```text
- ✓ src/utils/liturgicalIslaExport.test.ts (6 tests) 18ms
- ✓ src/views/LiturgicalView.test.tsx (8 tests) 904ms
+ ✓ src/utils/liturgicalIslaExport.test.ts (13 tests) 38ms
+ ✓ src/views/LiturgicalView.test.tsx (9 tests) 790ms
  Test Files  46 passed (46)
-      Tests  349 passed (349)
+      Tests  357 passed (357)
 ```
