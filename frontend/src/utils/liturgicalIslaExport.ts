@@ -242,13 +242,66 @@ export function officesToISLA(
       const officeTitle = isFi ? officeNames[key]?.fi || key : officeNames[key]?.en || key;
       lines.push(`## ${officeTitle}`);
       lines.push('');
+
+      // 1. Alkusiunaus & Johdantolause (Invocatio & Invitatorium)
+      lines.push(`### ${isFi ? 'Johdanto' : 'Opening Response'}`);
+      if (key === 'completorium') {
+        lines.push(`> *${isFi ? 'Jumala, tule minun avukseni. – Herra, riennä minua auttamaan.' : 'O God, come to my assistance. – O Lord, make haste to help me.'}*`);
+        lines.push(`> *${isFi ? 'Kunnia Isälle ja Pojalle ja Pyhälle Hengelle, niin kuin oli alussa, nyt on ja aina, iankaikkisesta iankaikkiseen. Aamen. (Halleluja.)' : 'Glory to the Father and to the Son and to the Holy Spirit, as it was in the beginning, is now, and will be forever. Amen. (Alleluia.)'}*`);
+      } else {
+        lines.push(`> *${isFi ? 'Herra, avaa minun huuleni, – jotta suuni julistaisi sinun ylistystäsi.' : 'O Lord, open my lips, – and my mouth shall declare your praise.'}*`);
+        lines.push(`> *${isFi ? 'Kunnia Isälle ja Pojalle ja Pyhälle Hengelle, niin kuin oli alussa, nyt on ja aina, iankaikkisesta iankaikkiseen. Aamen. Halleluja!' : 'Glory to the Father and to the Son and to the Holy Spirit, as it was in the beginning, is now, and will be forever. Amen. Alleluia!'}*`);
+      }
+      lines.push('');
+
+      // 2. Lukukappaleet ja psalmit ISLA-syntaksilla
+      lines.push(`### ${isFi ? 'Päivän psalmi ja lukukappaleet' : 'Psalms & Scripture Readings'}`);
+      lines.push('');
       for (const it of items) {
         if (it.verse) {
-          lines.push(`### ${it.verse}`);
+          lines.push(`#### ${it.verse}`);
           lines.push(`! @(${formatIslaReference(it.verse)})`);
           lines.push('');
         }
       }
+
+      // 3. Päivän rukoukset & Kollehtarukous (Collecta)
+      if (day.prayers && day.prayers.length > 0) {
+        lines.push(`### ${isFi ? 'Päivän rukous (Collecta)' : 'Collect Prayer of the Day'}`);
+        for (const prayer of day.prayers) {
+          const cleanPrayer = prayer.trim();
+          if (cleanPrayer) {
+            const pLines = cleanPrayer.split('\n');
+            for (const pl of pLines) {
+              lines.push(`> ${pl}`);
+            }
+            lines.push('');
+          }
+        }
+      }
+
+      // 4. Isä meidän ja Päätössiunaus (Benedictio)
+      lines.push(`### ${isFi ? 'Isä meidän & Päätössiunaus' : 'The Lord\'s Prayer & Blessing'}`);
+      if (isFi) {
+        lines.push('> *Isä meidän, joka olet taivaissa.*');
+        lines.push('> *Pyhitetty olkoon sinun nimesi. Tulkoon sinun valtakuntasi.*');
+        lines.push('> *Tapahtukoon sinun tahtosi, myös maan päällä niin kuin taivaassa.*');
+        lines.push('> *Anna meille tänä päivänä meidän jokapäiväinen leipämme.*');
+        lines.push('> *Ja anna meille meidän syntimme anteeksi, niin kuin mekin anteeksi annamme niille, jotka ovat meitä vastaan rikkoneet.*');
+        lines.push('> *Äläkä saata meitä kiusaukseen, vaan päästä meidät pahasta.*');
+        lines.push('> *Sillä sinun on valtakunta ja voima ja kunnia iankaikkisesti. Aamen.*');
+        lines.push('>');
+        lines.push('> *Siunatkoon meitä kaikkivaltias ja laupias Jumala, Isä, Poika ja Pyhä Henki. – Aamen.*');
+      } else {
+        lines.push('> *Our Father, who art in heaven, hallowed be thy name.*');
+        lines.push('> *Thy kingdom come, thy will be done on earth as it is in heaven.*');
+        lines.push('> *Give us this day our daily bread, and forgive us our trespasses, as we forgive those who trespass against us.*');
+        lines.push('> *And lead us not into temptation, but deliver us from evil.*');
+        lines.push('> *For thine is the kingdom, and the power, and the glory, forever. Amen.*');
+        lines.push('>');
+        lines.push('> *May almighty God bless us, the Father, the Son, and the Holy Spirit. – Amen.*');
+      }
+      lines.push('');
       lines.push('---');
       lines.push('');
     }

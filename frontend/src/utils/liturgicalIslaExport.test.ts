@@ -124,18 +124,22 @@ describe('liturgicalIslaExport', () => {
   });
 
   describe('officesToISLA', () => {
-    it('exports all offices for the day with ! @(ref) syntax', () => {
+    it('exports all offices for the day with ! @(ref) syntax, liturgy structure and prayers', () => {
       const output = officesToISLA(sampleDay, 'fi');
       expect(output).toContain('# Hetkipalvelukset – 1. adventtisunnuntai');
       expect(output).toContain('## Aamurukous (Laudes)');
-      expect(output).toContain('### Ps. 118:19–29');
+      expect(output).toContain('### Johdanto');
+      expect(output).toContain('#### Ps. 118:19–29');
       expect(output).toContain('! @(Ps 118:19-29)');
+      expect(output).toContain('### Päivän rukous (Collecta)');
+      expect(output).toContain('### Isä meidän & Päätössiunaus');
     });
 
-    it('exports single specific office when selected', () => {
+    it('exports single specific office when selected with complete liturgy order', () => {
       const output = officesToISLA(sampleDay, 'fi', 'morning');
       expect(output).toContain('# Aamurukous (Laudes) – 1. adventtisunnuntai');
       expect(output).toContain('! @(Ps 118:19-29)');
+      expect(output).toContain('Isä meidän');
     });
   });
 });
