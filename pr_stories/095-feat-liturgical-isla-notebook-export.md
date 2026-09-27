@@ -97,7 +97,7 @@ graph LR
 * **Vitest Test Suite:** 14 comprehensive unit tests in `liturgicalIslaExport.test.ts`, 14 tests in `MarkdownCell.test.tsx`, and 9 integration tests in `LiturgicalView.test.tsx` (all 359 frontend tests pass 100%).
 * **Quality Gates:** 100% clean execution across `task frontend:check`, `task backend:check`, and `task check`.
 * **Backend Test Coverage:** 76.6% overall statement coverage maintained across all Go internal packages.
-* **Semantic Versioning:** Set application version to `3.9.1` (`task version:set VER=3.9.1`).
+* **Semantic Versioning:** Set application version to `3.9.2` (`task version:set VER=3.9.2`).
 
 ---
 
@@ -122,10 +122,10 @@ graph LR
 | `frontend/src/views/LiturgicalView.tsx` | Added day export and offices export buttons, `onExportToNotebook` prop, and `Alt+N` shortcut listener |
 | `frontend/src/views/LiturgicalView.test.tsx` | Added component tests verifying day export, office export, and `Alt+N` keyboard event |
 | `frontend/src/App.tsx` | Implemented `handleExportLiturgicalToNotebook` supporting custom titles and contents via PUT /cells |
-| `frontend/src/utils/version.ts` | Version set to `3.9.1` |
-| `frontend/package.json` | Version set to `3.9.1` |
-| `backend/internal/version/version.go` | Version set to `3.9.1` |
-| `VERSION` | Version set to `3.9.1` |
+| `frontend/src/utils/version.ts` | Version set to `3.9.2` |
+| `frontend/package.json` | Version set to `3.9.2` |
+| `backend/internal/version/version.go` | Version set to `3.9.2` |
+| `VERSION` | Version set to `3.9.2` |
 | `pr_stories/095-feat-liturgical-isla-notebook-export.md` | Documented feature, architecture, and verification results |
 
 ---
