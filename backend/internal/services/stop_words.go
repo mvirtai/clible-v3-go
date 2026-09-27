@@ -7,7 +7,7 @@ var stopWords = map[string]bool{
 	// Finnish general stop words (conjunctions, prepositions, pronouns, adverbs)
 	"ja": true, "se": true, "on": true, "että": true, "kuin": true, "mutta": true,
 	"he": true, "ne": true, "kun": true, "jos": true, "tai": true, "vai": true,
-	"minä": true, "sinä": true, "me": true, "te": true, "tämä": true, "nämä": true,
+	"minä": true, "sinä": true, "hän": true, "me": true, "te": true, "tämä": true, "nämä": true,
 	"tuo": true, "joka": true, "jotka": true, "mikä": true, "mitä": true, "joku": true,
 	"jokin": true, "jokainen": true, "kaikki": true, "kaikkien": true, "kaikkea": true,
 	"kaikille": true, "kaikista": true, "kaikilla": true, "oma": true, "omat": true,

@@ -32,12 +32,8 @@ jobs:
       - name: Download Go modules
         run: go mod download
 
-      - name: Install golangci-lint pre-built binary
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.5
-
-      - name: Run golangci-lint
-        run: $(go env GOPATH)/bin/golangci-lint run --timeout=5m
+      - name: Run golangci-lint natively (compiled from source for Go compatibility)
+        run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5 run --timeout=5m
 
       - name: Run unit and integration tests
         run: go test -v -race -coverprofile=coverage.txt ./...
