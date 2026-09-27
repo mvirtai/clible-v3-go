@@ -72,4 +72,29 @@ var stopWords = map[string]bool{
 	"matthew": true, "acts": true, "romans": true, "corinthians": true, "galatians": true,
 	"ephesians": true, "philippians": true, "colossians": true, "thessalonians": true, "timothy": true,
 	"hebrews": true, "james": true, "peter": true, "jude": true, "revelation": true,
+
+	// Liturgical and hymn metadata terms (Finnish)
+	// Prevents liturgical export structure and hymn references from appearing in theme extraction
+	"virsikirja": true, "virsi": true, "virret": true, "virren": true, "hymni": true,
+	"hymnin": true, "hymnia": true, "helluntai": true, "pääsiäinen": true, "joulu": true,
+	"liturgia": true, "liturgian": true, "messu": true, "messun": true, "raamatunluku": true,
+	"raamatunluvut": true, "psalmi": true, "psalmeja": true, "kantikumi": true, "kantikumit": true,
+	"kantikumia": true, "rukoushetki": true, "rukoushetkien": true, "laudes": true, "nona": true,
+	"seksta": true, "tertia": true, "vesperi": true, "vesper": true, "completorium": true,
+	"komplutorium": true, "iltavirret": true, "iltavirsi": true, "yövirsi": true, "yövirret": true,
+	"aamuvirsii": true, "keskipäivä": true, "johdanto": true, "invitatorium": true, "invitatorio": true,
+	"responsorio": true, "responsoriit": true, "gloria": true, "kyrie": true, "collecta": true,
+	"collect": true, "benedictio": true, "benedictio": true, "siunaus": true, "siunaukset": true,
+	"ehdotus": true, "ehdotukset": true, "päivän": true, "keskipäivän": true, "iltavirsi": true,
+	"yövirsi": true, "aamuvirsii": true, "aamuvirsii": true, "virsisuositukset": true,
+
+	// Liturgical and hymn metadata terms (English)
+	"hymnal": true, "hymn": true, "hymns": true, "hymnic": true, "hymnody": true,
+	"easter": true, "christmas": true, "pentecost": true, "liturgy": true, "liturgical": true,
+	"mass": true, "scripture": true, "reading": true, "psalmody": true, "canticle": true,
+	"canticles": true, "prayer": true, "prayers": true, "office": true, "offices": true,
+	"laudes": true, "vespers": true, "compline": true, "evening": true, "morning": true,
+	"midday": true, "kyrie": true, "gloria": true, "collect": true, "collecta": true,
+	"blessing": true, "blessings": true, "benediction": true, "benedictions": true,
+	"suggestion": true, "suggestions": true, "hymn": true,
 }
