@@ -63,16 +63,16 @@ graph LR
 ### 1. Pure Functional ISLA Generator (`frontend/src/utils/liturgicalIslaExport.ts`)
 
 - **Executable Directives:** Scripture references in both lectionary and prayer offices use executable ISLA directives (`! @(viite)`), omitting redundant raw text quotes.
-- **Authentic 9-Step Liturgical Structure:**
-  1. `1. Johdanto (Invitatorium)`: Versicles (`V:` / `R:`) and Gloria Patri.
+- **Authentic 9-Step Liturgical Structure (Kirkkokäsikirja III: Rukoushetket):**
+  1. `1. Johdanto (Invitatorium)`: Authentic Finnish liturgical versicles (`E:` / `S:`) and Gloria Patri with sign of the cross `(+)`.
   2. `2. Virsi (Hymnus)`: Day hymns and thematic office hymn suggestions formatted with direct clickable Markdown links to `https://virsikirja.fi/<number>`.
   3. `3. Psalmi (Psalmodia)`: Daily office psalm or day psalm formatted with `! @(...)`.
   4. `4. Raamatunluku (Lectio)`: Canonical scripture reading formatted with `! @(...)`.
-  5. `5. Responsorio (Vastauslaulu)`: Authentic responsories for morning, midday, evening, and night prayers.
+  5. `5. Responsorio (Vastauslaulu)`: Authentic liturgical responsories (refrain repetition by congregation, Gloria Patri) for morning (Ps. 143:8), midday (Ps. 36:6), evening (Ps. 141:2), and night prayers (Ps. 31:6).
   6. `6. Kiitosvirsi (Canticum)`: Evangelical canticles—Benedictus (`Luuk 1:68-79`), Magnificat (`Luuk 1:46-55`), and Nunc dimittis (`Luuk 2:29-32`).
-  7. `7. Rukousjakso (Preces & Collecta)`: Kyrie, numbered day collect prayers, and the traditional Compline night prayer.
+  7. `7. Rukousjakso (Preces & Collecta)`: Kyrie (`E:` / `S:`), numbered day collect prayers, and the traditional Compline night prayer.
   8. `8. Isä meidän (Oratio Dominica)`: Stanza-spaced Lord's Prayer.
-  9. `9. Ylistys ja Päätössiunaus (Benedictio)`: Blessings and versicles.
+  9. `9. Ylistys ja Päätössiunaus (Benedictio)`: Blessings (`(+)`) and versicles (`E:` / `S:`).
 - **Markdown Line-Break Hygiene:** `formatPrayerLines` injects double-space (`  `) line endings and blockquote spacing so stanzas and versicles never collapse into merged walls of text.
 - **Hymn Hyperlinking:** `formatHymnLink` automatically produces structured links `[Virsi X (Nimi)](https://virsikirja.fi/X)` for both general liturgical exports and daily prayer offices.
 
