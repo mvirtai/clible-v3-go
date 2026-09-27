@@ -51,6 +51,12 @@ tasks:
     cmds:
       - go test -v ./...
 
+  backend:test:fast:
+    desc: Run all Go unit tests quickly using build cache (no race detector, no coverage)
+    dir: backend
+    cmds:
+      - go test ./internal/...
+
   backend:test-cov:
     desc: Run all Go unit and integration tests with race detector
     dir: backend
