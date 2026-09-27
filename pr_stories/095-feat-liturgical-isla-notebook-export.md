@@ -86,7 +86,7 @@ export function liturgicalToISLA(
 * **Vitest Test Suite:** Added 6 dedicated unit tests in `liturgicalIslaExport.test.ts` and 2 integration tests in `LiturgicalView.test.tsx` (all 349 frontend tests pass).
 * **Quality Gates:** 100% clean execution across `task frontend:check`, `task backend:check`, and `task check`.
 * **Backend Test Coverage:** 76.6% overall statement coverage maintained across all Go internal packages.
-* **Semantic Versioning:** Bumped application version from `3.9.0` to `3.10.0` (`task version:bump PART=minor`).
+* **Semantic Versioning:** Set application version to `3.9.1` (`task version:set VER=3.9.1`).
 
 ---
 
@@ -95,6 +95,7 @@ export function liturgicalToISLA(
 * **Input Sanitization:** Scripture references and prayer texts are processed without dangerous HTML injection, using pure string tokenization.
 * **State Isolation:** Guest sessions continue to isolate data to localStorage with automatic 1-hour TTL without exposing unauthorized API endpoints.
 * **Zero useEffect State Leaks:** The keyboard listener is bound only when the view is mounted and automatically unregisters upon unmount.
+* **Endpoint Compatibility:** Utilizes `PUT /api/notebooks/{id}/cells` with an array payload to persist initial cell state reliably without relying on non-existent endpoints.
 
 ---
 
@@ -107,11 +108,11 @@ export function liturgicalToISLA(
 | `frontend/src/utils/i18n.ts` | Added bilingual translation strings for liturgical export button and tooltips |
 | `frontend/src/views/LiturgicalView.tsx` | Added export button, `onExportToNotebook` prop, and `Alt+N` shortcut listener |
 | `frontend/src/views/LiturgicalView.test.tsx` | Added component tests verifying export click and `Alt+N` keyboard event |
-| `frontend/src/App.tsx` | Implemented `handleExportLiturgicalToNotebook` for authenticated and guest users |
-| `frontend/src/utils/version.ts` | Version bump to `3.10.0` |
-| `frontend/package.json` | Version bump to `3.10.0` |
-| `backend/internal/version/version.go` | Version bump to `3.10.0` |
-| `VERSION` | Version bump to `3.10.0` |
+| `frontend/src/App.tsx` | Implemented `handleExportLiturgicalToNotebook` for authenticated and guest users with PUT /cells array payload |
+| `frontend/src/utils/version.ts` | Version set to `3.9.1` |
+| `frontend/package.json` | Version set to `3.9.1` |
+| `backend/internal/version/version.go` | Version set to `3.9.1` |
+| `VERSION` | Version set to `3.9.1` |
 | `kanban/todos.md` | Marked all task steps completed |
 
 ---

@@ -218,20 +218,31 @@ export function App() {
 
       if (res.ok) {
         const newNotebook: Notebook = await res.json();
-        // Add initial cell containing generated ISLA content
+        // Add initial cell containing generated ISLA content via PUT /api/notebooks/{id}/cells
+        const initialCell: Cell = {
+          id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cell-${Date.now()}`,
+          notebookId: newNotebook.id,
+          type: 'markdown',
+          content: islaContent,
+          position: 0,
+          resultJson: null,
+        };
+
         const cellRes = await fetch(`/api/notebooks/${newNotebook.id}/cells`, {
-          method: 'POST',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'markdown',
-            content: islaContent,
-            position: 0,
-          }),
+          body: JSON.stringify([
+            {
+              id: initialCell.id,
+              type: initialCell.type,
+              content: initialCell.content,
+              position: 0,
+            },
+          ]),
         });
 
         if (cellRes.ok) {
-          const createdCell: Cell = await cellRes.json();
-          newNotebook.cells = [createdCell];
+          newNotebook.cells = [initialCell];
           newNotebook.cellCounts = { markdown: 1 };
         }
 
