@@ -62,22 +62,21 @@
 
 ## In Progress
 
-### Kirkkovuoden tekstien ISLA DSL -kooste muistiinpanoihin ja pikanäppäin
+### Kirkkovuoden datan upottaminen Go-binääriin ja tuotannon 404-korjaus
 
-  - due: 2026-09-28
-  - tags: [liturgical, isla, dsl, notebook, export, keyboard-shortcut, frontend]
+  - due: 2026-09-27
+  - tags: [liturgical, docker, backend, go, embed, bugfix]
   - priority: high
+  - workload: Easy
   - defaultExpanded: true
   - steps:
-      - [x] Toteuta puhdas ISLA-tekstigeneraattori liturgicalToISLA() frontend/src/utils/liturgicalIslaExport.ts
-      - [x] Lisää Vitest-yksikkötestit generaattorille (liturgicalIslaExport.test.ts)
-      - [x] Lisää kaksikieliset i18n-käännökset vientitoiminnolle ja pikanäppäinvihjeille
-      - [x] Lisää handleExportLiturgicalToNotebook()-reititys App.tsx:ään (kirjautunut + vierastila)
-      - [x] Lisää LiturgicalView.tsx-näkymään toimintopainike ja Alt+N -pikanäppäinkuuntelija
-      - [x] Varmista laatuportit (task frontend:check ja task check)
+      - [x] Upota kirkkovuosi_2026.json Go-binääriin (//go:embed) paketissa backend/internal/parsers/
+      - [x] Päivitä backend/main.go käyttämään ensisijaisesti upotettua dataa (fallback os.Getenv("LITURGICAL_DATA_PATH"))
+      - [x] Päivitä Dockerfile kopioimaan parsers/data varmuudeksi
+      - [x] Päivitä ja suorita backendin testit (LiturgicalService_ActualFile & LiturgicalService_DefaultEmbedded)
+      - [x] Aja laatuportit (task backend:check)
     ```md
-    Suunnitelma: [.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md)
-    Kokoaa päivän liturgiset tekstit, teemat, rukoukset ja lukukappaleet suoraan interaktiiviseksi ISLA v2 DSL -muistikirjasoluksi yhdellä pikanäppäimellä (Alt+N) tai painikkeella.
+    Korjaa tuotannossa (clible.fi) esiintyvän 404-virheen /api/liturgical/day -reiteissä upottamalla kirkkovuosi_2026.json suoraan Go-binääriin //go:embed -direktiivillä.
     ```
 
 ### Semanttisen haun jakeiden kuratointi ja Swipe-triage (Mobiili & Työpöytä)
@@ -118,6 +117,24 @@
     ```
 
 ## Done
+
+### Kirkkovuoden tekstien ISLA DSL -kooste muistiinpanoihin ja pikanäppäin
+
+  - due: 2026-09-28
+  - tags: [liturgical, isla, dsl, notebook, export, keyboard-shortcut, frontend]
+  - priority: high
+  - defaultExpanded: true
+  - steps:
+      - [x] Toteuta puhdas ISLA-tekstigeneraattori liturgicalToISLA() frontend/src/utils/liturgicalIslaExport.ts
+      - [x] Lisää Vitest-yksikkötestit generaattorille (liturgicalIslaExport.test.ts)
+      - [x] Lisää kaksikieliset i18n-käännökset vientitoiminnolle ja pikanäppäinvihjeille
+      - [x] Lisää handleExportLiturgicalToNotebook()-reititys App.tsx:ään (kirjautunut + vierastila)
+      - [x] Lisää LiturgicalView.tsx-näkymään toimintopainike ja Alt+N -pikanäppäinkuuntelija
+      - [x] Varmista laatuportit (task frontend:check ja task check)
+    ```md
+    Suunnitelma: [.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md)
+    Kokoaa päivän liturgiset tekstit, teemat, rukoukset ja lukukappaleet suoraan interaktiiviseksi ISLA v2 DSL -muistikirjasoluksi yhdellä pikanäppäimellä (Alt+N) tai painikkeella.
+    ```
 
 ### Cliblen SEO & GEO (Generative Engine Optimization) -kokonaisuudistus
 
