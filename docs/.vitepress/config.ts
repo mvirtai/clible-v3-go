@@ -48,6 +48,7 @@ export default defineConfig({
           items: [
             { text: "Overview & Quick Start", link: "/guide/getting-started" },
             { text: "Scripture Reader", link: "/guide/reader" },
+            { text: "Liturgical Calendar", link: "/guide/liturgical-calendar" },
             { text: "Comparison & Diffing", link: "/guide/compare-and-diff" },
             { text: "Search & Text Analytics", link: "/guide/search-and-analytics" },
             { text: "Original Languages & Morphology", link: "/guide/original-languages" },

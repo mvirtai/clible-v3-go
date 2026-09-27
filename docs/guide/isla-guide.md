@@ -330,13 +330,63 @@ search("grace").at(NT).count(books) >>
 ### `.top(n)` — Word Frequency Rankings
 
 Extracts the `n` most frequent words from the matched text corpus, returning a ranked
-frequency list. Includes full analytics: token count, unique token count, and TTR:
+frequency list. Includes full analytics: token count, unique token count, and TTR.
+
+By default, tokens are counted **as-is** (inflected forms treated separately). To
+collapse inflected Finnish forms into their base lemma, add a lemmatization modifier
+before `.top()`:
 
 ```isla
 range(ROM, GAL).top(15) =>
+range(ROM, GAL).lemma().top(15) =>
 search("armo").at(epistolat).top(10) >>
-^all.top(20) =>
+^all.cluster().top(20) =>
 ```
+
+**Allowed on:** All objects
+
+### `.lemma()` / `.categorize()` / `.cluster()` — Finnish Lemmatization
+
+These three **pipeline-modifier methods** are synonymous: any one of them activates
+Finnish morphological lemmatization for the following `.top(n)` call. They can appear
+anywhere in the method chain.
+
+| Method | Framing | Effect |
+|---|---|---|
+| `.lemma()` | Linguistic | "Lemmatize tokens before counting" |
+| `.categorize()` | Domain | "Group inflections into lexical categories" |
+| `.cluster()` | Statistical | "Cluster morphological variants under one stem" |
+
+**Optional boolean argument:** `.lemma(true)` enables (default), `.lemma(false)` disables.
+
+```isla
+! ^.cluster().top(10)                        — cell context, lemmatized
+! range(MAT, JOH).lemma().top(15) =>          — passage range, lemmatized
+! search("armo").at(NT).categorize().top(10)  — search, lemmatized
+```
+
+**Without lemmatization** — inflected forms are separate:
+
+| Token | Count |
+|---|---|
+| jeesus | 5 |
+| jeesuksen | 4 |
+| kristus | 4 |
+| kristuksen | 4 |
+
+**With `.lemma()` / `.cluster()` / `.categorize()`** — forms are merged:
+
+| Token | Count |
+|---|---|
+| Jeesus | 9 |
+| Kristus | 8 |
+
+The lemmatizer uses a two-stage pipeline:
+
+1. **Dictionary lookup** — 300+ hand-curated entries for Finnish theological vocabulary
+   (Jeesus, Kristus, Jumala, Herra, armo, rakkaus, usko, synti, pelastus, vanhurskaus, …)
+2. **Rule-based suffix stripping** — removes clitic particles (`-kin`, `-kaan`), possessive
+   suffixes (`-ni`, `-mme`), case endings (`-ssa`, `-sta`, `-lle`, `-ksi`), and plural markers.
 
 **Allowed on:** All objects
 
@@ -572,6 +622,9 @@ isla: unknown method .thems()
 | **Word count** | `range(GEN, DEU).count(words) =>` | Count metric |
 | **Lexical analytics** | `range(ROM, GAL).stats() =>` | Stats card |
 | **Word frequencies** | `range(ROM, GAL).top(15) =>` | Frequency list |
+| **Lemmatized frequencies** | `range(ROM, GAL).lemma().top(15) =>` | Frequency list (merged forms) |
+| **Cluster cell context** | `^.cluster().top(10) =>` | Frequency list (merged forms) |
+| **Categorize + search** | `search("armo").at(NT).categorize().top(10) =>` | Frequency list (merged forms) |
 | **Output to new cell below** | `search("armo").at(epistolat).stats() >>` | Named result cell |
 | **Output to new cell above** | `@(Joh 3:16).refs() > Cross-References` | Named result cell |
 | **Cell context analytics** | `^all.themes(10) =>` | Keyword cloud |
@@ -585,3 +638,12 @@ The name **ISLA** honors *Isla Aurora*, symbolizing brightness, clarity, and ele
 
 Every query executed by the ISLA engine represents a commitment to clean code, joyful
 engineering, and lasting open-source value.
+
+---
+
+## See Also
+
+- [Liturgical Calendar & Prayer Offices](/guide/liturgical-calendar) — Church year data,
+  daily prayer offices, and lectionary cycles embedded in Clible.
+- [Search & Analytics](/guide/search-and-analytics) — Frequency analysis, thematic extraction,
+  and statistical metrics.
