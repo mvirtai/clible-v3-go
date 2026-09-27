@@ -65,7 +65,7 @@ graph LR
 - **Executable Directives:** Scripture references in both lectionary and prayer offices use executable ISLA directives (`! @(viite)`), omitting redundant raw text quotes.
 - **Authentic 9-Step Liturgical Structure:**
   1. `1. Johdanto (Invitatorium)`: Versicles (`V:` / `R:`) and Gloria Patri.
-  2. `2. Virsi (Hymnus)`: Day hymns and thematic office hymn suggestions.
+  2. `2. Virsi (Hymnus)`: Day hymns and thematic office hymn suggestions formatted with direct clickable Markdown links to `https://virsikirja.fi/<number>`.
   3. `3. Psalmi (Psalmodia)`: Daily office psalm or day psalm formatted with `! @(...)`.
   4. `4. Raamatunluku (Lectio)`: Canonical scripture reading formatted with `! @(...)`.
   5. `5. Responsorio (Vastauslaulu)`: Authentic responsories for morning, midday, evening, and night prayers.
@@ -74,6 +74,7 @@ graph LR
   8. `8. Isä meidän (Oratio Dominica)`: Stanza-spaced Lord's Prayer.
   9. `9. Ylistys ja Päätössiunaus (Benedictio)`: Blessings and versicles.
 - **Markdown Line-Break Hygiene:** `formatPrayerLines` injects double-space (`  `) line endings and blockquote spacing so stanzas and versicles never collapse into merged walls of text.
+- **Hymn Hyperlinking:** `formatHymnLink` automatically produces structured links `[Virsi X (Nimi)](https://virsikirja.fi/X)` for both general liturgical exports and daily prayer offices.
 
 ### 2. Liturgical View Export Actions & Keyboard Shortcut (`LiturgicalView.tsx`)
 
@@ -89,7 +90,7 @@ graph LR
 
 ## Improvement Metrics & Key Figures
 
-* **Vitest Test Suite:** 13 comprehensive unit tests in `liturgicalIslaExport.test.ts` and 9 integration tests in `LiturgicalView.test.tsx` (all 357 frontend tests pass 100%).
+* **Vitest Test Suite:** 14 comprehensive unit tests in `liturgicalIslaExport.test.ts` and 9 integration tests in `LiturgicalView.test.tsx` (all 358 frontend tests pass 100%).
 * **Quality Gates:** 100% clean execution across `task frontend:check`, `task backend:check`, and `task check`.
 * **Backend Test Coverage:** 76.6% overall statement coverage maintained across all Go internal packages.
 * **Semantic Versioning:** Set application version to `3.9.1` (`task version:set VER=3.9.1`).
@@ -109,8 +110,8 @@ graph LR
 
 | File | Change Summary |
 |------|----------------|
-| `frontend/src/utils/liturgicalIslaExport.ts` | Created pure ISLA v2 markdown generator with full 9-step liturgy structure, canticles, and responses |
-| `frontend/src/utils/liturgicalIslaExport.test.ts` | 13 unit tests verifying reference normalization, 9-step liturgy, canticles, and responsories |
+| `frontend/src/utils/liturgicalIslaExport.ts` | Created pure ISLA v2 markdown generator with full 9-step liturgy structure, canticles, responses, and virsikirja.fi links |
+| `frontend/src/utils/liturgicalIslaExport.test.ts` | 14 unit tests verifying reference normalization, 9-step liturgy, canticles, responsories, and hymn links |
 | `frontend/src/utils/i18n.ts` | Added bilingual translation strings for day and offices export buttons and tooltips |
 | `frontend/src/views/LiturgicalView.tsx` | Added day export and offices export buttons, `onExportToNotebook` prop, and `Alt+N` shortcut listener |
 | `frontend/src/views/LiturgicalView.test.tsx` | Added component tests verifying day export, office export, and `Alt+N` keyboard event |
@@ -138,8 +139,8 @@ All local quality checks passed flawlessly!
 ### Automated Frontend Tests
 
 ```text
- ✓ src/utils/liturgicalIslaExport.test.ts (13 tests) 38ms
+ ✓ src/utils/liturgicalIslaExport.test.ts (14 tests) 29ms
  ✓ src/views/LiturgicalView.test.tsx (9 tests) 790ms
  Test Files  46 passed (46)
-      Tests  357 passed (357)
+      Tests  358 passed (358)
 ```

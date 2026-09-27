@@ -3,6 +3,7 @@ import {
   liturgicalToISLA,
   formatIslaReference,
   formatPrayerLines,
+  formatHymnLink,
   officesToISLA,
   isPsalmRef,
   isCanticleRef,
@@ -91,6 +92,18 @@ describe('liturgicalIslaExport', () => {
     });
   });
 
+  describe('formatHymnLink', () => {
+    it('creates markdown links to virsikirja.fi with name and custom or default URL', () => {
+      expect(formatHymnLink({ number: '13', name: 'Käy, kansa, laulamaan', url: 'https://virsikirja.fi/13' }, 'fi')).toBe(
+        '[Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)'
+      );
+      expect(formatHymnLink({ number: '547' }, 'fi')).toBe('[Virsi 547](https://virsikirja.fi/547)');
+      expect(formatHymnLink({ number: '13', name: 'Käy, kansa, laulamaan' }, 'en')).toBe(
+        '[Hymn 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)'
+      );
+    });
+  });
+
   describe('isPsalmRef & isCanticleRef', () => {
     it('identifies psalms correctly', () => {
       expect(isPsalmRef('Ps. 24:7–10')).toBe(true);
@@ -128,7 +141,7 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('> Herra Jumala, taivaallinen Isä, sinä lähetit Poikasi vanhurskaana ja auttajana.');
       expect(output).toContain('> Me rukoilemme sinua: valmista sydämemme ottamaan hänet vastaan.');
       expect(output).toContain('## Päivän virret');
-      expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
+      expect(output).toContain('- [Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)');
     });
 
     it('numbers multiple collect prayers cleanly', () => {
@@ -196,7 +209,8 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('### 1. Johdanto (Invitatorium)');
       expect(output).toContain('Herra, avaa minun huuleni');
       expect(output).toContain('### 2. Virsi (Hymnus)');
-      expect(output).toContain('Virsi 13 (Käy, kansa, laulamaan)');
+      expect(output).toContain('[Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)');
+      expect(output).toContain('https://virsikirja.fi/547');
       expect(output).toContain('### 3. Psalmi (Psalmodia)');
       expect(output).toContain('! @(Ps 118:19-29)');
       expect(output).toContain('### 4. Raamatunluku (Lectio)');
