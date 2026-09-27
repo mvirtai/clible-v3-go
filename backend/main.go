@@ -95,14 +95,24 @@ func main() {
 	aiUsageHandler := api.NewAiUsageHandler(aiUsageService)
 	notebookHandler := api.NewNotebookHandler(notebookService)
 	dslHandler := api.NewDSLHandler(cliService)
-	// Liturgical calendar service
-	liturgicalDataPath := "backend/internal/parsers/data/kirkkovuosi_2026.json"
-	if _, err := os.Stat(liturgicalDataPath); err != nil {
-		liturgicalDataPath = "internal/parsers/data/kirkkovuosi_2026.json"
-	}
-	liturgicalService, err := services.NewLiturgicalService(liturgicalDataPath)
-	if err != nil {
-		slog.Warn("Liturgical service initialization warning", "error", err)
+	// Liturgical calendar service (uses embedded 2026 dataset by default; overridable via LITURGICAL_DATA_PATH)
+	var liturgicalService *services.LiturgicalService
+	if liturgicalDataPath := os.Getenv("LITURGICAL_DATA_PATH"); liturgicalDataPath != "" {
+		var err error
+		liturgicalService, err = services.NewLiturgicalService(liturgicalDataPath)
+		if err != nil {
+			slog.Warn("Failed to load liturgical data from LITURGICAL_DATA_PATH, falling back to embedded dataset", "path", liturgicalDataPath, "error", err)
+			liturgicalService, err = services.NewDefaultLiturgicalService()
+			if err != nil {
+				slog.Error("Failed to initialize embedded liturgical service", "error", err)
+			}
+		}
+	} else {
+		var err error
+		liturgicalService, err = services.NewDefaultLiturgicalService()
+		if err != nil {
+			slog.Error("Failed to initialize embedded liturgical service", "error", err)
+		}
 	}
 	var liturgicalHandler *api.LiturgicalHandler
 	if liturgicalService != nil {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mvirtai/clible-v3-go/internal/models"
+	"github.com/mvirtai/clible-v3-go/internal/parsers"
 )
 
 // LiturgicalService provides fast in-memory lookups for church year liturgical days and prayer offices.
@@ -20,8 +21,16 @@ type LiturgicalService struct {
 	allDays   []*models.LiturgicalDay
 }
 
-// NewLiturgicalService loads liturgical days from a JSON file path.
+// NewDefaultLiturgicalService initializes LiturgicalService from the statically embedded 2026 dataset.
+func NewDefaultLiturgicalService() (*LiturgicalService, error) {
+	return NewLiturgicalServiceFromBytes(parsers.Kirkkovuosi2026JSON)
+}
+
+// NewLiturgicalService loads liturgical days from a JSON file path, falling back to embedded data if dataPath is empty.
 func NewLiturgicalService(dataPath string) (*LiturgicalService, error) {
+	if dataPath == "" {
+		return NewDefaultLiturgicalService()
+	}
 	data, err := os.ReadFile(dataPath)
 	if err != nil {
 		return nil, fmt.Errorf("reading liturgical data failed: %w", err)

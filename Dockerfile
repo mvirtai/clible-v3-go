@@ -65,6 +65,7 @@ WORKDIR /app
 # Copy the compiled Go server and React frontend dist and assign ownership
 COPY --from=backend-builder --chown=${APP_USER}:${APP_USER} /app/backend/clible-server /app/clible-server
 COPY --from=frontend-builder --chown=${APP_USER}:${APP_USER} /app/frontend/dist /app/frontend/dist
+COPY --from=backend-builder --chown=${APP_USER}:${APP_USER} /app/backend/internal/parsers/data /app/internal/parsers/data
 
 # Make database directory and give it write and read privileges to the App user
 RUN mkdir -p /data && chown -R ${APP_USER}:${APP_USER} /data
