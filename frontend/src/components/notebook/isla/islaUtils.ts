@@ -432,8 +432,9 @@ export function getCommandMeta(keyword: string): ISLACommandMeta | undefined {
 }
 
 /**
- * Strips all ISLA code blocks, embed widgets, inline directives, and command lines from markdown text.
- * Leaves only user narrative notes, headings, and natural language prose.
+ * Strips all ISLA code blocks, embed widgets, inline directives, command lines,
+ * web URLs, markdown headers, and liturgical rubrics/roles from markdown text.
+ * Leaves only user narrative notes, prayers, and natural language prose for NLP analysis.
  */
 export function stripISLAFromText(text: string): string {
   if (!text) return '';
@@ -448,6 +449,25 @@ export function stripISLAFromText(text: string): string {
     .replace(/(?:^|\n)\s*![^\n]*/g, '')
     // 5. Standalone ISLA command lines (e.g. ^ => ..., @Joh ..., search(...), top(...), stats())
     .replace(/(?:^|\n)\s*(?:\^\s*=>|@\w+|\?\s*["'/]|(?:search|range|read|stats|top|count|ttr|themes|suggest)\s*\()[^\n]*/gi, '')
+    // 6. Web URLs (standalone or protocol artifacts)
+    .replace(/https?:\/\/[^\s)]+/gi, '')
+    // 7. Markdown links: [Label](url) -> Label
+    .replace(/\[([^\]]+)\]\((?:https?:\/\/[^\s)]+|[^)]+)\)/g, '$1')
+    // 8. Markdown headers (# Header, ## Section, ### Office)
+    .replace(/(?:^|\n)\s*#{1,6}\s+[^\n]*/g, '')
+    // 9. Liturgical metadata lines (**Päivämäärä:** ..., **Liturginen väri:** ...)
+    .replace(/(?:^|\n)\s*\*\*(?:Päivämäärä|Liturginen väri|Date|Liturgical color|Color):\*\*[^\n]*/gi, '')
+    // 10. Liturgical rubrics and hymn suggestions (*Ehdotus: ...*, *Tai vaihtoehtoisesti ...*)
+    .replace(/(?:^|\n)\s*(?:[-*]\s*)?\*(?:Ehdotus|Suggestion|Tai vaihtoehtoisesti|Alternatively|Päivän psalmi|Day psalm|Lyhyt yörukouksen|Virsi|Hymn)[^\n]*/gi, '')
+    // 11. Parenthesized rubrics (*(Päivän lukukappale...)*)
+    .replace(/\*\([^)]+\)\*/g, '')
+    // 12. Liturgical role tags (> **E:**, > **S:**, **Kaikki:**, **All:**) and cross signs (+)
+    .replace(/(?:^|\n)\s*>\s*\*\*(?:E|S|L|C|Kaikki|All):\*\*\s*/gi, '\n')
+    .replace(/\*\*(?:E|S|L|C|Kaikki|All):\*\*/gi, '')
+    .replace(/\(\+\)/g, '')
+    // 13. Blockquote leaders and divider lines
+    .replace(/(?:^|\n)\s*>\s?/g, '\n')
+    .replace(/(?:^|\n)\s*---+[^\n]*/g, '')
     .trim();
 }
 

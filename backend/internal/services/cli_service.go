@@ -123,9 +123,10 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 			v2ExecCtx.AnalyticsFinder = func(verses []models.Verse, text string, topN int) newdsl.AnalyticsData {
 				var targetVerses []models.Verse
 				if len(verses) > 0 {
-					targetVerses = verses
-				} else if text != "" {
-					targetVerses = []models.Verse{{Text: text}}
+					targetVerses = append(targetVerses, verses...)
+				}
+				if text != "" {
+					targetVerses = append(targetVerses, models.Verse{Text: text})
 				}
 				res := s.analyticService.AnalyzeVerses(targetVerses, topN)
 				var topWords []models.ThemeItem
@@ -227,9 +228,10 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 		execCtx.AnalyticsFinder = func(verses []models.Verse, text string, topN int) dsl.AnalyticsData {
 			var targetVerses []models.Verse
 			if len(verses) > 0 {
-				targetVerses = verses
-			} else if text != "" {
-				targetVerses = []models.Verse{{Text: text}}
+				targetVerses = append(targetVerses, verses...)
+			}
+			if text != "" {
+				targetVerses = append(targetVerses, models.Verse{Text: text})
 			}
 			res := s.analyticService.AnalyzeVerses(targetVerses, topN)
 			var topWords []models.ThemeItem

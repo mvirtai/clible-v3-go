@@ -6,9 +6,14 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
+
+func init() {
+	services.CurrentBcryptCost = bcrypt.MinCost
+}
 
 func setupAuthService(t *testing.T) (*services.AuthService, *db.UserRepository) {
 	t.Helper()

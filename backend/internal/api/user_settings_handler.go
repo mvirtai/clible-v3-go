@@ -9,6 +9,7 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/ctxkeys"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
+	"github.com/mvirtai/clible-v3-go/internal/services"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -134,7 +135,7 @@ func (h *UserSettingsHandler) UpdatePassword(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	newHash, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), 12)
+	newHash, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), services.CurrentBcryptCost)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "failed to hash password")
 		return

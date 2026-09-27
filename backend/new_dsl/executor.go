@@ -50,19 +50,73 @@ type ExecutionContext struct {
 }
 
 var (
-	islaLineRegex   = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
-	codeBlockRegex  = regexp.MustCompile("(?s)```.*?```")
-	inlineCodeRegex = regexp.MustCompile("`[^`]*`")
-	nonAlphaRegex   = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
-	whitespaceRegex = regexp.MustCompile(`\s+`)
+	islaLineRegex          = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
+	codeBlockRegex         = regexp.MustCompile("(?s)```.*?```")
+	inlineCodeRegex        = regexp.MustCompile("`[^`]*`")
+	nonAlphaRegex          = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
+	whitespaceRegex        = regexp.MustCompile(`\s+`)
+	urlRegex               = regexp.MustCompile(`https?://\S+`)
+	markdownLinkRegex      = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`)
+	markdownHeaderRegex    = regexp.MustCompile(`(?m)^\s*#{1,6}\s+.*$`)
+	metadataLineRegex      = regexp.MustCompile(`(?mi)^\s*\*\*(?:Päivämäärä|Liturginen väri|Date|Liturgical color|Color):\*\*.*$`)
+	liturgicalRubricRegex  = regexp.MustCompile(`(?mi)^\s*(?:[-*]\s*)?\*(?:Ehdotus|Suggestion|Tai vaihtoehtoisesti|Alternatively|Päivän psalmi|Day psalm|Lyhyt yörukouksen|Virsi|Hymn).*$`)
+	liturgicalParenthesis  = regexp.MustCompile(`\*\([^)]+\)\*`)
+	liturgicalRoleRegex    = regexp.MustCompile(`(?mi)^\s*>\s*\*\*(?:E|S|L|C|Kaikki|All):\*\*\s*|\*\*(?:E|S|L|C|Kaikki|All):\*\*`)
+	liturgicalCrossRegex   = regexp.MustCompile(`\(\+\)`)
+	blockquoteLeaderRegex  = regexp.MustCompile(`(?m)^\s*>\s?`)
+	dividerLineRegex       = regexp.MustCompile(`(?m)^\s*---+.*$`)
+	verseRefExtractRegex   = regexp.MustCompile(`@(?:\(([^)]+)\)|([1-3]?[A-Za-zäöÄÖåÅ]+(?:\s+\d+(?::\d+(?:-\d+)?)?)?))`)
 )
 
+// ExtractVerseRefs extracts Bible citations referenced via @(...) or @Book from raw text.
+func ExtractVerseRefs(text string) []string {
+	var refs []string
+	seen := make(map[string]bool)
+	matches := verseRefExtractRegex.FindAllStringSubmatch(text, -1)
+	for _, m := range matches {
+		ref := strings.TrimSpace(m[1])
+		if ref == "" {
+			ref = strings.TrimSpace(m[2])
+		}
+		if ref != "" && !seen[ref] {
+			seen[ref] = true
+			refs = append(refs, ref)
+		}
+	}
+	return refs
+}
+
+func extractContextVerses(ctx *ExecutionContext, text string) []models.Verse {
+	if ctx == nil || ctx.VerseFetcher == nil || text == "" {
+		return nil
+	}
+	refs := ExtractVerseRefs(text)
+	var allVerses []models.Verse
+	for _, ref := range refs {
+		verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, ref, ctx.DefaultTrans)
+		if err == nil && len(verses) > 0 {
+			allVerses = append(allVerses, verses...)
+		}
+	}
+	return allVerses
+}
+
 // StripISLAFromText sanitises text by removing ISLA directives, code blocks,
-// and markdown magic tokens before feeding into NLP algorithms.
+// URL protocols, liturgical rubrics/headers, and markdown formatting before NLP analysis.
 func StripISLAFromText(text string) string {
 	res := codeBlockRegex.ReplaceAllString(text, " ")
 	res = inlineCodeRegex.ReplaceAllString(res, " ")
 	res = islaLineRegex.ReplaceAllString(res, " ")
+	res = urlRegex.ReplaceAllString(res, " ")
+	res = liturgicalRubricRegex.ReplaceAllString(res, " ")
+	res = metadataLineRegex.ReplaceAllString(res, " ")
+	res = markdownHeaderRegex.ReplaceAllString(res, " ")
+	res = markdownLinkRegex.ReplaceAllString(res, " ")
+	res = liturgicalParenthesis.ReplaceAllString(res, " ")
+	res = liturgicalRoleRegex.ReplaceAllString(res, " ")
+	res = liturgicalCrossRegex.ReplaceAllString(res, " ")
+	res = blockquoteLeaderRegex.ReplaceAllString(res, " ")
+	res = dividerLineRegex.ReplaceAllString(res, " ")
 	res = whitespaceRegex.ReplaceAllString(res, " ")
 	return strings.TrimSpace(res)
 }
@@ -371,6 +425,7 @@ func executeSearchExpr(ctx *ExecutionContext, n *SearchNode, methods []MethodCal
 // -- Cell Context Execution -----------------------------------------------------
 
 func executeCellCtxExpr(ctx *ExecutionContext, n *CellCtxNode, methods []MethodCall) (*models.CLIResult, error) {
+	verses := extractContextVerses(ctx, ctx.ContextText)
 	text := StripISLAFromText(ctx.ContextText)
 
 	res := &models.CLIResult{
@@ -382,7 +437,7 @@ func executeCellCtxExpr(ctx *ExecutionContext, n *CellCtxNode, methods []MethodC
 		},
 	}
 
-	return applyAnalyticalMethods(ctx, res, nil, text, methods)
+	return applyAnalyticalMethods(ctx, res, verses, text, methods)
 }
 
 // -- Variable Execution ---------------------------------------------------------
@@ -725,15 +780,17 @@ func executeComparison(ctx *ExecutionContext, ref, trans1, trans2 string) (*mode
 // -- Helper Utilities -----------------------------------------------------------
 
 func aggregateText(verses []models.Verse, fallback string) string {
-	if len(verses) > 0 {
-		var sb strings.Builder
-		for _, v := range verses {
+	var sb strings.Builder
+	for _, v := range verses {
+		if v.Text != "" {
 			sb.WriteString(v.Text)
 			sb.WriteString(" ")
 		}
-		return strings.TrimSpace(sb.String())
 	}
-	return fallback
+	if fallback != "" {
+		sb.WriteString(fallback)
+	}
+	return strings.TrimSpace(sb.String())
 }
 
 func normalizeCountUnit(raw string) string {
