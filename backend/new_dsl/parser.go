@@ -539,7 +539,7 @@ func validateMethodForObject(kind ObjectKind, method string) error {
 		if kind != ObjectVerseRef && kind != ObjectVariable {
 			return fmt.Errorf("isla: .refs() cross-reference method is only permitted on verse references @() or variables")
 		}
-	case "count", "themes", "suggest", "top", "stats":
+	case "count", "themes", "suggest", "top", "stats", "categorize", "lemma", "cluster":
 		// Allowed on all objects
 		return nil
 	default:
