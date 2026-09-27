@@ -51,8 +51,14 @@ tasks:
     cmds:
       - go test -v ./...
 
+  backend:test:fast:
+    desc: Run all Go unit tests quickly using build cache (no race detector, no coverage)
+    dir: backend
+    cmds:
+      - go test ./internal/...
+
   backend:test-cov:
-    desc: Run all Go unit and integration tests with race detector
+    desc: Run all Go unit and integration tests with coverage profiling
     dir: backend
     sources:
       - '**/*.go'
@@ -62,6 +68,21 @@ tasks:
       - '../.cov/backend/coverage.out'
       - '../.cov/backend/coverage.txt'
     method: checksum
+    cmds:
+      - mkdir -p ../.cov/backend
+      - |
+        bash -c '
+          (go test -coverprofile=../.cov/backend/coverage.out ./internal/... 2>&1 | tee ../.cov/backend/test_output.log; echo ${PIPESTATUS[0]} > ../.cov/backend/.exit_code) || true
+          grep -E -- "--- FAIL:|FAIL\t|FAIL:|panic:|[a-zA-Z0-9_-]+\.go:[0-9]+:" ../.cov/backend/test_output.log > ../.cov/backend/test_failures.log || true
+          EXIT_CODE=$(cat ../.cov/backend/.exit_code 2>/dev/null || echo 1)
+          rm -f ../.cov/backend/.exit_code
+          if [ "$EXIT_CODE" -ne 0 ]; then exit $EXIT_CODE; fi
+        '
+      - go tool cover -func=../.cov/backend/coverage.out | tee ../.cov/backend/coverage.txt
+
+  backend:test-race:
+    desc: Run all Go unit and integration tests with race detector (thorough concurrency audit)
+    dir: backend
     cmds:
       - mkdir -p ../.cov/backend
       - |

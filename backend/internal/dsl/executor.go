@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -393,7 +394,14 @@ func executePipe(ctx *ExecutionContext, n *PipeNode) (*models.CLIResult, error) 
 			}
 		}
 		if _, isScope := n.Left.(*ScopeNode); isScope {
-			return executeThemesOnText(ctx, StripISLAFromText(ctx.ContextText), limit)
+			verses := extractContextVerses(ctx, ctx.ContextText)
+			var sb strings.Builder
+			for _, v := range verses {
+				sb.WriteString(v.Text)
+				sb.WriteString(" ")
+			}
+			sb.WriteString(StripISLAFromText(ctx.ContextText))
+			return executeThemesOnText(ctx, sb.String(), limit)
 		}
 		res, err := Execute(ctx, n.Left)
 		if err != nil {
@@ -636,7 +644,54 @@ func aggregateCount(verses []models.Verse, unit string) int {
 	}
 }
 
-// StripISLAFromText strips all ISLA directives, code blocks, embeds, and triggers from text,
+var (
+	dslURLRegex              = regexp.MustCompile(`https?://\S+`)
+	dslMarkdownLinkRegex     = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`)
+	dslMarkdownHeaderRegex   = regexp.MustCompile(`(?m)^\s*#{1,6}\s+.*$`)
+	dslMetadataLineRegex     = regexp.MustCompile(`(?mi)^\s*\*\*(?:Päivämäärä|Liturginen väri|Date|Liturgical color|Color):\*\*.*$`)
+	dslLiturgicalRubricRegex = regexp.MustCompile(`(?mi)^\s*(?:[-*]\s*)?\*(?:Ehdotus|Suggestion|Tai vaihtoehtoisesti|Alternatively|Päivän psalmi|Day psalm|Lyhyt yörukouksen|Virsi|Hymn).*$`)
+	dslLiturgicalParenthesis = regexp.MustCompile(`\*\([^)]+\)\*`)
+	dslLiturgicalRoleRegex   = regexp.MustCompile(`(?mi)^\s*>\s*\*\*(?:E|S|L|C|Kaikki|All):\*\*\s*|\*\*(?:E|S|L|C|Kaikki|All):\*\*`)
+	dslLiturgicalCrossRegex  = regexp.MustCompile(`\(\+\)`)
+	dslBlockquoteLeaderRegex = regexp.MustCompile(`(?m)^\s*>\s?`)
+	dslDividerLineRegex      = regexp.MustCompile(`(?m)^\s*---+.*$`)
+	dslVerseRefExtractRegex  = regexp.MustCompile(`@(?:\(([^)]+)\)|([1-3]?[A-Za-zäöÄÖåÅ]+(?:\s+\d+(?::\d+(?:-\d+)?)?)?))`)
+)
+
+// ExtractVerseRefs extracts Bible citations referenced via @(...) or @Book from raw text.
+func ExtractVerseRefs(text string) []string {
+	var refs []string
+	seen := make(map[string]bool)
+	matches := dslVerseRefExtractRegex.FindAllStringSubmatch(text, -1)
+	for _, m := range matches {
+		ref := strings.TrimSpace(m[1])
+		if ref == "" {
+			ref = strings.TrimSpace(m[2])
+		}
+		if ref != "" && !seen[ref] {
+			seen[ref] = true
+			refs = append(refs, ref)
+		}
+	}
+	return refs
+}
+
+func extractContextVerses(ctx *ExecutionContext, text string) []models.Verse {
+	if ctx == nil || ctx.VerseSearcher == nil || text == "" {
+		return nil
+	}
+	refs := ExtractVerseRefs(text)
+	var allVerses []models.Verse
+	for _, ref := range refs {
+		verses, err := ctx.VerseSearcher.SearchVerses(ctx.Ctx, ref, false, ctx.DefaultTrans, "", "")
+		if err == nil && len(verses) > 0 {
+			allVerses = append(allVerses, verses...)
+		}
+	}
+	return allVerses
+}
+
+// StripISLAFromText strips all ISLA directives, code blocks, embeds, URLs, and liturgical rubrics from text,
 // leaving only the user's natural language notes and narrative prose.
 func StripISLAFromText(text string) string {
 	if text == "" {
@@ -672,7 +727,18 @@ func StripISLAFromText(text string) string {
 		}
 		kept = append(kept, line)
 	}
-	return strings.TrimSpace(strings.Join(kept, "\n"))
+	res := strings.Join(kept, "\n")
+	res = dslURLRegex.ReplaceAllString(res, " ")
+	res = dslLiturgicalRubricRegex.ReplaceAllString(res, " ")
+	res = dslMetadataLineRegex.ReplaceAllString(res, " ")
+	res = dslMarkdownHeaderRegex.ReplaceAllString(res, " ")
+	res = dslMarkdownLinkRegex.ReplaceAllString(res, " ")
+	res = dslLiturgicalParenthesis.ReplaceAllString(res, " ")
+	res = dslLiturgicalRoleRegex.ReplaceAllString(res, " ")
+	res = dslLiturgicalCrossRegex.ReplaceAllString(res, " ")
+	res = dslBlockquoteLeaderRegex.ReplaceAllString(res, " ")
+	res = dslDividerLineRegex.ReplaceAllString(res, " ")
+	return strings.TrimSpace(res)
 }
 
 func executeCountPipe(ctx *ExecutionContext, left Node, unit string) (*models.CLIResult, error) {
@@ -1032,7 +1098,8 @@ func applyActionToResult(_ *ExecutionContext, res *models.CLIResult, action *Act
 
 func extractTargetContent(ctx *ExecutionContext, left Node) ([]models.Verse, string, error) {
 	if _, isScope := left.(*ScopeNode); isScope {
-		return nil, StripISLAFromText(ctx.ContextText), nil
+		verses := extractContextVerses(ctx, ctx.ContextText)
+		return verses, StripISLAFromText(ctx.ContextText), nil
 	}
 
 	res, err := Execute(ctx, left)
@@ -1049,6 +1116,32 @@ func extractTargetContent(ctx *ExecutionContext, left Node) ([]models.Verse, str
 	}
 
 	return nil, "", nil
+}
+
+var fallbackStopWords = map[string]bool{
+	"virsi": true, "virret": true, "virren": true, "virsiä": true, "virsikirja": true,
+	"hymni": true, "hymnit": true, "psalmi": true, "psalmit": true,
+	"minä": true, "minun": true, "minua": true, "minut": true,
+	"sinä": true, "sinun": true, "sinua": true, "sinut": true,
+	"hän": true, "hänen": true, "häntä": true, "hänet": true,
+	"me": true, "meidän": true, "meitä": true, "meidät": true, "meille": true, "meiltä": true,
+	"te": true, "teidän": true, "teitä": true, "teidät": true, "teille": true,
+	"he": true, "heidän": true, "heitä": true, "heidät": true, "heille": true,
+	"itse": true, "itseämme": true, "itsemme": true, "itseään": true,
+	"se": true, "sen": true, "sitä": true, "siinä": true, "siitä": true, "sille": true, "sillä": true,
+	"tämä": true, "tämän": true, "tätä": true, "tässä": true, "tästä": true, "tälle": true, "tällä": true,
+	"ne": true, "niiden": true, "niitä": true, "nämä": true, "näiden": true, "näitä": true,
+	"joka": true, "jota": true, "jonka": true, "joita": true, "jossa": true, "johon": true, "jotka": true,
+	"mikä": true, "mitä": true, "minkä": true, "kuka": true, "kenen": true,
+	"on": true, "oli": true, "olen": true, "olet": true, "olemme": true, "olette": true, "ovat": true,
+	"ollut": true, "olleet": true, "olisi": true, "ole": true,
+	"ei": true, "en": true, "et": true, "emme": true, "ette": true, "eivät": true,
+	"niin": true, "kuin": true, "kun": true, "jos": true, "että": true, "sekä": true,
+	"mutta": true, "vaan": true, "tai": true, "vai": true, "myös": true, "nyt": true,
+	"aina": true, "vielä": true, "jo": true, "vaikka": true, "koska": true, "jotta": true,
+	"sitten": true, "kaikki": true, "kaiken": true, "vain": true, "siis": true,
+	"https": true, "http": true, "www": true, "url": true,
+	"-": true, "–": true, "—": true,
 }
 
 func defaultAnalytics(verses []models.Verse, text string, topN int) AnalyticsData {
@@ -1088,7 +1181,7 @@ func defaultAnalytics(verses []models.Verse, text string, topN int) AnalyticsDat
 
 	for _, w := range rawWords {
 		cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-")
-		if cleaned == "" {
+		if cleaned == "" || fallbackStopWords[cleaned] {
 			continue
 		}
 		freqMap[cleaned]++

@@ -16,7 +16,12 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/ctxkeys"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
+	"github.com/mvirtai/clible-v3-go/internal/services"
 )
+
+func init() {
+	services.CurrentBcryptCost = bcrypt.MinCost
+}
 
 func setupUserSettingsHandler(t *testing.T) (*api.UserSettingsHandler, *db.UserRepository, string, string) {
 	t.Helper()
@@ -31,7 +36,7 @@ func setupUserSettingsHandler(t *testing.T) (*api.UserSettingsHandler, *db.UserR
 
 	userID := uuid.New().String()
 	initialPassword := "CurrentPassword123!"
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(initialPassword), 12)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(initialPassword), services.CurrentBcryptCost)
 	if err != nil {
 		t.Fatalf("failed to hash test password: %v", err)
 	}

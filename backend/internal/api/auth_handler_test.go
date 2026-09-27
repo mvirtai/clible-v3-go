@@ -12,7 +12,12 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/api"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/services"
+	"golang.org/x/crypto/bcrypt"
 )
+
+func init() {
+	services.CurrentBcryptCost = bcrypt.MinCost
+}
 
 func setupAuthHandler(t *testing.T) (*api.AuthHandler, *services.AuthService, *db.UserRepository) {
 	t.Helper()

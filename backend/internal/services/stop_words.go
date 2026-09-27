@@ -1,11 +1,13 @@
 package services
 
+import "strings"
+
 // List of common words to ignore during analysis in Finnish and English.
 var stopWords = map[string]bool{
 	// Finnish general stop words (conjunctions, prepositions, pronouns, adverbs)
 	"ja": true, "se": true, "on": true, "että": true, "kuin": true, "mutta": true,
 	"he": true, "ne": true, "kun": true, "jos": true, "tai": true, "vai": true,
-	"minä": true, "sinä": true, "me": true, "te": true, "tämä": true, "nämä": true,
+	"minä": true, "sinä": true, "hän": true, "me": true, "te": true, "tämä": true, "nämä": true,
 	"tuo": true, "joka": true, "jotka": true, "mikä": true, "mitä": true, "joku": true,
 	"jokin": true, "jokainen": true, "kaikki": true, "kaikkien": true, "kaikkea": true,
 	"kaikille": true, "kaikista": true, "kaikilla": true, "oma": true, "omat": true,
@@ -17,7 +19,11 @@ var stopWords = map[string]bool{
 	"heille": true, "hänelle": true, "minulle": true, "sinulle": true, "meille": true,
 	"heiltä": true, "häneltä": true, "minulta": true, "sinulta": true, "meiltä": true,
 	"heidän": true, "hänen": true, "minun": true, "sinun": true, "meidän": true,
-	"teidän": true,
+	"teidän": true, "meitä": true, "meidät": true, "teitä": true, "teidät": true,
+	"heitä": true, "heidät": true, "häntä": true, "hänet": true, "minua": true,
+	"minut": true, "sinua": true, "sinut": true,
+	"itse": true, "itseämme": true, "itsemme": true, "itseään": true, "itseensä": true, "itseäni": true,
+	"jota": true, "tätä": true, "tämän": true, "tästä": true, "tällä": true, "tältä": true,
 
 	// Finnish common auxiliary verbs & forms of "olla"
 	"olla": true, "olen": true, "olet": true, "olemme": true, "olette": true, "ovat": true,
@@ -75,26 +81,44 @@ var stopWords = map[string]bool{
 
 	// Liturgical and hymn metadata terms (Finnish)
 	// Prevents liturgical export structure and hymn references from appearing in theme extraction
-	"virsikirja": true, "virsi": true, "virret": true, "virren": true, "hymni": true,
-	"hymnin": true, "hymnia": true, "helluntai": true, "pääsiäinen": true, "joulu": true,
-	"liturgia": true, "liturgian": true, "messu": true, "messun": true, "raamatunluku": true,
-	"raamatunluvut": true, "psalmi": true, "psalmeja": true, "kantikumi": true, "kantikumit": true,
-	"kantikumia": true, "rukoushetki": true, "rukoushetkien": true, "laudes": true, "nona": true,
-	"seksta": true, "tertia": true, "vesperi": true, "vesper": true, "completorium": true,
-	"komplutorium": true, "iltavirret": true, "iltavirsi": true, "yövirsi": true, "yövirret": true,
-	"aamuvirsii": true, "keskipäivä": true, "johdanto": true, "invitatorium": true, "invitatorio": true,
-	"responsorio": true, "responsoriit": true, "gloria": true, "kyrie": true, "collecta": true,
-	"collect": true, "benedictio": true, "benedictio": true, "siunaus": true, "siunaukset": true,
-	"ehdotus": true, "ehdotukset": true, "päivän": true, "keskipäivän": true, "iltavirsi": true,
-	"yövirsi": true, "aamuvirsii": true, "aamuvirsii": true, "virsisuositukset": true,
+	"virsikirja": true, "virsi": true, "virret": true, "virren": true, "virsiä": true,
+	"hymni": true, "hymnin": true, "hymnit": true, "hymnejä": true, "hymnia": true,
+	"helluntai": true, "pääsiäinen": true, "joulu": true,
+	"liturgia": true, "liturgian": true, "liturginen": true, "liturgiset": true,
+	"messu": true, "messun": true, "raamatunluku": true, "raamatunluvut": true,
+	"psalmi": true, "psalmin": true, "psalmeja": true,
+	"kantikumi": true, "kantikumit": true, "kantikumin": true, "kantikumia": true,
+	"rukoushetki": true, "rukoushetket": true, "rukoushetkien": true,
+	"hetkipalvelus": true, "hetkipalvelukset": true, "hetkipalveluksen": true, "hetkipalvelusten": true,
+	"laudes": true, "nona": true, "seksta": true, "tertia": true, "vesperi": true, "vesper": true,
+	"completorium": true, "komplutorium": true, "iltavirret": true, "iltavirsi": true,
+	"yövirsi": true, "yövirret": true, "aamuvirsi": true, "aamuvirret": true,
+	"keskipäivä": true, "keskipäivän": true, "johdanto": true,
+	"invitatorium": true, "invitatorio": true, "responsorio": true, "responsoriit": true,
+	"gloria": true, "kyrie": true, "collecta": true, "collect": true, "benedictio": true,
+	"siunaus": true, "siunaukset": true, "ehdotus": true, "ehdotukset": true,
+	"päivän": true, "virsisuositukset": true, "aamen": true, "amen": true,
+	"halleluja": true, "alleluia": true, "vaihtoehtoisesti": true,
+	"lukukappale": true, "lukukappaleet": true, "liitteestä": true, "esim": true, "esirukous": true,
+	"päivämäärä": true, "väri": true,
+
+	// Web URLs and protocol artifacts
+	"https": true, "http": true, "www": true, "url": true, "fi": true, "com": true, "net": true, "org": true,
 
 	// Liturgical and hymn metadata terms (English)
 	"hymnal": true, "hymn": true, "hymns": true, "hymnic": true, "hymnody": true,
-	"easter": true, "christmas": true, "pentecost": true, "liturgy": true, "liturgical": true,
-	"mass": true, "scripture": true, "reading": true, "psalmody": true, "canticle": true,
-	"canticles": true, "prayer": true, "prayers": true, "office": true, "offices": true,
-	"laudes": true, "vespers": true, "compline": true, "evening": true, "morning": true,
-	"midday": true, "kyrie": true, "gloria": true, "collect": true, "collecta": true,
+	"easter": true, "christmas": true, "pentecost": true, "liturgical": true,
+	"mass": true, "scripture": true, "reading": true, "readings": true, "psalmody": true,
+	"canticle": true, "canticles": true, "prayer": true, "prayers": true,
+	"office": true, "offices": true, "lauds": true, "vespers": true, "compline": true,
+	"evening": true, "morning": true, "midday": true,
 	"blessing": true, "blessings": true, "benediction": true, "benedictions": true,
-	"suggestion": true, "suggestions": true, "hymn": true,
+	"suggestion": true, "suggestions": true, "alternative": true, "alternatively": true,
+	"-": true, "–": true, "—": true,
+}
+
+// IsStopWord returns true if the normalized word is in the global stopWords dictionary.
+func IsStopWord(word string) bool {
+	w := strings.ToLower(strings.TrimSpace(word))
+	return stopWords[w]
 }

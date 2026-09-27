@@ -50,19 +50,73 @@ type ExecutionContext struct {
 }
 
 var (
-	islaLineRegex   = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
-	codeBlockRegex  = regexp.MustCompile("(?s)```.*?```")
-	inlineCodeRegex = regexp.MustCompile("`[^`]*`")
-	nonAlphaRegex   = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
-	whitespaceRegex = regexp.MustCompile(`\s+`)
+	islaLineRegex          = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
+	codeBlockRegex         = regexp.MustCompile("(?s)```.*?```")
+	inlineCodeRegex        = regexp.MustCompile("`[^`]*`")
+	nonAlphaRegex          = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
+	whitespaceRegex        = regexp.MustCompile(`\s+`)
+	urlRegex               = regexp.MustCompile(`https?://\S+`)
+	markdownLinkRegex      = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`)
+	markdownHeaderRegex    = regexp.MustCompile(`(?m)^\s*#{1,6}\s+.*$`)
+	metadataLineRegex      = regexp.MustCompile(`(?mi)^\s*\*\*(?:Päivämäärä|Liturginen väri|Date|Liturgical color|Color):\*\*.*$`)
+	liturgicalRubricRegex  = regexp.MustCompile(`(?mi)^\s*(?:[-*]\s*)?\*(?:Ehdotus|Suggestion|Tai vaihtoehtoisesti|Alternatively|Päivän psalmi|Day psalm|Lyhyt yörukouksen|Virsi|Hymn).*$`)
+	liturgicalParenthesis  = regexp.MustCompile(`\*\([^)]+\)\*`)
+	liturgicalRoleRegex    = regexp.MustCompile(`(?mi)^\s*>\s*\*\*(?:E|S|L|C|Kaikki|All):\*\*\s*|\*\*(?:E|S|L|C|Kaikki|All):\*\*`)
+	liturgicalCrossRegex   = regexp.MustCompile(`\(\+\)`)
+	blockquoteLeaderRegex  = regexp.MustCompile(`(?m)^\s*>\s?`)
+	dividerLineRegex       = regexp.MustCompile(`(?m)^\s*---+.*$`)
+	verseRefExtractRegex   = regexp.MustCompile(`@(?:\(([^)]+)\)|([1-3]?[A-Za-zäöÄÖåÅ]+(?:\s+\d+(?::\d+(?:-\d+)?)?)?))`)
 )
 
+// ExtractVerseRefs extracts Bible citations referenced via @(...) or @Book from raw text.
+func ExtractVerseRefs(text string) []string {
+	var refs []string
+	seen := make(map[string]bool)
+	matches := verseRefExtractRegex.FindAllStringSubmatch(text, -1)
+	for _, m := range matches {
+		ref := strings.TrimSpace(m[1])
+		if ref == "" {
+			ref = strings.TrimSpace(m[2])
+		}
+		if ref != "" && !seen[ref] {
+			seen[ref] = true
+			refs = append(refs, ref)
+		}
+	}
+	return refs
+}
+
+func extractContextVerses(ctx *ExecutionContext, text string) []models.Verse {
+	if ctx == nil || ctx.VerseFetcher == nil || text == "" {
+		return nil
+	}
+	refs := ExtractVerseRefs(text)
+	var allVerses []models.Verse
+	for _, ref := range refs {
+		verses, err := ctx.VerseFetcher.GetVerses(ctx.Ctx, ref, ctx.DefaultTrans)
+		if err == nil && len(verses) > 0 {
+			allVerses = append(allVerses, verses...)
+		}
+	}
+	return allVerses
+}
+
 // StripISLAFromText sanitises text by removing ISLA directives, code blocks,
-// and markdown magic tokens before feeding into NLP algorithms.
+// URL protocols, liturgical rubrics/headers, and markdown formatting before NLP analysis.
 func StripISLAFromText(text string) string {
 	res := codeBlockRegex.ReplaceAllString(text, " ")
 	res = inlineCodeRegex.ReplaceAllString(res, " ")
 	res = islaLineRegex.ReplaceAllString(res, " ")
+	res = urlRegex.ReplaceAllString(res, " ")
+	res = liturgicalRubricRegex.ReplaceAllString(res, " ")
+	res = metadataLineRegex.ReplaceAllString(res, " ")
+	res = markdownHeaderRegex.ReplaceAllString(res, " ")
+	res = markdownLinkRegex.ReplaceAllString(res, " ")
+	res = liturgicalParenthesis.ReplaceAllString(res, " ")
+	res = liturgicalRoleRegex.ReplaceAllString(res, " ")
+	res = liturgicalCrossRegex.ReplaceAllString(res, " ")
+	res = blockquoteLeaderRegex.ReplaceAllString(res, " ")
+	res = dividerLineRegex.ReplaceAllString(res, " ")
 	res = whitespaceRegex.ReplaceAllString(res, " ")
 	return strings.TrimSpace(res)
 }
@@ -371,6 +425,7 @@ func executeSearchExpr(ctx *ExecutionContext, n *SearchNode, methods []MethodCal
 // -- Cell Context Execution -----------------------------------------------------
 
 func executeCellCtxExpr(ctx *ExecutionContext, n *CellCtxNode, methods []MethodCall) (*models.CLIResult, error) {
+	verses := extractContextVerses(ctx, ctx.ContextText)
 	text := StripISLAFromText(ctx.ContextText)
 
 	res := &models.CLIResult{
@@ -382,7 +437,7 @@ func executeCellCtxExpr(ctx *ExecutionContext, n *CellCtxNode, methods []MethodC
 		},
 	}
 
-	return applyAnalyticalMethods(ctx, res, nil, text, methods)
+	return applyAnalyticalMethods(ctx, res, verses, text, methods)
 }
 
 // -- Variable Execution ---------------------------------------------------------
@@ -728,12 +783,18 @@ func aggregateText(verses []models.Verse, fallback string) string {
 	if len(verses) > 0 {
 		var sb strings.Builder
 		for _, v := range verses {
-			sb.WriteString(v.Text)
-			sb.WriteString(" ")
+			if v.Text != "" {
+				if sb.Len() > 0 {
+					sb.WriteString(" ")
+				}
+				sb.WriteString(v.Text)
+			}
 		}
-		return strings.TrimSpace(sb.String())
+		if sb.Len() > 0 {
+			return strings.TrimSpace(sb.String())
+		}
 	}
-	return fallback
+	return strings.TrimSpace(fallback)
 }
 
 func normalizeCountUnit(raw string) string {
@@ -800,13 +861,39 @@ func aggregateCount(verses []models.Verse, text string, unit string) int {
 	}
 }
 
+var fallbackStopWords = map[string]bool{
+	"virsi": true, "virret": true, "virren": true, "virsiä": true, "virsikirja": true,
+	"hymni": true, "hymnit": true, "psalmi": true, "psalmit": true,
+	"minä": true, "minun": true, "minua": true, "minut": true,
+	"sinä": true, "sinun": true, "sinua": true, "sinut": true,
+	"hän": true, "hänen": true, "häntä": true, "hänet": true,
+	"me": true, "meidän": true, "meitä": true, "meidät": true, "meille": true, "meiltä": true,
+	"te": true, "teidän": true, "teitä": true, "teidät": true, "teille": true,
+	"he": true, "heidän": true, "heitä": true, "heidät": true, "heille": true,
+	"itse": true, "itseämme": true, "itsemme": true, "itseään": true,
+	"se": true, "sen": true, "sitä": true, "siinä": true, "siitä": true, "sille": true, "sillä": true,
+	"tämä": true, "tämän": true, "tätä": true, "tässä": true, "tästä": true, "tälle": true, "tällä": true,
+	"ne": true, "niiden": true, "niitä": true, "nämä": true, "näiden": true, "näitä": true,
+	"joka": true, "jota": true, "jonka": true, "joita": true, "jossa": true, "johon": true, "jotka": true,
+	"mikä": true, "mitä": true, "minkä": true, "kuka": true, "kenen": true,
+	"on": true, "oli": true, "olen": true, "olet": true, "olemme": true, "olette": true, "ovat": true,
+	"ollut": true, "olleet": true, "olisi": true, "ole": true,
+	"ei": true, "en": true, "et": true, "emme": true, "ette": true, "eivät": true,
+	"niin": true, "kuin": true, "kun": true, "jos": true, "että": true, "sekä": true,
+	"mutta": true, "vaan": true, "tai": true, "vai": true, "myös": true, "nyt": true,
+	"aina": true, "vielä": true, "jo": true, "vaikka": true, "koska": true, "jotta": true,
+	"sitten": true, "kaikki": true, "kaiken": true, "vain": true, "siis": true,
+	"https": true, "http": true, "www": true, "url": true,
+	"-": true, "–": true, "—": true,
+}
+
 func extractTopFrequencies(text string, limit int) []models.ThemeItem {
 	clean := nonAlphaRegex.ReplaceAllString(text, " ")
 	words := strings.Fields(clean)
 	counts := make(map[string]int)
 	for _, w := range words {
 		l := strings.ToLower(w)
-		if len([]rune(l)) >= 3 {
+		if len([]rune(l)) >= 3 && !fallbackStopWords[l] {
 			counts[l]++
 		}
 	}

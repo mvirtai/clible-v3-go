@@ -62,21 +62,21 @@
 
 ## In Progress
 
-### Kirkkovuoden datan upottaminen Go-binääriin ja tuotannon 404-korjaus
+### Kirkkovuoden ja rukoushetkien stop-sanojen ja URL-linkkien suodatus ISLA-viennissä
 
   - due: 2026-09-27
-  - tags: [liturgical, docker, backend, go, embed, bugfix]
+  - tags: [liturgical, isla, notebook, export, links, sanitize, frontend]
   - priority: high
   - workload: Easy
   - defaultExpanded: true
   - steps:
-      - [x] Upota kirkkovuosi_2026.json Go-binääriin (//go:embed) paketissa backend/internal/parsers/
-      - [x] Päivitä backend/main.go käyttämään ensisijaisesti upotettua dataa (fallback os.Getenv("LITURGICAL_DATA_PATH"))
-      - [x] Päivitä Dockerfile kopioimaan parsers/data varmuudeksi
-      - [x] Päivitä ja suorita backendin testit (LiturgicalService_ActualFile & LiturgicalService_DefaultEmbedded)
-      - [x] Aja laatuportit (task backend:check)
+      - [x] Lisää cleanStopWordsAndUrls(text) -siistintäfunktio tiedostoon frontend/src/utils/liturgicalIslaExport.ts
+      - [x] Lisää stripLinks-optio ja suodata URL-osoitteet sekä markdown-linkit officesToISLA- ja liturgicalToISLA-funktioissa
+      - [x] Lisää kattavat Vitest-yksikkötestit frontend/src/utils/liturgicalIslaExport.test.ts
+      - [x] Suorita laatuportit (task frontend:check)
     ```md
-    Korjaa tuotannossa (clible.fi) esiintyvän 404-virheen /api/liturgical/day -reiteissä upottamalla kirkkovuosi_2026.json suoraan Go-binääriin //go:embed -direktiivillä.
+    Suunnitelma: [.plans/02-luku-ja-haku/34-stop-sanojen-ja-linkkien-suodatus-isla-rukoushetkissa.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/34-stop-sanojen-ja-linkkien-suodatus-isla-rukoushetkissa.md)
+    Poistaa ylimääräiset stop-sanat, Markdown-linkit ja raa'at URL-osoitteet rukoushetkien ja kirkkovuoden ISLA-tekstiviennistä, taaten puhtaan komentosyntaksin ja luettavuuden muistikirjasoluissa.
     ```
 
 ### Semanttisen haun jakeiden kuratointi ja Swipe-triage (Mobiili & Työpöytä)
@@ -117,6 +117,24 @@
     ```
 
 ## Done
+
+### Kirkkovuoden datan upottaminen Go-binääriin ja tuotannon 404-korjaus
+
+  - due: 2026-09-27
+  - tags: [liturgical, docker, backend, go, embed, bugfix]
+  - priority: high
+  - workload: Easy
+  - defaultExpanded: false
+  - steps:
+      - [x] Upota kirkkovuosi_2026.json Go-binääriin (//go:embed) paketissa backend/internal/parsers/
+      - [x] Päivitä backend/main.go käyttämään ensisijaisesti upotettua dataa (fallback os.Getenv("LITURGICAL_DATA_PATH"))
+      - [x] Päivitä Dockerfile kopioimaan parsers/data varmuudeksi
+      - [x] Päivitä ja suorita backendin testit (LiturgicalService_ActualFile & LiturgicalService_DefaultEmbedded)
+      - [x] Aja laatuportit (task backend:check)
+    ```md
+    Toteutettu PR-tarinassa #97 ja yhdistetty haaraan main (#104).
+    Korjaa tuotannossa (clible.fi) esiintyvän 404-virheen /api/liturgical/day -reiteissä upottamalla kirkkovuosi_2026.json suoraan Go-binääriin //go:embed -direktiivillä.
+    ```
 
 ### Kirkkovuoden tekstien ISLA DSL -kooste muistiinpanoihin ja pikanäppäin
 

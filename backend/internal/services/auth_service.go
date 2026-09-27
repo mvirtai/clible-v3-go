@@ -70,6 +70,13 @@ func GenerateURLToken() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
+// DefaultBcryptCost is the standard bcrypt hashing cost used in production (2^12 = 4096 rounds).
+const DefaultBcryptCost = 12
+
+// CurrentBcryptCost allows overriding the bcrypt cost in test environments (e.g. to bcrypt.MinCost)
+// to prevent massive CPU overhead under the Go race detector.
+var CurrentBcryptCost = DefaultBcryptCost
+
 func (s *AuthService) Register(ctx context.Context, email, password, lang string) (*db.User, error) {
 	existingUser, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
@@ -79,8 +86,7 @@ func (s *AuthService) Register(ctx context.Context, email, password, lang string
 		return nil, errors.New("email is already registered")
 	}
 
-	const bcryptCost = 12
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), CurrentBcryptCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}

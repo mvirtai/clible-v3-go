@@ -7,6 +7,7 @@ import {
   officesToISLA,
   isPsalmRef,
   isCanticleRef,
+  cleanStopWordsAndUrls,
 } from './liturgicalIslaExport';
 import type { LiturgicalDay } from '../types/liturgical';
 
@@ -66,6 +67,25 @@ const sampleDay: LiturgicalDay = {
 };
 
 describe('liturgicalIslaExport', () => {
+  describe('cleanStopWordsAndUrls', () => {
+    it('unpacks markdown links into clean plain text', () => {
+      const raw = '*Ehdotus: Aamuvirsi* – esim. [Virsi 547](https://virsikirja.fi/547) (*Joka aamu on armo uus*)';
+      expect(cleanStopWordsAndUrls(raw)).toBe(
+        '*Ehdotus: Aamuvirsi* – esim. Virsi 547 (*Joka aamu on armo uus*)'
+      );
+    });
+
+    it('removes standalone http/https links and cleans excess spacing', () => {
+      const text = 'Lue lisää https://virsikirja.fi/547 tai http://kirkkokasikirja.fi nyt.';
+      expect(cleanStopWordsAndUrls(text)).toBe('Lue lisää tai nyt.');
+    });
+
+    it('handles empty or blank input gracefully', () => {
+      expect(cleanStopWordsAndUrls('')).toBe('');
+      expect(cleanStopWordsAndUrls('   ')).toBe('');
+    });
+  });
+
   describe('formatIslaReference', () => {
     it('normalizes Finnish abbreviation dots, en-dashes and numbers correctly', () => {
       expect(formatIslaReference('Ps. 24:7–10')).toBe('Ps 24:7-10');
@@ -141,7 +161,8 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('> Herra Jumala, taivaallinen Isä, sinä lähetit Poikasi vanhurskaana ja auttajana.');
       expect(output).toContain('> Me rukoilemme sinua: valmista sydämemme ottamaan hänet vastaan.');
       expect(output).toContain('## Päivän virret');
-      expect(output).toContain('- [Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)');
+      expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
+      expect(output).not.toContain('https://virsikirja.fi');
     });
 
     it('numbers multiple collect prayers cleanly', () => {
@@ -213,8 +234,8 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('Riennä avukseni, Herra');
       expect(output).toContain('Kunnia (+) Isälle ja Pojalle ja Pyhälle Hengelle');
       expect(output).toContain('### 2. Virsi (Hymnus)');
-      expect(output).toContain('[Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)');
-      expect(output).toContain('https://virsikirja.fi/547');
+      expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
+      expect(output).not.toContain('https://virsikirja.fi');
       expect(output).toContain('### 3. Psalmi (Psalmodia)');
       expect(output).toContain('! @(Ps 118:19-29)');
       expect(output).toContain('### 4. Raamatunluku (Lectio)');
@@ -271,6 +292,29 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('Lord, have mercy');
       expect(output).toContain('8. The Lord\'s Prayer (Oratio Dominica)');
       expect(output).toContain('9. Blessing (Benedictio)');
+    });
+
+    it('removes URLs and unpacks markdown links when stripLinks is true', () => {
+      const output = officesToISLA(sampleDay, 'fi', { specificOffice: 'morning', stripLinks: true });
+      expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
+      expect(output).not.toContain('https://virsikirja.fi');
+      expect(output).toContain('Virsi 547 (*Joka aamu on armo uus*)');
+      expect(output).toContain('(Aamuvirret 535–548)');
+    });
+
+    it('preserves URLs and markdown links when stripLinks is explicitly false', () => {
+      const output = officesToISLA(sampleDay, 'fi', { stripLinks: false });
+      expect(output).toContain('[Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)');
+      expect(output).toContain('https://virsikirja.fi/547');
+    });
+  });
+
+  describe('stripLinks in liturgicalToISLA', () => {
+    it('strips hymn markdown links when stripLinks option is enabled', () => {
+      const output = liturgicalToISLA(sampleDay, 'fi', { stripLinks: true });
+      expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
+      expect(output).not.toContain('[Virsi 13');
+      expect(output).not.toContain('https://virsikirja.fi');
     });
   });
 });

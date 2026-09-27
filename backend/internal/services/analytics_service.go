@@ -108,7 +108,7 @@ type AnalyticService struct {
 // NewAnalyticService initializes the service, parsing the statically baked stopwords directly from memory.
 func NewAnalyticService(verseRepo *db.VerseRepository, filterStopwords bool, lang string) (*AnalyticService, error) {
 	stopwordsMap := make(map[string]bool)
-	punct := regexp.MustCompile(`^[.,?!;:"()\[\]{}]+|[.,?!;:"()\[\]{}]+$`)
+	punct := regexp.MustCompile(`^[.,?!;:"()\[\]{}—–-]+|[.,?!;:"()\[\]{}—–-]+$`)
 
 	if filterStopwords {
 		// Define an internal anonymous struct to match the "words" array layout in the JSON.
@@ -131,6 +131,10 @@ func NewAnalyticService(verseRepo *db.VerseRepository, filterStopwords bool, lan
 				}
 			}
 		}
+
+		for w := range stopWords {
+			stopwordsMap[w] = true
+		}
 	}
 
 	return &AnalyticService{
@@ -149,10 +153,11 @@ func (s *AnalyticService) Tokenize(text string) []string {
 	for _, w := range words {
 		token := strings.ToLower(w)
 		token = s.punctuation.ReplaceAllString(token, "")
-		if token == "" {
+		token = strings.Trim(token, ".,?!;:\"'()[]{}«»—–- \t\n\r")
+		if token == "" || token == "-" || token == "–" || token == "—" {
 			continue
 		}
-		if s.filterStopwords && s.stopwords[token] {
+		if s.filterStopwords && (s.stopwords[token] || stopWords[token]) {
 			continue
 		}
 		tokens = append(tokens, token)

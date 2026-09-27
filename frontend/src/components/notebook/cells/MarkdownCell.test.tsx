@@ -399,6 +399,75 @@ describe('MarkdownCell', () => {
     );
   });
 
+  it('strips liturgical rubrics, headers, URLs, and role markers from contextText for caret query', async () => {
+    const calls: Array<{ query?: string; contextText?: string }> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((_url, init) => {
+        if (init?.body) {
+          calls.push(JSON.parse(init.body as string));
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              type: 'words',
+              data: {
+                words: [{ word: 'armo', count: 5 }],
+              },
+            }),
+        });
+      })
+    );
+
+    const cell = {
+      id: 'cell-liturgical',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: [
+        '# Aamurukous (Laudes) – Palmusunnuntai',
+        '**Päivämäärä:** 2026-03-29 | **Liturginen väri:** valkoinen',
+        '### 1. Johdanto (Invitatorium)',
+        '> **E:** Herra, avaa minun huuleni,  ',
+        '> **S:** niin suuni julistaa sinun kunniaasi.',
+        '### 2. Virsi (Hymnus)',
+        '*Ehdotus: Aamuvirsi* – esim. [Virsi 547](https://virsikirja.fi/547) (*Joka aamu on armo uus*)',
+        '### 3. Psalmi (Psalmodia)',
+        '! @(Ps 118:19-29)',
+        '### 7. Rukousjakso & Päivän rukous (Preces & Collecta)',
+        '> Kaikkivaltias Jumala, rakas taivaallinen Isä, armahda meitä.',
+        '! ^ => top(10)',
+      ].join('\n'),
+    };
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell
+            cell={cell}
+            onChange={() => {}}
+            contextText={''}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const topCall = calls.find((c) => c.query === '^ => top(10)');
+    expect(topCall).toBeDefined();
+    // Context text must retain prayers
+    expect(topCall?.contextText).toContain('Herra, avaa minun huuleni');
+    expect(topCall?.contextText).toContain('niin suuni julistaa sinun kunniaasi');
+    expect(topCall?.contextText).toContain('Kaikkivaltias Jumala, rakas taivaallinen Isä, armahda meitä');
+    // Context text must NOT contain rubrics, URLs, or role markers
+    expect(topCall?.contextText).not.toContain('https://virsikirja.fi');
+    expect(topCall?.contextText).not.toContain('# Aamurukous');
+    expect(topCall?.contextText).not.toContain('**Päivämäärä:**');
+    expect(topCall?.contextText).not.toContain('*Ehdotus:');
+    expect(topCall?.contextText).not.toContain('**E:**');
+    expect(topCall?.contextText).not.toContain('**S:**');
+  });
+
   it('opens ISLAEditor with syntax layer and execute button when editing an ISLA cell', async () => {
     const cell = {
       id: 'cell-isla-1',
