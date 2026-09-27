@@ -1,12 +1,33 @@
-# Robots.txt for Clible Workspace
+# Robots.txt for Clible Workspace & AI Engines
 User-agent: *
 Allow: /
 Allow: /guest
 Allow: /vierailija-yleinen
 Allow: /login
 Allow: /register
+Allow: /llms.txt
+Allow: /llms-full.txt
 Disallow: /api/
 Allow: /api/health
 Allow: /api/version
+
+# Explicitly allow AI search crawlers for GEO
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
 
 Sitemap: https://clible.fi/sitemap.xml

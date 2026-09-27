@@ -54,11 +54,125 @@ ISLA v2 introduces a uniform expression structure where every query follows an i
 | **2. Method(s)** *(optional)* | `.vs(KR92, KJV)` | Transforms or analyzes the data (`.use`, `.vs`, `.themes`, `.stats`) |
 | **3. Output** *(optional)* | `=> #joh-study` | Defines *where* to render and save (`=>`, `>`, `>>`) |
 
+---
 
+## 2. Top-5 Everyday Use Cases: ISLA vs. Raw SQL
+
+To appreciate why ISLA exists, consider what the underlying engine actually executes behind the scenes in PostgreSQL. Instead of writing verbose, error-prone database queries with joins, full-text vector transformations, and statistical aggregations, ISLA condenses complex theological exegesis into readable, single-line directives.
+
+### 1. Parallel Translation Matrix: Side-by-Side Comparison
+Comparing verses across different languages or historical revisions is instantaneous in ISLA, while SQL requires multiple self-joins or union subqueries:
+
+* **ISLA Expression**:
+  ```isla
+  @(Joh 3:16).vs(KR92, KJV) =>
+  ```
+* **Equivalent SQL Generated**:
+  ```sql
+  SELECT
+    v1.verse,
+    v1.text AS text_kr92,
+    v2.text AS text_kjv
+  FROM verses v1
+  JOIN verses v2
+    ON v1.book_id = v2.book_id
+   AND v1.chapter = v2.chapter
+   AND v1.verse = v2.verse
+  WHERE v1.translation_id = 'kr92'
+    AND v2.translation_id = 'kjv'
+    AND v1.book_id = 'joh'
+    AND v1.chapter = 3
+    AND v1.verse = 16;
+  ```
+
+### 2. Scoped Lexical Search with Ranked Full-Text Search (FTS)
+Searching theological concepts across genre groups (e.g. Pauline epistles) with PostgreSQL `tsvector` and `ts_rank` relevance ordering:
+
+* **ISLA Expression**:
+  ```isla
+  search("armo" AND "rauha").at(epistolat).limit(10) =>
+  ```
+* **Equivalent SQL Generated**:
+  ```sql
+  SELECT id, translation_id, book_id, chapter, verse, text
+  FROM verses
+  WHERE translation_id = 'kr92'
+    AND book_id IN ('rom', '1kor', '2kor', 'gal', 'ef', 'fil', 'kol', '1tes', '2tes', '1tim', '2tim', 'tit', 'flm')
+    AND to_tsvector('finnish', text) @@ to_tsquery('finnish', 'armo & rauha')
+  ORDER BY ts_rank(to_tsvector('finnish', text), to_tsquery('finnish', 'armo & rauha')) DESC
+  LIMIT 10;
+  ```
+
+### 3. Quantitative Exegesis & Lexical Statistics (TTR & Vocabulary Density)
+Calculating total word counts, vocabulary diversity (Type-Token Ratio), and lexical richness across an entire book or passage:
+
+* **ISLA Expression**:
+  ```isla
+  range(ROM, GAL).stats() =>
+  ```
+* **Equivalent SQL / Processing Pipeline**:
+  ```sql
+  WITH passage_tokens AS (
+    SELECT regexp_split_to_table(lower(text), '\s+') AS word
+    FROM verses
+    WHERE translation_id = 'kr92'
+      AND book_id IN (
+        SELECT id FROM books WHERE order_index BETWEEN 45 AND 48
+      )
+  )
+  SELECT
+    count(*) AS token_count,
+    count(DISTINCT word) AS unique_token_count,
+    round(count(DISTINCT word)::numeric / count(*), 4) AS type_token_ratio,
+    avg(length(word)) AS avg_word_length
+  FROM passage_tokens
+  WHERE length(word) > 0;
+  ```
+
+### 4. Canonical Cross-References Lookups
+Retrieving verified scriptural cross-references from the hermeneutical relationship graph:
+
+* **ISLA Expression**:
+  ```isla
+  @(Rom 8:28).refs(5) =>
+  ```
+* **Equivalent SQL Generated**:
+  ```sql
+  SELECT v.id, v.translation_id, v.book_id, v.chapter, v.verse, v.text
+  FROM cross_references cr
+  JOIN verses v
+    ON v.book_id = cr.target_book_id
+   AND v.chapter = cr.target_chapter
+   AND v.verse >= cr.target_verse_start
+   AND v.verse <= cr.target_verse_end
+  WHERE cr.source_book_id = 'rom'
+    AND cr.source_chapter = 8
+    AND cr.source_verse = 28
+    AND v.translation_id = 'kr92'
+  ORDER BY cr.rank ASC
+  LIMIT 5;
+  ```
+
+### 5. Multi-Corpus Counting Dimensions
+Counting how many books, chapters, or verses mention a specific word without writing complex GROUP BY queries:
+
+* **ISLA Expression**:
+  ```isla
+  search("grace").at(NT).count(books) >>
+  ```
+* **Equivalent SQL Generated**:
+  ```sql
+  SELECT count(DISTINCT v.book_id) AS matching_books_count
+  FROM verses v
+  JOIN books b ON v.book_id = b.id
+  WHERE v.translation_id = 'kjv'
+    AND b.testament = 'NT'
+    AND to_tsvector('english', v.text) @@ to_tsquery('english', 'grace');
+  ```
 
 ---
 
-## 2. The Four Source Objects
+## 3. The Four Source Objects
 
 ### `@(Citation)` — Verse Reference
 
@@ -129,7 +243,7 @@ search("armo").at(UT) => #armo
 
 ---
 
-## 3. Method Reference
+## 4. Method Reference
 
 Methods are chained after the object using dot notation: `.methodName(args)`.
 They are applied in order, left to right.
@@ -274,7 +388,7 @@ from the cell text or matched verse corpus:
 
 ---
 
-## 4. Output Operators
+## 5. Output Operators
 
 Every ISLA expression must end with an output operator that specifies where the result
 is rendered.
@@ -318,7 +432,7 @@ range(GEN, DEU).count(words) >>
 
 ---
 
-## 5. Smart Scopes
+## 6. Smart Scopes
 
 When `.at(scope)` is used with a genre group identifier (or when a Finnish/English alias
 is detected), ISLA automatically infers the appropriate Bible translation:
@@ -346,7 +460,7 @@ Individual book identifiers (`Joh`, `ROM`, `Ps`, `GEN`, etc.) are also valid sco
 
 ---
 
-## 6. Notebook Integration & Hybrid Cell Workflows
+## 7. Notebook Integration & Hybrid Cell Workflows
 
 ISLA expressions are embedded directly inside **Markdown Cells** in a Clible Notebook:
 
@@ -399,7 +513,7 @@ flowchart TD
 
 ---
 
-## 7. Monaco IntelliSense
+## 8. Monaco IntelliSense
 
 ISLA features a rich language intelligence layer integrated into the notebook editor:
 
@@ -437,7 +551,7 @@ isla: unknown method .thems()
 
 ---
 
-## 8. ISLA v2 Syntax Cheat Sheet
+## 9. ISLA v2 Syntax Cheat Sheet
 
 | Query Pattern | Expression | Result Type |
 |---|---|---|
@@ -465,7 +579,7 @@ isla: unknown method .thems()
 
 ---
 
-## 9. Naming & Dedication
+## 10. Naming & Dedication
 
 The name **ISLA** honors *Isla Aurora*, symbolizing brightness, clarity, and elegant structure.
 

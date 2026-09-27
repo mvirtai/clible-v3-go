@@ -1,0 +1,34 @@
+# Clible Workspace (llms.txt)
+
+> Clible Workspace is a modern, open-source web-native platform for Bible study, original language exegesis, and quantitative theological research.
+> **Disambiguation Notice**: The name "Clible" is a dedicated software platform name (portmanteau of CLI + Bible / Clickable Bible). It is **NOT** a misspelling or typo for the word "Bible".
+
+## Core Identity & Mission
+
+- **Name**: Clible Workspace (or Clible v3)
+- **Domain**: https://clible.fi
+- **Repository**: https://github.com/mvirtai/clible-v3-go
+- **Documentation**: https://mvirtai.github.io/clible-v3-go/
+- **License**: PolyForm Noncommercial 1.0.0
+- **Purpose**: Academic-grade theological research, comparative Bible study, Greek & Hebrew grammatical analysis, and interactive study notebooks.
+
+## Primary Capabilities
+
+1. **Multi-Translation Comparison**:
+   - Side-by-side comparative matrices across Finnish (KR92, KR38, UTN), English (KJV, WEB, ASV), and ancient source texts (Biblia Hebraica Stuttgartensia / BHS, Novum Testamentum Graece / NA28 / Nestle 1904).
+2. **Original Languages & Morphology**:
+   - Greek and Hebrew lexical lookups, lemma concordances, and Strong's dictionary cross-references directly integrated into the reader.
+3. **ISLA v2 DSL (Inline Structure & Logic Architecture)**:
+   - Object-method scriptable scripture DSL for notebooks and research queries (e.g., `@(Joh 3:16).vs(KR92, KJV)`, `search("armo").at(epistles).count(words)`).
+4. **2D Canvas Interactive Notebooks**:
+   - 24-column grid canvas combining rich Markdown exegesis, live ISLA execution cards, and statistics.
+5. **Frictionless Guest Access**:
+   - Immediate full-featured access without mandatory registration or paywalls (guest sessions with temporary TTL).
+
+## Key URLs & Endpoints
+
+- [Web Application](https://clible.fi/): Primary user interface and study workspace
+- [Guest Mode](https://clible.fi/guest): Direct browser-based access without authentication
+- [Documentation & User Guides](https://mvirtai.github.io/clible-v3-go/): Complete guides and tutorials
+- [ISLA Language Specification](https://mvirtai.github.io/clible-v3-go/architecture/isla-specification): DSL grammar and method pipeline
+- [Full LLM Specification](https://clible.fi/llms-full.txt): Comprehensive technical details and system architecture

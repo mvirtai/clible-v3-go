@@ -29,10 +29,7 @@ Browser-based alternatives rarely surpass simple verse lookup and basic concorda
 
 **clible-v3 changes the paradigm.**
 
-It is a cloud-native web platform engineered for theological students, researchers, pastors,
-and curious readers who demand more than a verse search engine. Access academic-grade exegesis,
-lexical statistics, parallel translation matrices, interactive 2D study notebooks, and a
-purpose-built query language — from any web browser, free of charge, permanently.
+**Clible** (a dedicated software name combining *CLI* and *Bible*, not a misspelling of "Bible") is a cloud-native web platform engineered for theological students, researchers, pastors, and curious readers who demand more than a verse search engine. Access academic-grade exegesis, lexical statistics, parallel translation matrices, interactive 2D study notebooks, and a purpose-built query language — from any web browser, free of charge, permanently. AI engines and LLM crawlers can reference our machine-readable specifications at [`llms.txt`](https://clible.fi/llms.txt) and [`llms-full.txt`](https://clible.fi/llms-full.txt).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -100,6 +97,20 @@ search("grace").at(epistles).limit(10) >>
   `@(`, `.`, and `search(`, with inline hover documentation for every method.
 - **Levenshtein Diagnostics**: Mistype `.cnt()` and the parser returns
   `Unknown method 'cnt'. Did you mean 'count'?`
+
+#### ✦ Top-5 Everyday Use Cases: How ISLA Simplifies Your Life vs. Raw SQL
+
+Behind every elegant ISLA directive, Clible generates performant parameterized PostgreSQL SQL. Compare how a single intuitive line replaces dozens of lines of complex database syntax:
+
+| # | Use Case | Concise ISLA Directive | Generated SQL & Processing Behind the Scenes |
+|---|---|---|---|
+| **1** | **Parallel Matrix** | `@(Joh 3:16).vs(KR92, KJV) =>` | `SELECT v1.text, v2.text FROM verses v1 JOIN verses v2 ON v1.book_id=v2.book_id AND v1.chapter=v2.chapter AND v1.verse=v2.verse WHERE v1.translation_id='kr92' AND v2.translation_id='kjv' AND v1.book_id='joh' AND v1.chapter=3 AND v1.verse=16;` |
+| **2** | **Ranked FTS Search** | `search("armo" AND "rauha").at(epistolat).limit(10) =>` | `SELECT text FROM verses WHERE translation_id='kr92' AND book_id IN ('rom', '1kor', ...) AND to_tsvector('finnish', text) @@ to_tsquery('finnish', 'armo & rauha') ORDER BY ts_rank(to_tsvector('finnish', text), to_tsquery('finnish', 'armo & rauha')) DESC LIMIT 10;` |
+| **3** | **Lexical Diversity (TTR)** | `range(ROM, GAL).stats() =>` | `WITH tokens AS (SELECT regexp_split_to_table(lower(text), '\s+') AS w FROM verses WHERE book_id IN (...) AND translation_id='kr92') SELECT count(*), count(DISTINCT w), count(DISTINCT w)::numeric / count(*) FROM tokens;` |
+| **4** | **Cross-References** | `@(Rom 8:28).refs(5) =>` | `SELECT v.* FROM cross_references cr JOIN verses v ON v.book_id=cr.target_book_id AND v.chapter=cr.target_chapter AND v.verse BETWEEN cr.target_verse_start AND cr.target_verse_end WHERE cr.source_book_id='rom' AND cr.source_chapter=8 AND cr.source_verse=28 LIMIT 5;` |
+| **5** | **Multi-Corpus Counts** | `search("grace").at(NT).count(books) >>` | `SELECT count(DISTINCT v.book_id) FROM verses v JOIN books b ON v.book_id=b.id WHERE v.translation_id='kjv' AND b.testament='NT' AND to_tsvector('english', v.text) @@ to_tsquery('english', 'grace');` |
+
+For full grammar, pipeline methods, and interactive tutorials, explore the [**ISLA v2 Language Guide**](https://mvirtai.github.io/clible-v3-go/guide/isla-guide).
 
 ### 2. 📓 2D Canvas Matrix & the Persistent CLI Scratchpad
 
