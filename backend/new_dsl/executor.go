@@ -780,17 +780,21 @@ func executeComparison(ctx *ExecutionContext, ref, trans1, trans2 string) (*mode
 // -- Helper Utilities -----------------------------------------------------------
 
 func aggregateText(verses []models.Verse, fallback string) string {
-	var sb strings.Builder
-	for _, v := range verses {
-		if v.Text != "" {
-			sb.WriteString(v.Text)
-			sb.WriteString(" ")
+	if len(verses) > 0 {
+		var sb strings.Builder
+		for _, v := range verses {
+			if v.Text != "" {
+				if sb.Len() > 0 {
+					sb.WriteString(" ")
+				}
+				sb.WriteString(v.Text)
+			}
+		}
+		if sb.Len() > 0 {
+			return strings.TrimSpace(sb.String())
 		}
 	}
-	if fallback != "" {
-		sb.WriteString(fallback)
-	}
-	return strings.TrimSpace(sb.String())
+	return strings.TrimSpace(fallback)
 }
 
 func normalizeCountUnit(raw string) string {
