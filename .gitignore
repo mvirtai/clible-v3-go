@@ -43,9 +43,9 @@ output.txt
 backend/debug_files/*
 lighthouse/
 temp_pr_story.md
-git_diffs.txt
-git-diff-names.txt
 git-diffs.txt
+quota_report.txt
+quota_history.csv
 # Plans and design documents (local developer references)
 .plans/
 .plans/**
