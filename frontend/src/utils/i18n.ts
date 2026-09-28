@@ -483,6 +483,84 @@ export interface Messages {
   changeAvatarLabel: string;
   decreaseFontSize: string;
   increaseFontSize: string;
+  // Study Templates & Reading Plans
+  tabReadingPlans: string;
+  readingPlansTitle: string;
+  readingPlansSubtitle: string;
+  readingPlansCategoryAll: string;
+  readingPlansCategoryGospels: string;
+  readingPlansCategoryNT: string;
+  readingPlansCategoryOT: string;
+  readingPlansCategoryDevotional: string;
+  readingPlansCategoryTopical: string;
+  readingPlansDaysTotal: string;
+  readingPlansDay: string;
+  readingPlansCompleted: string;
+  readingPlansMarkRead: string;
+  readingPlansMarkUnread: string;
+  readingPlansOpenInReader: string;
+  readingPlansStudyInNotebook: string;
+  readingPlansProgress: string;
+  readingPlansNoPlans: string;
+  readingPlansResetProgress: string;
+  planGospels30Title: string;
+  planGospels30Desc: string;
+  planPsalmsProverbsTitle: string;
+  planPsalmsProverbsDesc: string;
+  planNt90Title: string;
+  planNt90Desc: string;
+  // Template modal
+  chooseTemplateTitle: string;
+  chooseTemplateSubtitle: string;
+  blankNotebookTitle: string;
+  blankNotebookDesc: string;
+  studyTemplatePopularBadge: string;
+  studyTemplateComingSoonBadge: string;
+  studyTemplateSoapTitle: string;
+  studyTemplateSoapDesc: string;
+  studyTemplateSoapBadge: string;
+  studySoapScripture: string;
+  studySoapScripturePlaceholder: string;
+  studySoapObservation: string;
+  studySoapObservationPlaceholder: string;
+  studySoapApplication: string;
+  studySoapApplicationPlaceholder: string;
+  studySoapPrayer: string;
+  studySoapPrayerPlaceholder: string;
+  studyTemplateInductiveTitle: string;
+  studyTemplateInductiveDesc: string;
+  studyTemplateInductiveBadge: string;
+  studyInductiveObs: string;
+  studyInductiveObsPlaceholder: string;
+  studyInductiveInterp: string;
+  studyInductiveInterpPlaceholder: string;
+  studyInductiveApp: string;
+  studyInductiveAppPlaceholder: string;
+  studyTemplateSwedishTitle: string;
+  studyTemplateSwedishDesc: string;
+  studyTemplateSwedishBadge: string;
+  studySwedishLamp: string;
+  studySwedishLampPlaceholder: string;
+  studySwedishQuestion: string;
+  studySwedishQuestionPlaceholder: string;
+  studySwedishArrow: string;
+  studySwedishArrowPlaceholder: string;
+  studyTemplateLectioTitle: string;
+  studyTemplateLectioDesc: string;
+  studyTemplateLectioBadge: string;
+  studyLectioContent: string;
+  studyLectioPlaceholder: string;
+  studyTemplateHearTitle: string;
+  studyTemplateHearDesc: string;
+  studyTemplateHearBadge: string;
+  studyHearContent: string;
+  studyHearPlaceholder: string;
+  studyTemplateWordTopicalTitle: string;
+  studyTemplateWordTopicalDesc: string;
+  studyTemplateWordTopicalBadge: string;
+  studyWordTopicalContent: string;
+  studyWordTopicalPlaceholder: string;
+  closeAria: string;  
 }
 
 
@@ -969,7 +1047,85 @@ export const strings: Record<UILanguage, Messages> = {
     avatarInitialsLabel: 'Initials',
     changeAvatarLabel: 'Change avatar',
     decreaseFontSize: 'Decrease font size',
-    increaseFontSize: 'Increase font size'
+    increaseFontSize: 'Increase font size',
+    // Study Templates & Reading Plans
+    tabReadingPlans: 'Reading Plans',
+    readingPlansTitle: 'Bible Reading Plans',
+    readingPlansSubtitle: 'Systematic reading plans to grow daily in God\'s Word.',
+    readingPlansCategoryAll: 'All Plans',
+    readingPlansCategoryGospels: 'Gospels',
+    readingPlansCategoryNT: 'New Testament',
+    readingPlansCategoryOT: 'Old Testament',
+    readingPlansCategoryDevotional: 'Devotional & Psalms',
+    readingPlansCategoryTopical: 'Topical',
+    readingPlansDaysTotal: 'days',
+    readingPlansDay: 'Day',
+    readingPlansCompleted: 'Completed',
+    readingPlansMarkRead: 'Mark as read',
+    readingPlansMarkUnread: 'Mark as unread',
+    readingPlansOpenInReader: 'Open in Reader',
+    readingPlansStudyInNotebook: 'Study in Notebook',
+    readingPlansProgress: 'Progress',
+    readingPlansNoPlans: 'No reading plans found in this category.',
+    readingPlansResetProgress: 'Reset Progress',
+    planGospels30Title: 'Gospels in 30 Days',
+    planGospels30Desc: 'Journey through the life and teachings of Jesus Christ in Mark and John, paired with daily Psalms.',
+    planPsalmsProverbsTitle: 'Psalms & Proverbs in 30 Days',
+    planPsalmsProverbsDesc: 'Daily wisdom and heartfelt worship through the Psalms and Proverbs.',
+    planNt90Title: 'New Testament in 90 Days',
+    planNt90Desc: 'A comprehensive 3-month reading journey through the entire New Testament.',
+    // Template modal
+    chooseTemplateTitle: 'Choose Notebook Template',
+    chooseTemplateSubtitle: 'Select a structured study method or start with a blank canvas.',
+    blankNotebookTitle: 'Blank Notebook',
+    blankNotebookDesc: 'Free-form interactive notebook with empty markdown and ISLA cells.',
+    studyTemplatePopularBadge: 'Popular',
+    studyTemplateComingSoonBadge: 'Coming Soon',
+    studyTemplateSoapTitle: 'SOAP Method',
+    studyTemplateSoapDesc: 'Scripture, Observation, Application, and Prayer for personal devotional reflection.',
+    studyTemplateSoapBadge: 'Devotional',
+    studySoapScripture: 'Scripture',
+    studySoapScripturePlaceholder: 'Write or load the scripture passage here...',
+    studySoapObservation: 'Observation',
+    studySoapObservationPlaceholder: 'What does the text say? Who is present? What key words repeat?',
+    studySoapApplication: 'Application',
+    studySoapApplicationPlaceholder: 'What does this mean for my life today?',
+    studySoapPrayer: 'Prayer',
+    studySoapPrayerPlaceholder: 'Lord, guide me to live out this truth today...',
+    studyTemplateInductiveTitle: 'Inductive Study (OIA)',
+    studyTemplateInductiveDesc: 'Observation, Interpretation, Application for deep and rigorous biblical investigation.',
+    studyTemplateInductiveBadge: 'Exegesis',
+    studyInductiveObs: 'Observation',
+    studyInductiveObsPlaceholder: '5W+H: Who, what, when, where, why, and how?',
+    studyInductiveInterp: 'Interpretation',
+    studyInductiveInterpPlaceholder: 'What did the author intend? Historical and cross-reference context.',
+    studyInductiveApp: 'Application',
+    studyInductiveAppPlaceholder: 'Timeless truth and practical response.',
+    studyTemplateSwedishTitle: 'Swedish Method',
+    studyTemplateSwedishDesc: 'Visual and engaging approach using Lightbulbs, Questions, and Arrows.',
+    studyTemplateSwedishBadge: 'Discovery',
+    studySwedishLamp: 'Lightbulb (Insights)',
+    studySwedishLampPlaceholder: 'What caught your attention or sparked an insight?',
+    studySwedishQuestion: 'Question Mark (Questions)',
+    studySwedishQuestionPlaceholder: 'What was difficult to understand or raises questions?',
+    studySwedishArrow: 'Arrow (Personal Application)',
+    studySwedishArrowPlaceholder: 'What direct action or step will you take?',
+    studyTemplateLectioTitle: 'Lectio Divina',
+    studyTemplateLectioDesc: 'Ancient contemplative practice: Read, Meditate, Pray, Contemplate.',
+    studyTemplateLectioBadge: 'Contemplative',
+    studyLectioContent: 'Lectio Divina',
+    studyLectioPlaceholder: 'Read slowly, ponder the word, converse with God, rest in His peace.',
+    studyTemplateHearTitle: 'H.E.A.R. Method',
+    studyTemplateHearDesc: 'Highlight, Explain, Apply, Respond for structured disciple growth.',
+    studyTemplateHearBadge: 'Growth',
+    studyHearContent: 'HEAR Study',
+    studyHearPlaceholder: 'Highlight, Explain, Apply, Respond.',
+    studyTemplateWordTopicalTitle: 'Word & Topical Study',
+    studyTemplateWordTopicalDesc: 'Trace original language lemmas, Strong numbers, and theological themes.',
+    studyTemplateWordTopicalBadge: 'Linguistics',
+    studyWordTopicalContent: 'Word & Theme Study',
+    studyWordTopicalPlaceholder: 'Word occurrences, Greek/Hebrew meanings, theological synthesis.',
+    closeAria: 'Close',
   },
   fi: {
     changeLanguage: 'Vaihda kieli',
@@ -1453,7 +1609,85 @@ export const strings: Record<UILanguage, Messages> = {
     avatarInitialsLabel: 'Nimikirjaimet',
     changeAvatarLabel: 'Vaihda avatar',
     decreaseFontSize: 'Pienennä tekstikokoa',
-    increaseFontSize: 'Suurenna tekstikokoa'
+    increaseFontSize: 'Suurenna tekstikokoa',
+    // Study Templates & Reading Plans
+    tabReadingPlans: 'Lukusuunnitelmat',
+    readingPlansTitle: 'Raamatun lukusuunnitelmat',
+    readingPlansSubtitle: 'Järjestelmälliset lukusuunnitelmat päivittäiseen kasvuun Sanan äärellä.',
+    readingPlansCategoryAll: 'Kaikki suunnitelmat',
+    readingPlansCategoryGospels: 'Evankeliumit',
+    readingPlansCategoryNT: 'Uusi testamentti',
+    readingPlansCategoryOT: 'Vanha testamentti',
+    readingPlansCategoryDevotional: 'Hartaus & Psalmit',
+    readingPlansCategoryTopical: 'Teemat',
+    readingPlansDaysTotal: 'päivää',
+    readingPlansDay: 'Päivä',
+    readingPlansCompleted: 'Suoritettu',
+    readingPlansMarkRead: 'Merkitse luetuksi',
+    readingPlansMarkUnread: 'Merkitse lukemattomaksi',
+    readingPlansOpenInReader: 'Avaa lukutilassa',
+    readingPlansStudyInNotebook: 'Tutki muistikirjassa',
+    readingPlansProgress: 'Edistyminen',
+    readingPlansNoPlans: 'Tässä kategoriassa ei löytynyt lukusuunnitelmia.',
+    readingPlansResetProgress: 'Nollaa edistyminen',
+    planGospels30Title: 'Evankeliumit 30 päivässä',
+    planGospels30Desc: 'Kulje Jeesuksen elämän ja opetusten äärellä Markuksen ja Johanneksen evankeliumeissa päivittäisten psalmien rinnalla.',
+    planPsalmsProverbsTitle: 'Psalmit ja Sananlaskut 30 päivässä',
+    planPsalmsProverbsDesc: 'Päivittäistä viisautta ja rukousta Psalmien ja Sananlaskujen äärellä.',
+    planNt90Title: 'Uusi testamentti 90 päivässä',
+    planNt90Desc: 'Kattava kolmen kuukauden lukumatka koko Uuden testamentin läpi.',
+    // Template modal
+    chooseTemplateTitle: 'Valitse muistikirjan mallipohja',
+    chooseTemplateSubtitle: 'Valitse valmis raamatuntutkimusmenetelmä tai aloita tyhjästä muistikirjasta.',
+    blankNotebookTitle: 'Tyhjä muistikirja',
+    blankNotebookDesc: 'Vapaa interaktiivinen muistikirja ilman esiasetettuja lohkoja.',
+    studyTemplatePopularBadge: 'Suosittu',
+    studyTemplateComingSoonBadge: 'Tulossa',
+    studyTemplateSoapTitle: 'SOAP-menetelmä',
+    studyTemplateSoapDesc: 'Raamatunkohta, havainnointi, soveltaminen ja rukous henkilökohtaiseen hartauteen.',
+    studyTemplateSoapBadge: 'Hartaus',
+    studySoapScripture: 'Scripture (Raamatunkohta)',
+    studySoapScripturePlaceholder: 'Kirjoita tai tuo tutkittava raamatunkohta tähän...',
+    studySoapObservation: 'Observation (Havainnointi)',
+    studySoapObservationPlaceholder: 'Mitä tekstissä tapahtuu tai sanotaan? Ketkä ovat läsnä? Mitä avainsanoja toistuu?',
+    studySoapApplication: 'Application (Soveltaminen)',
+    studySoapApplicationPlaceholder: 'Mitä tämä merkitsee minulle henkilökohtaisesti tänään?',
+    studySoapPrayer: 'Prayer (Rukous)',
+    studySoapPrayerPlaceholder: 'Herra, auta minua ymmärtämään Sanasi ja anna voimaa viedä se käytäntöön...',
+    studyTemplateInductiveTitle: 'Induktiivinen tutkimus (OIA)',
+    studyTemplateInductiveDesc: 'Havainnointi, tulkinta ja soveltaminen perusteelliseen ja syventyvään tekstintutkimukseen.',
+    studyTemplateInductiveBadge: 'Eksegetiikka',
+    studyInductiveObs: 'Havainnointi',
+    studyInductiveObsPlaceholder: '5W+H: Kuka, mitä, milloin, missä, miksi ja miten?',
+    studyInductiveInterp: 'Tulkinta',
+    studyInductiveInterpPlaceholder: 'Mikä oli kirjoittajan alkuperäinen tarkoitus kuulijoilleen? Historiallinen konteksti.',
+    studyInductiveApp: 'Soveltaminen',
+    studyInductiveAppPlaceholder: 'Ajaton totuus ja konkreettinen muutos mielessä tai toiminnassa.',
+    studyTemplateSwedishTitle: 'Ruotsalainen menetelmä',
+    studyTemplateSwedishDesc: 'Visuaalinen ja oivaltava ryhmä- ja omatoiminen opiskelu lampuilla, kysymysmerkeillä ja nuolilla.',
+    studyTemplateSwedishBadge: 'Löytöretki',
+    studySwedishLamp: 'Lamppu (Oivallukset)',
+    studySwedishLampPlaceholder: 'Mikä ajatus tai jae sytytti valon tai puhutteli erityisesti?',
+    studySwedishQuestion: 'Kysymysmerkki (Mietityttävät asiat)',
+    studySwedishQuestionPlaceholder: 'Mikä jäi epäselväksi tai herättää kysymyksiä?',
+    studySwedishArrow: 'Nuoli (Sovellus elämään)',
+    studySwedishArrowPlaceholder: 'Miten suuntaan tämän suoraan omaan elämääni? Mikä on konkreettinen seuraava askel?',
+    studyTemplateLectioTitle: 'Lectio Divina',
+    studyTemplateLectioDesc: 'Vanha kirkollinen rukouslukeminen: Lue, Mietiskele, Rukoile, Lepää.',
+    studyTemplateLectioBadge: 'Kontemplatiivinen',
+    studyLectioContent: 'Lectio Divina',
+    studyLectioPlaceholder: 'Lue hitaasti, pureskele sanaa, keskustele Jumalan kanssa, lepää Hänen rauhassaan.',
+    studyTemplateHearTitle: 'H.E.A.R. -menetelmä',
+    studyTemplateHearDesc: 'Korosta, Selitä, Sovella ja Vastaa selkeässä opetuslapseuskehyksessä.',
+    studyTemplateHearBadge: 'Kasvu',
+    studyHearContent: 'HEAR-tutkimus',
+    studyHearPlaceholder: 'Highlight, Explain, Apply, Respond.',
+    studyTemplateWordTopicalTitle: 'Sana- ja teematutkimus',
+    studyTemplateWordTopicalDesc: 'Seuraa alkukielten sanoja, Strongin numeroita ja teologisia teemoja.',
+    studyTemplateWordTopicalBadge: 'Kielitiede',
+    studyWordTopicalContent: 'Sana- ja teematutkimus',
+    studyWordTopicalPlaceholder: 'Sanojen esiintymät, heprean/kreikan merkitys, teologinen synteesi.',
+    closeAria: 'Sulje',
   }
 
 };

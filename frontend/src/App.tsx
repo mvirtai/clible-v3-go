@@ -11,6 +11,9 @@ import { CompareView } from './components/compare/CompareView';
 import { OriginalStudyView } from './components/original/OriginalStudyView';
 import { NotebookCanvasView } from './components/notebook/NotebookCanvasView';
 import { LiturgicalView } from './views/LiturgicalView';
+import { ReadingPlansView } from './views/ReadingPlansView';
+import type { StudyMethodTemplate } from './types/studyMethods';
+import { STUDY_TEMPLATES } from './data/studyTemplates';
 import { WorkspaceSidebar } from './components/layout/WorkspaceSidebar';
 import { WorkspaceDrawer } from './components/layout/WorkspaceDrawer';
 import { apiService } from './services/api';
@@ -153,13 +156,48 @@ export function App() {
     }
   }, [viewMode, selectedNotebookId, user]);
 
-  const handleCreateNotebook = async () => {
-    const title = `${strings.notebookDefaultTitle} ${new Date().toISOString().split('T')[0]}`;
+  const handleCreateNotebook = async (
+    template?: StudyMethodTemplate | null,
+    customTitle?: string,
+    references?: string[],
+  ) => {
+    const title =
+      customTitle ||
+      (template
+        ? `${(strings as unknown as Record<string, string>)[template.nameKey] || template.id} (${new Date().toISOString().split('T')[0]})`
+        : `${strings.notebookDefaultTitle} ${new Date().toISOString().split('T')[0]}`);
+
+    const cellsToCreate: Partial<Cell>[] = template
+      ? template.cells.map((c, idx) => {
+          let content = c.defaultContent;
+          if (idx === 0 && references && references.length > 0) {
+            const islaCommands = references
+              .map((ref) => `! @(${ref.trim()}).use(fin-1992)`)
+              .join('\n\n');
+            content = `## 📖 Scripture (Raamatunkohta)\n\n> Päivän lukukappaleet:\n\n${islaCommands}\n`;
+          }
+          return {
+            id:
+              typeof crypto !== 'undefined' && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `cell-${Date.now()}-${idx}`,
+            type: 'markdown',
+            content,
+            position: idx,
+          };
+        })
+      : [];
 
     if (!user) {
       const newNotebook = createGuestNotebook(title, lang);
+      if (cellsToCreate.length > 0) {
+        saveGuestCells(newNotebook.id, cellsToCreate as Cell[]);
+        newNotebook.cells = cellsToCreate as Cell[];
+        newNotebook.cellCounts = { markdown: cellsToCreate.length };
+      }
       setNotebooks((prev) => [newNotebook, ...prev]);
       setSelectedNotebookId(newNotebook.id);
+      setViewMode('notebooks');
       return;
     }
 
@@ -173,9 +211,19 @@ export function App() {
         }),
       });
       if (res.ok) {
-        const newNotebook = await res.json();
+        const newNotebook: Notebook = await res.json();
+        if (cellsToCreate.length > 0) {
+          await fetch(`/api/notebooks/${newNotebook.id}/cells`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cellsToCreate),
+          });
+          newNotebook.cells = cellsToCreate as Cell[];
+          newNotebook.cellCounts = { markdown: cellsToCreate.length };
+        }
         setNotebooks((prev) => [newNotebook, ...prev]);
         setSelectedNotebookId(newNotebook.id);
+        setViewMode('notebooks');
       }
     } catch (err) {
       console.error('Creating notebook failed:', err);
@@ -756,6 +804,19 @@ export function App() {
                   setViewMode('reader');
                 }}
                 onExportToNotebook={handleExportLiturgicalToNotebook}
+              />
+            )}
+
+            {viewMode === 'plans' && (
+              <ReadingPlansView
+                onSelectVerse={(ref) => {
+                  handleSelectReference(ref);
+                  setViewMode('reader');
+                }}
+                onStudyInNotebook={(planTitle, references) => {
+                  const soapTemplate = STUDY_TEMPLATES.find((t) => t.id === 'soap');
+                  handleCreateNotebook(soapTemplate, planTitle, references);
+                }}
               />
             )}
           </div>
