@@ -466,6 +466,32 @@ func (r *VerseRepository) GetByChapter(ctx context.Context, translationID string
 	return verses, rows.Err()
 }
 
+// GetByChapterRange fetches all verses within a chapter range [startChapter, endChapter] for a given book and translation.
+func (r *VerseRepository) GetByChapterRange(ctx context.Context, translationID string, bookID string, startChapter, endChapter int) ([]models.Verse, error) {
+	query := `
+			SELECT id, translation_id, book_id, chapter, verse, text
+			FROM verses
+			WHERE translation_id = $1 AND book_id = $2 AND chapter >= $3 AND chapter <= $4
+			ORDER BY chapter ASC, verse ASC
+		`
+	logISLASQL(query, translationID, bookID, startChapter, endChapter)
+	rows, err := r.db.QueryContext(ctx, query, translationID, bookID, startChapter, endChapter)
+	if err != nil {
+		return nil, fmt.Errorf("chapter range lookup failed: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var verses []models.Verse
+	for rows.Next() {
+		var v models.Verse
+		if err := rows.Scan(&v.ID, &v.TranslationID, &v.BookID, &v.Chapter, &v.Verse, &v.Text); err != nil {
+			return nil, fmt.Errorf("failed to scan verse row: %w", err)
+		}
+		verses = append(verses, v)
+	}
+	return verses, rows.Err()
+}
+
 // GetByBook fetches all verses for an entire book and translation, ordered by chapter and verse.
 func (r *VerseRepository) GetByBook(ctx context.Context, translationID string, bookID string) ([]models.Verse, error) {
 	query := `

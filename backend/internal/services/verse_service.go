@@ -102,6 +102,8 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 		return s.verseRepo.GetByReference(ctx, tid, parsed.BookName, parsed.Chapter, parsed.VerseStart, parsed.VerseEnd)
 	case parser.ScopeChapter:
 		return s.verseRepo.GetByChapter(ctx, tid, parsed.BookName, parsed.Chapter)
+	case parser.ScopeChapterRange:
+		return s.verseRepo.GetByChapterRange(ctx, tid, parsed.BookName, parsed.Chapter, parsed.ChapterEnd)
 	case parser.ScopeBook:
 		return s.verseRepo.GetByBook(ctx, tid, parsed.BookName)
 	default:

@@ -57,6 +57,15 @@ func TestParseReference_TableDriven(t *testing.T) {
 			},
 		},
 		{
+			name:  "Finnish abbreviation Snl 2 resolves to Proverbs PRO",
+			input: "Snl 2",
+			expectedRef: &ParsedReference{
+				BookName: "PRO",
+				Chapter:  2,
+				Scope:    ScopeChapter,
+			},
+		},
+		{
 			name:  "Finnish numbered abbreviation with dots and space: 1. Kor. 13",
 			input: "1. Kor. 13",
 			expectedRef: &ParsedReference{
@@ -79,6 +88,36 @@ func TestParseReference_TableDriven(t *testing.T) {
 			expectedRef: &ParsedReference{
 				BookName: "PSA",
 				Scope:    ScopeBook,
+			},
+		},
+		{
+			name:  "Chapter range with abbreviation: Matt 1-3",
+			input: "Matt 1-3",
+			expectedRef: &ParsedReference{
+				BookName:   "MAT",
+				Chapter:    1,
+				ChapterEnd: 3,
+				Scope:      ScopeChapterRange,
+			},
+		},
+		{
+			name:  "Chapter range with en-dash: Ps 1–5",
+			input: "Ps 1–5",
+			expectedRef: &ParsedReference{
+				BookName:   "PSA",
+				Chapter:    1,
+				ChapterEnd: 5,
+				Scope:      ScopeChapterRange,
+			},
+		},
+		{
+			name:  "Numbered book chapter range: 1. Kor. 1-4",
+			input: "1. Kor. 1-4",
+			expectedRef: &ParsedReference{
+				BookName:   "1CO",
+				Chapter:    1,
+				ChapterEnd: 4,
+				Scope:      ScopeChapterRange,
 			},
 		},
 

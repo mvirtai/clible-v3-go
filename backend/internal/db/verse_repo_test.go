@@ -266,6 +266,19 @@ func TestVerseRepository_GetByChapter_And_Book(t *testing.T) {
 		}
 	})
 
+	t.Run("GetByChapterRange returns verses across chapters in order", func(t *testing.T) {
+		chRangeVerses, err := repo.GetByChapterRange(ctx, "web", "Joh", 1, 2)
+		if err != nil {
+			t.Fatalf("GetByChapterRange failed: %v", err)
+		}
+		if len(chRangeVerses) != 3 {
+			t.Fatalf("expected 3 verses across chapters 1-2, got %d", len(chRangeVerses))
+		}
+		if chRangeVerses[0].Chapter != 1 || chRangeVerses[2].Chapter != 2 {
+			t.Errorf("unexpected chapter ordering: %+v", chRangeVerses)
+		}
+	})
+
 	t.Run("DB accessor returns connection", func(t *testing.T) {
 		if repo.DB() != conn {
 			t.Errorf("expected DB() to return underlying connection")
