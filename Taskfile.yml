@@ -759,3 +759,143 @@ tasks:
           echo "📋 Copied entire {{.FILE}} to clipboard."
         fi
 
+
+  quota:
+    desc: "Check AI quota, append to CSV history, and display with colored gauges and pace analysis"
+    silent: true
+    cmds:
+      - |
+        bash -c '
+          RAW_FILE=$(mktemp)
+          trap "rm -f \"$RAW_FILE\"" EXIT
+
+          if ! agy --prompt "/quota" > "$RAW_FILE" 2>/dev/null; then
+            echo -e "\033[1;31m❌ Virhe: Kiintiötietojen haku epäonnistui komennolla \"agy --prompt /quota\"\033[0m"
+            exit 1
+          fi
+
+          CSV_FILE="quota_history.csv"
+          NOW=$(date --iso-8601=seconds)
+          NOW_TS=$(date +%s)
+          TAB=$(printf "\t")
+
+          if [ ! -f "$CSV_FILE" ]; then
+            echo "timestamp,model_group,limit_type,remaining_pct,resets_at,remaining_time,pace_status" > "$CSV_FILE"
+          fi
+
+          echo -e "\033[1;36m========================================================================================\033[0m"
+          echo -e "\033[1;37m🤖 AI QUOTA STATUS \033[0;90m($(date "+%Y-%m-%d %H:%M:%S"))\033[0m"
+          echo -e "\033[1;36m========================================================================================\033[0m"
+
+          current_group=""
+
+          while IFS="$TAB" read -r group limit pct resets; do
+            [ -z "$group" ] && continue
+            [[ "$pct" != *"%"* ]] && continue
+
+            # Group header
+            if [ "$group" != "$current_group" ]; then
+              echo -e "\n\033[1;35m◆ $group\033[0m"
+              current_group="$group"
+            fi
+
+            # Percentage number and gauge calculation
+            num=$(echo "$pct" | tr -dc "0-9")
+            [ -z "$num" ] && num=0
+
+            blocks=$(( (num + 5) / 10 ))
+            [ $blocks -gt 10 ] && blocks=10
+
+            bar=""
+            for ((i=1; i<=10; i++)); do
+              if [ $i -le $blocks ]; then
+                bar="${bar}█"
+              else
+                bar="${bar}░"
+              fi
+            done
+
+            if [ "$num" -ge 60 ]; then
+              color="\033[1;32m" # Green
+            elif [ "$num" -ge 25 ]; then
+              color="\033[1;33m" # Yellow
+            else
+              color="\033[1;31m" # Red
+            fi
+
+            # Remaining time and pace calculation
+            reset_ts=$(date -d "$resets" +%s 2>/dev/null)
+            rem_str="-"
+            status_text="-"
+            status_color="\033[0;37m"
+
+            if [ -n "$reset_ts" ]; then
+              diff=$(( reset_ts - NOW_TS ))
+              if [ $diff -le 0 ]; then
+                rem_str="nollautuu nyt"
+                status_text="Nollaus käynnissä"
+                status_color="\033[1;32m"
+              else
+                d=$(( diff / 86400 ))
+                h=$(( (diff % 86400) / 3600 ))
+                m=$(( (diff % 3600) / 60 ))
+
+                if [ $d -gt 0 ]; then
+                  rem_str="${d}d ${h}h jäljellä"
+                elif [ $h -gt 0 ]; then
+                  rem_str="${h}h ${m}m jäljellä"
+                else
+                  rem_str="${m}min jäljellä"
+                fi
+
+                total_sec=18000 # default 5h window
+                if [[ "$limit" =~ [Ww]eekly ]]; then
+                  total_sec=604800 # 7 days
+                elif [[ "$limit" =~ [Dd]aily ]]; then
+                  total_sec=86400 # 24h
+                fi
+
+                time_pct=$(( (diff * 100) / total_sec ))
+                [ $time_pct -gt 100 ] && time_pct=100
+                delta=$(( num - time_pct ))
+
+                if [ $num -eq 100 ]; then
+                  status_text="Koskematon (100%)"
+                  status_color="\033[1;32m"
+                elif [ $num -le 5 ]; then
+                  status_text="Kriittinen (säästä!)"
+                  status_color="\033[1;31m"
+                elif [ $num -le 12 ] && [ $diff -gt 43200 ]; then
+                  status_text="Vähissä (säästele)"
+                  status_color="\033[1;33m"
+                elif [ $delta -ge 15 ]; then
+                  status_text="Väljä tahti"
+                  status_color="\033[1;32m"
+                elif [ $delta -ge -5 ]; then
+                  status_text="Tasapainossa"
+                  status_color="\033[1;32m"
+                elif [ $delta -ge -20 ]; then
+                  status_text="Nopea kulutus"
+                  status_color="\033[1;33m"
+                else
+                  status_text="Korkea kulutustahti"
+                  status_color="\033[1;31m"
+                fi
+              fi
+            fi
+
+            # Append to CSV with remaining time and pace evaluation
+            echo "$NOW,\"$group\",\"$limit\",\"$pct\",\"$resets\",\"$rem_str\",\"$status_text\"" >> "$CSV_FILE"
+
+            # Print formatted row
+            printf "  %-27s ${color}[%-10s] %4s\033[0m   \033[0;90m%-18s\033[0m  ${status_color}● %s\033[0m\n" \
+              "$limit:" "$bar" "$pct" "⏳ $rem_str" "$status_text"
+
+          done < <(grep -E "(Remaining|Limit)" "$RAW_FILE")
+
+          echo -e "\n\033[1;36m----------------------------------------------------------------------------------------\033[0m"
+          total_entries=$(wc -l < "$CSV_FILE")
+          total_entries=$(( total_entries - 1 ))
+          echo -e "\033[0;32m✓ Historiatieto kirjattu:\033[0m \033[1;37m$CSV_FILE\033[0m \033[0;90m(yhteensä $total_entries mittausta)\033[0m"
+          echo -e "\033[1;36m========================================================================================\033[0m"
+        '
