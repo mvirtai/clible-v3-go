@@ -97,12 +97,7 @@ func (r *NotebookRepository) GetByUserID(ctx context.Context, userID string) ([]
 			return nil, fmt.Errorf("failed to scan notebook: %w", err)
 		}
 		nb.CellCounts = &models.CellCounts{Markdown: mdCount, Code: codeCount}
-		cells, err := r.GetCells(ctx, nb.ID)
-		if err == nil {
-			nb.Cells = cells
-		} else {
-			nb.Cells = []models.Cell{}
-		}
+		nb.Cells = []models.Cell{}
 		notebooks = append(notebooks, nb)
 	}
 	if err = rows.Err(); err != nil {

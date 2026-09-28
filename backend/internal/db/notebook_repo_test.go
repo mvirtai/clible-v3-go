@@ -131,6 +131,9 @@ func TestNotebookRepository(t *testing.T) {
 		if userList[0].CellCounts.Markdown != 1 || userList[0].CellCounts.Code != 1 {
 			t.Errorf("expected CellCounts {Markdown: 1, Code: 1}, got %+v", *userList[0].CellCounts)
 		}
+		if len(userList[0].Cells) != 0 {
+			t.Errorf("expected 0 cells in GetByUserID summary list, got %d", len(userList[0].Cells))
+		}
 
 		// 6. GetByScopeID
 		emptyScopeList, err := repo.GetByScopeID(ctx, "")
