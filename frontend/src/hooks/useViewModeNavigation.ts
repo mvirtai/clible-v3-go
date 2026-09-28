@@ -4,6 +4,7 @@ import type { ViewMode } from '@/components/layout/AppHeader';
 const VALID_MODES: readonly ViewMode[] = [
     'reader',
     'search',
+    'plans',
     'analytics',
     'compare',
     'original',

@@ -123,6 +123,44 @@ func TestVerseService_GetVerses_ChapterScope(t *testing.T) {
 	}
 }
 
+func TestVerseService_GetVerses_ChapterRangeScope(t *testing.T) {
+	dbConn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize connection: %v", err)
+	}
+	defer func() { _ = dbConn.Close() }()
+
+	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format) VALUES ('web', 'World English Bible', 'en', 'text')`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21)`)
+
+	verseRepo := db.NewVerseRepository(dbConn)
+	translationRepo := db.NewTranslationRepository(dbConn)
+	svc := NewVerseService(verseRepo, translationRepo)
+
+	ctx := context.Background()
+	verses := []models.Verse{
+		{ID: "web:JHN:1:1", TranslationID: "web", BookID: "JHN", Chapter: 1, Verse: 1, Text: "In the beginning"},
+		{ID: "web:JHN:2:1", TranslationID: "web", BookID: "JHN", Chapter: 2, Verse: 1, Text: "Water to wine"},
+		{ID: "web:JHN:3:1", TranslationID: "web", BookID: "JHN", Chapter: 3, Verse: 1, Text: "Nicodemus"},
+		{ID: "web:JHN:4:1", TranslationID: "web", BookID: "JHN", Chapter: 4, Verse: 1, Text: "Samaritan woman"},
+	}
+	if err := verseRepo.BulkInsert(ctx, verses); err != nil {
+		t.Fatalf("failed to seed test verses: %v", err)
+	}
+
+	results, err := svc.GetVerses(ctx, "Joh 1-3", "web")
+	if err != nil {
+		t.Fatalf("unexpected error for chapter range: %v", err)
+	}
+
+	if len(results) != 3 {
+		t.Fatalf("expected 3 verses from chapters 1-3, got %d", len(results))
+	}
+	if results[0].Chapter != 1 || results[2].Chapter != 3 {
+		t.Errorf("unexpected chapters: %+v", results)
+	}
+}
+
 func TestVerseService_GetVerses_BookScope(t *testing.T) {
 	dbConn, err := db.InitializeDB(":memory:")
 	if err != nil {

@@ -5,6 +5,7 @@ import { RotateCcw } from 'lucide-react';
 import { GridOverlay } from './grid/GridOverlay';
 import { SortableNotebookCard } from './SortableNotebookCard';
 import { NotebookEditor } from './NotebookEditor';
+import { NotebookTemplateModal } from './NotebookTemplateModal';
 import { useLanguage } from '../../context/LanguageContext';
 import type { Notebook } from './types';
 import { GuestNotebookBanner } from './GuestNotebookBanner';
@@ -13,6 +14,7 @@ import {
   updateGuestNotebook,
   saveAllGuestNotebooks,
 } from '../../utils/guestNotebookStorage';
+import type { StudyMethodTemplate } from '@/types/studyMethods';
 
 export interface NotebookCanvasViewProps {
   notebooks: Notebook[];
@@ -21,7 +23,7 @@ export interface NotebookCanvasViewProps {
   onSelectNotebook: (id: string | null) => void;
   selectedTranslation: string;
   onSelectVerse: (ref: string) => void;
-  onCreateNotebook: () => void;
+  onCreateNotebook: (template?: StudyMethodTemplate | null) => void;
   onResetNotebookSizes: () => void;
   isGuest?: boolean;
 }
@@ -38,7 +40,8 @@ export function NotebookCanvasView({
   isGuest = false,
 }: NotebookCanvasViewProps) {
   const { strings } = useLanguage();
-  const [isAnyCardResizing, setIsAnyCardResizing] = useState(false);
+  const [isAnyCardResizing, setIsAnyCardResizing] = useState<boolean>(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState<boolean>(false)
 
   if (selectedNotebookId) {
     return (
@@ -87,13 +90,22 @@ export function NotebookCanvasView({
             </button>
           )}
           <button
-            onClick={onCreateNotebook}
+            onClick={() => setIsTemplateModalOpen(true)}
             className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-xs rounded transition-all shadow-sm cursor-pointer"
           >
             + {strings.createNotebook}
           </button>
         </div>
       </div>
+
+      <NotebookTemplateModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+        onSelectTemplate={(tpl) => {
+          setIsTemplateModalOpen(false);
+          onCreateNotebook(tpl);
+        }}
+      />
 
       {isGuest && <GuestNotebookBanner />}
 

@@ -14,6 +14,7 @@ const (
 	ScopeVerse ReferenceScope = iota
 	ScopeChapter
 	ScopeBook
+	ScopeChapterRange
 )
 
 // ParsedReference is the final structural output returned to the Service layer.
@@ -21,17 +22,19 @@ const (
 type ParsedReference struct {
 	BookName   string         `json:"book_name"`
 	Chapter    int            `json:"chapter"`
+	ChapterEnd int            `json:"chapter_end,omitempty"`
 	VerseStart int            `json:"verse_start"`
 	VerseEnd   int            `json:"verse_end"`
 	Scope      ReferenceScope `json:"scope"`
 }
 
 // refRegex parses a normalized reference string.
-// Handles formats like: "JHN 3:16-18", "JHN 3:16", "JHN 3", "JHN 11:21-29 (30-31) 32-45", or "JHN".
+// Handles formats like: "JHN 3:16-18", "JHN 3:16", "JHN 3", "JHN 1-3", "JHN 11:21-29 (30-31) 32-45", or "JHN".
 // Group 1: Book name (including optional leading number like "1 Kor", "1. Moos.", "Ap. t.")
 // Group 2: Chapter number (optional)
-// Group 3: Verse part (optional, e.g. "16", "16-18", "1-6, 13-15", "21-29 (30-31) 32-45")
-var refRegex = regexp.MustCompile(`^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.|\s+[a-zA-ZÀ-ÿ.]+)*)(?:\s+(\d+)(?:\s*:\s*(.*))?)?$`)
+// Group 3: Chapter end number (optional, e.g. "1-3" when no colon follows)
+// Group 4: Verse part (optional, e.g. "16", "16-18", "1-6, 13-15", "21-29 (30-31) 32-45")
+var refRegex = regexp.MustCompile(`^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.|\s+[a-zA-ZÀ-ÿ.]+)*)(?:\s+(\d+)(?:\s*-\s*(\d+))?(?:\s*:\s*(.*))?)?$`)
 
 // reDigits extracts all consecutive digit sequences from the verse section.
 var reDigits = regexp.MustCompile(`\d+`)
@@ -118,8 +121,26 @@ func ParseReference(input string) (*ParsedReference, error) {
 		return nil, errors.New("invalid chapter number format")
 	}
 
-	// If verse section (Group 3) is empty, the scope is the entire chapter (e.g. "John 3").
-	if matches[3] == "" {
+	// If chapterEnd (Group 3) is present and verse section (Group 4) is empty,
+	// the scope is a multi-chapter range (e.g. "Matt 1-3", "Ps 1-5").
+	if matches[3] != "" && matches[4] == "" {
+		chapterEnd, err := strconv.Atoi(matches[3])
+		if err != nil {
+			return nil, errors.New("invalid chapter end number format")
+		}
+		if chapterEnd < chapter {
+			chapter, chapterEnd = chapterEnd, chapter
+		}
+		return &ParsedReference{
+			BookName:   bookID,
+			Chapter:    chapter,
+			ChapterEnd: chapterEnd,
+			Scope:      ScopeChapterRange,
+		}, nil
+	}
+
+	// If verse section (Group 4) is empty, the scope is the entire single chapter (e.g. "John 3").
+	if matches[4] == "" {
 		return &ParsedReference{
 			BookName: bookID,
 			Chapter:  chapter,
@@ -127,8 +148,8 @@ func ParseReference(input string) (*ParsedReference, error) {
 		}, nil
 	}
 
-	// Step 8: Extract verse numbers from the verse section.
-	digits := reDigits.FindAllString(matches[3], -1)
+	// Step 8: Extract verse numbers from the verse section (Group 4).
+	digits := reDigits.FindAllString(matches[4], -1)
 	if len(digits) == 0 {
 		return &ParsedReference{
 			BookName: bookID,
