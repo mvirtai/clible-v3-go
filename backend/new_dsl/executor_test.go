@@ -377,3 +377,105 @@ func TestExecute_RangeMultiBookSpan(t *testing.T) {
 	}
 }
 
+func TestExecute_TopWithCategorizeAndLemma(t *testing.T) {
+	// Text containing inflected forms of "Herra" and "Jeesus":
+	// Herra, Herran, Herralle (3 inflected forms of Herra)
+	// Jeesus, Jeesuksen (2 inflected forms of Jeesus)
+	// armo (1)
+	contextText := "Herra puhui Herran palvelijoille ja Herralle laulettiin. Jeesus opetti ja Jeesuksen sanat toivat armon."
+
+	mockLemmatizer := func(word string) string {
+		switch strings.ToLower(word) {
+		case "herra", "herran", "herralle":
+			return "Herra"
+		case "jeesus", "jeesuksen":
+			return "Jeesus"
+		case "armon", "armo":
+			return "armo"
+		default:
+			return word
+		}
+	}
+
+	execCtx := &ExecutionContext{
+		Ctx:         context.Background(),
+		ContextText: contextText,
+		Lemmatizer:  mockLemmatizer,
+	}
+
+	t.Run("categorize(true) clusters inflected words", func(t *testing.T) {
+		expr, err := ParseISLA(`! ^.top(5).categorize(true) =>`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+
+		res, err := Execute(execCtx, expr)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+
+		if res.Type != "words" {
+			t.Fatalf("res.Type = %q, want 'words'", res.Type)
+		}
+
+		words, ok := res.Data["words"].([]models.ThemeItem)
+		if !ok {
+			t.Fatalf("res.Data[words] is not []models.ThemeItem: %v", res.Data["words"])
+		}
+
+		foundHerra := false
+		foundJeesus := false
+		for _, w := range words {
+			if w.Word == "Herra" {
+				foundHerra = true
+				if w.Count != 3 {
+					t.Errorf("Herra count = %d, want 3", w.Count)
+				}
+			}
+			if w.Word == "Jeesus" {
+				foundJeesus = true
+				if w.Count != 2 {
+					t.Errorf("Jeesus count = %d, want 2", w.Count)
+				}
+			}
+		}
+
+		if !foundHerra {
+			t.Errorf("expected clustered lemma 'Herra' in top words, got: %+v", words)
+		}
+		if !foundJeesus {
+			t.Errorf("expected clustered lemma 'Jeesus' in top words, got: %+v", words)
+		}
+	})
+
+	t.Run("lemma() clusters inflected words", func(t *testing.T) {
+		expr, err := ParseISLA(`! ^.top(5).lemma() =>`)
+		if err != nil {
+			t.Fatalf("Parse error: %v", err)
+		}
+
+		res, err := Execute(execCtx, expr)
+		if err != nil {
+			t.Fatalf("Execute error: %v", err)
+		}
+
+		words, ok := res.Data["words"].([]models.ThemeItem)
+		if !ok {
+			t.Fatalf("res.Data[words] is not []models.ThemeItem: %v", res.Data["words"])
+		}
+
+		foundHerra := false
+		for _, w := range words {
+			if w.Word == "Herra" {
+				foundHerra = true
+				if w.Count != 3 {
+					t.Errorf("Herra count = %d, want 3", w.Count)
+				}
+			}
+		}
+		if !foundHerra {
+			t.Errorf("expected 'Herra' with count 3, got %+v", words)
+		}
+	})
+}
+

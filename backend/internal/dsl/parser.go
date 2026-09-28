@@ -50,6 +50,11 @@ func init() {
 		"words":      parseTopAction,
 		"top_words":  parseTopAction,
 
+		// Lemmatization / clustering
+		"categorize": parseOptionalBoolAction("categorize"),
+		"cluster":    parseOptionalBoolAction("categorize"),
+		"lemma":      parseOptionalBoolAction("categorize"),
+
 		// Text statistics & Type-Token Ratio: stats(), stats, ttr(), ttr
 		"stats": parseStatsAction,
 		"ttr":   parseStatsAction,
@@ -135,6 +140,40 @@ func parseOptionalNumericAction(kind string) actionParserFn {
 			p.consumeOptional(TokenParenClose)
 		}
 		return &ActionNode{Kind: kind, Value: limStr}, nil
+	}
+}
+
+// parseOptionalBoolAction returns a parser for boolean/flag actions.
+//
+//	categorize(true), categorize(), categorize, lemma(true), lemma
+func parseOptionalBoolAction(kind string) actionParserFn {
+	return func(p *Parser) (*ActionNode, error) {
+		val := "true"
+		if p.current().Type == TokenParenOpen {
+			p.next()
+			if p.current().Type == TokenIdent || p.current().Type == TokenString {
+				raw := strings.ToLower(strings.TrimSpace(p.current().Literal))
+				if raw == "false" || raw == "0" || raw == "no" || raw == "ei" {
+					val = "false"
+				} else {
+					val = "true"
+				}
+				p.next()
+			}
+			p.consumeOptional(TokenParenClose)
+		} else if p.current().Type == TokenColon {
+			p.next()
+			if p.current().Type == TokenIdent || p.current().Type == TokenString {
+				raw := strings.ToLower(strings.TrimSpace(p.current().Literal))
+				if raw == "false" || raw == "0" || raw == "no" || raw == "ei" {
+					val = "false"
+				} else {
+					val = "true"
+				}
+				p.next()
+			}
+		}
+		return &ActionNode{Kind: kind, Value: val}, nil
 	}
 }
 

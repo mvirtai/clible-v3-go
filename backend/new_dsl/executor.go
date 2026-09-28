@@ -45,8 +45,10 @@ type ExecutionContext struct {
 	ThemeExtractor   func(text string, limit int) []models.ThemeItem
 	RefsFinder       func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
 	SuggestFinder    func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
-	AnalyticsFinder  func(verses []models.Verse, text string, topN int) AnalyticsData
-	VariableResolver VariableResolver
+	AnalyticsFinder          func(verses []models.Verse, text string, topN int) AnalyticsData
+	ClusteredAnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
+	Lemmatizer               func(word string) string
+	VariableResolver         VariableResolver
 }
 
 var (
@@ -617,8 +619,24 @@ func extractTextFromResult(res *models.CLIResult) string {
 func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, verses []models.Verse, text string, methods []MethodCall) (*models.CLIResult, error) {
 	currentRes := baseRes
 
+	// Check if lemmatization/clustering is enabled in this method pipeline
+	lemmatize := false
+	for _, m := range methods {
+		if m.Name == "categorize" || m.Name == "cluster" || m.Name == "lemma" {
+			if len(m.Args) == 0 || m.Args[0] == "true" || m.Args[0] == "1" || m.Args[0] == "" {
+				lemmatize = true
+			} else if m.Args[0] == "false" || m.Args[0] == "0" {
+				lemmatize = false
+			}
+		}
+	}
+
 	for _, m := range methods {
 		switch m.Name {
+		case "categorize", "cluster", "lemma":
+			// Processed as a pipeline modifier above; no-op standalone.
+			continue
+
 		case "count":
 			unit := "verses"
 			if len(m.Args) > 0 {
@@ -640,7 +658,23 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 					limit = lim
 				}
 			}
-			if ctx.AnalyticsFinder != nil {
+			if lemmatize && ctx.ClusteredAnalyticsFinder != nil {
+				// Primary lemmatized path: uses AnalyzeVersesClustered → LemmatizeFI per token.
+				analytics := ctx.ClusteredAnalyticsFinder(verses, text, limit)
+				currentRes = &models.CLIResult{
+					Type: "words",
+					Data: map[string]interface{}{
+						"words":            analytics.TopWords,
+						"top_words":        analytics.TopWords,
+						"limit":            limit,
+						"count":            len(analytics.TopWords),
+						"token_count":      analytics.TokenCount,
+						"unique_tokens":    analytics.UniqueTokenCount,
+						"type_token_ratio": analytics.TypeTokenRatio,
+					},
+				}
+			} else if !lemmatize && ctx.AnalyticsFinder != nil {
+				// Non-lemmatized path: plain frequency analysis via AnalyzeVerses.
 				analytics := ctx.AnalyticsFinder(verses, text, limit)
 				currentRes = &models.CLIResult{
 					Type: "words",
@@ -655,7 +689,12 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 					},
 				}
 			} else {
-				items := extractTopFrequencies(aggregateText(verses, text), limit)
+				// Fallback: in-executor frequency counter with optional Lemmatizer.
+				var lemmatizer func(string) string
+				if lemmatize && ctx.Lemmatizer != nil {
+					lemmatizer = ctx.Lemmatizer
+				}
+				items := extractTopFrequenciesWithOptions(aggregateText(verses, text), limit, lemmatizer)
 				currentRes = &models.CLIResult{
 					Type: "words",
 					Data: map[string]interface{}{
@@ -888,12 +927,19 @@ var fallbackStopWords = map[string]bool{
 }
 
 func extractTopFrequencies(text string, limit int) []models.ThemeItem {
+	return extractTopFrequenciesWithOptions(text, limit, nil)
+}
+
+func extractTopFrequenciesWithOptions(text string, limit int, lemmatizer func(string) string) []models.ThemeItem {
 	clean := nonAlphaRegex.ReplaceAllString(text, " ")
 	words := strings.Fields(clean)
 	counts := make(map[string]int)
 	for _, w := range words {
 		l := strings.ToLower(w)
 		if len([]rune(l)) >= 3 && !fallbackStopWords[l] {
+			if lemmatizer != nil {
+				l = lemmatizer(l)
+			}
 			counts[l]++
 		}
 	}

@@ -678,6 +678,64 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 			t.Fatal("expected error for unterminated string literal, got nil")
 		}
 	})
+
+	t.Run("execute ISLA DSL with finnish lemmatization and clustering", func(t *testing.T) {
+		contextText := "Herra on hyvä ja laupias. Me kiitämme Herraa ja rukoilemme Herralta apua. Jeesus Kristus on elävä Herra."
+
+		// ISLA v2 AST: ^.top(5).categorize(true) =>
+		resV2, err := cliService.ExecuteDSL(ctx, "! ^.top(5).categorize(true) =>", "web", contextText)
+		if err != nil {
+			t.Fatalf("ExecuteDSL v2 categorize failed: %v", err)
+		}
+		if resV2.Type != "words" {
+			t.Fatalf("expected type 'words', got %s", resV2.Type)
+		}
+		wordsV2, ok := resV2.Data["words"].([]models.ThemeItem)
+		if !ok {
+			t.Fatalf("expected []models.ThemeItem, got %T", resV2.Data["words"])
+		}
+
+		foundHerraV2 := false
+		for _, w := range wordsV2 {
+			if w.Word == "Herra" {
+				foundHerraV2 = true
+				// "Herra" (1) + "Herraa" (1) + "Herralta" (1) + "Herra" (1) = 4
+				if w.Count != 4 {
+					t.Errorf("expected Herra count 4 in v2, got %d", w.Count)
+				}
+			}
+		}
+		if !foundHerraV2 {
+			t.Errorf("expected clustered lemma 'Herra' in v2 results, got: %+v", wordsV2)
+		}
+
+		// ISLA v1 AST pipeline: ^ => categorize(true) => top(5)
+		resV1, err := cliService.ExecuteDSL(ctx, "^ => categorize(true) => top(5)", "web", contextText)
+		if err != nil {
+			t.Fatalf("ExecuteDSL v1 categorize failed: %v", err)
+		}
+		if resV1.Type != "words" {
+			t.Fatalf("expected type 'words', got %s", resV1.Type)
+		}
+		wordsV1, ok := resV1.Data["words"].([]models.ThemeItem)
+		if !ok {
+			t.Fatalf("expected []models.ThemeItem in v1, got %T", resV1.Data["words"])
+		}
+
+		foundHerraV1 := false
+		for _, w := range wordsV1 {
+			if w.Word == "Herra" {
+				foundHerraV1 = true
+				if w.Count != 4 {
+					t.Errorf("expected Herra count 4 in v1, got %d", w.Count)
+				}
+			}
+		}
+		if !foundHerraV1 {
+			t.Errorf("expected clustered lemma 'Herra' in v1 results, got: %+v", wordsV1)
+		}
+	})
 }
+
 
 

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/parsers"
@@ -43,7 +44,9 @@ type ExecutionContext struct {
 	ThemeExtractor  func(text string, limit int) []models.ThemeItem
 	RefsFinder      func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
 	SuggestFinder   func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
-	AnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
+	AnalyticsFinder          func(verses []models.Verse, text string, topN int) AnalyticsData
+	ClusteredAnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
+	Lemmatizer               func(word string) string
 }
 
 // Execute evaluates an AST Node and returns a structured CLIResult.
@@ -574,6 +577,17 @@ func extractRootRangeNode(n Node) *RangeNode {
 	}
 }
 
+func extractRootScopeNode(n Node) *ScopeNode {
+	switch t := n.(type) {
+	case *ScopeNode:
+		return t
+	case *PipeNode:
+		return extractRootScopeNode(t.Left)
+	default:
+		return nil
+	}
+}
+
 func extractPipedSearchOptions(n Node, defaultTid string) (string, string) {
 	tid := defaultTid
 	scopeVal := ""
@@ -595,6 +609,27 @@ func extractPipedSearchOptions(n Node, defaultTid string) (string, string) {
 	walk(n)
 
 	return tid, scopeVal
+}
+
+func extractPipedLemmatizeOption(n Node) bool {
+	lemmatize := false
+	var walk func(node Node)
+	walk = func(node Node) {
+		if p, ok := node.(*PipeNode); ok {
+			if act, isAct := p.Right.(*ActionNode); isAct {
+				if act.Kind == "categorize" || act.Kind == "cluster" || act.Kind == "lemma" {
+					if act.Value == "" || act.Value == "true" || act.Value == "1" {
+						lemmatize = true
+					} else if act.Value == "false" || act.Value == "0" {
+						lemmatize = false
+					}
+				}
+			}
+			walk(p.Left)
+		}
+	}
+	walk(n)
+	return lemmatize
 }
 
 func aggregateCount(verses []models.Verse, unit string) int {
@@ -1093,11 +1128,14 @@ func applyActionToResult(_ *ExecutionContext, res *models.CLIResult, action *Act
 			res.Data["viewStyle"] = action.Kind
 		}
 	}
+	if action.Kind == "categorize" || action.Kind == "cluster" || action.Kind == "lemma" {
+		return res, nil
+	}
 	return res, nil
 }
 
 func extractTargetContent(ctx *ExecutionContext, left Node) ([]models.Verse, string, error) {
-	if _, isScope := left.(*ScopeNode); isScope {
+	if scopeNode := extractRootScopeNode(left); scopeNode != nil {
 		verses := extractContextVerses(ctx, ctx.ContextText)
 		return verses, StripISLAFromText(ctx.ContextText), nil
 	}
@@ -1145,6 +1183,10 @@ var fallbackStopWords = map[string]bool{
 }
 
 func defaultAnalytics(verses []models.Verse, text string, topN int) AnalyticsData {
+	return defaultAnalyticsWithOptions(verses, text, topN, nil)
+}
+
+func defaultAnalyticsWithOptions(verses []models.Verse, text string, topN int, lemmatizer func(string) string) AnalyticsData {
 	if topN <= 0 {
 		topN = 10
 	}
@@ -1180,9 +1222,24 @@ func defaultAnalytics(verses []models.Verse, text string, topN int) AnalyticsDat
 	cleanWordCount := 0
 
 	for _, w := range rawWords {
-		cleaned := strings.Trim(strings.ToLower(w), ".,;:!?\"'()[]{}«»—–-")
+		cleaned := strings.TrimFunc(strings.ToLower(w), func(r rune) bool {
+			return unicode.IsPunct(r) || unicode.IsSymbol(r) || unicode.IsSpace(r)
+		})
 		if cleaned == "" || fallbackStopWords[cleaned] {
 			continue
+		}
+		hasLetter := false
+		for _, r := range cleaned {
+			if unicode.IsLetter(r) {
+				hasLetter = true
+				break
+			}
+		}
+		if !hasLetter {
+			continue
+		}
+		if lemmatizer != nil {
+			cleaned = lemmatizer(cleaned)
 		}
 		freqMap[cleaned]++
 		cleanCharSum += len([]rune(cleaned))
@@ -1244,11 +1301,19 @@ func executeTopPipe(ctx *ExecutionContext, left Node, limit int) (*models.CLIRes
 		return nil, err
 	}
 
+	lemmatize := extractPipedLemmatizeOption(left)
+
 	var data AnalyticsData
-	if ctx.AnalyticsFinder != nil {
+	if lemmatize && ctx.ClusteredAnalyticsFinder != nil {
+		data = ctx.ClusteredAnalyticsFinder(verses, text, limit)
+	} else if ctx.AnalyticsFinder != nil {
 		data = ctx.AnalyticsFinder(verses, text, limit)
 	} else {
-		data = defaultAnalytics(verses, text, limit)
+		var lemmatizer func(string) string
+		if lemmatize && ctx.Lemmatizer != nil {
+			lemmatizer = ctx.Lemmatizer
+		}
+		data = defaultAnalyticsWithOptions(verses, text, limit, lemmatizer)
 	}
 
 	return &models.CLIResult{

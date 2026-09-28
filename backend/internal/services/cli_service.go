@@ -118,6 +118,7 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 				return suggestions, keywords, nil
 			},
 		}
+		v2ExecCtx.Lemmatizer = LemmatizeFI
 
 		if s.analyticService != nil {
 			v2ExecCtx.AnalyticsFinder = func(verses []models.Verse, text string, topN int) newdsl.AnalyticsData {
@@ -129,6 +130,29 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 					targetVerses = append(targetVerses, models.Verse{Text: text})
 				}
 				res := s.analyticService.AnalyzeVerses(targetVerses, topN)
+				var topWords []models.ThemeItem
+				for _, tw := range res.TopWords {
+					topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
+				}
+				return newdsl.AnalyticsData{
+					TokenCount:        res.TokenCount,
+					UniqueTokenCount:  res.UniqueTokenCount,
+					TypeTokenRatio:    res.TypeTokenRatio,
+					CharacterCount:    res.CharacterCount,
+					AverageWordLength: res.AverageWordLength,
+					TopWords:          topWords,
+				}
+			}
+
+			v2ExecCtx.ClusteredAnalyticsFinder = func(verses []models.Verse, text string, topN int) newdsl.AnalyticsData {
+				var targetVerses []models.Verse
+				if len(verses) > 0 {
+					targetVerses = append(targetVerses, verses...)
+				}
+				if text != "" {
+					targetVerses = append(targetVerses, models.Verse{Text: text})
+				}
+				res := s.analyticService.AnalyzeVersesClustered(targetVerses, topN)
 				var topWords []models.ThemeItem
 				for _, tw := range res.TopWords {
 					topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
@@ -223,6 +247,7 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 			return suggestions, keywords, nil
 		},
 	}
+	execCtx.Lemmatizer = LemmatizeFI
 
 	if s.analyticService != nil {
 		execCtx.AnalyticsFinder = func(verses []models.Verse, text string, topN int) dsl.AnalyticsData {
@@ -234,6 +259,29 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 				targetVerses = append(targetVerses, models.Verse{Text: text})
 			}
 			res := s.analyticService.AnalyzeVerses(targetVerses, topN)
+			var topWords []models.ThemeItem
+			for _, tw := range res.TopWords {
+				topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
+			}
+			return dsl.AnalyticsData{
+				TokenCount:        res.TokenCount,
+				UniqueTokenCount:  res.UniqueTokenCount,
+				TypeTokenRatio:    res.TypeTokenRatio,
+				CharacterCount:    res.CharacterCount,
+				AverageWordLength: res.AverageWordLength,
+				TopWords:          topWords,
+			}
+		}
+
+		execCtx.ClusteredAnalyticsFinder = func(verses []models.Verse, text string, topN int) dsl.AnalyticsData {
+			var targetVerses []models.Verse
+			if len(verses) > 0 {
+				targetVerses = append(targetVerses, verses...)
+			}
+			if text != "" {
+				targetVerses = append(targetVerses, models.Verse{Text: text})
+			}
+			res := s.analyticService.AnalyzeVersesClustered(targetVerses, topN)
 			var topWords []models.ThemeItem
 			for _, tw := range res.TopWords {
 				topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
