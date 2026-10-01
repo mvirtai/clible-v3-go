@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { selectFrequencyData } from './frequencyData';
+import {
+  getFrequencyChartHeight,
+  selectFrequencyData,
+} from './frequencyData';
 import type { TextStats } from '../../types/bible';
 
 const stats: TextStats = {
@@ -18,5 +21,10 @@ describe('selectFrequencyData', () => {
     expect(selectFrequencyData(stats, 'words')).toEqual(stats.topWords);
     expect(selectFrequencyData(stats, 'bigrams')).toEqual(stats.topBigrams);
     expect(selectFrequencyData(stats, 'trigrams')).toEqual(stats.topTrigrams);
+  });
+
+  it('allocates a readable row height for every frequency item', () => {
+    expect(getFrequencyChartHeight(0)).toBe(240);
+    expect(getFrequencyChartHeight(10)).toBe(340);
   });
 });

@@ -25,6 +25,7 @@ import { apiService } from "../../services/api";
 import { WordCloud } from "./WordCloud";
 import type { TextStats } from "../../types/bible";
 import {
+  getFrequencyChartHeight,
   selectFrequencyData,
   type FrequencyLevel,
 } from "./frequencyData";
@@ -288,6 +289,8 @@ export const AnalyticsView = ({
   const frequencyData = stats
     ? selectFrequencyData(stats, frequencyLevel)
     : [];
+  const supportsWordCloud = frequencyLevel === "words";
+  const frequencyChartWidth = supportsWordCloud ? "" : "min-w-[720px]";
   const frequencyLabels: Record<FrequencyLevel, string> = {
     words: strings.frequencyWordsLabel,
     bigrams: strings.frequencyBigramsLabel,
@@ -519,7 +522,7 @@ export const AnalyticsView = ({
           </div>
 
           {/* Visualizations and AI Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* Word Frequency Card */}
             <div className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -529,6 +532,7 @@ export const AnalyticsView = ({
                 <div className="flex items-center gap-2">
                   <div
                     className="flex gap-1 bg-[var(--surface-2)] p-0.5 rounded-lg border border-[var(--border-soft)]"
+                    role="group"
                     aria-label={strings.wordFrequencyTitle}
                   >
                     {(
@@ -541,7 +545,12 @@ export const AnalyticsView = ({
                       <button
                         key={level}
                         type="button"
-                        onClick={() => setFrequencyLevel(level)}
+                        onClick={() => {
+                          setFrequencyLevel(level);
+                          if (level !== "words") {
+                            setChartType("bar");
+                          }
+                        }}
                         aria-pressed={frequencyLevel === level}
                         className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-colors cursor-pointer ${frequencyLevel === level ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
                       >
@@ -550,66 +559,82 @@ export const AnalyticsView = ({
                     ))}
                   </div>
                   <div className="flex gap-1 bg-[var(--surface-2)] p-0.5 rounded-lg border border-[var(--border-soft)]">
-                  <button
-                    type="button"
-                    onClick={() => setChartType("bar")}
-                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "bar" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
-                    title={strings.chartBarTitle}
-                  >
-                    <BarChart3 size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setChartType("cloud")}
-                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "cloud" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
-                    title={strings.chartCloudTitle}
-                  >
-                    <Cloud size={14} />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartType("bar")}
+                      aria-label={strings.chartBarTitle}
+                      className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "bar" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                      title={strings.chartBarTitle}
+                    >
+                      <BarChart3 size={14} aria-hidden="true" />
+                    </button>
+                    {supportsWordCloud && (
+                      <button
+                        type="button"
+                        onClick={() => setChartType("cloud")}
+                        aria-label={strings.chartCloudTitle}
+                        className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "cloud" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                        title={strings.chartCloudTitle}
+                      >
+                        <Cloud size={14} aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="h-64 min-h-[16rem] w-full flex items-center justify-center overflow-hidden">
-                {chartType === "bar" ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={frequencyData}
-                      layout="vertical"
-                      margin={{ left: 10, right: 10 }}
-                    >
-                      <XAxis type="number" hide />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        width={80}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: "currentColor" }}
-                        className="text-[var(--muted)]"
-                        interval={0}
-                      />
-                      <Tooltip
-                        cursor={{ fill: "var(--surface-2)" }}
-                        contentStyle={{
-                          borderRadius: "12px",
-                          border: "1px solid var(--border)",
-                          background: "var(--surface)",
-                        }}
-                        itemStyle={{ color: "var(--text)" }}
-                        labelStyle={{ color: "var(--text-2)" }}
-                      />
-                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        {frequencyData.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill="var(--accent)"
-                            fillOpacity={1 - i * 0.08}
+              <div
+                className="w-full flex items-center justify-center overflow-hidden"
+                style={{ height: `${getFrequencyChartHeight(frequencyData.length)}px` }}
+              >
+                {frequencyData.length === 0 ? (
+                  <p className="text-sm text-[var(--muted)]">{strings.noResults}</p>
+                ) : chartType === "bar" || !supportsWordCloud ? (
+                  <div
+                    className="h-full w-full overflow-x-auto pb-2"
+                    aria-label={frequencyLabels[frequencyLevel]}
+                  >
+                    <div className={`h-full ${frequencyChartWidth}`}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={frequencyData}
+                          layout="vertical"
+                          margin={{ left: 4, right: 10 }}
+                        >
+                          <XAxis type="number" hide />
+                          <YAxis
+                            dataKey="name"
+                            type="category"
+                            width={supportsWordCloud ? 144 : 260}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 11, fill: "currentColor" }}
+                            className="text-[var(--muted)]"
+                            interval={0}
                           />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                          <Tooltip
+                            cursor={{ fill: "var(--surface-2)" }}
+                            contentStyle={{
+                              borderRadius: "12px",
+                              border: "1px solid var(--border)",
+                              background: "var(--surface)",
+                            }}
+                            itemStyle={{ color: "var(--text)" }}
+                            labelStyle={{ color: "var(--text-2)" }}
+                          />
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                            {frequencyData.map((_, i) => (
+                              <Cell
+                                key={i}
+                                fill="var(--accent)"
+                                fillOpacity={1 - i * 0.08}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 ) : (
                   <WordCloud words={frequencyData} />
                 )}
