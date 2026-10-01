@@ -61,6 +61,9 @@ export interface Messages {
   liturgicalExportToNotebookSuccess: string;
   liturgicalExportOffices: string;
   liturgicalExportOfficesTooltip: string;
+  liturgicalHymnsCount: (count: number) => string;
+  liturgicalPrayersCount: (count: number) => string;
+  liturgicalOpenHymnExternal: string;
   appBootLoading: string;
   errFailedLoadTranslations: string;
   errSelectTranslationFirst: string;
@@ -626,6 +629,9 @@ export const strings: Record<UILanguage, Messages> = {
         liturgicalExportToNotebookSuccess: 'Church year texts exported to notebook',
         liturgicalExportOffices: 'Export Offices',
         liturgicalExportOfficesTooltip: 'Create an interactive ISLA notebook from daily prayer offices',
+        liturgicalHymnsCount: (count: number) => (count === 1 ? '1 hymn' : `${count} hymns`),
+        liturgicalPrayersCount: (count: number) => (count === 1 ? '1 prayer' : `${count} prayers`),
+        liturgicalOpenHymnExternal: 'Open hymn on virsikirja.fi',
         appBootLoading: 'Loading...',
             noTranslations: 'No translations',
             translationPlaceholder: 'Select translation...',
@@ -1184,6 +1190,9 @@ export const strings: Record<UILanguage, Messages> = {
     liturgicalExportToNotebookSuccess: 'Kirkkovuoden tekstit viety muistikirjaan',
     liturgicalExportOffices: 'Vie hetkipalvelukset',
     liturgicalExportOfficesTooltip: 'Luo hetkipalvelusten lukukappaleista interaktiivinen ISLA-muistikirja',
+    liturgicalHymnsCount: (count: number) => (count === 1 ? '1 virsi' : `${count} virttä`),
+    liturgicalPrayersCount: (count: number) => (count === 1 ? '1 rukous' : `${count} rukousta`),
+    liturgicalOpenHymnExternal: 'Avaa virsi sivustolla virsikirja.fi',
     appBootLoading: 'Ladataan...',
     notebookTitle: 'Muistikirjat',
     createNotebook: 'Luo muistikirja',

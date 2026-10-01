@@ -147,10 +147,10 @@ function getCanticleForOffice(key: string, lang: UILanguage): { title: string; s
 export function liturgicalToISLA(
   day: LiturgicalDay,
   lang: UILanguage = 'fi',
-  options: IslaExportOptions = { includeCollect: true, includeHymns: true, includeOffices: false, stripLinks: true }
+  options: IslaExportOptions = { includeCollect: true, includeHymns: true, includeOffices: false, stripLinks: false }
 ): string {
   const isFi = lang === 'fi';
-  const stripLinks = options.stripLinks !== false;
+  const stripLinks = options.stripLinks === true;
   const lines: string[] = [];
 
   // Header & Title
@@ -346,7 +346,7 @@ export function officesToISLA(
   const specificOffice = typeof optionsOrOffice === 'string'
     ? optionsOrOffice
     : optionsOrOffice?.specificOffice;
-  const stripLinks = typeof optionsOrOffice === 'object' ? (optionsOrOffice.stripLinks !== false) : true;
+  const stripLinks = typeof optionsOrOffice === 'object' ? (optionsOrOffice.stripLinks === true) : false;
 
   const dayTitle = day.title || day.day_title || day.date;
   const offices = day.prayer_offices || {};

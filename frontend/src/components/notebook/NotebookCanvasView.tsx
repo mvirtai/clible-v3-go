@@ -67,7 +67,7 @@ export function NotebookCanvasView({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[var(--surface-0)] overflow-hidden">
+    <div className="flex-1 flex flex-col h-full max-h-[calc(100dvh-12rem)] min-h-[480px] bg-[var(--surface-0)] overflow-hidden rounded-2xl border border-[var(--border-soft)]">
       {/* Top action bar */}
       <div className="h-11 px-4 border-b border-[var(--border-soft)] bg-[var(--surface-1)] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
@@ -120,58 +120,60 @@ export function NotebookCanvasView({
           });
         }}
       >
-        {/* 24-sarakkeinen tiivis CSS Grid -kontti 24px automaattisilla rivikorkeuksilla */}
-        <div className="grid grid-cols-24 auto-rows-[24px] grid-flow-row-dense gap-4 items-start relative">
-          <GridOverlay visible={isAnyCardResizing} />
-          {notebooks.map((nb, index) => (
-            <SortableNotebookCard
-              key={nb.id}
-              nb={nb}
-              index={index}
-              onClick={() => onSelectNotebook(nb.id)}
-              onResizeStart={() => setIsAnyCardResizing(true)}
-              onResizeEnd={async (colSpan, rowSpan) => {
-                setIsAnyCardResizing(false);
-                if (isGuestNotebookId(nb.id)) {
-                  updateGuestNotebook(nb.id, { colSpan, rowSpan });
-                  onNotebooksChange((prev) =>
-                    prev.map((item) =>
-                      item.id === nb.id ? { ...item, colSpan, rowSpan } : item
-                    )
-                  );
-                  return;
-                }
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
+          {/* 24-sarakkeinen tiivis CSS Grid -kontti 24px automaattisilla rivikorkeuksilla */}
+          <div className="grid grid-cols-24 auto-rows-[24px] grid-flow-row-dense gap-1 sm:gap-4 items-start relative">
+            <GridOverlay visible={isAnyCardResizing} />
+            {notebooks.map((nb, index) => (
+              <SortableNotebookCard
+                key={nb.id}
+                nb={nb}
+                index={index}
+                onClick={() => onSelectNotebook(nb.id)}
+                onResizeStart={() => setIsAnyCardResizing(true)}
+                onResizeEnd={async (colSpan, rowSpan) => {
+                  setIsAnyCardResizing(false);
+                  if (isGuestNotebookId(nb.id)) {
+                    updateGuestNotebook(nb.id, { colSpan, rowSpan });
+                    onNotebooksChange((prev) =>
+                      prev.map((item) =>
+                        item.id === nb.id ? { ...item, colSpan, rowSpan } : item
+                      )
+                    );
+                    return;
+                  }
 
-                try {
-                  // Save matrix sizes to backend (colSpan and rowSpan)
-                  await fetch(`/api/notebooks/${nb.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      colSpan,
-                      rowSpan,
-                    }),
-                  });
-                  // Update state synchronously in the frontend
-                  onNotebooksChange((prev) =>
-                    prev.map((item) =>
-                      item.id === nb.id ? { ...item, colSpan, rowSpan } : item
-                    )
-                  );
-                } catch (err) {
-                  console.error('Failed to update notebook dimensions:', err);
-                }
-              }}
-              dragHandleTitle={strings.dragHandleTitle}
-              updatedAtLabel={strings.updatedAtLabel}
-              noDateLabel="-"
-            />
-          ))}
-          {notebooks.length === 0 && (
-            <div className="col-span-24 text-center py-12 text-[var(--muted)] text-sm">
-              {strings.noNotebooksText}
-            </div>
-          )}
+                  try {
+                    // Save matrix sizes to backend (colSpan and rowSpan)
+                    await fetch(`/api/notebooks/${nb.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        colSpan,
+                        rowSpan,
+                      }),
+                    });
+                    // Update state synchronously in the frontend
+                    onNotebooksChange((prev) =>
+                      prev.map((item) =>
+                        item.id === nb.id ? { ...item, colSpan, rowSpan } : item
+                      )
+                    );
+                  } catch (err) {
+                    console.error('Failed to update notebook dimensions:', err);
+                  }
+                }}
+                dragHandleTitle={strings.dragHandleTitle}
+                updatedAtLabel={strings.updatedAtLabel}
+                noDateLabel="-"
+              />
+            ))}
+            {notebooks.length === 0 && (
+              <div className="col-span-24 text-center py-12 text-[var(--muted)] text-sm">
+                {strings.noNotebooksText}
+              </div>
+            )}
+          </div>
         </div>
       </DragDropProvider>
     </div>

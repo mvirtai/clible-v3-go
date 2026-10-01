@@ -161,8 +161,7 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('> Herra Jumala, taivaallinen Isä, sinä lähetit Poikasi vanhurskaana ja auttajana.');
       expect(output).toContain('> Me rukoilemme sinua: valmista sydämemme ottamaan hänet vastaan.');
       expect(output).toContain('## Päivän virret');
-      expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
-      expect(output).not.toContain('https://virsikirja.fi');
+      expect(output).toContain('- [Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)');
     });
 
     it('numbers multiple collect prayers cleanly', () => {
@@ -234,8 +233,7 @@ describe('liturgicalIslaExport', () => {
       expect(output).toContain('Riennä avukseni, Herra');
       expect(output).toContain('Kunnia (+) Isälle ja Pojalle ja Pyhälle Hengelle');
       expect(output).toContain('### 2. Virsi (Hymnus)');
-      expect(output).toContain('- Virsi 13 (Käy, kansa, laulamaan)');
-      expect(output).not.toContain('https://virsikirja.fi');
+      expect(output).toContain('- [Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)');
       expect(output).toContain('### 3. Psalmi (Psalmodia)');
       expect(output).toContain('! @(Ps 118:19-29)');
       expect(output).toContain('### 4. Raamatunluku (Lectio)');

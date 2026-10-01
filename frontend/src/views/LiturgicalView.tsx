@@ -1007,7 +1007,7 @@ export function LiturgicalView({ onSelectVerse, initialDate, onExportToNotebook 
                       <button
                         type="button"
                         onClick={() => {
-                          const officeContent = officesToISLA(dayData, lang, { specificOffice: activeOffice, stripLinks: true });
+                          const officeContent = officesToISLA(dayData, lang, { specificOffice: activeOffice });
                           const activeOfficeLabel =
                             activeOffice === 'morning' ? strings.liturgicalMorning :
                             activeOffice === 'noon' ? strings.liturgicalNoon :
@@ -1109,7 +1109,7 @@ export function LiturgicalView({ onSelectVerse, initialDate, onExportToNotebook 
                         {strings.liturgicalPrayers}
                       </h2>
                       <span className="text-xs text-[var(--muted)]">
-                        {dayData.prayers.length} rukousta
+                        {strings.liturgicalPrayersCount(dayData.prayers.length)}
                       </span>
                     </div>
                   </div>
@@ -1165,7 +1165,7 @@ export function LiturgicalView({ onSelectVerse, initialDate, onExportToNotebook 
                         {strings.liturgicalHymns}
                       </h2>
                       <span className="text-xs text-[var(--muted)]">
-                        {dayData.hymns.reduce((acc, g) => acc + g.hymns.length, 0)} virttä
+                        {strings.liturgicalHymnsCount(dayData.hymns.reduce((acc, g) => acc + g.hymns.length, 0))}
                       </span>
                     </div>
                   </div>
@@ -1191,26 +1191,32 @@ export function LiturgicalView({ onSelectVerse, initialDate, onExportToNotebook 
                         className="p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-soft)] space-y-2.5"
                       >
                         <h3 className="text-xs font-bold text-[var(--muted)] uppercase tracking-wider">
-                          {group.group || 'Virsisuositukset'}
+                          {group.group || strings.liturgicalHymns}
                         </h3>
                         <div className="space-y-1.5">
-                          {group.hymns.map((hymn) => (
-                            <a
-                              key={`${hymn.number}-${hymn.name}`}
-                              href={hymn.url || `https://virsikirja.fi/${hymn.number}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-between p-2 rounded-xl bg-[var(--surface)] hover:bg-[var(--accent-bg)] text-[var(--text)] hover:text-[var(--accent)] text-xs font-semibold transition-colors border border-[var(--border-soft)] group cursor-pointer"
-                            >
-                              <div className="flex items-center gap-2 truncate">
-                                <span className="px-1.5 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--accent)] font-mono text-[11px]">
-                                  {hymn.number}
-                                </span>
-                                <span className="truncate">{hymn.name}</span>
-                              </div>
-                              <ExternalLink size={12} className="shrink-0 text-[var(--muted)] group-hover:text-[var(--accent)]" />
-                            </a>
-                          ))}
+                          {group.hymns.map((hymn) => {
+                            const hymnUrl = hymn.url || `https://virsikirja.fi/${encodeURIComponent(hymn.number)}`;
+                            const hymnTitle = `${hymn.number} ${hymn.name || ''} – ${strings.liturgicalOpenHymnExternal}`;
+                            return (
+                              <a
+                                key={`${hymn.number}-${hymn.name}`}
+                                href={hymnUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={hymnTitle}
+                                aria-label={hymnTitle}
+                                className="flex items-center justify-between p-2 rounded-xl bg-[var(--surface)] hover:bg-[var(--accent-bg)] text-[var(--text)] hover:text-[var(--accent)] text-xs font-semibold transition-colors border border-[var(--border-soft)] group cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <span className="px-1.5 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--accent)] font-mono text-[11px]">
+                                    {hymn.number}
+                                  </span>
+                                  <span className="truncate">{hymn.name}</span>
+                                </div>
+                                <ExternalLink size={12} className="shrink-0 text-[var(--muted)] group-hover:text-[var(--accent)]" />
+                              </a>
+                            );
+                          })}
                         </div>
                       </div>
                     ))}
