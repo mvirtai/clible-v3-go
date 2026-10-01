@@ -61,14 +61,16 @@ type WordCount struct {
 
 // AnalysisResult aggregates metrics exposed directly to the React frontend.
 type AnalysisResult struct {
-	TokenCount        int         `json:"token_count"`
-	UniqueTokenCount  int         `json:"unique_token_count"`
-	TypeTokenRatio    float64     `json:"type_token_ratio"`
-	CharacterCount    int         `json:"character_count"`
-	AverageWordLength float64     `json:"avg_word_length"`
-	TopWords          []WordCount `json:"top_words"`
-	TopBigrams        []WordCount `json:"top_bigrams"`
-	TopTrigrams       []WordCount `json:"top_trigrams"`
+	TokenCount         int         `json:"token_count"`
+	UniqueTokenCount   int         `json:"unique_token_count"`
+	HapaxLegomenaCount int         `json:"hapax_legomena_count"`
+	HapaxLegomenaRatio float64     `json:"hapax_legomena_ratio"`
+	TypeTokenRatio     float64     `json:"type_token_ratio"`
+	CharacterCount     int         `json:"character_count"`
+	AverageWordLength  float64     `json:"avg_word_length"`
+	TopWords           []WordCount `json:"top_words"`
+	TopBigrams         []WordCount `json:"top_bigrams"`
+	TopTrigrams        []WordCount `json:"top_trigrams"`
 }
 
 type AlignedVerse struct {
@@ -236,16 +238,24 @@ func (s *AnalyticService) AnalyzeVersesWithOptions(verses []models.Verse, opts A
 
 	avgWordLen := float64(totalCharCount) / float64(rawWordCount)
 	ttr := float64(len(uniqueTokens)) / float64(len(allTokens))
+	hapaxCount := 0
+	for _, frequency := range uniqueTokens {
+		if frequency == 1 {
+			hapaxCount++
+		}
+	}
 
 	return AnalysisResult{
-		TokenCount:        len(allTokens),
-		UniqueTokenCount:  len(uniqueTokens),
-		TypeTokenRatio:    ttr,
-		CharacterCount:    totalCharCount,
-		AverageWordLength: avgWordLen,
-		TopWords:          s.extractTopFrequencies(uniqueTokens, opts.TopN),
-		TopBigrams:        s.extractNGrams(allTokens, 2, opts.TopN),
-		TopTrigrams:       s.extractNGrams(allTokens, 3, opts.TopN),
+		TokenCount:         len(allTokens),
+		UniqueTokenCount:   len(uniqueTokens),
+		HapaxLegomenaCount: hapaxCount,
+		HapaxLegomenaRatio: float64(hapaxCount) / float64(len(allTokens)),
+		TypeTokenRatio:     ttr,
+		CharacterCount:     totalCharCount,
+		AverageWordLength:  avgWordLen,
+		TopWords:           s.extractTopFrequencies(uniqueTokens, opts.TopN),
+		TopBigrams:         s.extractNGrams(allTokens, 2, opts.TopN),
+		TopTrigrams:        s.extractNGrams(allTokens, 3, opts.TopN),
 	}
 }
 

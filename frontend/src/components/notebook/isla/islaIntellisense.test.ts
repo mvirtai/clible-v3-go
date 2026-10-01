@@ -3,6 +3,7 @@ import {
   getISLASuggestions,
   ISLA_MAIN_SNIPPETS,
   applyISLASuggestion,
+  getHoverDocumentation,
 } from './islaIntellisense';
 
 describe('islaIntellisense', () => {
@@ -275,6 +276,10 @@ describe('islaIntellisense', () => {
       expect(suggestions.some((s) => s.label === 'refs(...)')).toBe(true);
       expect(suggestions.some((s) => s.label === 'stats()')).toBe(true);
       expect(suggestions.some((s) => s.label === 'top(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'ngrams(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'lemma()')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'cluster()')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'categorize()')).toBe(true);
       expect(suggestions.some((s) => s.label === 'count(...)')).toBe(true);
       // at and limit are only for search
       expect(suggestions.some((s) => s.label === 'at(...)')).toBe(false);
@@ -308,6 +313,77 @@ describe('islaIntellisense', () => {
       const statsSuggestions = getISLASuggestions('! @(Joh 3:16).st', 16);
       expect(statsSuggestions).toHaveLength(1);
       expect(statsSuggestions[0].label).toBe('stats()');
+
+      const lemmaSuggestions = getISLASuggestions('! @(Joh 3:16).le', 16);
+      expect(lemmaSuggestions).toHaveLength(1);
+      expect(lemmaSuggestions[0].label).toBe('lemma()');
+
+      const ngramSuggestions = getISLASuggestions('! @(Joh 3:16).ng', 16);
+      expect(ngramSuggestions).toHaveLength(1);
+      expect(ngramSuggestions[0].label).toBe('ngrams(...)');
+      expect(ngramSuggestions[0].insertText).toBe('ngrams(2, 10)');
+    });
+  });
+
+  describe('N-gram argument completions', () => {
+    it('offers only bigram and trigram sizes and inserts a complete call', () => {
+      const code = '! @(Joh 3:16).ngrams(';
+      const suggestions = getISLASuggestions(code, code.length);
+      expect(suggestions.map((s) => s.label)).toEqual([
+        '2 — Bigrammit (bigrams)',
+        '3 — Trigrammit (trigrams)',
+      ]);
+
+      const { newCode, newCursorOffset } = applyISLASuggestion(
+        code,
+        code.length,
+        suggestions[1],
+      );
+      expect(newCode).toBe('! @(Joh 3:16).ngrams(3, 10)');
+      expect(newCursorOffset).toBe(newCode.length);
+    });
+
+    it('inserts a valid ngrams method and leaves the size ready to change', () => {
+      const code = '! @(Joh 3:16).ng';
+      const suggestions = getISLASuggestions(code, code.length);
+      const { newCode, newCursorOffset } = applyISLASuggestion(
+        code,
+        code.length,
+        suggestions[0],
+      );
+
+      expect(newCode).toBe('! @(Joh 3:16).ngrams(2, 10)');
+      expect(newCode[newCursorOffset]).toBe(',');
+      expect(newCode[newCursorOffset - 1]).toBe('2');
+    });
+
+    it('offers result-limit presets after the n-gram size', () => {
+      const code = '! @(Joh 3:16).ngrams(2, 1';
+      const suggestions = getISLASuggestions(code, code.length);
+      expect(suggestions.map((s) => s.label)).toEqual([
+        '1 (käytä tätä / use this)',
+        '10',
+        '15',
+        '100',
+      ]);
+    });
+
+    it('does not duplicate an existing closing parenthesis when completing a limit', () => {
+      const code = '! @(Joh 3:16).ngrams(2, )';
+      const suggestions = getISLASuggestions(code, code.length - 1);
+      const ten = suggestions.find((suggestion) => suggestion.label === '10');
+      expect(ten).toBeDefined();
+
+      const { newCode } = applyISLASuggestion(code, code.length - 1, ten!);
+      expect(newCode).toBe('! @(Joh 3:16).ngrams(2, 10)');
+    });
+
+    it('shows bilingual hover documentation for ngrams', () => {
+      const finnish = getHoverDocumentation('ngrams', 'fi');
+      const english = getHoverDocumentation('ngrams', 'en');
+      expect(finnish?.syntax).toBe('ngrams(2|3, LIMIT?)');
+      expect(finnish?.description).toContain('bigrammien');
+      expect(english?.description).toContain('bigrams');
     });
   });
 
@@ -526,5 +602,3 @@ describe('islaIntellisense', () => {
     });
   });
 });
-
-

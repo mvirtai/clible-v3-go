@@ -1,4 +1,5 @@
 import type { WordFrequency } from "../../types/bible";
+import { getWordCloudFontSize } from "./wordCloudUtils";
 
 /**
  * Properties for {@link WordCloud}.
@@ -50,7 +51,7 @@ export const WordCloud = ({ words }: WordCloudProps) => {
     <div className="flex flex-wrap gap-x-4 gap-y-3 justify-center items-center p-4 leading-tight select-none">
       {shuffledWords.map((w, i) => {
         const ratio = (w.value - min) / range;
-        const size = Math.round(13 + ratio * 36);
+        const size = getWordCloudFontSize(w.name.length, ratio);
         const weight = ratio > 0.6 ? 700 : ratio > 0.3 ? 600 : 400;
         const color = PALETTE[i % PALETTE.length];
         const opacity = 0.55 + ratio * 0.45;
@@ -60,7 +61,7 @@ export const WordCloud = ({ words }: WordCloudProps) => {
             key={w.name}
             title={`${w.name}: ${w.value}`}
             style={{ fontSize: `${size}px`, fontWeight: weight, color, opacity }}
-            className="transition-opacity hover:opacity-100 cursor-default"
+            className="inline-block max-w-full truncate whitespace-nowrap transition-opacity hover:opacity-100 cursor-default"
           >
             {w.name}
           </span>
@@ -69,4 +70,3 @@ export const WordCloud = ({ words }: WordCloudProps) => {
     </div>
   );
 };
-

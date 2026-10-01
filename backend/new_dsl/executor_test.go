@@ -139,6 +139,77 @@ func TestExecute_CellContextTopAndStats(t *testing.T) {
 	if resStats.Data["token_count"] != 9 {
 		t.Errorf("token_count = %v, want 9", resStats.Data["token_count"])
 	}
+	if _, ok := resStats.Data["unique_token_count"]; !ok {
+		t.Error("stats result is missing unique_token_count")
+	}
+	if _, ok := resStats.Data["character_count"]; !ok {
+		t.Error("stats result is missing character_count")
+	}
+	if resStats.Data["hapax_legomena_count"] != 7 {
+		t.Errorf("hapax_legomena_count = %v, want 7", resStats.Data["hapax_legomena_count"])
+	}
+	if resStats.Data["hapax_legomena_ratio"] != 7.0/9.0 {
+		t.Errorf("hapax_legomena_ratio = %v, want %f", resStats.Data["hapax_legomena_ratio"], 7.0/9.0)
+	}
+}
+
+func TestExecute_CellContextNgrams(t *testing.T) {
+	execCtx := &ExecutionContext{
+		Ctx:         context.Background(),
+		ContextText: "Jumalan armo kantaa. Jumalan armo riittää.",
+	}
+
+	expr, err := ParseISLA(`! ^.ngrams(2, 2) =>`)
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	res, err := Execute(execCtx, expr)
+	if err != nil {
+		t.Fatalf("Execute error: %v", err)
+	}
+
+	if res.Type != "words" {
+		t.Fatalf("res.Type = %q, want 'words'", res.Type)
+	}
+	if res.Data["ngram_size"] != 2 {
+		t.Errorf("ngram_size = %v, want 2", res.Data["ngram_size"])
+	}
+
+	words, ok := res.Data["words"].([]models.ThemeItem)
+	if !ok {
+		t.Fatalf("res.Data[words] is not []models.ThemeItem: %v", res.Data["words"])
+	}
+	if len(words) == 0 || words[0].Word != "jumalan armo" || words[0].Count != 2 {
+		t.Errorf("words = %+v, want top bigram 'jumalan armo' with count 2", words)
+	}
+
+	trigrams, err := ParseISLA(`! ^.ngrams(3, 10) =>`)
+	if err != nil {
+		t.Fatalf("Parse trigram expression: %v", err)
+	}
+	trigramResult, err := Execute(execCtx, trigrams)
+	if err != nil {
+		t.Fatalf("Execute trigram expression: %v", err)
+	}
+	if trigramResult.Data["ngram_size"] != 3 {
+		t.Errorf("trigram ngram_size = %v, want 3", trigramResult.Data["ngram_size"])
+	}
+
+	for _, input := range []string{
+		`! ^.ngrams(1, 10) =>`,
+		`! ^.ngrams(4, 10) =>`,
+		`! ^.ngrams(2, 0) =>`,
+		`! ^.ngrams(2, 10, 1) =>`,
+	} {
+		expr, err := ParseISLA(input)
+		if err != nil {
+			t.Fatalf("Parse invalid ngram expression %q: %v", input, err)
+		}
+		if _, err := Execute(execCtx, expr); err == nil {
+			t.Errorf("Execute(%q) succeeded, want error", input)
+		}
+	}
 }
 
 func TestExecute_Comparison(t *testing.T) {
@@ -478,4 +549,3 @@ func TestExecute_TopWithCategorizeAndLemma(t *testing.T) {
 		}
 	})
 }
-

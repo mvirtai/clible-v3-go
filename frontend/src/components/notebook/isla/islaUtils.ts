@@ -376,6 +376,17 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     hasArgs: true,
   },
   {
+    keyword: 'ngrams',
+    label: { fi: 'N-grammit', en: 'N-gram Frequencies' },
+    description: {
+      fi: 'Laskee peräkkäisten sanaparien (bigrammien) tai sanakolmikoiden (trigrammien) frekvenssit. Käytä kokoa 2 tai 3; toinen argumentti on tulosten enimmäismäärä (oletus 10). Esim. ngrams(2, 10) tai ngrams(3, 5).',
+      en: 'Counts frequencies of consecutive word pairs (bigrams) or triples (trigrams). Use size 2 or 3; the optional second argument sets the result limit (default 10). E.g. ngrams(2, 10) or ngrams(3, 5).',
+    },
+    syntax: 'ngrams(2|3, LIMIT?)',
+    example: '! @(Joh 1:1-18).ngrams(2, 10)',
+    hasArgs: true,
+  },
+  {
     keyword: 'words',
     label: { fi: 'Yleisimmät sanat (alias)', en: 'Word Frequencies (alias)' },
     description: {
@@ -395,6 +406,39 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     },
     syntax: 'stats() | ttr()',
     example: '! @Room 8:1-39 => stats()',
+    hasArgs: false,
+  },
+  {
+    keyword: 'lemma',
+    label: { fi: 'Lemmaklusterointi', en: 'Lemma Clustering' },
+    description: {
+      fi: 'Yhdistää suomenkieliset taivutusmuodot perusmuotoihin seuraavaa top()- tai stats()-analyysiä varten.',
+      en: 'Groups Finnish inflected forms into lemmas for the following top() or stats() analysis.',
+    },
+    syntax: 'lemma()',
+    example: '! @(Room 8:1-39).lemma().top(10)',
+    hasArgs: false,
+  },
+  {
+    keyword: 'cluster',
+    label: { fi: 'Lemmaklusterointi (alias)', en: 'Lemma Clustering (alias)' },
+    description: {
+      fi: 'Alias komennolle lemma().',
+      en: 'Alias for lemma().',
+    },
+    syntax: 'cluster()',
+    example: '! @(Room 8:1-39).cluster().stats()',
+    hasArgs: false,
+  },
+  {
+    keyword: 'categorize',
+    label: { fi: 'Lemmaklusterointi (alias)', en: 'Lemma Clustering (alias)' },
+    description: {
+      fi: 'Alias komennolle lemma(). Käytä categorize(false) poistaaksesi klusteroinnin.',
+      en: 'Alias for lemma(). Use categorize(false) to disable clustering.',
+    },
+    syntax: 'categorize([true|false])',
+    example: '! @(Room 8:1-39).categorize().top(10)',
     hasArgs: false,
   },
   {
@@ -470,4 +514,3 @@ export function stripISLAFromText(text: string): string {
     .replace(/(?:^|\n)\s*---+[^\n]*/g, '')
     .trim();
 }
-

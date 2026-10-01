@@ -130,6 +130,11 @@ describe('islaLexer', () => {
       ]);
     });
 
+    it('highlights ngrams as an ISLA method', () => {
+      const tokens = tokenizeISLALine('! @(Joh 3:16).ngrams(2, 10) =>');
+      expect(tokens.some((token) => token.type === 'function' && token.text === 'ngrams')).toBe(true);
+    });
+
     it('tokenizes ISLA v2 range with dot chaining and cell below output: ! range(GEN, DEU).themes(5) >> #tooran-teemat', () => {
       const tokens = tokenizeISLALine('! range(GEN, DEU).themes(5) >> #tooran-teemat');
       expect(tokens).toEqual([

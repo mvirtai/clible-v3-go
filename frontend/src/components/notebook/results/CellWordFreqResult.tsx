@@ -13,6 +13,7 @@ export interface WordFreqResultData {
   token_count?: number;
   unique_tokens?: number;
   type_token_ratio?: number;
+  ngram_size?: 2 | 3;
 }
 
 export interface CellWordFreqResultProps {
@@ -25,6 +26,12 @@ export interface CellWordFreqResultProps {
 export function CellWordFreqResult({ data }: CellWordFreqResultProps) {
   const { strings } = useLanguage();
   const items = data.words || [];
+  const title =
+    data.ngram_size === 2
+      ? strings.frequencyBigramsLabel
+      : data.ngram_size === 3
+        ? strings.frequencyTrigramsLabel
+        : strings.topWordsTitle;
 
   if (items.length === 0) {
     return (
@@ -45,7 +52,7 @@ export function CellWordFreqResult({ data }: CellWordFreqResultProps) {
             <BarChart2 className="w-4 h-4" />
           </div>
           <span className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
-            {strings.topWordsTitle}
+            {title}
           </span>
         </div>
         {data.unique_tokens !== undefined && data.token_count !== undefined && (
@@ -62,6 +69,7 @@ export function CellWordFreqResult({ data }: CellWordFreqResultProps) {
           return (
             <div
               key={item.word}
+              title={item.word}
               role="listitem"
               className="flex items-center gap-3 text-xs group hover:bg-amber-500/10 p-1.5 rounded-lg transition-colors"
             >

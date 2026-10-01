@@ -12,6 +12,8 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/parsers"
 )
 
+const maxNgramLimit = 1000
+
 // VerseFetcher defines the interface for retrieving verses by reference.
 type VerseFetcher interface {
 	GetVerses(ctx context.Context, ref, translationID string) ([]models.Verse, error)
@@ -27,24 +29,28 @@ type VariableResolver func(name string) (*models.CLIResult, error)
 
 // AnalyticsData contains aggregated lexical and linguistic metrics.
 type AnalyticsData struct {
-	TokenCount        int                `json:"token_count"`
-	UniqueTokenCount  int                `json:"unique_token_count"`
-	TypeTokenRatio    float64            `json:"type_token_ratio"`
-	CharacterCount    int                `json:"character_count"`
-	AverageWordLength float64            `json:"avg_word_length"`
-	TopWords          []models.ThemeItem `json:"top_words"`
+	TokenCount         int                `json:"token_count"`
+	UniqueTokenCount   int                `json:"unique_token_count"`
+	HapaxLegomenaCount int                `json:"hapax_legomena_count"`
+	HapaxLegomenaRatio float64            `json:"hapax_legomena_ratio"`
+	TypeTokenRatio     float64            `json:"type_token_ratio"`
+	CharacterCount     int                `json:"character_count"`
+	AverageWordLength  float64            `json:"avg_word_length"`
+	TopWords           []models.ThemeItem `json:"top_words"`
+	TopBigrams         []models.ThemeItem `json:"top_bigrams"`
+	TopTrigrams        []models.ThemeItem `json:"top_trigrams"`
 }
 
 // ExecutionContext is the runtime context for AST evaluation.
 type ExecutionContext struct {
-	Ctx              context.Context
-	DefaultTrans     string
-	ContextText      string
-	VerseFetcher     VerseFetcher
-	VerseSearcher    VerseSearcher
-	ThemeExtractor   func(text string, limit int) []models.ThemeItem
-	RefsFinder       func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
-	SuggestFinder    func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
+	Ctx                      context.Context
+	DefaultTrans             string
+	ContextText              string
+	VerseFetcher             VerseFetcher
+	VerseSearcher            VerseSearcher
+	ThemeExtractor           func(text string, limit int) []models.ThemeItem
+	RefsFinder               func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
+	SuggestFinder            func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
 	AnalyticsFinder          func(verses []models.Verse, text string, topN int) AnalyticsData
 	ClusteredAnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
 	Lemmatizer               func(word string) string
@@ -52,22 +58,22 @@ type ExecutionContext struct {
 }
 
 var (
-	islaLineRegex          = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
-	codeBlockRegex         = regexp.MustCompile("(?s)```.*?```")
-	inlineCodeRegex        = regexp.MustCompile("`[^`]*`")
-	nonAlphaRegex          = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
-	whitespaceRegex        = regexp.MustCompile(`\s+`)
-	urlRegex               = regexp.MustCompile(`https?://\S+`)
-	markdownLinkRegex      = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`)
-	markdownHeaderRegex    = regexp.MustCompile(`(?m)^\s*#{1,6}\s+.*$`)
-	metadataLineRegex      = regexp.MustCompile(`(?mi)^\s*\*\*(?:Päivämäärä|Liturginen väri|Date|Liturgical color|Color):\*\*.*$`)
-	liturgicalRubricRegex  = regexp.MustCompile(`(?mi)^\s*(?:[-*]\s*)?\*(?:Ehdotus|Suggestion|Tai vaihtoehtoisesti|Alternatively|Päivän psalmi|Day psalm|Lyhyt yörukouksen|Virsi|Hymn).*$`)
-	liturgicalParenthesis  = regexp.MustCompile(`\*\([^)]+\)\*`)
-	liturgicalRoleRegex    = regexp.MustCompile(`(?mi)^\s*>\s*\*\*(?:E|S|L|C|Kaikki|All):\*\*\s*|\*\*(?:E|S|L|C|Kaikki|All):\*\*`)
-	liturgicalCrossRegex   = regexp.MustCompile(`\(\+\)`)
-	blockquoteLeaderRegex  = regexp.MustCompile(`(?m)^\s*>\s?`)
-	dividerLineRegex       = regexp.MustCompile(`(?m)^\s*---+.*$`)
-	verseRefExtractRegex   = regexp.MustCompile(`@(?:\(([^)]+)\)|([1-3]?[A-Za-zäöÄÖåÅ]+(?:\s+\d+(?::\d+(?:-\d+)?)?)?))`)
+	islaLineRegex         = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
+	codeBlockRegex        = regexp.MustCompile("(?s)```.*?```")
+	inlineCodeRegex       = regexp.MustCompile("`[^`]*`")
+	nonAlphaRegex         = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
+	whitespaceRegex       = regexp.MustCompile(`\s+`)
+	urlRegex              = regexp.MustCompile(`https?://\S+`)
+	markdownLinkRegex     = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`)
+	markdownHeaderRegex   = regexp.MustCompile(`(?m)^\s*#{1,6}\s+.*$`)
+	metadataLineRegex     = regexp.MustCompile(`(?mi)^\s*\*\*(?:Päivämäärä|Liturginen väri|Date|Liturgical color|Color):\*\*.*$`)
+	liturgicalRubricRegex = regexp.MustCompile(`(?mi)^\s*(?:[-*]\s*)?\*(?:Ehdotus|Suggestion|Tai vaihtoehtoisesti|Alternatively|Päivän psalmi|Day psalm|Lyhyt yörukouksen|Virsi|Hymn).*$`)
+	liturgicalParenthesis = regexp.MustCompile(`\*\([^)]+\)\*`)
+	liturgicalRoleRegex   = regexp.MustCompile(`(?mi)^\s*>\s*\*\*(?:E|S|L|C|Kaikki|All):\*\*\s*|\*\*(?:E|S|L|C|Kaikki|All):\*\*`)
+	liturgicalCrossRegex  = regexp.MustCompile(`\(\+\)`)
+	blockquoteLeaderRegex = regexp.MustCompile(`(?m)^\s*>\s?`)
+	dividerLineRegex      = regexp.MustCompile(`(?m)^\s*---+.*$`)
+	verseRefExtractRegex  = regexp.MustCompile(`@(?:\(([^)]+)\)|([1-3]?[A-Za-zäöÄÖåÅ]+(?:\s+\d+(?::\d+(?:-\d+)?)?)?))`)
 )
 
 // ExtractVerseRefs extracts Bible citations referenced via @(...) or @Book from raw text.
@@ -328,7 +334,6 @@ func executeRangeExpr(ctx *ExecutionContext, n *RangeNode, methods []MethodCall)
 			}
 		}
 	}
-
 
 	res := &models.CLIResult{
 		Type: "range",
@@ -706,18 +711,68 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 				}
 			}
 
+		case "ngrams":
+			if len(m.Args) == 0 || len(m.Args) > 2 {
+				return nil, fmt.Errorf("isla: ngrams requires a size and accepts an optional limit")
+			}
+
+			parsedSize, err := strconv.Atoi(m.Args[0])
+			if err != nil {
+				return nil, fmt.Errorf("isla: ngrams size must be 2 or 3, got %q", m.Args[0])
+			}
+			size := parsedSize
+			if size != 2 && size != 3 {
+				return nil, fmt.Errorf("isla: ngrams size must be 2 or 3, got %d", size)
+			}
+
+			limit := 10
+			if len(m.Args) > 1 {
+				parsedLimit, err := strconv.Atoi(m.Args[1])
+				if err != nil || parsedLimit <= 0 {
+					return nil, fmt.Errorf("isla: ngrams limit must be a positive integer, got %q", m.Args[1])
+				}
+				if parsedLimit > maxNgramLimit {
+					return nil, fmt.Errorf("isla: ngrams limit must be <= %d, got %d", maxNgramLimit, parsedLimit)
+				}
+				limit = parsedLimit
+			}
+
+			var items []models.ThemeItem
+			if ctx.AnalyticsFinder != nil {
+				analytics := ctx.AnalyticsFinder(verses, text, limit)
+				if size == 2 {
+					items = analytics.TopBigrams
+				} else {
+					items = analytics.TopTrigrams
+				}
+			} else {
+				items = extractTopNgrams(aggregateText(verses, text), size, limit)
+			}
+
+			currentRes = &models.CLIResult{
+				Type: "words",
+				Data: map[string]interface{}{
+					"words":      items,
+					"limit":      limit,
+					"count":      len(items),
+					"ngram_size": size,
+				},
+			}
+
 		case "stats":
 			if ctx.AnalyticsFinder != nil {
 				analytics := ctx.AnalyticsFinder(verses, text, 10)
 				currentRes = &models.CLIResult{
 					Type: "stats",
 					Data: map[string]interface{}{
-						"token_count":        analytics.TokenCount,
-						"unique_token_count": analytics.UniqueTokenCount,
-						"type_token_ratio":   analytics.TypeTokenRatio,
-						"character_count":    analytics.CharacterCount,
-						"avg_word_length":    analytics.AverageWordLength,
-						"top_words":          analytics.TopWords,
+						"token_count":          analytics.TokenCount,
+						"unique_token_count":   analytics.UniqueTokenCount,
+						"hapax_legomena_count": analytics.HapaxLegomenaCount,
+						"hapax_legomena_ratio": analytics.HapaxLegomenaRatio,
+						"type_token_ratio":     analytics.TypeTokenRatio,
+						"character_count":      analytics.CharacterCount,
+						"avg_word_length":      analytics.AverageWordLength,
+						"top_words":            analytics.TopWords,
 					},
 				}
 			} else {
@@ -725,11 +780,13 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 				currentRes = &models.CLIResult{
 					Type: "stats",
 					Data: map[string]interface{}{
-						"token_count":        analytics.TokenCount,
-						"unique_token_count": analytics.UniqueTokenCount,
-						"type_token_ratio":   analytics.TypeTokenRatio,
-						"character_count":    analytics.CharacterCount,
-						"avg_word_length":    analytics.AverageWordLength,
+						"token_count":          analytics.TokenCount,
+						"unique_token_count":   analytics.UniqueTokenCount,
+						"hapax_legomena_count": analytics.HapaxLegomenaCount,
+						"hapax_legomena_ratio": analytics.HapaxLegomenaRatio,
+						"type_token_ratio":     analytics.TypeTokenRatio,
+						"character_count":      analytics.CharacterCount,
+						"avg_word_length":      analytics.AverageWordLength,
 					},
 				}
 			}
@@ -972,26 +1029,84 @@ func computeBasicAnalytics(text string) AnalyticsData {
 	clean := nonAlphaRegex.ReplaceAllString(text, " ")
 	words := strings.Fields(clean)
 	tokenCount := len(words)
-	uniqueTokens := make(map[string]struct{})
+	tokenFrequencies := make(map[string]int)
 	totalChars := 0
 	for _, w := range words {
-		uniqueTokens[strings.ToLower(w)] = struct{}{}
+		tokenFrequencies[strings.ToLower(w)]++
 		totalChars += len([]rune(w))
 	}
-	uniqueCount := len(uniqueTokens)
+
+	uniqueCount := len(tokenFrequencies)
+	hapaxCount := 0
+	for _, frequency := range tokenFrequencies {
+		if frequency == 1 {
+			hapaxCount++
+		}
+	}
 	ttr := 0.0
+	hapaxRatio := 0.0
 	avgLen := 0.0
 	if tokenCount > 0 {
 		ttr = float64(uniqueCount) / float64(tokenCount)
+		hapaxRatio = float64(hapaxCount) / float64(tokenCount)
 		avgLen = float64(totalChars) / float64(tokenCount)
 	}
 	return AnalyticsData{
-		TokenCount:        tokenCount,
-		UniqueTokenCount:  uniqueCount,
-		TypeTokenRatio:    ttr,
-		CharacterCount:    totalChars,
-		AverageWordLength: avgLen,
+		TokenCount:         tokenCount,
+		UniqueTokenCount:   uniqueCount,
+		HapaxLegomenaCount: hapaxCount,
+		HapaxLegomenaRatio: hapaxRatio,
+		TypeTokenRatio:     ttr,
+		CharacterCount:     totalChars,
+		AverageWordLength:  avgLen,
 	}
+}
+
+func extractTopNgrams(text string, size, limit int) []models.ThemeItem {
+	if limit <= 0 {
+		return nil
+	}
+	if limit > maxNgramLimit {
+		limit = maxNgramLimit
+	}
+
+	clean := strings.ToLower(nonAlphaRegex.ReplaceAllString(text, " "))
+	tokens := strings.Fields(clean)
+	if len(tokens) < size {
+		return nil
+	}
+
+	counts := make(map[string]int)
+	for i := 0; i <= len(tokens)-size; i++ {
+		counts[strings.Join(tokens[i:i+size], " ")]++
+	}
+
+	type ngramCount struct {
+		ngram string
+		count int
+	}
+
+	items := make([]ngramCount, 0, len(counts))
+	for ngram, count := range counts {
+		items = append(items, ngramCount{ngram: ngram, count: count})
+	}
+	for i := range items {
+		for j := i + 1; j < len(items); j++ {
+			if items[j].count > items[i].count ||
+				(items[j].count == items[i].count && items[j].ngram < items[i].ngram) {
+				items[i], items[j] = items[j], items[i]
+			}
+		}
+	}
+
+	if limit > len(items) {
+		limit = len(items)
+	}
+	result := make([]models.ThemeItem, 0, limit)
+	for _, item := range items[:limit] {
+		result = append(result, models.ThemeItem{Word: item.ngram, Count: item.count})
+	}
+	return result
 }
 
 func inferTranslationFromScope(scope string, defaultTrans string) string {

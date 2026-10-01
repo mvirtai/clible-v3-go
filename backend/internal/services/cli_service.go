@@ -121,6 +121,14 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 		v2ExecCtx.Lemmatizer = LemmatizeFI
 
 		if s.analyticService != nil {
+			toThemeItems := func(counts []WordCount) []models.ThemeItem {
+				items := make([]models.ThemeItem, 0, len(counts))
+				for _, count := range counts {
+					items = append(items, models.ThemeItem{Word: count.Word, Count: count.Count})
+				}
+				return items
+			}
+
 			v2ExecCtx.AnalyticsFinder = func(verses []models.Verse, text string, topN int) newdsl.AnalyticsData {
 				var targetVerses []models.Verse
 				if len(verses) > 0 {
@@ -130,17 +138,17 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 					targetVerses = append(targetVerses, models.Verse{Text: text})
 				}
 				res := s.analyticService.AnalyzeVerses(targetVerses, topN)
-				var topWords []models.ThemeItem
-				for _, tw := range res.TopWords {
-					topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
-				}
 				return newdsl.AnalyticsData{
-					TokenCount:        res.TokenCount,
-					UniqueTokenCount:  res.UniqueTokenCount,
-					TypeTokenRatio:    res.TypeTokenRatio,
-					CharacterCount:    res.CharacterCount,
-					AverageWordLength: res.AverageWordLength,
-					TopWords:          topWords,
+					TokenCount:         res.TokenCount,
+					UniqueTokenCount:   res.UniqueTokenCount,
+					HapaxLegomenaCount: res.HapaxLegomenaCount,
+					HapaxLegomenaRatio: res.HapaxLegomenaRatio,
+					TypeTokenRatio:     res.TypeTokenRatio,
+					CharacterCount:     res.CharacterCount,
+					AverageWordLength:  res.AverageWordLength,
+					TopWords:           toThemeItems(res.TopWords),
+					TopBigrams:         toThemeItems(res.TopBigrams),
+					TopTrigrams:        toThemeItems(res.TopTrigrams),
 				}
 			}
 
@@ -153,17 +161,17 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 					targetVerses = append(targetVerses, models.Verse{Text: text})
 				}
 				res := s.analyticService.AnalyzeVersesClustered(targetVerses, topN)
-				var topWords []models.ThemeItem
-				for _, tw := range res.TopWords {
-					topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
-				}
 				return newdsl.AnalyticsData{
-					TokenCount:        res.TokenCount,
-					UniqueTokenCount:  res.UniqueTokenCount,
-					TypeTokenRatio:    res.TypeTokenRatio,
-					CharacterCount:    res.CharacterCount,
-					AverageWordLength: res.AverageWordLength,
-					TopWords:          topWords,
+					TokenCount:         res.TokenCount,
+					UniqueTokenCount:   res.UniqueTokenCount,
+					HapaxLegomenaCount: res.HapaxLegomenaCount,
+					HapaxLegomenaRatio: res.HapaxLegomenaRatio,
+					TypeTokenRatio:     res.TypeTokenRatio,
+					CharacterCount:     res.CharacterCount,
+					AverageWordLength:  res.AverageWordLength,
+					TopWords:           toThemeItems(res.TopWords),
+					TopBigrams:         toThemeItems(res.TopBigrams),
+					TopTrigrams:        toThemeItems(res.TopTrigrams),
 				}
 			}
 		}
@@ -264,12 +272,14 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 				topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
 			}
 			return dsl.AnalyticsData{
-				TokenCount:        res.TokenCount,
-				UniqueTokenCount:  res.UniqueTokenCount,
-				TypeTokenRatio:    res.TypeTokenRatio,
-				CharacterCount:    res.CharacterCount,
-				AverageWordLength: res.AverageWordLength,
-				TopWords:          topWords,
+				TokenCount:         res.TokenCount,
+				UniqueTokenCount:   res.UniqueTokenCount,
+				HapaxLegomenaCount: res.HapaxLegomenaCount,
+				HapaxLegomenaRatio: res.HapaxLegomenaRatio,
+				TypeTokenRatio:     res.TypeTokenRatio,
+				CharacterCount:     res.CharacterCount,
+				AverageWordLength:  res.AverageWordLength,
+				TopWords:           topWords,
 			}
 		}
 
@@ -287,12 +297,14 @@ func (s *CLIService) ExecuteDSLWithResolver(ctx context.Context, input string, d
 				topWords = append(topWords, models.ThemeItem{Word: tw.Word, Count: tw.Count})
 			}
 			return dsl.AnalyticsData{
-				TokenCount:        res.TokenCount,
-				UniqueTokenCount:  res.UniqueTokenCount,
-				TypeTokenRatio:    res.TypeTokenRatio,
-				CharacterCount:    res.CharacterCount,
-				AverageWordLength: res.AverageWordLength,
-				TopWords:          topWords,
+				TokenCount:         res.TokenCount,
+				UniqueTokenCount:   res.UniqueTokenCount,
+				HapaxLegomenaCount: res.HapaxLegomenaCount,
+				HapaxLegomenaRatio: res.HapaxLegomenaRatio,
+				TypeTokenRatio:     res.TypeTokenRatio,
+				CharacterCount:     res.CharacterCount,
+				AverageWordLength:  res.AverageWordLength,
+				TopWords:           topWords,
 			}
 		}
 	}

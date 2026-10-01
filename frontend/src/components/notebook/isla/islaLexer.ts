@@ -249,6 +249,7 @@ export function tokenizeISLALine(line: string): ISLAToken[] {
         lower === 'limit' ||
         lower === 'top' ||
         lower === 'words' ||
+        lower === 'ngrams' ||
         lower === 'stats' ||
         lower === 'ttr' ||
         lower === 'verses'

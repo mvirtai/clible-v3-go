@@ -147,6 +147,8 @@ describe('formatResultToMarkdown', () => {
     const data: CLIResultData = {
       type_token_ratio: 0.654,
       unique_tokens: 65,
+      hapax_legomena_count: 30,
+      hapax_legomena_ratio: 0.3,
       token_count: 100,
       avg_word_length: 5.2,
       character_count: 520,
@@ -155,6 +157,7 @@ describe('formatResultToMarkdown', () => {
     expect(result).toContain('### Tekstitilastot');
     expect(result).toContain('- **Sanaston rikkaus (TTR)**: 65.4 %');
     expect(result).toContain('- **Uniikkeja sanoja**: 65');
+    expect(result).toContain('- **Kertasanat (hapaksit)**: 30 (30.0 % kaikista analysoiduista sanoista)');
     expect(result).toContain('- **Sanoja yhteensä**: 100');
     expect(result).toContain('- **Sanan keskipituus**: 5.2');
     expect(result).toContain('- **Merkkejä**: 520');

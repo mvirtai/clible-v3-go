@@ -8,6 +8,7 @@ import {
   Sparkles,
   Cloud,
   Save,
+  Type,
   X,
 } from "lucide-react";
 import { useSmartClearInput } from "../../utils/useSmartClearInput";
@@ -23,6 +24,11 @@ import {
 import { apiService } from "../../services/api";
 import { WordCloud } from "./WordCloud";
 import type { TextStats } from "../../types/bible";
+import {
+  getFrequencyChartHeight,
+  selectFrequencyData,
+  type FrequencyLevel,
+} from "./frequencyData";
 import { resolveBookId } from "../../utils/bookNames";
 import ReactMarkdown from "react-markdown";
 import { useLanguage } from "../../context/LanguageContext";
@@ -83,7 +89,8 @@ export const AnalyticsView = ({
   const [stats, setStats] = useState<TextStats | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [chartType, setChartType] = useState<"bar" | "cloud">("bar");
+  const [frequencyLevel, setFrequencyLevel] =
+    useState<FrequencyLevel>("words");
 
   // AI states
   const [toneResult, setToneResult] = useState<AiTextResponse | null>(null);
@@ -278,6 +285,14 @@ export const AnalyticsView = ({
   };
 
   const smartClear = useSmartClearInput(reference, setReference);
+  const frequencyData = stats
+    ? selectFrequencyData(stats, frequencyLevel)
+    : [];
+  const frequencyLabels: Record<FrequencyLevel, string> = {
+    words: strings.frequencyWordsLabel,
+    bigrams: strings.frequencyBigramsLabel,
+    trigrams: strings.frequencyTrigramsLabel,
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -458,7 +473,7 @@ export const AnalyticsView = ({
       {stats && (
         <>
           {/* Key Metrics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
               {
                 label: strings.statTotalTokens,
@@ -480,100 +495,149 @@ export const AnalyticsView = ({
                 value: stats.avgWordLength.toFixed(1),
                 icon: BarChart3,
               },
+              {
+                label: strings.characterCountLabel,
+                value: stats.characterCount,
+                icon: Type,
+              },
+              ...(stats.hapaxLegomenaCount !== undefined &&
+              stats.hapaxLegomenaRatio !== undefined
+                ? [{
+                    label: strings.hapaxLegomenaLabel,
+                    value: stats.hapaxLegomenaCount,
+                    detail: `${(stats.hapaxLegomenaRatio * 100).toFixed(1)}% ${strings.hapaxLegomenaShareLabel}`,
+                    icon: Hash,
+                  }]
+                : []),
             ].map((card, i) => (
               <div
                 key={i}
-                className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm"
+                className="min-w-0 bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm"
               >
                 <div className="flex items-center gap-2 text-[var(--muted)] mb-2">
                   <card.icon size={15} />
-                  <span className="text-[10px] uppercase tracking-wider font-semibold">
+                  <span className="min-w-0 break-words text-[10px] uppercase tracking-wider font-semibold">
                     {card.label}
                   </span>
                 </div>
                 <div className="text-2xl font-mono font-bold text-[var(--text)]">
                   {card.value}
                 </div>
+                {'detail' in card && card.detail && (
+                  <div className="mt-1 break-words text-xs text-[var(--muted)]">{card.detail}</div>
+                )}
               </div>
             ))}
           </div>
 
           {/* Visualizations and AI Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             {/* Word Frequency Card */}
-            <div className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4 md:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
-                  <BarChart3 size={16} /> {strings.wordFrequencyTitle}
+                  <BarChart3 size={16} /> {frequencyLabels[frequencyLevel]}
                 </h3>
-                <div className="flex gap-1 bg-[var(--surface-2)] p-0.5 rounded-lg border border-[var(--border-soft)]">
-                  <button
-                    type="button"
-                    onClick={() => setChartType("bar")}
-                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "bar" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
-                    title={strings.chartBarTitle}
+                <div className="flex items-center gap-2">
+                  <div
+                    className="flex gap-1 bg-[var(--surface-2)] p-0.5 rounded-lg border border-[var(--border-soft)]"
+                    role="group"
+                    aria-label={strings.wordFrequencyTitle}
                   >
-                    <BarChart3 size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setChartType("cloud")}
-                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${chartType === "cloud" ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
-                    title={strings.chartCloudTitle}
-                  >
-                    <Cloud size={14} />
-                  </button>
+                    {(
+                      [
+                        ["words", strings.frequencyWordsLabel],
+                        ["bigrams", strings.frequencyBigramsLabel],
+                        ["trigrams", strings.frequencyTrigramsLabel],
+                      ] as const
+                    ).map(([level, label]) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => setFrequencyLevel(level)}
+                        aria-pressed={frequencyLevel === level}
+                        className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-colors cursor-pointer ${frequencyLevel === level ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="h-64 min-h-[16rem] w-full flex items-center justify-center overflow-hidden">
-                {chartType === "bar" ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={stats.topWords}
-                      layout="vertical"
-                      margin={{ left: 10, right: 10 }}
-                    >
-                      <XAxis type="number" hide />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        width={80}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: "currentColor" }}
-                        className="text-[var(--muted)]"
-                        interval={0}
-                      />
-                      <Tooltip
-                        cursor={{ fill: "var(--surface-2)" }}
-                        contentStyle={{
-                          borderRadius: "12px",
-                          border: "1px solid var(--border)",
-                          background: "var(--surface)",
-                        }}
-                        itemStyle={{ color: "var(--text)" }}
-                        labelStyle={{ color: "var(--text-2)" }}
-                      />
-                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        {stats.topWords.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill="var(--accent)"
-                            fillOpacity={1 - i * 0.08}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+              <div
+                className="w-full flex items-center justify-center overflow-hidden"
+                style={{ height: `${getFrequencyChartHeight(frequencyData.length)}px` }}
+              >
+                {frequencyData.length === 0 ? (
+                  <p className="text-sm text-[var(--muted)]">{strings.noResults}</p>
                 ) : (
+                  <div className="h-full w-full" aria-label={frequencyLabels[frequencyLevel]}>
+                    <div className="h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={frequencyData}
+                          layout="vertical"
+                          margin={{ left: 4, right: 10 }}
+                        >
+                          <XAxis type="number" hide />
+                          <YAxis
+                            dataKey="name"
+                            type="category"
+                            width={180}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 11, fill: "currentColor" }}
+                            tickFormatter={(value: string) =>
+                              value.length > 28
+                                ? `${value.slice(0, 27)}…`
+                                : value
+                            }
+                            className="text-[var(--muted)]"
+                            interval={0}
+                          />
+                          <Tooltip
+                            cursor={{ fill: "var(--surface-2)" }}
+                            contentStyle={{
+                              borderRadius: "12px",
+                              border: "1px solid var(--border)",
+                              background: "var(--surface)",
+                            }}
+                            itemStyle={{ color: "var(--text)" }}
+                            labelStyle={{ color: "var(--text-2)" }}
+                          />
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                            {frequencyData.map((_, i) => (
+                              <Cell
+                                key={i}
+                                fill="var(--accent)"
+                                fillOpacity={1 - i * 0.08}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
+                <Cloud size={16} aria-hidden="true" /> {strings.topWordsTitle}
+              </h3>
+              <div className="min-h-[21.25rem] flex items-center justify-center">
+                {stats.topWords.length > 0 ? (
                   <WordCloud words={stats.topWords} />
+                ) : (
+                  <p className="text-sm text-[var(--muted)]">{strings.noResults}</p>
                 )}
               </div>
             </div>
 
             {/* AI Tone Analysis Live Panel */}
-            <div className="bg-[var(--surface-2)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left">
+            <div className="bg-[var(--surface-2)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left md:col-span-3">
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
                   <Sparkles size={16} className="text-[var(--accent)]" /> {strings.aiToneTitle}
@@ -670,4 +734,3 @@ export const AnalyticsView = ({
     </div>
   );
 };
-

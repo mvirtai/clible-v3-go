@@ -50,6 +50,8 @@ export interface WordFrequency {
 export interface TextStats {
     tokenCount: number;
     uniqueTokenCount: number;
+    hapaxLegomenaCount?: number;
+    hapaxLegomenaRatio?: number;
     typeTokenRatio: number;
     characterCount: number;
     avgWordLength: number;

@@ -426,6 +426,18 @@ export const ISLA_METHOD_SUGGESTIONS: ISLASuggestion[] = [
     kind: 'function',
   },
   {
+    label: 'ngrams(...)',
+    insertText: 'ngrams(2, 10)',
+    cursorOffset: 8,
+    detail: 'N-grammit / N-gram frequencies',
+    documentation: {
+      fi: 'Laskee peräkkäiset sanaparit tai -kolmikot ja niiden frekvenssit. Ensimmäinen argumentti on 2 (bigrammit) tai 3 (trigrammit); toinen on tulosten määrä (oletus 10). Valitse koko aloitusarvosta tai kirjoita .ngrams(2, 10) / .ngrams(3, 10).',
+      en: 'Counts consecutive word pairs or triples. Use 2 for bigrams or 3 for trigrams; the second argument is the result limit (default 10). The completion starts with a valid example: .ngrams(2, 10) / .ngrams(3, 10).',
+    },
+    example: '@(Joh 1:1-18).ngrams(2, 10)',
+    kind: 'function',
+  },
+  {
     label: 'stats()',
     insertText: 'stats()',
     detail: 'Tekstitilastot / Text statistics & TTR',
@@ -434,6 +446,39 @@ export const ISLA_METHOD_SUGGESTIONS: ISLASuggestion[] = [
       en: 'Calculates lexical diversity (Type-Token Ratio TTR), unique word counts, and average length.',
     },
     example: '@(Room 8:1-39).stats()',
+    kind: 'function',
+  },
+  {
+    label: 'lemma()',
+    insertText: 'lemma()',
+    detail: 'Lemmaklusterointi / Lemma clustering',
+    documentation: {
+      fi: 'Yhdistää suomenkieliset taivutusmuodot perusmuotoihin seuraavaa top()- tai stats()-analyysiä varten.',
+      en: 'Groups Finnish inflected forms into lemmas for the following top() or stats() analysis.',
+    },
+    example: '@(Room 8:1-39).lemma().top(10)',
+    kind: 'function',
+  },
+  {
+    label: 'cluster()',
+    insertText: 'cluster()',
+    detail: 'Lemmaklusterointi / Lemma clustering',
+    documentation: {
+      fi: 'Alias komennolle lemma().',
+      en: 'Alias for lemma().',
+    },
+    example: '@(Room 8:1-39).cluster().stats()',
+    kind: 'function',
+  },
+  {
+    label: 'categorize()',
+    insertText: 'categorize()',
+    detail: 'Lemmaklusterointi / Lemma clustering',
+    documentation: {
+      fi: 'Alias komennolle lemma(). Käytä categorize(false) poistaaksesi klusteroinnin.',
+      en: 'Alias for lemma(). Use categorize(false) to disable clustering.',
+    },
+    example: '@(Room 8:1-39).categorize().top(10)',
     kind: 'function',
   },
   {
@@ -535,6 +580,62 @@ export function getISLASuggestions(
 ): ISLASuggestion[] {
   const textBeforeCursor = lineText.slice(0, cursorOffset);
   const trimmed = textBeforeCursor.trimStart();
+
+  // N-gram size and result-limit completions.
+  const ngramsCallMatch = textBeforeCursor.match(/ngrams\(\s*([^)]*)$/i);
+  if (ngramsCallMatch) {
+    const argsText = ngramsCallMatch[1];
+    const commaIndex = argsText.indexOf(',');
+    if (commaIndex === -1) {
+      const sizePrefix = argsText.trim();
+      if (!/^\d*$/.test(sizePrefix)) return [];
+
+      return ([2, 3] as const)
+        .filter((size) => !sizePrefix || String(size).startsWith(sizePrefix))
+        .map((size) => ({
+          label: size === 2 ? '2 — Bigrammit (bigrams)' : '3 — Trigrammit (trigrams)',
+          insertText: `${size}, 10)`,
+          detail: size === 2 ? 'Peräkkäiset sanaparit' : 'Peräkkäiset sanakolmikot',
+          documentation: {
+            fi: `${size === 2 ? 'Bigrammit ovat kaksi' : 'Trigrammit ovat kolme'} peräkkäistä sanaa. Tulosten oletusmäärä on 10; voit muuttaa sitä pilkun jälkeen.`,
+            en: `${size === 2 ? 'Bigrams contain two' : 'Trigrams contain three'} consecutive words. The default result limit is 10; you can change it after the comma.`,
+          },
+          example: `@(Joh 1:1-18).ngrams(${size}, 10)`,
+          kind: 'function' as const,
+        }));
+    }
+
+    if (argsText.indexOf(',', commaIndex + 1) !== -1) return [];
+    const limitPrefix = argsText.slice(commaIndex + 1).trim();
+    if (!/^\d*$/.test(limitPrefix)) return [];
+
+    const commonLimits = [5, 10, 15, 20, 25, 50, 100];
+    const matchingLimits = commonLimits.filter((limit) =>
+      !limitPrefix || String(limit).startsWith(limitPrefix)
+    );
+    const parsedLimit = Number(limitPrefix);
+    const customLimit =
+      limitPrefix &&
+      Number.isSafeInteger(parsedLimit) &&
+      parsedLimit > 0 &&
+      parsedLimit <= 1000 &&
+      !commonLimits.includes(parsedLimit)
+        ? parsedLimit
+        : undefined;
+    if (customLimit !== undefined) matchingLimits.unshift(customLimit);
+
+    return matchingLimits.map((limit) => ({
+      label: `${limit}${limit === customLimit ? ' (käytä tätä / use this)' : ''}`,
+      insertText: `${limit})`,
+      detail: 'Tulosten enimmäismäärä / Maximum results',
+      documentation: {
+        fi: `Näytä enintään ${limit} yleisintä n-grammia. Raja-arvon on oltava positiivinen kokonaisluku.`,
+        en: `Show up to ${limit} most frequent n-grams. The limit must be a positive integer.`,
+      },
+      example: `@(Joh 1:1-18).ngrams(2, ${limit})`,
+      kind: 'function' as const,
+    }));
+  }
 
   // 1. Primary command position & line-start triggers (before method '.' or pipeline '=>')
   const isTypingScopeOrArg = /["']|@[A-Za-z0-9äöåÄÖÅ]/.test(textBeforeCursor);
@@ -1076,6 +1177,22 @@ export function applyISLASuggestion(
     return text;
   };
 
+  // N-gram size and limit arguments
+  const ngramsMatch = textBeforeCursor.match(/ngrams\(\s*([^)]*)$/i);
+  if (ngramsMatch) {
+    const argsText = ngramsMatch[1];
+    const commaIndex = argsText.indexOf(',');
+    const prefix = commaIndex === -1
+      ? argsText.trim()
+      : argsText.slice(commaIndex + 1).trim();
+    const prefixStart = cursorOffset - prefix.length;
+    const insert = sanitizeInsertText(suggestion.insertText.trim());
+    return {
+      newCode: currentCode.slice(0, prefixStart) + insert + cleanedAfterClosingParen,
+      newCursorOffset: prefixStart + insert.length,
+    };
+  }
+
   // 2. Inside count(...)
   const countMatch = textBeforeCursor.match(/count\(\s*["']?([A-Za-z0-9äöåÄÖÅ_]*)$/i);
   if (countMatch) {
@@ -1142,9 +1259,10 @@ export function applyISLASuggestion(
   if (dotMatch) {
     const prefix = dotMatch[1];
     const prefixStart = cursorOffset - prefix.length;
+    const insert = suggestion.insertText;
     return {
-      newCode: currentCode.slice(0, prefixStart) + suggestion.insertText + textAfterCursor,
-      newCursorOffset: prefixStart + suggestion.insertText.length,
+      newCode: currentCode.slice(0, prefixStart) + insert + textAfterCursor,
+      newCursorOffset: prefixStart + (suggestion.cursorOffset ?? insert.length),
     };
   }
 

@@ -121,7 +121,7 @@ function ISLAContent({
         {result.type === 'count' && (
           <CellCountResult data={result.data as CountResultData} />
         )}
-        {(result.type === 'words' || result.type === 'top_words') && (
+        {(result.type === 'words' || result.type === 'top_words' || result.type === 'ngrams') && (
           <CellWordFreqResult data={result.data as WordFreqResultData} />
         )}
         {result.type === 'stats' && (
@@ -164,4 +164,3 @@ export function ISLABlock({ code, translation, contextText = '', onOutputRoute }
     </Suspense>
   );
 }
-

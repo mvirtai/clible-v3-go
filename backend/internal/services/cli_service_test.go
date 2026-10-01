@@ -569,6 +569,12 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 		if ttr, ok := res.Data["type_token_ratio"].(float64); !ok || ttr <= 0 {
 			t.Errorf("expected positive type_token_ratio, got %v", res.Data["type_token_ratio"])
 		}
+		if _, ok := res.Data["hapax_legomena_count"].(int); !ok {
+			t.Errorf("expected hapax_legomena_count in stats payload, got %T", res.Data["hapax_legomena_count"])
+		}
+		if ratio, ok := res.Data["hapax_legomena_ratio"].(float64); !ok || ratio < 0 || ratio > 1 {
+			t.Errorf("expected hapax_legomena_ratio between 0 and 1, got %v", res.Data["hapax_legomena_ratio"])
+		}
 	})
 
 	t.Run("execute unique_words count @JHN 3:16 => count(unique_words)", func(t *testing.T) {
@@ -609,6 +615,24 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 		}
 		if res.Data["count"] != 6 {
 			t.Errorf("expected 6 words, got %v", res.Data["count"])
+		}
+	})
+
+	t.Run("execute ISLA v2 ngrams with leading bang", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(
+			ctx,
+			"! ^.ngrams(2, 2) =>",
+			"web",
+			"Jumalan armo kantaa. Jumalan armo riittää.",
+		)
+		if err != nil {
+			t.Fatalf("ExecuteDSL v2 ngrams failed: %v", err)
+		}
+		if res.Type != "words" {
+			t.Fatalf("expected type 'words', got %s", res.Type)
+		}
+		if res.Data["ngram_size"] != 2 {
+			t.Errorf("expected ngram_size 2, got %v", res.Data["ngram_size"])
 		}
 	})
 
@@ -736,6 +760,3 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 		}
 	})
 }
-
-
-

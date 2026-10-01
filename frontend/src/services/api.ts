@@ -33,6 +33,8 @@ interface RawWordCount {
 interface RawTextStats {
   token_count: number;
   unique_token_count: number;
+  hapax_legomena_count: number;
+  hapax_legomena_ratio: number;
   type_token_ratio: number;
   character_count: number;
   avg_word_length: number;
@@ -98,6 +100,8 @@ interface UserResponse {
 const mapTextStats = (raw: RawTextStats): TextStats => ({
   tokenCount: raw.token_count,
   uniqueTokenCount: raw.unique_token_count,
+  hapaxLegomenaCount: raw.hapax_legomena_count,
+  hapaxLegomenaRatio: raw.hapax_legomena_ratio,
   typeTokenRatio: raw.type_token_ratio,
   characterCount: raw.character_count,
   avgWordLength: raw.avg_word_length,
