@@ -36,6 +36,11 @@ func main() {
 	slog.SetDefault(logger)
 	bootStart := time.Now()
 
+	if err := config.ValidateProductionConfig(cfg); err != nil {
+		slog.Error("Critical startup failure: invalid production configuration", "error", err)
+		os.Exit(1)
+	}
+
 	dbConn, err := db.InitializeDB(cfg.DatabaseURL)
 	if err != nil {
 		slog.Error("Critical database boot initialization failed", "error", err)

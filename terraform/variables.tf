@@ -36,3 +36,20 @@ variable "jwt_secret" {
   sensitive   = true
   default     = "PLACEHOLDER_CHANGE_ME_IMMEDIATELY_MIN_32_CHARS"
 }
+
+variable "app_base_url" {
+  description = "Public production base URL used in email verification links"
+  type        = string
+}
+
+variable "smtp_from" {
+  description = "Verified sender address used for transactional email"
+  type        = string
+  default     = "Clible <noreply@mail.clible.fi>"
+}
+
+variable "resend_api_key" {
+  description = "Resend API key used to send transactional email"
+  type        = string
+  sensitive   = true
+}

@@ -132,6 +132,29 @@ resource "google_secret_manager_secret_iam_member" "clible_sa_jwt_access" {
   member    = "serviceAccount:${google_service_account.clible_sa.email}"
 }
 
+# --- 5D. Secret Manager Resend API key ---
+
+resource "google_secret_manager_secret" "resend_api_key" {
+  secret_id = "resend-api-key"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.secretmanager]
+}
+
+resource "google_secret_manager_secret_version" "resend_api_key_initial" {
+  secret      = google_secret_manager_secret.resend_api_key.id
+  secret_data = var.resend_api_key
+}
+
+resource "google_secret_manager_secret_iam_member" "clible_sa_resend_access" {
+  secret_id = google_secret_manager_secret.resend_api_key.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.clible_sa.email}"
+}
+
 # --- 6. Cloud Run v2 -palvelu ---
 
 resource "google_cloud_run_v2_service" "clible_v3" {
@@ -142,8 +165,8 @@ resource "google_cloud_run_v2_service" "clible_v3" {
     service_account = google_service_account.clible_sa.email
 
     scaling {
-      min_instance_count = 0  # Scale to zero when idle — ei kuluja ilman liikennettä
-      max_instance_count = 2  # Pieni dev-projekti — riittää yhdelle devaajalle, maksimi-riski pienempi
+      min_instance_count = 0 # Scale to zero when idle — ei kuluja ilman liikennettä
+      max_instance_count = 2 # Pieni dev-projekti — riittää yhdelle devaajalle, maksimi-riski pienempi
     }
 
     containers {
@@ -154,12 +177,27 @@ resource "google_cloud_run_v2_service" "clible_v3" {
           cpu    = "1"
           memory = "512Mi"
         }
-        cpu_idle = true  # CPU laskutetaan vain pyyntöjen käsittelyn aikana, ei idle-ajalta
+        cpu_idle = true # CPU laskutetaan vain pyyntöjen käsittelyn aikana, ei idle-ajalta
       }
 
       env {
         name  = "FRONTEND_DIR"
         value = "/app/frontend/dist"
+      }
+
+      env {
+        name  = "ENV"
+        value = "production"
+      }
+
+      env {
+        name  = "APP_BASE_URL"
+        value = var.app_base_url
+      }
+
+      env {
+        name  = "SMTP_FROM"
+        value = var.smtp_from
       }
 
       # Gemini API-avain luetaan Secret Managerista
@@ -194,6 +232,17 @@ resource "google_cloud_run_v2_service" "clible_v3" {
           }
         }
       }
+
+      # Resend API key luetaan Secret Managerista
+      env {
+        name = "RESEND_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.resend_api_key.secret_id
+            version = "latest"
+          }
+        }
+      }
     }
   }
 
@@ -207,7 +256,8 @@ resource "google_cloud_run_v2_service" "clible_v3" {
     google_artifact_registry_repository.clible_v3,
     google_secret_manager_secret_iam_member.clible_sa_db_access,
     google_secret_manager_secret_iam_member.clible_sa_secret_access,
-    google_secret_manager_secret_iam_member.clible_sa_jwt_access
+    google_secret_manager_secret_iam_member.clible_sa_jwt_access,
+    google_secret_manager_secret_iam_member.clible_sa_resend_access
   ]
 }
 
