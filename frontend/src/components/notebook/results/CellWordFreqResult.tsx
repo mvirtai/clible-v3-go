@@ -69,6 +69,7 @@ export function CellWordFreqResult({ data }: CellWordFreqResultProps) {
           return (
             <div
               key={item.word}
+              title={item.word}
               role="listitem"
               className="flex items-center gap-3 text-xs group hover:bg-amber-500/10 p-1.5 rounded-lg transition-colors"
             >

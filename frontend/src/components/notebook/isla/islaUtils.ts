@@ -379,10 +379,10 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     keyword: 'ngrams',
     label: { fi: 'N-grammit', en: 'N-gram Frequencies' },
     description: {
-      fi: 'Laskee tekstin yleisimmät bigrammit tai trigrammit. Ensimmäinen argumentti on koko (2 tai 3), toinen tulosten määrä.',
-      en: 'Calculates the most frequent bigrams or trigrams. The first argument is size (2 or 3), the second is result count.',
+      fi: 'Laskee peräkkäisten sanaparien (bigrammien) tai sanakolmikoiden (trigrammien) frekvenssit. Käytä kokoa 2 tai 3; toinen argumentti on tulosten enimmäismäärä (oletus 10). Esim. ngrams(2, 10) tai ngrams(3, 5).',
+      en: 'Counts frequencies of consecutive word pairs (bigrams) or triples (trigrams). Use size 2 or 3; the optional second argument sets the result limit (default 10). E.g. ngrams(2, 10) or ngrams(3, 5).',
     },
-    syntax: 'ngrams(2|3, N?)',
+    syntax: 'ngrams(2|3, LIMIT?)',
     example: '! @(Joh 1:1-18).ngrams(2, 10)',
     hasArgs: true,
   },
