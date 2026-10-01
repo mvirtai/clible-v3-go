@@ -14,6 +14,7 @@ This release addresses targeted usability and mobile ergonomics refinements acro
 ### 1. Frontend Notebook Canvas View (`frontend/src/components/notebook/NotebookCanvasView.tsx`)
 
 - Enclosed the 24-column CSS grid (`grid-cols-24 auto-rows-[24px]`) inside a responsive scrolling viewport (`flex-1 overflow-y-auto p-4 sm:p-6 min-h-0`).
+- Constrained the canvas root container with explicit bounded viewport height (`max-h-[calc(100dvh-12rem)] min-h-[480px] rounded-2xl border border-[var(--border-soft)]`) to ensure the inner `overflow-y-auto` scrollport activates reliably without indefinite document-flow expansion.
 - Protected mobile touch ergonomics so cards and empty states render fluidly and allow full thumb-scrolling.
 - Added comprehensive unit test suite in `frontend/src/components/notebook/NotebookCanvasView.test.tsx`.
 
@@ -22,6 +23,7 @@ This release addresses targeted usability and mobile ergonomics refinements acro
 - Updated hymn recommendation anchor links to use `encodeURIComponent(hymn.number)` in fallback URLs (`https://virsikirja.fi/${encodeURIComponent(hymn.number)}`).
 - Provided accessible `title` and `aria-label` attributes (`${hymn.number} ${hymn.name} – ${strings.liturgicalOpenHymnExternal}`).
 - Replaced hardcoded count labels (`X virttä`, `Y rukousta`) with localized formatters `strings.liturgicalHymnsCount(count)` and `strings.liturgicalPrayersCount(count)`.
+- Added unit tests in `frontend/src/views/LiturgicalView.test.tsx` verifying singular and plural counts across Finnish and English.
 
 ### 3. Internationalization & Pluralization (`frontend/src/utils/i18n.ts`)
 
@@ -39,10 +41,10 @@ This release addresses targeted usability and mobile ergonomics refinements acro
 | `backend/internal/version/version.go` | Bump backend version constant to 3.11.3 |
 | `frontend/package.json` | Bump frontend package version to 3.11.3 |
 | `frontend/src/utils/version.ts` | Bump frontend version constant to 3.11.3 |
-| `frontend/src/components/notebook/NotebookCanvasView.tsx` | Add responsive scrollable container wrapper around grid matrix |
+| `frontend/src/components/notebook/NotebookCanvasView.tsx` | Add responsive scrollable container wrapper around grid matrix and bounded height constraint |
 | `frontend/src/components/notebook/NotebookCanvasView.test.tsx` | New unit tests for canvas scrolling and empty matrix states |
 | `frontend/src/views/LiturgicalView.tsx` | Add hymn link encoding, accessible attributes, and localized counts |
-| `frontend/src/views/LiturgicalView.test.tsx` | Unit test for hymn links, external attributes, and localized counters |
+| `frontend/src/views/LiturgicalView.test.tsx` | Unit tests for hymn links, external attributes, and singular/plural counters in FI/EN |
 | `frontend/src/utils/i18n.ts` | Add pluralization formatters and labels in FI and EN |
 
 ---
@@ -69,7 +71,7 @@ All local quality checks passed flawlessly!
 
 ```text
 Test Files  49 passed (49)
-     Tests  376 passed (376)
-  Duration  17.96s
+     Tests  378 passed (378)
+  Duration  16.89s
 All frontend type checks, ESLint rules, and Vitest test suites passed with 0 errors.
 ```
