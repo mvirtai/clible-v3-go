@@ -56,7 +56,7 @@ export function isISLALine(line: string): boolean {
     trimmed.startsWith('^') ||
     trimmed.startsWith('?') ||
     /^\([^)]+\.\.[^)]+\)/.test(trimmed) ||
-    /^(?:search|range|read|at|use|vs|compare|count|themes|words|ngrams|stats|ttr)\s*\(/i.test(trimmed) ||
+    /^(?:search|range|read|at|use|vs|compare|count|themes|words|stats|ttr)\s*\(/i.test(trimmed) ||
     /^#[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+|\s*=>|\s*>|\s*>>)/.test(trimmed)
   ) {
     return true;
