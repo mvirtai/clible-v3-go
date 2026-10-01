@@ -42,6 +42,12 @@ variable "app_base_url" {
   type        = string
 }
 
+variable "smtp_from" {
+  description = "Verified sender address used for transactional email"
+  type        = string
+  default     = "Clible <noreply@mail.clible.fi>"
+}
+
 variable "resend_api_key" {
   description = "Resend API key used to send transactional email"
   type        = string

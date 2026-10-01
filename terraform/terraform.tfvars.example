@@ -5,5 +5,8 @@ gemini-api-key = "[GCP_API_KEY]"
 # Required for production deployments: use the canonical public HTTPS URL.
 app_base_url = "https://clible.fi"
 
+# Verified Resend sender address. Change only to an address on a verified domain.
+smtp_from = "Clible <noreply@mail.clible.fi>"
+
 # Required for production email verification. Keep the real key out of this file.
 resend_api_key = "re_YOUR_RESEND_API_KEY"

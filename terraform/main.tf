@@ -195,6 +195,11 @@ resource "google_cloud_run_v2_service" "clible_v3" {
         value = var.app_base_url
       }
 
+      env {
+        name  = "SMTP_FROM"
+        value = var.smtp_from
+      }
+
       # Gemini API-avain luetaan Secret Managerista
       env {
         name = "GEMINI_API_KEY"
