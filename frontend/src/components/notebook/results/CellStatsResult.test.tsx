@@ -35,7 +35,7 @@ describe('CellStatsResult', () => {
           <CellStatsResult
             data={{
               token_count: 250,
-              unique_tokens: 125,
+              unique_token_count: 125,
               type_token_ratio: 0.5,
               avg_word_length: 5.42,
               character_count: 1350,
@@ -54,6 +54,7 @@ describe('CellStatsResult', () => {
     expect(content).toContain('125');
     expect(content).toContain('250');
     expect(content).toContain('5.42');
+    expect(content).toContain('1350');
     expect(content).toContain('#valo');
     expect(content).toContain('#pimeys');
   });
@@ -67,7 +68,7 @@ describe('CellStatsResult', () => {
             data={{
               mode: 'ttr',
               token_count: 80,
-              unique_tokens: 60,
+              unique_token_count: 60,
               type_token_ratio: 0.75,
               top_words: [
                 { word: 'sana', count: 5 },

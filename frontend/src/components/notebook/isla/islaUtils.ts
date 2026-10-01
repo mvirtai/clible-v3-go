@@ -398,6 +398,39 @@ export const COMMAND_REGISTRY: readonly ISLACommandMeta[] = [
     hasArgs: false,
   },
   {
+    keyword: 'lemma',
+    label: { fi: 'Lemmaklusterointi', en: 'Lemma Clustering' },
+    description: {
+      fi: 'Yhdistää suomenkieliset taivutusmuodot perusmuotoihin seuraavaa top()- tai stats()-analyysiä varten.',
+      en: 'Groups Finnish inflected forms into lemmas for the following top() or stats() analysis.',
+    },
+    syntax: 'lemma()',
+    example: '! @(Room 8:1-39).lemma().top(10)',
+    hasArgs: false,
+  },
+  {
+    keyword: 'cluster',
+    label: { fi: 'Lemmaklusterointi (alias)', en: 'Lemma Clustering (alias)' },
+    description: {
+      fi: 'Alias komennolle lemma().',
+      en: 'Alias for lemma().',
+    },
+    syntax: 'cluster()',
+    example: '! @(Room 8:1-39).cluster().stats()',
+    hasArgs: false,
+  },
+  {
+    keyword: 'categorize',
+    label: { fi: 'Lemmaklusterointi (alias)', en: 'Lemma Clustering (alias)' },
+    description: {
+      fi: 'Alias komennolle lemma(). Käytä categorize(false) poistaaksesi klusteroinnin.',
+      en: 'Alias for lemma(). Use categorize(false) to disable clustering.',
+    },
+    syntax: 'categorize([true|false])',
+    example: '! @(Room 8:1-39).categorize().top(10)',
+    hasArgs: false,
+  },
+  {
     keyword: 'ttr',
     label: { fi: 'Sanaston rikkaus (TTR)', en: 'Type-Token Ratio (TTR)' },
     description: {
@@ -470,4 +503,3 @@ export function stripISLAFromText(text: string): string {
     .replace(/(?:^|\n)\s*---+[^\n]*/g, '')
     .trim();
 }
-

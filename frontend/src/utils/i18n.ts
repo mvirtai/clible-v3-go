@@ -297,6 +297,9 @@ export interface Messages {
   statTtr: string;
   statAvgWordLength: string;
   wordFrequencyTitle: string;
+  frequencyWordsLabel: string;
+  frequencyBigramsLabel: string;
+  frequencyTrigramsLabel: string;
   aiToneTitle: string;
   aiToneHint: string;
   analyticsFetchFailed: string;
@@ -886,6 +889,9 @@ export const strings: Record<UILanguage, Messages> = {
     statTtr: 'Type-Token Ratio (TTR %)',
     statAvgWordLength: 'Avg Word Length (Chars)',
     wordFrequencyTitle: 'Word Frequency',
+    frequencyWordsLabel: 'Words',
+    frequencyBigramsLabel: 'Bigrams',
+    frequencyTrigramsLabel: 'Trigrams',
     aiToneTitle: 'Tone & Style Analysis (Gemini)',
     aiToneHint: 'Analyze linguistic tone, themes, and theological nuance with AI.',
     analyticsFetchFailed: 'Failed to perform text analysis.',
@@ -1446,6 +1452,9 @@ export const strings: Record<UILanguage, Messages> = {
     statTtr: 'Tyypin suhde (TTR %)',
     statAvgWordLength: 'Keskipituus (Merkkiä/sana)',
     wordFrequencyTitle: 'Sanatiheys',
+    frequencyWordsLabel: 'Sanat',
+    frequencyBigramsLabel: 'Bigrammit',
+    frequencyTrigramsLabel: 'Trigrammit',
     aiToneTitle: 'Sävy- ja tyylianalyysi (Gemini)',
     aiToneHint: 'Analysoi tekstijakson kielellistä sävyä, teemoja ja teologista tyyliä tekoälyn avulla.',
     analyticsFetchFailed: 'Tekstianalyysin suorittaminen epäonnistui.',

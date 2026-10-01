@@ -437,6 +437,39 @@ export const ISLA_METHOD_SUGGESTIONS: ISLASuggestion[] = [
     kind: 'function',
   },
   {
+    label: 'lemma()',
+    insertText: 'lemma()',
+    detail: 'Lemmaklusterointi / Lemma clustering',
+    documentation: {
+      fi: 'Yhdistää suomenkieliset taivutusmuodot perusmuotoihin seuraavaa top()- tai stats()-analyysiä varten.',
+      en: 'Groups Finnish inflected forms into lemmas for the following top() or stats() analysis.',
+    },
+    example: '@(Room 8:1-39).lemma().top(10)',
+    kind: 'function',
+  },
+  {
+    label: 'cluster()',
+    insertText: 'cluster()',
+    detail: 'Lemmaklusterointi / Lemma clustering',
+    documentation: {
+      fi: 'Alias komennolle lemma().',
+      en: 'Alias for lemma().',
+    },
+    example: '@(Room 8:1-39).cluster().stats()',
+    kind: 'function',
+  },
+  {
+    label: 'categorize()',
+    insertText: 'categorize()',
+    detail: 'Lemmaklusterointi / Lemma clustering',
+    documentation: {
+      fi: 'Alias komennolle lemma(). Käytä categorize(false) poistaaksesi klusteroinnin.',
+      en: 'Alias for lemma(). Use categorize(false) to disable clustering.',
+    },
+    example: '@(Room 8:1-39).categorize().top(10)',
+    kind: 'function',
+  },
+  {
     label: 'themes(...)',
     insertText: 'themes(',
     detail: 'Teemat / Extracted themes',

@@ -139,6 +139,12 @@ func TestExecute_CellContextTopAndStats(t *testing.T) {
 	if resStats.Data["token_count"] != 9 {
 		t.Errorf("token_count = %v, want 9", resStats.Data["token_count"])
 	}
+	if _, ok := resStats.Data["unique_token_count"]; !ok {
+		t.Error("stats result is missing unique_token_count")
+	}
+	if _, ok := resStats.Data["character_count"]; !ok {
+		t.Error("stats result is missing character_count")
+	}
 }
 
 func TestExecute_Comparison(t *testing.T) {
@@ -478,4 +484,3 @@ func TestExecute_TopWithCategorizeAndLemma(t *testing.T) {
 		}
 	})
 }
-

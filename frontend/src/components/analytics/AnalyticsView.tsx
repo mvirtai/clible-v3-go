@@ -8,6 +8,7 @@ import {
   Sparkles,
   Cloud,
   Save,
+  Type,
   X,
 } from "lucide-react";
 import { useSmartClearInput } from "../../utils/useSmartClearInput";
@@ -23,6 +24,10 @@ import {
 import { apiService } from "../../services/api";
 import { WordCloud } from "./WordCloud";
 import type { TextStats } from "../../types/bible";
+import {
+  selectFrequencyData,
+  type FrequencyLevel,
+} from "./frequencyData";
 import { resolveBookId } from "../../utils/bookNames";
 import ReactMarkdown from "react-markdown";
 import { useLanguage } from "../../context/LanguageContext";
@@ -84,6 +89,8 @@ export const AnalyticsView = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [chartType, setChartType] = useState<"bar" | "cloud">("bar");
+  const [frequencyLevel, setFrequencyLevel] =
+    useState<FrequencyLevel>("words");
 
   // AI states
   const [toneResult, setToneResult] = useState<AiTextResponse | null>(null);
@@ -278,6 +285,14 @@ export const AnalyticsView = ({
   };
 
   const smartClear = useSmartClearInput(reference, setReference);
+  const frequencyData = stats
+    ? selectFrequencyData(stats, frequencyLevel)
+    : [];
+  const frequencyLabels: Record<FrequencyLevel, string> = {
+    words: strings.frequencyWordsLabel,
+    bigrams: strings.frequencyBigramsLabel,
+    trigrams: strings.frequencyTrigramsLabel,
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -480,6 +495,11 @@ export const AnalyticsView = ({
                 value: stats.avgWordLength.toFixed(1),
                 icon: BarChart3,
               },
+              {
+                label: strings.characterCountLabel,
+                value: stats.characterCount,
+                icon: Type,
+              },
             ].map((card, i) => (
               <div
                 key={i}
@@ -502,11 +522,34 @@ export const AnalyticsView = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Word Frequency Card */}
             <div className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
-                  <BarChart3 size={16} /> {strings.wordFrequencyTitle}
+                  <BarChart3 size={16} /> {frequencyLabels[frequencyLevel]}
                 </h3>
-                <div className="flex gap-1 bg-[var(--surface-2)] p-0.5 rounded-lg border border-[var(--border-soft)]">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="flex gap-1 bg-[var(--surface-2)] p-0.5 rounded-lg border border-[var(--border-soft)]"
+                    aria-label={strings.wordFrequencyTitle}
+                  >
+                    {(
+                      [
+                        ["words", strings.frequencyWordsLabel],
+                        ["bigrams", strings.frequencyBigramsLabel],
+                        ["trigrams", strings.frequencyTrigramsLabel],
+                      ] as const
+                    ).map(([level, label]) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => setFrequencyLevel(level)}
+                        aria-pressed={frequencyLevel === level}
+                        className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-colors cursor-pointer ${frequencyLevel === level ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-1 bg-[var(--surface-2)] p-0.5 rounded-lg border border-[var(--border-soft)]">
                   <button
                     type="button"
                     onClick={() => setChartType("bar")}
@@ -523,6 +566,7 @@ export const AnalyticsView = ({
                   >
                     <Cloud size={14} />
                   </button>
+                  </div>
                 </div>
               </div>
 
@@ -530,7 +574,7 @@ export const AnalyticsView = ({
                 {chartType === "bar" ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={stats.topWords}
+                      data={frequencyData}
                       layout="vertical"
                       margin={{ left: 10, right: 10 }}
                     >
@@ -556,7 +600,7 @@ export const AnalyticsView = ({
                         labelStyle={{ color: "var(--text-2)" }}
                       />
                       <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        {stats.topWords.map((_, i) => (
+                        {frequencyData.map((_, i) => (
                           <Cell
                             key={i}
                             fill="var(--accent)"
@@ -567,7 +611,7 @@ export const AnalyticsView = ({
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <WordCloud words={stats.topWords} />
+                  <WordCloud words={frequencyData} />
                 )}
               </div>
             </div>
@@ -670,4 +714,3 @@ export const AnalyticsView = ({
     </div>
   );
 };
-

@@ -275,6 +275,9 @@ describe('islaIntellisense', () => {
       expect(suggestions.some((s) => s.label === 'refs(...)')).toBe(true);
       expect(suggestions.some((s) => s.label === 'stats()')).toBe(true);
       expect(suggestions.some((s) => s.label === 'top(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'lemma()')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'cluster()')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'categorize()')).toBe(true);
       expect(suggestions.some((s) => s.label === 'count(...)')).toBe(true);
       // at and limit are only for search
       expect(suggestions.some((s) => s.label === 'at(...)')).toBe(false);
@@ -308,6 +311,10 @@ describe('islaIntellisense', () => {
       const statsSuggestions = getISLASuggestions('! @(Joh 3:16).st', 16);
       expect(statsSuggestions).toHaveLength(1);
       expect(statsSuggestions[0].label).toBe('stats()');
+
+      const lemmaSuggestions = getISLASuggestions('! @(Joh 3:16).le', 16);
+      expect(lemmaSuggestions).toHaveLength(1);
+      expect(lemmaSuggestions[0].label).toBe('lemma()');
     });
   });
 
@@ -526,5 +533,4 @@ describe('islaIntellisense', () => {
     });
   });
 });
-
 

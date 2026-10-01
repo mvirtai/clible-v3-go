@@ -2,7 +2,7 @@
 
 ## Overview & Business Context
 
-This draft planning PR defines how existing backend text analytics will become visible in the React analytics workspace and discoverable in ISLA. The implementation will expose n-gram frequencies and character counts, align the ISLA stats payload, and document Finnish lemma clustering commands.
+This PR makes existing backend text analytics visible in the React analytics workspace and discoverable in ISLA. It exposes n-gram frequencies and character counts, aligns the ISLA stats payload, and documents Finnish lemma clustering commands.
 
 ---
 
@@ -10,21 +10,30 @@ This draft planning PR defines how existing backend text analytics will become v
 
 ### 1. Analytics presentation
 
-- Render the existing word, bigram, and trigram frequency datasets in the analytics workspace.
-- Add character count to the statistical summaries.
+- Add a word, bigram, and trigram selector to the analytics workspace while reusing its existing chart and word-cloud renderers.
+- Add character count to the statistical summary cards.
+- Keep frequency-data selection as a pure derived helper with focused unit coverage.
 
 ### 2. ISLA analytics contract
 
-- Align the unique-token field name between the `new_dsl` executor and the stats result card.
-- Make `.lemma()`, `.cluster()`, and `.categorize()` discoverable in ISLA autocomplete and documentation.
+- Read the executor's canonical `unique_token_count` field in the ISLA stats result card and render character count.
+- Make `.lemma()`, `.cluster()`, and `.categorize()` discoverable in ISLA autocomplete and hover documentation.
+- Add executor coverage for the `unique_token_count` and `character_count` stats payload fields.
 
 ### 3. Scope boundary
 
-- No implementation code is included in this draft PR.
 - No database migration, API route, or dependency change is planned.
 
 ---
 
 ## Testing Strategy & Metrics
 
-Implementation validation will include targeted Go executor tests, frontend component and autocomplete tests, then `task backend:check`, `task frontend:check`, and `task check`. No automated checks apply to this planning-only commit.
+### Automated Backend Tests
+
+`task backend:check` passed. The backend unit suite completed successfully with 77.0% statement coverage.
+
+### Automated Frontend Tests
+
+`task frontend:check` passed: TypeScript and ESLint completed successfully, then Vitest completed with 50 test files and 380 tests passing.
+
+`task check` was not run because its backend and frontend constituent checks had already passed and duplicate execution was declined.
