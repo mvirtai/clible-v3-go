@@ -345,3 +345,56 @@ func TestVerseService_GuestMode_GlobalTranslation(t *testing.T) {
 		t.Fatal("expected error for non-existent translation, got nil")
 	}
 }
+
+func TestVerseService_CacheHitAndMiss(t *testing.T) {
+	dbConn, err := db.InitializeDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to initialize connection: %v", err)
+	}
+	defer func() { _ = dbConn.Close() }()
+
+	_, _ = dbConn.Exec(`INSERT INTO translations (id, name, language, format, is_global) VALUES ('web', 'World English Bible', 'en', 'text', TRUE)`)
+	_, _ = dbConn.Exec(`INSERT INTO books (id, name, testament, position, chapters) VALUES ('JHN', 'John', 'NT', 43, 21)`)
+
+	verseRepo := db.NewVerseRepository(dbConn)
+	translationRepo := db.NewTranslationRepository(dbConn)
+	svc := NewVerseService(verseRepo, translationRepo)
+
+	ctx := context.Background()
+	mockVerse := models.Verse{
+		ID:            "web:JHN:3:16",
+		TranslationID: "web",
+		BookID:        "JHN",
+		Chapter:       3,
+		Verse:         16,
+		Text:          "For God so loved the world...",
+	}
+	if err := verseRepo.BulkInsert(ctx, []models.Verse{mockVerse}); err != nil {
+		t.Fatalf("failed to seed test verses: %v", err)
+	}
+
+	// 1. Initial call (Cache miss -> populates cache)
+	firstResults, err := svc.GetVerses(ctx, "Joh 3:16", "web")
+	if err != nil {
+		t.Fatalf("first GetVerses failed: %v", err)
+	}
+	if len(firstResults) != 1 {
+		t.Fatalf("expected 1 verse, got %d", len(firstResults))
+	}
+
+	// 2. Delete verse directly from database to prove second call hits the cache
+	_, _ = dbConn.Exec(`DELETE FROM verses WHERE id = 'web:JHN:3:16'`)
+
+	// 3. Second call should return from cache with 0ms and match original verse
+	secondResults, err := svc.GetVerses(ctx, "Joh 3:16", "web")
+	if err != nil {
+		t.Fatalf("second GetVerses failed: %v", err)
+	}
+	if len(secondResults) != 1 {
+		t.Fatalf("expected 1 cached verse, got %d", len(secondResults))
+	}
+	if secondResults[0].Text != "For God so loved the world..." {
+		t.Errorf("expected cached text, got %q", secondResults[0].Text)
+	}
+}
+
