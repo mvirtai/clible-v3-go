@@ -26,24 +26,26 @@ type VerseSearcher interface {
 
 // AnalyticsData contains aggregated lexical and linguistic metrics.
 type AnalyticsData struct {
-	TokenCount        int                `json:"token_count"`
-	UniqueTokenCount  int                `json:"unique_token_count"`
-	TypeTokenRatio    float64            `json:"type_token_ratio"`
-	CharacterCount    int                `json:"character_count"`
-	AverageWordLength float64            `json:"avg_word_length"`
-	TopWords          []models.ThemeItem `json:"top_words"`
+	TokenCount         int                `json:"token_count"`
+	UniqueTokenCount   int                `json:"unique_token_count"`
+	HapaxLegomenaCount int                `json:"hapax_legomena_count"`
+	HapaxLegomenaRatio float64            `json:"hapax_legomena_ratio"`
+	TypeTokenRatio     float64            `json:"type_token_ratio"`
+	CharacterCount     int                `json:"character_count"`
+	AverageWordLength  float64            `json:"avg_word_length"`
+	TopWords           []models.ThemeItem `json:"top_words"`
 }
 
 // ExecutionContext is the runtime context for AST evaluation.
 type ExecutionContext struct {
-	Ctx             context.Context
-	DefaultTrans    string
-	ContextText     string
-	VerseFetcher    VerseFetcher
-	VerseSearcher   VerseSearcher
-	ThemeExtractor  func(text string, limit int) []models.ThemeItem
-	RefsFinder      func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
-	SuggestFinder   func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
+	Ctx                      context.Context
+	DefaultTrans             string
+	ContextText              string
+	VerseFetcher             VerseFetcher
+	VerseSearcher            VerseSearcher
+	ThemeExtractor           func(text string, limit int) []models.ThemeItem
+	RefsFinder               func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
+	SuggestFinder            func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
 	AnalyticsFinder          func(verses []models.Verse, text string, topN int) AnalyticsData
 	ClusteredAnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
 	Lemmatizer               func(word string) string
@@ -1247,9 +1249,19 @@ func defaultAnalyticsWithOptions(verses []models.Verse, text string, topN int, l
 	}
 
 	uniqueCount := len(freqMap)
+	hapaxCount := 0
+	for _, frequency := range freqMap {
+		if frequency == 1 {
+			hapaxCount++
+		}
+	}
 	ttr := 0.0
+	hapaxRatio := 0.0
 	if tokenCount > 0 {
 		ttr = float64(uniqueCount) / float64(tokenCount)
+	}
+	if cleanWordCount > 0 {
+		hapaxRatio = float64(hapaxCount) / float64(cleanWordCount)
 	}
 
 	avgWordLen := 0.0
@@ -1286,12 +1298,14 @@ func defaultAnalyticsWithOptions(verses []models.Verse, text string, topN int, l
 	}
 
 	return AnalyticsData{
-		TokenCount:        tokenCount,
-		UniqueTokenCount:  uniqueCount,
-		TypeTokenRatio:    ttr,
-		CharacterCount:    totalCharCount,
-		AverageWordLength: avgWordLen,
-		TopWords:          topWords,
+		TokenCount:         tokenCount,
+		UniqueTokenCount:   uniqueCount,
+		HapaxLegomenaCount: hapaxCount,
+		HapaxLegomenaRatio: hapaxRatio,
+		TypeTokenRatio:     ttr,
+		CharacterCount:     totalCharCount,
+		AverageWordLength:  avgWordLen,
+		TopWords:           topWords,
 	}
 }
 
@@ -1345,13 +1359,15 @@ func executeStatsPipe(ctx *ExecutionContext, left Node, mode string) (*models.CL
 	return &models.CLIResult{
 		Type: "stats",
 		Data: map[string]interface{}{
-			"mode":             mode,
-			"token_count":      data.TokenCount,
-			"unique_tokens":    data.UniqueTokenCount,
-			"type_token_ratio": data.TypeTokenRatio,
-			"character_count":  data.CharacterCount,
-			"avg_word_length":  data.AverageWordLength,
-			"top_words":        data.TopWords,
+			"mode":                 mode,
+			"token_count":          data.TokenCount,
+			"unique_tokens":        data.UniqueTokenCount,
+			"hapax_legomena_count": data.HapaxLegomenaCount,
+			"hapax_legomena_ratio": data.HapaxLegomenaRatio,
+			"type_token_ratio":     data.TypeTokenRatio,
+			"character_count":      data.CharacterCount,
+			"avg_word_length":      data.AverageWordLength,
+			"top_words":            data.TopWords,
 		},
 	}, nil
 }

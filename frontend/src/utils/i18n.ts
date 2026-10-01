@@ -244,6 +244,8 @@ export interface Messages {
   totalWordsLabel: string;
   avgWordLengthLabel: string;
   characterCountLabel: string;
+  hapaxLegomenaLabel: string;
+  hapaxLegomenaShareLabel: string;
   topWordsTitle: string;
   frequencyLabel: string;
   defaultTranslationLabel: string;
@@ -826,6 +828,8 @@ export const strings: Record<UILanguage, Messages> = {
     totalWordsLabel: 'Total words',
     avgWordLengthLabel: 'Avg. word length',
     characterCountLabel: 'Characters',
+    hapaxLegomenaLabel: 'Hapax legomena',
+    hapaxLegomenaShareLabel: 'share of analyzed words',
     topWordsTitle: 'Word Frequencies',
     frequencyLabel: 'occurrences',
     defaultTranslationLabel: 'Default translation',
@@ -1389,6 +1393,8 @@ export const strings: Record<UILanguage, Messages> = {
     totalWordsLabel: 'Sanoja yhteensä',
     avgWordLengthLabel: 'Sanan keskipituus',
     characterCountLabel: 'Merkkejä',
+    hapaxLegomenaLabel: 'Kertasanat (hapaksit)',
+    hapaxLegomenaShareLabel: 'osuus analysoiduista sanoista',
     topWordsTitle: 'Sanatiheydet',
     frequencyLabel: 'esiintymää',
     defaultTranslationLabel: 'Oletuskäännös',

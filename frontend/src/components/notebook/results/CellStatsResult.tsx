@@ -1,4 +1,4 @@
-import { Activity, BookOpen, Layers, Type, Sparkles } from 'lucide-react';
+import { Activity, BookOpen, Hash, Layers, Type, Sparkles } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
 import type { WordFrequencyItem } from './CellWordFreqResult';
 
@@ -6,6 +6,8 @@ export interface StatsResultData {
   mode?: string;
   token_count: number;
   unique_token_count: number;
+  hapax_legomena_count?: number;
+  hapax_legomena_ratio?: number;
   type_token_ratio: number;
   character_count?: number;
   avg_word_length?: number;
@@ -42,7 +44,7 @@ export function CellStatsResult({ data }: CellStatsResultProps) {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
         {/* Metric 1: TTR */}
         <div className="p-3 rounded-lg bg-amber-500/10 dark:bg-black/20 border border-amber-500/20 flex flex-col justify-between">
           <div className="flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 font-medium">
@@ -63,16 +65,16 @@ export function CellStatsResult({ data }: CellStatsResultProps) {
           <div className="text-xl font-bold font-mono text-amber-950 dark:text-amber-100 mt-1">
             {data.unique_token_count}
           </div>
+        </div>
 
-          {/* Metric 5: Character count */}
-          <div className="p-3 rounded-lg bg-amber-500/10 dark:bg-black/20 border border-amber-500/20 flex flex-col justify-between">
-            <div className="flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 font-medium">
-              <Type className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-              <span className="truncate">{strings.characterCountLabel}</span>
-            </div>
-            <div className="text-xl font-bold font-mono text-amber-950 dark:text-amber-100 mt-1">
-              {data.character_count ?? '—'}
-            </div>
+        {/* Character count */}
+        <div className="p-3 rounded-lg bg-amber-500/10 dark:bg-black/20 border border-amber-500/20 flex flex-col justify-between">
+          <div className="flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 font-medium">
+            <Type className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+            <span className="truncate">{strings.characterCountLabel}</span>
+          </div>
+          <div className="text-xl font-bold font-mono text-amber-950 dark:text-amber-100 mt-1">
+            {data.character_count ?? '—'}
           </div>
         </div>
 
@@ -97,6 +99,22 @@ export function CellStatsResult({ data }: CellStatsResultProps) {
             {data.avg_word_length ?? '—'}
           </div>
         </div>
+
+        {data.hapax_legomena_count !== undefined &&
+          data.hapax_legomena_ratio !== undefined && (
+            <div className="p-3 rounded-lg bg-amber-500/10 dark:bg-black/20 border border-amber-500/20 flex flex-col justify-between">
+              <div className="flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 font-medium">
+                <Hash className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                <span className="truncate">{strings.hapaxLegomenaLabel}</span>
+              </div>
+              <div className="text-xl font-bold font-mono text-amber-950 dark:text-amber-100 mt-1">
+                {data.hapax_legomena_count}
+              </div>
+              <div className="text-[10px] text-amber-800/80 dark:text-amber-400/80">
+                {(data.hapax_legomena_ratio * 100).toFixed(1)}% {strings.hapaxLegomenaShareLabel}
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Top Words Preview (if present) */}

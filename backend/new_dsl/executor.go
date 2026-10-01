@@ -29,14 +29,16 @@ type VariableResolver func(name string) (*models.CLIResult, error)
 
 // AnalyticsData contains aggregated lexical and linguistic metrics.
 type AnalyticsData struct {
-	TokenCount        int                `json:"token_count"`
-	UniqueTokenCount  int                `json:"unique_token_count"`
-	TypeTokenRatio    float64            `json:"type_token_ratio"`
-	CharacterCount    int                `json:"character_count"`
-	AverageWordLength float64            `json:"avg_word_length"`
-	TopWords          []models.ThemeItem `json:"top_words"`
-	TopBigrams        []models.ThemeItem `json:"top_bigrams"`
-	TopTrigrams       []models.ThemeItem `json:"top_trigrams"`
+	TokenCount         int                `json:"token_count"`
+	UniqueTokenCount   int                `json:"unique_token_count"`
+	HapaxLegomenaCount int                `json:"hapax_legomena_count"`
+	HapaxLegomenaRatio float64            `json:"hapax_legomena_ratio"`
+	TypeTokenRatio     float64            `json:"type_token_ratio"`
+	CharacterCount     int                `json:"character_count"`
+	AverageWordLength  float64            `json:"avg_word_length"`
+	TopWords           []models.ThemeItem `json:"top_words"`
+	TopBigrams         []models.ThemeItem `json:"top_bigrams"`
+	TopTrigrams        []models.ThemeItem `json:"top_trigrams"`
 }
 
 // ExecutionContext is the runtime context for AST evaluation.
@@ -766,12 +768,14 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 				currentRes = &models.CLIResult{
 					Type: "stats",
 					Data: map[string]interface{}{
-						"token_count":        analytics.TokenCount,
-						"unique_token_count": analytics.UniqueTokenCount,
-						"type_token_ratio":   analytics.TypeTokenRatio,
-						"character_count":    analytics.CharacterCount,
-						"avg_word_length":    analytics.AverageWordLength,
-						"top_words":          analytics.TopWords,
+						"token_count":          analytics.TokenCount,
+						"unique_token_count":   analytics.UniqueTokenCount,
+						"hapax_legomena_count": analytics.HapaxLegomenaCount,
+						"hapax_legomena_ratio": analytics.HapaxLegomenaRatio,
+						"type_token_ratio":     analytics.TypeTokenRatio,
+						"character_count":      analytics.CharacterCount,
+						"avg_word_length":      analytics.AverageWordLength,
+						"top_words":            analytics.TopWords,
 					},
 				}
 			} else {
@@ -779,11 +783,13 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 				currentRes = &models.CLIResult{
 					Type: "stats",
 					Data: map[string]interface{}{
-						"token_count":        analytics.TokenCount,
-						"unique_token_count": analytics.UniqueTokenCount,
-						"type_token_ratio":   analytics.TypeTokenRatio,
-						"character_count":    analytics.CharacterCount,
-						"avg_word_length":    analytics.AverageWordLength,
+						"token_count":          analytics.TokenCount,
+						"unique_token_count":   analytics.UniqueTokenCount,
+						"hapax_legomena_count": analytics.HapaxLegomenaCount,
+						"hapax_legomena_ratio": analytics.HapaxLegomenaRatio,
+						"type_token_ratio":     analytics.TypeTokenRatio,
+						"character_count":      analytics.CharacterCount,
+						"avg_word_length":      analytics.AverageWordLength,
 					},
 				}
 			}
@@ -1026,26 +1032,36 @@ func computeBasicAnalytics(text string) AnalyticsData {
 	clean := nonAlphaRegex.ReplaceAllString(text, " ")
 	words := strings.Fields(clean)
 	tokenCount := len(words)
-	uniqueTokens := make(map[string]struct{})
+	tokenFrequencies := make(map[string]int)
 	totalChars := 0
 	for _, w := range words {
-		uniqueTokens[strings.ToLower(w)] = struct{}{}
+		tokenFrequencies[strings.ToLower(w)]++
 		totalChars += len([]rune(w))
 	}
 
-	uniqueCount := len(uniqueTokens)
+	uniqueCount := len(tokenFrequencies)
+	hapaxCount := 0
+	for _, frequency := range tokenFrequencies {
+		if frequency == 1 {
+			hapaxCount++
+		}
+	}
 	ttr := 0.0
+	hapaxRatio := 0.0
 	avgLen := 0.0
 	if tokenCount > 0 {
 		ttr = float64(uniqueCount) / float64(tokenCount)
+		hapaxRatio = float64(hapaxCount) / float64(tokenCount)
 		avgLen = float64(totalChars) / float64(tokenCount)
 	}
 	return AnalyticsData{
-		TokenCount:        tokenCount,
-		UniqueTokenCount:  uniqueCount,
-		TypeTokenRatio:    ttr,
-		CharacterCount:    totalChars,
-		AverageWordLength: avgLen,
+		TokenCount:         tokenCount,
+		UniqueTokenCount:   uniqueCount,
+		HapaxLegomenaCount: hapaxCount,
+		HapaxLegomenaRatio: hapaxRatio,
+		TypeTokenRatio:     ttr,
+		CharacterCount:     totalChars,
+		AverageWordLength:  avgLen,
 	}
 }
 

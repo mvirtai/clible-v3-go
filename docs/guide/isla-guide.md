@@ -429,6 +429,8 @@ Computes comprehensive lexical statistics for the matched corpus:
 |---|---|
 | `token_count` | Total word tokens |
 | `unique_token_count` | Unique word types |
+| `hapax_legomena_count` | Word types occurring exactly once |
+| `hapax_legomena_ratio` | Hapax types / analyzed tokens |
 | `type_token_ratio` | Lexical diversity (TTR): unique / total |
 | `character_count` | Total characters |
 | `avg_word_length` | Mean word length in characters |

@@ -145,6 +145,12 @@ func TestExecute_CellContextTopAndStats(t *testing.T) {
 	if _, ok := resStats.Data["character_count"]; !ok {
 		t.Error("stats result is missing character_count")
 	}
+	if resStats.Data["hapax_legomena_count"] != 7 {
+		t.Errorf("hapax_legomena_count = %v, want 7", resStats.Data["hapax_legomena_count"])
+	}
+	if resStats.Data["hapax_legomena_ratio"] != 7.0/9.0 {
+		t.Errorf("hapax_legomena_ratio = %v, want %f", resStats.Data["hapax_legomena_ratio"], 7.0/9.0)
+	}
 }
 
 func TestExecute_CellContextNgrams(t *testing.T) {

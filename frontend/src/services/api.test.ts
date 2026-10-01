@@ -124,6 +124,8 @@ describe('ApiService', () => {
         const mockRawStats = {
             token_count: 100,
             unique_token_count: 50,
+            hapax_legomena_count: 30,
+            hapax_legomena_ratio: 0.3,
             type_token_ratio: 0.5,
             character_count: 500,
             avg_word_length: 5.0,
@@ -141,6 +143,8 @@ describe('ApiService', () => {
 
         expect(result.tokenCount).toBe(100);
         expect(result.uniqueTokenCount).toBe(50);
+        expect(result.hapaxLegomenaCount).toBe(30);
+        expect(result.hapaxLegomenaRatio).toBe(0.3);
         expect(result.typeTokenRatio).toBe(0.5);
         expect(result.topWords).toHaveLength(1);
         expect(result.topWords[0].name).toBe('light');
@@ -394,6 +398,5 @@ describe('ApiService', () => {
         );
     });
 });
-
 
 

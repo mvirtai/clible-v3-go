@@ -79,6 +79,12 @@ func TestAnalyticService_TokenizeAndAnalyze(t *testing.T) {
 	if analysis.UniqueTokenCount != 5 {
 		t.Errorf("expected 5 unique tokens, got %d", analysis.UniqueTokenCount)
 	}
+	if analysis.HapaxLegomenaCount != 4 {
+		t.Errorf("expected 4 hapax legomena, got %d", analysis.HapaxLegomenaCount)
+	}
+	if analysis.HapaxLegomenaRatio != 4.0/6.0 {
+		t.Errorf("expected hapax ratio %f, got %f", 4.0/6.0, analysis.HapaxLegomenaRatio)
+	}
 
 	expectedTTR := 5.0 / 6.0
 	if analysis.TypeTokenRatio != expectedTTR {
@@ -139,6 +145,10 @@ func TestAnalyticService_AnalyzeVerses_Empty(t *testing.T) {
 	if result.TokenCount != 0 {
 		t.Errorf("expected 0 tokens for empty input, got %d", result.TokenCount)
 	}
+	if result.HapaxLegomenaCount != 0 || result.HapaxLegomenaRatio != 0 {
+		t.Errorf("expected zero hapax metrics for empty input, got %d and %f",
+			result.HapaxLegomenaCount, result.HapaxLegomenaRatio)
+	}
 }
 
 func TestAnalyticService_AnalyzeVerses_AllStopwords(t *testing.T) {
@@ -151,6 +161,10 @@ func TestAnalyticService_AnalyzeVerses_AllStopwords(t *testing.T) {
 	}
 	if result.CharacterCount == 0 {
 		t.Error("expected non-zero character count")
+	}
+	if result.HapaxLegomenaCount != 0 || result.HapaxLegomenaRatio != 0 {
+		t.Errorf("expected zero hapax metrics after stopword filtering, got %d and %f",
+			result.HapaxLegomenaCount, result.HapaxLegomenaRatio)
 	}
 }
 

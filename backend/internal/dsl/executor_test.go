@@ -984,6 +984,12 @@ func TestDSLExecutor_FunctionalPipelines(t *testing.T) {
 		if ttr, ok := resStats.Data["type_token_ratio"].(float64); !ok || ttr <= 0 {
 			t.Errorf("expected positive type_token_ratio, got %v", resStats.Data["type_token_ratio"])
 		}
+		if _, ok := resStats.Data["hapax_legomena_count"].(int); !ok {
+			t.Errorf("expected hapax_legomena_count in stats payload, got %T", resStats.Data["hapax_legomena_count"])
+		}
+		if ratio, ok := resStats.Data["hapax_legomena_ratio"].(float64); !ok || ratio < 0 || ratio > 1 {
+			t.Errorf("expected hapax_legomena_ratio between 0 and 1, got %v", resStats.Data["hapax_legomena_ratio"])
+		}
 
 		// Quick hash syntax: # "köyhät"
 		hashNode, err := Parse(`# "köyhät"`)
@@ -1090,4 +1096,3 @@ func TestDSLExecutor_FunctionalPipelines(t *testing.T) {
 		}
 	})
 }
-

@@ -108,6 +108,7 @@ The **Analytics** view (`/analytics`) provides quantitative insights into biblic
 - **Lexical Diversity (Type-Token Ratio / TTR)**: Calculated as:
   $$\text{TTR} = \frac{\text{Unique Words}}{\text{Total Words}}$$
   A higher ratio indicates richer, more varied vocabulary (common in epistolary literature like Hebrews), while a lower ratio indicates repetitive, thematic phrasing (common in Johannine literature).
+- **Hapax legomena**: Counts word types that occur exactly once and shows their share of all analyzed tokens. This complements TTR by highlighting one-off vocabulary; interpret the ratio cautiously for short passages.
 
 ### 2. Token Frequency Ranking
 

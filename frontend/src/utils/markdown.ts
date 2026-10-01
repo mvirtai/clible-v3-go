@@ -36,6 +36,8 @@ export interface CLIResultData {
   top_words?: Array<{ word: string; count: number }>;
   /** Token statistics */
   unique_tokens?: number;
+  hapax_legomena_count?: number;
+  hapax_legomena_ratio?: number;
   token_count?: number;
   type_token_ratio?: number;
   character_count?: number;
@@ -152,6 +154,9 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
     let md = `### Tekstitilastot\n\n`;
     md += `- **Sanaston rikkaus (TTR)**: ${ttr} %\n`;
     md += `- **Uniikkeja sanoja**: ${data.unique_tokens ?? 0}\n`;
+    if (data.hapax_legomena_count !== undefined && data.hapax_legomena_ratio !== undefined) {
+      md += `- **Kertasanat (hapaksit)**: ${data.hapax_legomena_count} (${(data.hapax_legomena_ratio * 100).toFixed(1)} % kaikista analysoiduista sanoista)\n`;
+    }
     md += `- **Sanoja yhteensä**: ${data.token_count ?? 0}\n`;
     if (data.avg_word_length) {
       md += `- **Sanan keskipituus**: ${data.avg_word_length}\n`;

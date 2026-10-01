@@ -473,7 +473,7 @@ export const AnalyticsView = ({
       {stats && (
         <>
           {/* Key Metrics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
             {[
               {
                 label: strings.statTotalTokens,
@@ -500,6 +500,15 @@ export const AnalyticsView = ({
                 value: stats.characterCount,
                 icon: Type,
               },
+              ...(stats.hapaxLegomenaCount !== undefined &&
+              stats.hapaxLegomenaRatio !== undefined
+                ? [{
+                    label: strings.hapaxLegomenaLabel,
+                    value: stats.hapaxLegomenaCount,
+                    detail: `${(stats.hapaxLegomenaRatio * 100).toFixed(1)}% ${strings.hapaxLegomenaShareLabel}`,
+                    icon: Hash,
+                  }]
+                : []),
             ].map((card, i) => (
               <div
                 key={i}
@@ -514,6 +523,9 @@ export const AnalyticsView = ({
                 <div className="text-2xl font-mono font-bold text-[var(--text)]">
                   {card.value}
                 </div>
+                {'detail' in card && card.detail && (
+                  <div className="mt-1 text-xs text-[var(--muted)]">{card.detail}</div>
+                )}
               </div>
             ))}
           </div>

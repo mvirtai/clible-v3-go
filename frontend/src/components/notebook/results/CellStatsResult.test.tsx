@@ -36,6 +36,8 @@ describe('CellStatsResult', () => {
             data={{
               token_count: 250,
               unique_token_count: 125,
+              hapax_legomena_count: 75,
+              hapax_legomena_ratio: 0.3,
               type_token_ratio: 0.5,
               avg_word_length: 5.42,
               character_count: 1350,
@@ -55,6 +57,8 @@ describe('CellStatsResult', () => {
     expect(content).toContain('250');
     expect(content).toContain('5.42');
     expect(content).toContain('1350');
+    expect(content).toContain('75');
+    expect(content).toContain('30.0%');
     expect(content).toContain('#valo');
     expect(content).toContain('#pimeys');
   });
