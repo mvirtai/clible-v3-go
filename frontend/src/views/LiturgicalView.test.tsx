@@ -5,6 +5,7 @@ import { LiturgicalView } from './LiturgicalView';
 import { LanguageProvider } from '../context/LanguageContext';
 import * as liturgicalApi from '../api/liturgical';
 import type { LiturgicalDay } from '../types/liturgical';
+import { t } from '../utils/i18n';
 
 const mockDay: LiturgicalDay = {
   date: '20.9.2026',
@@ -393,6 +394,56 @@ describe('LiturgicalView', () => {
     expect(hymnLink?.getAttribute('title')).toContain('24/2 Jo vaietkoon vaikerrus');
     expect(container?.textContent).toContain('1 virsi');
     expect(container?.textContent).toContain('1 rukous');
+  });
+
+  it('renders plural counts for hymns and prayers', async () => {
+    const multiDay: LiturgicalDay = {
+      ...mockDay,
+      prayers: ['Ensimmäinen rukous.', 'Toinen rukous.'],
+      hymns: [
+        {
+          group: 'Päivän virsiä',
+          hymns: [
+            { number: '242', name: 'Jo vaietkoon vaikerrus', url: 'https://virsikirja.fi/242' },
+            { number: '338', name: 'Päivä vain ja hetki kerrallansa', url: 'https://virsikirja.fi/338' },
+          ],
+        },
+      ],
+    };
+    vi.spyOn(liturgicalApi, 'getLiturgicalDay').mockResolvedValue(multiDay);
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <LiturgicalView onSelectVerse={vi.fn()} initialDate="2026-09-20" />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('2 virttä');
+    expect(container?.textContent).toContain('2 rukousta');
+  });
+
+  it('formats bilingual counts accurately for singular and plural counts in Finnish and English', () => {
+    const fiDict = t('fi');
+    const enDict = t('en');
+
+    // Finnish singular & plural
+    expect(fiDict.liturgicalHymnsCount(1)).toBe('1 virsi');
+    expect(fiDict.liturgicalHymnsCount(2)).toBe('2 virttä');
+    expect(fiDict.liturgicalHymnsCount(5)).toBe('5 virttä');
+    expect(fiDict.liturgicalPrayersCount(1)).toBe('1 rukous');
+    expect(fiDict.liturgicalPrayersCount(2)).toBe('2 rukousta');
+    expect(fiDict.liturgicalPrayersCount(4)).toBe('4 rukousta');
+
+    // English singular & plural
+    expect(enDict.liturgicalHymnsCount(1)).toBe('1 hymn');
+    expect(enDict.liturgicalHymnsCount(2)).toBe('2 hymns');
+    expect(enDict.liturgicalHymnsCount(5)).toBe('5 hymns');
+    expect(enDict.liturgicalPrayersCount(1)).toBe('1 prayer');
+    expect(enDict.liturgicalPrayersCount(2)).toBe('2 prayers');
+    expect(enDict.liturgicalPrayersCount(4)).toBe('4 prayers');
   });
 });
 

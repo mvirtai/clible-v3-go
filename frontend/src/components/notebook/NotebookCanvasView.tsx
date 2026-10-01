@@ -67,7 +67,7 @@ export function NotebookCanvasView({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[var(--surface-0)] overflow-hidden">
+    <div className="flex-1 flex flex-col h-full max-h-[calc(100dvh-12rem)] min-h-[480px] bg-[var(--surface-0)] overflow-hidden rounded-2xl border border-[var(--border-soft)]">
       {/* Top action bar */}
       <div className="h-11 px-4 border-b border-[var(--border-soft)] bg-[var(--surface-1)] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
