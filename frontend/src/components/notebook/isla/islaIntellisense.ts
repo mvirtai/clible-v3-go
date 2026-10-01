@@ -618,6 +618,7 @@ export function getISLASuggestions(
       limitPrefix &&
       Number.isSafeInteger(parsedLimit) &&
       parsedLimit > 0 &&
+      parsedLimit <= 1000 &&
       !commonLimits.includes(parsedLimit)
         ? parsedLimit
         : undefined;
