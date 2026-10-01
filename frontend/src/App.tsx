@@ -655,7 +655,7 @@ export function App() {
       />
 
       {/* ── Main Workspace ── */}
-      <main className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-12">
+      <main className="max-w-5xl mx-auto px-2 sm:px-6 py-6 sm:py-12">
         {/* ── View Selection Tabs ── */}
         <ViewModeTabs
           viewMode={viewMode}

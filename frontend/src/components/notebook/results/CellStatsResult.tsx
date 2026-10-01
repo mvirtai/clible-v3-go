@@ -25,7 +25,7 @@ export function CellStatsResult({ data }: CellStatsResultProps) {
   const ttrPercent = (data.type_token_ratio * 100).toFixed(1);
 
   return (
-    <div className="p-4 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/25 text-amber-950 dark:text-amber-100 shadow-xs space-y-4">
+    <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/25 text-amber-950 dark:text-amber-100 shadow-xs space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-amber-500/20 pb-2.5">
         <div className="flex items-center gap-2">

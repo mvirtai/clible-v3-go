@@ -391,7 +391,7 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 space-y-6">
+    <div className="max-w-7xl mx-auto py-4 sm:py-8 px-1 sm:px-4 space-y-4 sm:space-y-6">
       {/* Declarative document metadata hoisting */}
       <title>{notebook?.title ? `${notebook.title} | Clible` : strings.notebookTitle}</title>
 
@@ -479,7 +479,7 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
           });
         }}
       >
-        <div className="grid grid-cols-12 gap-4 items-start">
+        <div className="grid grid-cols-12 gap-2 sm:gap-4 items-start">
           {cells.map((cell, index) => {
             const precedingCellsText = cells
               .slice(0, index)

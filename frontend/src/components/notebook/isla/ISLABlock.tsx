@@ -10,7 +10,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 function ISLASkeleton({ code }: { code: string }) {
   return (
     <div
-      className="my-4 p-4 w-full max-w-full rounded-xl border border-amber-500/20 bg-amber-500/5 animate-pulse not-prose select-none whitespace-normal break-words"
+      className="my-2 sm:my-4 p-2.5 sm:p-4 w-full max-w-full rounded-lg sm:rounded-xl border border-amber-500/20 bg-amber-500/5 animate-pulse not-prose select-none whitespace-normal break-words"
     >
       <div className="flex items-center gap-2 mb-3">
         <span className="text-amber-500 font-mono text-xs font-semibold">✦ ISLA</span>
@@ -43,7 +43,7 @@ function ISLAContent({
     const errorMsg = (result.data as { message?: string })?.message || 'Unknown ISLA error';
     return (
       <div
-        className="my-4 p-3 w-full max-w-full rounded-lg border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300 font-mono text-xs not-prose whitespace-normal break-words"
+        className="my-2 sm:my-4 p-2 sm:p-3 w-full max-w-full rounded-lg border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300 font-mono text-xs not-prose whitespace-normal break-words"
       >
         <span className="font-bold text-red-500">ISLA error:</span> {errorMsg}
         <div className="text-neutral-500 mt-1">{code}</div>
@@ -55,7 +55,7 @@ function ISLAContent({
 
   return (
     <div
-      className="group relative my-4 block w-full max-w-full rounded-xl border border-amber-500/30 dark:border-amber-500/25 bg-amber-500/5 dark:bg-[var(--surface)] p-4 shadow-xs hover:shadow-md transition-all not-prose text-[var(--text)] whitespace-normal break-words"
+      className="group relative my-2 sm:my-4 block w-full max-w-full rounded-lg sm:rounded-xl border border-amber-500/30 dark:border-amber-500/25 bg-amber-500/5 dark:bg-[var(--surface)] p-2.5 sm:p-4 shadow-xs hover:shadow-md transition-all not-prose text-[var(--text)] whitespace-normal break-words"
     >
       {/* Always-visible ISLA command header with syntax badge and output routing */}
       <div className="mb-3 pb-2 border-b border-amber-500/15 flex items-center justify-between gap-2 text-xs">

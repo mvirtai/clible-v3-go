@@ -104,12 +104,12 @@ export function CellWrapper({
     <div
       ref={setCombinedRef}
       style={height ? { minHeight: `${height}px` } : undefined}
-      className={`${gridSpanClass} group relative border border-[var(--border-soft)] hover:border-amber-500/30 bg-[var(--surface-2)]/10 hover:bg-[var(--surface-2)]/20 rounded-xl p-4 transition-all duration-150 ${
+      className={`${gridSpanClass} group relative border border-[var(--border-soft)] hover:border-amber-500/30 bg-[var(--surface-2)]/10 hover:bg-[var(--surface-2)]/20 rounded-lg sm:rounded-xl p-2 sm:p-4 transition-all duration-150 ${
         isDragging ? 'opacity-40 ring-2 ring-amber-500/50 shadow-2xl z-50' : ''
       } ${isResizing ? 'ring-2 ring-amber-500/80 shadow-lg select-none' : ''}`}
     >
       {/* Cell action toolbar (appears on hover) */}
-      <div className="absolute -top-3 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[var(--surface)] border border-[var(--border-soft)] rounded-md px-1.5 py-0.5 shadow-md z-10">
+      <div className="absolute -top-3 right-2 sm:right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[var(--surface)] border border-[var(--border-soft)] rounded-md px-1.5 py-0.5 shadow-md z-10">
 
         {/* Drag handle */}
         <span

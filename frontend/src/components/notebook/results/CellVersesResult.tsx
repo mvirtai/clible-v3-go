@@ -141,15 +141,15 @@ export function CellVersesResult({
               onClick={selectable ? () => onToggleVerse?.(v.id) : undefined}
               className={`transition-all duration-200 w-full max-w-full ${
                 selectable
-                  ? `group cursor-pointer select-none p-2.5 rounded-lg border border-transparent ${
+                  ? `group cursor-pointer select-none p-1.5 sm:p-2.5 rounded-lg border border-transparent ${
                       isDeselected
                         ? 'opacity-40 text-neutral-500'
                         : 'text-[var(--text)] bg-neutral-100/70 dark:bg-[var(--surface-2)]/70 hover:bg-neutral-200/70 dark:hover:bg-[var(--surface-2)] hover:border-neutral-300 dark:hover:border-[var(--border-soft)]'
                     }`
-                  : 'select-text py-1'
+                  : 'select-text py-0.5 sm:py-1'
               }`}
             >
-              <div className={`flex items-start ${selectable ? 'gap-2.5' : 'gap-2'} w-full max-w-full`}>
+              <div className={`flex items-start ${selectable ? 'gap-2 sm:gap-2.5' : 'gap-1.5 sm:gap-2'} w-full max-w-full`}>
                 {/* Render checkbox only when selectable is enabled */}
                 {selectable && (
                   <div className="mt-1 flex items-center justify-center w-3.5 h-3.5 rounded border border-neutral-400 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-amber-500 transition-colors group-hover:border-amber-500/50 flex-shrink-0">
@@ -166,7 +166,7 @@ export function CellVersesResult({
                       {book} {v.chapter}:{v.verse} ({v.translationId.toUpperCase()})
                     </span>
                   </div>
-                  <p className={`verse-text leading-relaxed text-[1.0625rem] text-[var(--text)] whitespace-normal break-words transition-all ${isDeselected ? 'line-through opacity-50' : ''}`}>
+                  <p className={`verse-text leading-relaxed text-[0.9375rem] sm:text-[1.0625rem] text-[var(--text)] whitespace-normal break-words transition-all ${isDeselected ? 'line-through opacity-50' : ''}`}>
                     {highlightMatch(v.text, data.query)}
                   </p>
                 </div>
