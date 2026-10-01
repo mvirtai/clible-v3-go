@@ -363,5 +363,26 @@ describe('LiturgicalView', () => {
     expect(onExport.mock.calls[0][1]).toContain('Aamurukous');
     expect(onExport.mock.calls[0][2]).toContain('! @(Ps 118:19-29)');
   });
+
+  it('renders hymn links with accessible attributes and encoded URLs', async () => {
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <LiturgicalView onSelectVerse={vi.fn()} initialDate="2026-09-20" />
+        </LanguageProvider>
+      );
+    });
+
+    const hymnLink = container?.querySelector('a[href*="virsikirja.fi"]');
+    expect(hymnLink).toBeDefined();
+    expect(hymnLink?.getAttribute('href')).toBe('https://virsikirja.fi/242');
+    expect(hymnLink?.getAttribute('target')).toBe('_blank');
+    expect(hymnLink?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(hymnLink?.getAttribute('aria-label')).toContain('242 Jo vaietkoon vaikerrus');
+    expect(hymnLink?.getAttribute('title')).toContain('242 Jo vaietkoon vaikerrus');
+    expect(container?.textContent).toContain('1 virsi');
+    expect(container?.textContent).toContain('1 rukous');
+  });
 });
 
