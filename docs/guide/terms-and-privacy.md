@@ -99,7 +99,7 @@ To ensure high availability and fair performance for the entire research communi
 
 ## 7. Open Source & Community Governance
 
-Clible is developed as an open-source research initiative under the **GPL-3.0 License**.
+Clible's source code is published for transparency and research purposes under the **PolyForm Noncommercial License 1.0.0**. This license permits free use, modification, and redistribution for noncommercial purposes, while reserving all commercial rights to the project owner. See the repository's [`LICENSE`](https://github.com/mvirtai/clible-v3-go/blob/main/LICENSE) file for the full license text.
 
 * **Source Code Repository**: [github.com/mvirtai/clible-v3-go](https://github.com/mvirtai/clible-v3-go)
 * **Feedback & Inquiries**: If you have questions about these terms or wish to submit feedback, please open an issue on the GitHub repository or contact the project maintainers.
