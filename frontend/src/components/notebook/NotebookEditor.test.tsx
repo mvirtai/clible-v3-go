@@ -324,4 +324,91 @@ describe('NotebookEditor', () => {
     const textContent = container?.textContent || '';
     expect(textContent).toContain('#armo-maara');
   });
+
+  it('prevents redundant auto-save network requests when cells are not dirty', async () => {
+    vi.useFakeTimers();
+
+    const fetchSpy = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes('/api/notebooks/nb-123/cells') && init?.method === 'PUT') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        });
+      }
+      if (url.includes('/api/notebooks/nb-123')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockNotebookData),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({}),
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <NotebookEditor notebookId="nb-123" />
+        </LanguageProvider>
+      );
+    });
+
+    // Advance timers past initial load
+    await act(async () => {
+      vi.runAllTimers();
+    });
+
+    const putCallsInitial = fetchSpy.mock.calls.filter(
+      (c) => typeof c[0] === 'string' && c[0].includes('/api/notebooks/nb-123/cells')
+    );
+    expect(putCallsInitial.length).toBe(0);
+
+    // Double-click cell to enter edit mode
+    const proseDiv = container?.querySelector('div.prose');
+    expect(proseDiv).not.toBeNull();
+    await act(async () => {
+      proseDiv?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    });
+
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).not.toBeNull();
+
+    const originalText = textarea?.value || '';
+
+    // Step 1: User edits content (A -> B), triggering pending autosave timeout
+    await act(async () => {
+      if (textarea) {
+        textarea.value = 'Temporary modified content';
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    // Step 2: User immediately reverts changes back to original (B -> A)
+    await act(async () => {
+      if (textarea) {
+        textarea.value = originalText;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    // Step 3: Advance past the debounce timer (1500ms)
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    // Verify zero PUT network requests were executed
+    const putCallsAfterRevert = fetchSpy.mock.calls.filter(
+      (c) => typeof c[0] === 'string' && c[0].includes('/api/notebooks/nb-123/cells')
+    );
+    expect(putCallsAfterRevert.length).toBe(0);
+
+    vi.useRealTimers();
+  });
 });
+

@@ -61,8 +61,8 @@ export function CellCountResult({ data }: CellCountResultProps) {
   };
 
   return (
-    <div className="flex items-center gap-3.5 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 dark:border-amber-500/20 text-amber-950 dark:text-amber-100 shadow-xs">
-      <div className="p-2.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 flex-shrink-0">
+    <div className="flex items-center gap-2.5 sm:gap-3.5 p-2.5 sm:p-4 rounded-lg sm:rounded-xl bg-amber-500/10 border border-amber-500/30 dark:border-amber-500/20 text-amber-950 dark:text-amber-100 shadow-xs">
+      <div className="p-2 sm:p-2.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 flex-shrink-0">
         <Hash className="w-5 h-5" />
       </div>
       <div className="min-w-0 flex-1">

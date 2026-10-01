@@ -367,7 +367,7 @@ export function MarkdownCell({
 
   if (!isEditable) {
     return (
-      <div className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] whitespace-normal break-words">
+      <div className="prose prose-amber dark:prose-invert max-w-none p-1.5 sm:p-4 font-serif text-[var(--text)] whitespace-normal break-words">
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
           {preprocessContent(cell.content) || strings.noContentText}
         </ReactMarkdown>
@@ -492,7 +492,7 @@ export function MarkdownCell({
               node.setSelectionRange(len, len);
             }
           }}
-          className="w-full min-h-[120px] p-4 font-serif bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-y transition-all"
+          className="w-full min-h-[120px] p-2 sm:p-4 font-serif bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-y transition-all"
           value={cell.content}
           onChange={handleTextChange}
           onBlur={() => setIsEditing(false)}
@@ -508,7 +508,7 @@ export function MarkdownCell({
 
   return (
     <div
-      className="prose prose-amber dark:prose-invert max-w-none p-4 font-serif text-[var(--text)] cursor-pointer rounded-lg hover:bg-[var(--surface-2)]/30 border border-transparent hover:border-[var(--border-soft)] transition-all duration-200 whitespace-normal break-words"
+      className="prose prose-amber dark:prose-invert max-w-none p-1.5 sm:p-4 font-serif text-[var(--text)] cursor-pointer rounded-lg hover:bg-[var(--surface-2)]/30 border border-transparent hover:border-[var(--border-soft)] transition-all duration-200 whitespace-normal break-words"
       onDoubleClick={() => setIsEditing(true)}
       onClick={() => {
         if (!cell.content.trim()) {

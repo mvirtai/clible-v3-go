@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -181,41 +182,69 @@ func (r *NotebookRepository) SaveCells(ctx context.Context, notebookID string, c
 		return fmt.Errorf("failed to delete old cells: %w", err)
 	}
 
-	query := `
-		INSERT INTO notebook_cells (id, notebook_id, content, cell_type, result_json, position, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`
+	if len(cells) == 0 {
+		if err = tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit save cells transaction: %w", err)
+		}
+		return nil
+	}
+
 	now := time.Now()
-	for i, cell := range cells {
-		if cell.ID == "" {
-			cell.ID = uuid.New().String()
+	const batchSize = 500
+
+	for i := 0; i < len(cells); i += batchSize {
+		end := i + batchSize
+		if end > len(cells) {
+			end = len(cells)
 		}
-		cAt := cell.CreatedAt
-		if cAt.IsZero() {
-			cAt = now
-		}
-		uAt := cell.UpdatedAt
-		if uAt.IsZero() {
-			uAt = now
+		batch := cells[i:end]
+
+		valueStrings := make([]string, 0, len(batch))
+		valueArgs := make([]interface{}, 0, len(batch)*8)
+
+		for idx, cell := range batch {
+			if cell.ID == "" {
+				cell.ID = uuid.New().String()
+			}
+			cAt := cell.CreatedAt
+			if cAt.IsZero() {
+				cAt = now
+			}
+			uAt := cell.UpdatedAt
+			if uAt.IsZero() {
+				uAt = now
+			}
+
+			var resultJSON []byte
+			if cell.ResultJSON != nil {
+				resultJSON = cell.ResultJSON
+			}
+
+			globalPos := i + idx
+			offset := idx * 8
+			valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+				offset+1, offset+2, offset+3, offset+4, offset+5, offset+6, offset+7, offset+8))
+
+			valueArgs = append(valueArgs,
+				cell.ID,
+				notebookID,
+				cell.Content,
+				cell.Type,
+				resultJSON,
+				globalPos,
+				cAt,
+				uAt,
+			)
 		}
 
-		var resultJSON []byte
-		if cell.ResultJSON != nil {
-			resultJSON = cell.ResultJSON
-		}
-
-		_, err = tx.ExecContext(ctx, query,
-			cell.ID,
-			notebookID,
-			cell.Content,
-			cell.Type,
-			resultJSON,
-			i,
-			cAt,
-			uAt,
+		stmt := fmt.Sprintf(
+			"INSERT INTO notebook_cells (id, notebook_id, content, cell_type, result_json, position, created_at, updated_at) VALUES %s",
+			strings.Join(valueStrings, ", "),
 		)
+
+		_, err = tx.ExecContext(ctx, stmt, valueArgs...)
 		if err != nil {
-			return fmt.Errorf("failed to insert cell at position %d: %w", i, err)
+			return fmt.Errorf("failed to bulk insert cells batch at offset %d: %w", i, err)
 		}
 	}
 

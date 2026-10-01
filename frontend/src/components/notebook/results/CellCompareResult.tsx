@@ -122,7 +122,7 @@ export function CellCompareResult({
             <div
               key={idx}
               onClick={selectable ? handleToggle : undefined}
-              className={`p-3.5 rounded-xl border transition-all duration-200 ${
+              className={`p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl border transition-all duration-200 ${
                 selectable
                   ? `cursor-pointer select-none ${
                       isRowDeselected

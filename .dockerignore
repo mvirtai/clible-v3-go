@@ -11,7 +11,7 @@ docs-site
 **/node_modules
 **/dist
 **/.cov
-**/cache
+**/.cache
 
 # Local databases and secrets
 *.db

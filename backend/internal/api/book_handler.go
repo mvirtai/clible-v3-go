@@ -20,6 +20,7 @@ func NewBookHandler(bookService *services.BookService) *BookHandler {
 func (h *BookHandler) GetBooks(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
 
 	books, err := h.bookService.GetAllBooks(ctx)
 	if err != nil {
@@ -36,6 +37,7 @@ func (h *BookHandler) GetBooks(w http.ResponseWriter, r *http.Request) {
 func (h *BookHandler) GetBookByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
 
 	// Read path parameter natively using Go 1.22+ PathValue support
 	id := r.PathValue("id")

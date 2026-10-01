@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/mvirtai/clible-v3-go/internal/cache"
 	"github.com/mvirtai/clible-v3-go/internal/ctxkeys"
 	"github.com/mvirtai/clible-v3-go/internal/db"
 	"github.com/mvirtai/clible-v3-go/internal/models"
@@ -30,10 +32,17 @@ type ParsedReference struct {
 	Scope      ReferenceScope
 }
 
+// VerseCache defines the cache interface for resolved verse queries.
+type VerseCache interface {
+	Get(key string) ([]models.Verse, bool)
+	Set(key string, verses []models.Verse)
+}
+
 // VerseService orchestrates higher-level business rules and aggregates structural data access
 type VerseService struct {
 	verseRepo       *db.VerseRepository
 	translationRepo *db.TranslationRepository
+	cache           VerseCache
 }
 
 // NewVerseService is our idiomatic constructor pattern utilizing dependency injection.
@@ -42,7 +51,13 @@ func NewVerseService(verseRepo *db.VerseRepository, translationRepo *db.Translat
 	return &VerseService{
 		verseRepo:       verseRepo,
 		translationRepo: translationRepo,
+		cache:           cache.NewVerseLRUCache(1000, 30*time.Minute),
 	}
+}
+
+// SetCache allows swapping or mocking the verse cache instance (e.g. in unit tests).
+func (s *VerseService) SetCache(c VerseCache) {
+	s.cache = c
 }
 
 // GetVerses resolves a raw text reference string and fetches matching records from the database.
@@ -96,19 +111,51 @@ func (s *VerseService) GetVerses(ctx context.Context, reference string, translat
 		}
 	}
 
+	// Build cache key based on resolved query parameters
+	var cacheKey string
+	if s.cache != nil {
+		switch parsed.Scope {
+		case parser.ScopeVerse:
+			cacheKey = fmt.Sprintf("verse:%s:%s:%d:%d-%d", tid, parsed.BookName, parsed.Chapter, parsed.VerseStart, parsed.VerseEnd)
+		case parser.ScopeChapter:
+			cacheKey = fmt.Sprintf("chapter:%s:%s:%d", tid, parsed.BookName, parsed.Chapter)
+		case parser.ScopeChapterRange:
+			cacheKey = fmt.Sprintf("chaprange:%s:%s:%d-%d", tid, parsed.BookName, parsed.Chapter, parsed.ChapterEnd)
+		case parser.ScopeBook:
+			cacheKey = fmt.Sprintf("book:%s:%s", tid, parsed.BookName)
+		}
+
+		if cacheKey != "" {
+			if cached, hit := s.cache.Get(cacheKey); hit {
+				return cached, nil
+			}
+		}
+	}
+
 	// 4. Coordinate data retrieval based on the resolved query scope.
+	var verses []models.Verse
 	switch parsed.Scope {
 	case parser.ScopeVerse:
-		return s.verseRepo.GetByReference(ctx, tid, parsed.BookName, parsed.Chapter, parsed.VerseStart, parsed.VerseEnd)
+		verses, err = s.verseRepo.GetByReference(ctx, tid, parsed.BookName, parsed.Chapter, parsed.VerseStart, parsed.VerseEnd)
 	case parser.ScopeChapter:
-		return s.verseRepo.GetByChapter(ctx, tid, parsed.BookName, parsed.Chapter)
+		verses, err = s.verseRepo.GetByChapter(ctx, tid, parsed.BookName, parsed.Chapter)
 	case parser.ScopeChapterRange:
-		return s.verseRepo.GetByChapterRange(ctx, tid, parsed.BookName, parsed.Chapter, parsed.ChapterEnd)
+		verses, err = s.verseRepo.GetByChapterRange(ctx, tid, parsed.BookName, parsed.Chapter, parsed.ChapterEnd)
 	case parser.ScopeBook:
-		return s.verseRepo.GetByBook(ctx, tid, parsed.BookName)
+		verses, err = s.verseRepo.GetByBook(ctx, tid, parsed.BookName)
 	default:
 		return nil, fmt.Errorf("unsupported scope: %d", parsed.Scope)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	if s.cache != nil && cacheKey != "" && len(verses) > 0 {
+		s.cache.Set(cacheKey, verses)
+	}
+
+	return verses, nil
 }
 
 // SearchVerses delegates the search operation to the repository layer.

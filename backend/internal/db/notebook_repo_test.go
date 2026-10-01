@@ -3,6 +3,7 @@ package db_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -179,4 +180,76 @@ func TestNotebookRepository(t *testing.T) {
 			t.Errorf("expected notebook to be deleted, but got %+v", fetchedDeleted)
 		}
 	})
+
+	t.Run("SaveCells handles 0 and large batch (50) cells", func(t *testing.T) {
+		nbID := uuid.New().String()
+		nb := &models.Notebook{
+			ID:        nbID,
+			Title:     "Bulk Insert Test Notebook",
+			UserID:    "test-user-id",
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		}
+		if err := repo.Create(ctx, nb); err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// 1. Test empty cells
+		if err := repo.SaveCells(ctx, nbID, []models.Cell{}); err != nil {
+			t.Fatalf("SaveCells with empty slice failed: %v", err)
+		}
+		cells, err := repo.GetCells(ctx, nbID)
+		if err != nil {
+			t.Fatalf("GetCells failed: %v", err)
+		}
+		if len(cells) != 0 {
+			t.Errorf("expected 0 cells, got %d", len(cells))
+		}
+
+		// 2. Test 50 cells bulk insert
+		batch := make([]models.Cell, 50)
+		for i := 0; i < 50; i++ {
+			batch[i] = models.Cell{
+				ID:         uuid.New().String(),
+				NotebookID: nbID,
+				Type:       models.CellTypeMarkdown,
+				Content:    fmt.Sprintf("Cell content line %d", i),
+				Position:   i,
+			}
+		}
+
+		if err := repo.SaveCells(ctx, nbID, batch); err != nil {
+			t.Fatalf("SaveCells with 50 cells failed: %v", err)
+		}
+
+		cells50, err := repo.GetCells(ctx, nbID)
+		if err != nil {
+			t.Fatalf("GetCells failed: %v", err)
+		}
+		if len(cells50) != 50 {
+			t.Fatalf("expected 50 cells, got %d", len(cells50))
+		}
+		for i, c := range cells50 {
+			expectedContent := fmt.Sprintf("Cell content line %d", i)
+			if c.Content != expectedContent {
+				t.Errorf("cell %d content mismatch: expected %q, got %q", i, expectedContent, c.Content)
+			}
+			if c.Position != i {
+				t.Errorf("cell %d position mismatch: expected %d, got %d", i, i, c.Position)
+			}
+		}
+
+		// 3. Clean up by saving 0 cells
+		if err := repo.SaveCells(ctx, nbID, nil); err != nil {
+			t.Fatalf("SaveCells with nil failed: %v", err)
+		}
+		clearedCells, err := repo.GetCells(ctx, nbID)
+		if err != nil {
+			t.Fatalf("GetCells failed: %v", err)
+		}
+		if len(clearedCells) != 0 {
+			t.Errorf("expected 0 cells after clearing, got %d", len(clearedCells))
+		}
+	})
 }
+

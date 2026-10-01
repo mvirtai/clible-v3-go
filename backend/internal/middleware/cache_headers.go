@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -97,13 +98,23 @@ func determineCacheStrategy(path string, method string) CacheStrategy {
 		return ImmutableCache
 	}
 
-	// Books metadata: long cache
-	if path == "/api/books" || (len(path) > 10 && path[:11] == "/api/books/") {
+	// Books metadata: long cache (canonical metadata never changes)
+	if path == "/api/books" || strings.HasPrefix(path, "/api/books/") {
 		return LongCache
 	}
 
 	// Translations: long cache (rarely change)
 	if path == "/api/translations" {
+		return LongCache
+	}
+
+	// Liturgical calendar endpoints:
+	// Relative / today -> ShortCache (5 mins) to prevent stale midnight rollover
+	// Fixed church year calendar days -> LongCache
+	if strings.HasPrefix(path, "/api/liturgical/") {
+		if path == "/api/liturgical/today" {
+			return ShortCache
+		}
 		return LongCache
 	}
 
@@ -122,28 +133,28 @@ func determineCacheStrategy(path string, method string) CacheStrategy {
 		return MediumCache
 	}
 
-	// History: short cache (recent user data, needs fresher than workspace)
+	// History: short cache (recent user data)
 	if path == "/api/history" {
 		return ShortCache
 	}
 
-	// Scopes and workspace: short cache (user-specific, mutable)
-	if len(path) > 7 && path[:8] == "/api/scopes" {
-		return ShortCache
+	// Scopes, workspaces and notebooks: never cache (private, mutable user documents)
+	if strings.HasPrefix(path, "/api/scopes") || strings.HasPrefix(path, "/api/notebooks") {
+		return NoCache
 	}
 
-	// Notebooks: short cache (user-specific content, mutable)
-	if len(path) > 11 && path[:12] == "/api/notebooks" {
-		return ShortCache
+	// User settings: never cache (private, sensitive)
+	if strings.HasPrefix(path, "/api/user/") {
+		return NoCache
 	}
 
 	// Auth endpoints: never cache
-	if len(path) > 9 && path[:10] == "/api/auth/" {
+	if strings.HasPrefix(path, "/api/auth/") {
 		return NoCache
 	}
 
 	// AI endpoints: never cache (authenticated, rate-limited, personalized)
-	if len(path) > 6 && path[:7] == "/api/ai/" {
+	if strings.HasPrefix(path, "/api/ai/") {
 		return NoCache
 	}
 

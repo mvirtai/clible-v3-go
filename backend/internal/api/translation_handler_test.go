@@ -210,6 +210,9 @@ func TestTranslationHandler_Endpoints(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Errorf("expected 200 OK for guest access, got %d", rec.Code)
 		}
+		if cc := rec.Header().Get("Cache-Control"); cc != "public, max-age=3600, stale-while-revalidate=86400" {
+			t.Errorf("expected Cache-Control 'public, max-age=3600, stale-while-revalidate=86400', got %q", cc)
+		}
 	})
 
 	t.Run("POST /api/translations/link returns 401 when unauthorized", func(t *testing.T) {

@@ -28,7 +28,7 @@ export function CellWordFreqResult({ data }: CellWordFreqResultProps) {
 
   if (items.length === 0) {
     return (
-      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-sm">
+      <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-sm">
         {strings.noResults}
       </div>
     );
@@ -37,7 +37,7 @@ export function CellWordFreqResult({ data }: CellWordFreqResultProps) {
   const maxCount = Math.max(...items.map((it) => it.count), 1);
 
   return (
-    <div className="p-4 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/25 text-amber-950 dark:text-amber-100 shadow-xs space-y-3">
+    <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/25 text-amber-950 dark:text-amber-100 shadow-xs space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-amber-500/20 pb-2.5">
         <div className="flex items-center gap-2">
