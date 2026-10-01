@@ -1007,7 +1007,7 @@ export function LiturgicalView({ onSelectVerse, initialDate, onExportToNotebook 
                       <button
                         type="button"
                         onClick={() => {
-                          const officeContent = officesToISLA(dayData, lang, { specificOffice: activeOffice, stripLinks: true });
+                          const officeContent = officesToISLA(dayData, lang, { specificOffice: activeOffice });
                           const activeOfficeLabel =
                             activeOffice === 'morning' ? strings.liturgicalMorning :
                             activeOffice === 'noon' ? strings.liturgicalNoon :

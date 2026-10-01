@@ -757,5 +757,37 @@ describe('MarkdownCell', () => {
     expect(blockquote?.textContent).toContain('Liturgical prayer blockquote');
     expect(hr).toBeTruthy();
   });
+
+  it('renders hymn markdown links in list items as clickable external links', async () => {
+    const cell = {
+      id: 'cell-hymns',
+      notebookId: 'nb-1',
+      type: 'markdown' as const,
+      content: '## Päivän virret\n\n- [Virsi 13 (Käy, kansa, laulamaan)](https://virsikirja.fi/13)\n- [Virsi 547](https://virsikirja.fi/547)',
+    };
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <MarkdownCell cell={cell} onChange={vi.fn()} />
+        </LanguageProvider>
+      );
+    });
+
+    const links = Array.from(container?.querySelectorAll('a') ?? []);
+    expect(links.length).toBe(2);
+
+    const hymn13 = links.find((l) => l.textContent?.includes('Virsi 13'));
+    expect(hymn13).toBeDefined();
+    expect(hymn13?.getAttribute('href')).toBe('https://virsikirja.fi/13');
+    expect(hymn13?.getAttribute('target')).toBe('_blank');
+    expect(hymn13?.getAttribute('rel')).toBe('noopener noreferrer');
+
+    const hymn547 = links.find((l) => l.textContent?.includes('Virsi 547'));
+    expect(hymn547).toBeDefined();
+    expect(hymn547?.getAttribute('href')).toBe('https://virsikirja.fi/547');
+    expect(hymn547?.getAttribute('target')).toBe('_blank');
+  });
 });
 

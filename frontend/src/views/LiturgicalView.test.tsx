@@ -363,6 +363,7 @@ describe('LiturgicalView', () => {
     expect(onExport.mock.calls[0][0]).toEqual(mockDay);
     expect(onExport.mock.calls[0][1]).toContain('Aamurukous');
     expect(onExport.mock.calls[0][2]).toContain('! @(Ps 118:19-29)');
+    expect(onExport.mock.calls[0][2]).toContain('[Virsi 242 (Jo vaietkoon vaikerrus)](https://virsikirja.fi/242)');
   });
 
   it('renders hymn links with accessible attributes and encoded fallback URLs', async () => {

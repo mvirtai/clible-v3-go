@@ -31,6 +31,12 @@ This release addresses targeted usability and mobile ergonomics refinements acro
 - Added `liturgicalPrayersCount(count: number): string` (FI: `1 rukous` / `N rukousta`, EN: `1 prayer` / `N prayers`).
 - Added `liturgicalOpenHymnExternal` (FI: `Avaa virsi sivustolla virsikirja.fi`, EN: `Open hymn on virsikirja.fi`).
 
+### 4. Liturgical ISLA Export Hymn Links (`frontend/src/utils/liturgicalIslaExport.ts`)
+
+- Set `stripLinks: false` as the default in `liturgicalToISLA` and `officesToISLA` so exported hymn lists retain full Markdown links (`[Virsi X](https://virsikirja.fi/X)`) rather than degrading into plain text list items.
+- Ensured interactive notebooks render virsikirja.fi links with external attributes (`target="_blank"`, `rel="noopener noreferrer"`).
+- Added comprehensive unit tests in `liturgicalIslaExport.test.ts`, `LiturgicalView.test.tsx`, and `MarkdownCell.test.tsx`.
+
 ---
 
 ## Files Changed
@@ -39,12 +45,16 @@ This release addresses targeted usability and mobile ergonomics refinements acro
 | :--- | :--- |
 | `VERSION` | Bump version from 3.11.2 to 3.11.3 |
 | `backend/internal/version/version.go` | Bump backend version constant to 3.11.3 |
-| `frontend/package.json` | Bump frontend package version to 3.11.3 |
+| `frontend/package.json` | Bump frontend package version to 3.11.3 and update brace-expansion override |
+| `frontend/pnpm-lock.yaml` | Lockfile update for brace-expansion@5.0.12 security fix |
 | `frontend/src/utils/version.ts` | Bump frontend version constant to 3.11.3 |
 | `frontend/src/components/notebook/NotebookCanvasView.tsx` | Add responsive scrollable container wrapper around grid matrix and bounded height constraint |
 | `frontend/src/components/notebook/NotebookCanvasView.test.tsx` | New unit tests for canvas scrolling and empty matrix states |
-| `frontend/src/views/LiturgicalView.tsx` | Add hymn link encoding, accessible attributes, and localized counts |
-| `frontend/src/views/LiturgicalView.test.tsx` | Unit tests for hymn links, external attributes, and singular/plural counters in FI/EN |
+| `frontend/src/views/LiturgicalView.tsx` | Add hymn link encoding, accessible attributes, and localized counts; retain links on office export |
+| `frontend/src/views/LiturgicalView.test.tsx` | Unit tests for hymn links, external attributes, singular/plural counters in FI/EN, and exported links |
+| `frontend/src/utils/liturgicalIslaExport.ts` | Retain clickable hymn links by defaulting `stripLinks: false` in liturgical/office note export |
+| `frontend/src/utils/liturgicalIslaExport.test.ts` | Unit tests for default hymn markdown links and explicit stripLinks flag |
+| `frontend/src/components/notebook/cells/MarkdownCell.test.tsx` | Unit test verifying hymn markdown links in list items render as clickable anchors |
 | `frontend/src/utils/i18n.ts` | Add pluralization formatters and labels in FI and EN |
 
 ---
@@ -71,7 +81,7 @@ All local quality checks passed flawlessly!
 
 ```text
 Test Files  49 passed (49)
-     Tests  378 passed (378)
-  Duration  16.89s
+     Tests  379 passed (379)
+  Duration  24.62s
 All frontend type checks, ESLint rules, and Vitest test suites passed with 0 errors.
 ```
