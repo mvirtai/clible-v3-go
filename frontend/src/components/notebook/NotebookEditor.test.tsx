@@ -324,4 +324,60 @@ describe('NotebookEditor', () => {
     const textContent = container?.textContent || '';
     expect(textContent).toContain('#armo-maara');
   });
+
+  it('prevents redundant auto-save network requests when cells are not dirty', async () => {
+    vi.useFakeTimers();
+
+    const fetchSpy = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes('/api/notebooks/nb-123/cells') && init?.method === 'PUT') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        });
+      }
+      if (url.includes('/api/notebooks/nb-123')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockNotebookData),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({}),
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await act(async () => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <NotebookEditor notebookId="nb-123" />
+        </LanguageProvider>
+      );
+    });
+
+    // Advance timers past initial load
+    await act(async () => {
+      vi.runAllTimers();
+    });
+
+    const putCallsInitial = fetchSpy.mock.calls.filter(
+      (c) => typeof c[0] === 'string' && c[0].includes('/api/notebooks/nb-123/cells')
+    );
+    expect(putCallsInitial.length).toBe(0);
+
+    // Fast-forward another 5 seconds to simulate idle time
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    const putCallsAfterIdle = fetchSpy.mock.calls.filter(
+      (c) => typeof c[0] === 'string' && c[0].includes('/api/notebooks/nb-123/cells')
+    );
+    expect(putCallsAfterIdle.length).toBe(0);
+
+    vi.useRealTimers();
+  });
 });
+

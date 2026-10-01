@@ -52,6 +52,18 @@ function generateCellId(): string {
 }
 
 /**
+ * Helper function to calculate a fingerprint string for cells comparison.
+ */
+function computeCellsFingerprint(items: Cell[]): string {
+  return items
+    .map(
+      (c, idx) =>
+        `${c.id}:${idx}:${c.type}:${c.content}:${c.width ?? 'full'}:${c.colSpan ?? 12}:${c.customHeight ?? 0}`
+    )
+    .join('|');
+}
+
+/**
  * Main interactive editor component for a single notebook.
  * Conforms strictly to React 19.2 and React Compiler paradigms:
  * - Synchronous lazy initial state derivation for guest mode (Zero-flicker).
@@ -95,8 +107,15 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
   // Title inline editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false);
 
-  // Auto-save debounce timer ref
+  // Auto-save debounce timer ref and last saved fingerprint ref
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedFingerprintRef = useRef<string>(
+    isGuestMode
+      ? computeCellsFingerprint(
+          (getSingleGuestNotebook(notebookId)?.cells || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        )
+      : ''
+  );
 
   // Cleanup auto-save timer on unmount
   useEffect(() => {
@@ -131,6 +150,7 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
         const sortedCells = (data.cells || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         setNotebook(data);
         setCells(sortedCells);
+        lastSavedFingerprintRef.current = computeCellsFingerprint(sortedCells);
         setError(null);
       })
       .catch((err: unknown) => {
@@ -144,8 +164,13 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
     return () => controller.abort();
   }, [notebookId, isGuestMode]);
 
-  // 3. Event-driven debounced auto-save handler (direct reaction to user interaction)
+  // 3. Event-driven debounced auto-save handler with dirty check
   const scheduleAutoSave = (updatedCells: Cell[]) => {
+    const fingerprint = computeCellsFingerprint(updatedCells);
+    if (fingerprint === lastSavedFingerprintRef.current) {
+      return;
+    }
+
     setIsSaving(true);
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
@@ -174,6 +199,7 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
             return;
           }
         }
+        lastSavedFingerprintRef.current = fingerprint;
         setError(null);
         setIsSaving(false);
       } catch (err) {
