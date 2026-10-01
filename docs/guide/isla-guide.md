@@ -364,7 +364,7 @@ the text of the current notebook cell. Results are shown in the frequency card a
 | Argument | Accepted values | Example |
 |---|---|---|
 | `size` | `2` (bigrams) or `3` (trigrams) | `.ngrams(2, 10)` |
-| `limit` | Positive integer; defaults to `10` | `.ngrams(3, 5)` |
+| `limit` | Integer from `1` to `1000`; defaults to `10` | `.ngrams(3, 5)` |
 
 Do not prefix the method name with an extra parenthesis and do not combine it with
 `.top()`: `.ngrams()` already selects and ranks phrase frequencies. For example,
