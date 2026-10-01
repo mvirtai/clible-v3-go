@@ -364,7 +364,17 @@ describe('LiturgicalView', () => {
     expect(onExport.mock.calls[0][2]).toContain('! @(Ps 118:19-29)');
   });
 
-  it('renders hymn links with accessible attributes and encoded URLs', async () => {
+  it('renders hymn links with accessible attributes and encoded fallback URLs', async () => {
+    vi.mocked(liturgicalApi.getLiturgicalDay).mockResolvedValue({
+      ...mockDay,
+      hymns: [
+        {
+          group: 'Päivän virsiä',
+          hymns: [{ number: '24/2', name: 'Jo vaietkoon vaikerrus', url: '' }],
+        },
+      ],
+    });
+
     await act(async () => {
       root = createRoot(container!);
       root.render(
@@ -375,12 +385,12 @@ describe('LiturgicalView', () => {
     });
 
     const hymnLink = container?.querySelector('a[href*="virsikirja.fi"]');
-    expect(hymnLink).toBeDefined();
-    expect(hymnLink?.getAttribute('href')).toBe('https://virsikirja.fi/242');
+    expect(hymnLink).not.toBeNull();
+    expect(hymnLink?.getAttribute('href')).toBe('https://virsikirja.fi/24%2F2');
     expect(hymnLink?.getAttribute('target')).toBe('_blank');
     expect(hymnLink?.getAttribute('rel')).toBe('noopener noreferrer');
-    expect(hymnLink?.getAttribute('aria-label')).toContain('242 Jo vaietkoon vaikerrus');
-    expect(hymnLink?.getAttribute('title')).toContain('242 Jo vaietkoon vaikerrus');
+    expect(hymnLink?.getAttribute('aria-label')).toContain('24/2 Jo vaietkoon vaikerrus');
+    expect(hymnLink?.getAttribute('title')).toContain('24/2 Jo vaietkoon vaikerrus');
     expect(container?.textContent).toContain('1 virsi');
     expect(container?.textContent).toContain('1 rukous');
   });
