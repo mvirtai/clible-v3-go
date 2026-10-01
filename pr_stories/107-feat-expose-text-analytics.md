@@ -5,7 +5,8 @@
 This change connects the text metrics Clible already calculates to the places where
 readers explore and reuse them. The analytics workspace now exposes word, bigram,
 and trigram frequencies; ISLA can request n-grams directly; and both surfaces report
-hapax legomena alongside the existing lexical statistics.
+hapax legomena alongside the existing lexical statistics. The summary metrics use a
+three-column desktop grid so their labels and explanations remain readable.
 
 The work deliberately reuses the canonical analytics service and existing result
 cards. It adds no database schema, endpoint, or dependency.
@@ -38,6 +39,8 @@ parallel analytics implementation:
 - Give n-gram bars enough horizontal space and use readable labels without
   horizontal scrolling.
 - Add hapax count and share to the summary metrics.
+- Arrange the six summary metrics in three desktop columns, keeping long hapax
+  labels and explanations inside their cards.
 - Keep frequency selection and chart sizing as pure derived helpers with focused
   tests.
 
@@ -45,9 +48,10 @@ parallel analytics implementation:
 
 ### N-grams
 
-The new `.ngrams(size, limit)` method accepts size `2` for bigrams or `3` for
-trigrams. The result limit defaults to `10` and is capped at `1000`; invalid sizes,
-non-positive limits, and excess arguments return errors.
+The new `.ngrams(size, limit)` method requires size `2` for bigrams or `3` for
+trigrams. Its optional result limit defaults to `10` and must be an integer from
+`1` to `1000`. Missing or invalid sizes, limits outside that range, and excess
+arguments return errors.
 
 ```isla
 ! @(Joh 7).ngrams(2, 10) =>
@@ -55,13 +59,15 @@ non-positive limits, and excess arguments return errors.
 ! ^.ngrams(2, 10) =>
 ```
 
+![ISLA n-gram result card](https://github.com/user-attachments/assets/31e184c1-750f-4774-af80-1f3dea0eae52)
+
 The first two expressions analyze a passage; the last analyzes the current notebook
 cell's context. Results reuse the existing frequency card and display a localized
 bigram or trigram heading.
 
 The editor provides a valid `.ngrams(2, 10)` starter completion, leaves the size
-ready to change, suggests sizes and common/custom positive limits inside the call,
-and documents the method in Finnish and English hover help. `ngrams` is
+ready to change, suggests sizes and limits within the supported range, and
+documents the method in Finnish and English hover help. `ngrams` is
 syntax-highlighted, and truncated result phrases expose their full text on hover.
 
 ### Stats and lexical diversity
@@ -95,17 +101,13 @@ render without a fabricated zero.
 
 ## Verification
 
-- `task backend:check` — passed; **77.2%** statement coverage.
-- `task frontend:check` — passed; TypeScript and ESLint passed, with **51 test files
-  and 389 tests** passing.
+- `task check` — passed; backend statement coverage is **77.2%**, and frontend
+  TypeScript and ESLint passed with **51 test files and 389 tests** passing.
 - `task docs:build` — passed.
-- `task frontend:build` passed before the latest hapax addition; Vite reported the
-  existing large JavaScript chunk warning. The current changes have since passed the
-  TypeScript, lint, and Vitest checks above.
+- `task frontend:build` was not run in this verification; the frontend typecheck,
+  lint, and test suite were run through `task check`.
 - The user confirmed `.ngrams()` worked after restarting the backend. Hapax display
   is covered by automated tests; no separate manual browser verification is claimed.
-- `task check` was not run; backend, frontend, and documentation gates were run
-  individually.
 
 ## Files Changed
 
@@ -120,7 +122,7 @@ render without a fabricated zero.
 | ISLA v2 | `backend/new_dsl/executor.go` | N-gram execution, input bounds, stats payload, and cell-context fallback. |
 | ISLA v2 | `backend/new_dsl/executor_test.go` | N-gram and hapax fallback coverage. |
 | ISLA v2 | `backend/new_dsl/parser.go` | Accepts `.ngrams()` in the ISLA method registry. |
-| Analytics UI | `frontend/src/components/analytics/AnalyticsView.tsx` | Frequency-level controls and hapax summary metric. |
+| Analytics UI | `frontend/src/components/analytics/AnalyticsView.tsx` | Frequency-level controls, hapax summary metric, and responsive three-column metric grid. |
 | Analytics UI | `frontend/src/components/analytics/WordCloud.tsx` | Persistent word-only cloud rendering. |
 | Analytics UI | `frontend/src/components/analytics/WordCloud.test.ts` | Word-cloud sizing coverage. |
 | Analytics UI | `frontend/src/components/analytics/frequencyData.ts` | Frequency selection and chart sizing helpers. |

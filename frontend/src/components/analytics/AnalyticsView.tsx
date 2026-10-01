@@ -473,7 +473,7 @@ export const AnalyticsView = ({
       {stats && (
         <>
           {/* Key Metrics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
               {
                 label: strings.statTotalTokens,
@@ -512,11 +512,11 @@ export const AnalyticsView = ({
             ].map((card, i) => (
               <div
                 key={i}
-                className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm"
+                className="min-w-0 bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl shadow-sm"
               >
                 <div className="flex items-center gap-2 text-[var(--muted)] mb-2">
                   <card.icon size={15} />
-                  <span className="text-[10px] uppercase tracking-wider font-semibold">
+                  <span className="min-w-0 break-words text-[10px] uppercase tracking-wider font-semibold">
                     {card.label}
                   </span>
                 </div>
@@ -524,7 +524,7 @@ export const AnalyticsView = ({
                   {card.value}
                 </div>
                 {'detail' in card && card.detail && (
-                  <div className="mt-1 text-xs text-[var(--muted)]">{card.detail}</div>
+                  <div className="mt-1 break-words text-xs text-[var(--muted)]">{card.detail}</div>
                 )}
               </div>
             ))}
