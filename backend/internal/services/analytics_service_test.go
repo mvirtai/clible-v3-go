@@ -1,10 +1,44 @@
 package services
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/mvirtai/clible-v3-go/internal/models"
 )
+
+func BenchmarkAnalyticService_CompareTranslations(b *testing.B) {
+	svc, err := NewAnalyticService(nil, false, "en")
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for _, verseCount := range []int{100, 1000} {
+		b.Run(fmt.Sprintf("%d_verses", verseCount), func(b *testing.B) {
+			versesA := make([]models.Verse, verseCount)
+			versesB := make([]models.Verse, verseCount)
+			for i := range verseCount {
+				versesA[i] = models.Verse{
+					BookID: "John", Chapter: i/50 + 1, Verse: i%50 + 1,
+					Text: "For God so loved the world and gave his only Son, that everyone who believes may have eternal life.",
+				}
+				versesB[i] = models.Verse{
+					BookID: "John", Chapter: i/50 + 1, Verse: i%50 + 1,
+					Text: "For God loved the world so much that he gave his one and only Son, so that believers may have eternal life.",
+				}
+			}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				result := svc.CompareTranslations("John 1", versesA, versesB)
+				if result.Summary.TotalVerses != verseCount {
+					b.Fatalf("expected %d aligned verses, got %d", verseCount, result.Summary.TotalVerses)
+				}
+			}
+		})
+	}
+}
 
 func TestAnalyticService_TokenizeAndAnalyze(t *testing.T) {
 	// Initialize service without database dependency for pure text analysis testing
@@ -189,4 +223,3 @@ func TestAnalyticService_AnalyzeVersesClustered(t *testing.T) {
 			clustered.UniqueTokenCount, unclustered.UniqueTokenCount)
 	}
 }
-

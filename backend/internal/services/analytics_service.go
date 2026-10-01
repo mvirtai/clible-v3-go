@@ -280,16 +280,16 @@ func (s *AnalyticService) CompareTranslations(reference string, versesA, versesB
 				exactMatches++
 			}
 
+			tokensA := s.Tokenize(row.TextA)
+			tokensB := s.Tokenize(row.TextB)
 			seqRatio := s.computeSequenceRatio(normA, normB)
-			overlapRatio := s.computeTokenOverlap(row.TextA, row.TextB)
+			overlapRatio := s.computeTokenOverlap(tokensA, tokensB)
 			similarity := (seqRatio + overlapRatio) / 2.0
 
 			aligned[i].Similarity = similarity
 			aligned[i].ExactMatch = isExact
 			similaritySum += similarity
 
-			tokensA := s.Tokenize(row.TextA)
-			tokensB := s.Tokenize(row.TextB)
 			setA := make(map[string]bool)
 			for _, t := range tokensA {
 				setA[t] = true
@@ -383,10 +383,7 @@ func (s *AnalyticService) alignVerses(versesA, versesB []models.Verse) []Aligned
 	return result
 }
 
-func (s *AnalyticService) computeTokenOverlap(textA, textB string) float64 {
-	tokensA := s.Tokenize(textA)
-	tokensB := s.Tokenize(textB)
-
+func (s *AnalyticService) computeTokenOverlap(tokensA, tokensB []string) float64 {
 	setA := make(map[string]bool)
 	union := make(map[string]bool)
 	for _, t := range tokensA {
