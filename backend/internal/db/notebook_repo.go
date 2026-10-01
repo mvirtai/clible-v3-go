@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -181,11 +182,17 @@ func (r *NotebookRepository) SaveCells(ctx context.Context, notebookID string, c
 		return fmt.Errorf("failed to delete old cells: %w", err)
 	}
 
-	query := `
-		INSERT INTO notebook_cells (id, notebook_id, content, cell_type, result_json, position, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`
+	if len(cells) == 0 {
+		if err = tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit save cells transaction: %w", err)
+		}
+		return nil
+	}
+
 	now := time.Now()
+	valueStrings := make([]string, 0, len(cells))
+	valueArgs := make([]interface{}, 0, len(cells)*8)
+
 	for i, cell := range cells {
 		if cell.ID == "" {
 			cell.ID = uuid.New().String()
@@ -204,7 +211,11 @@ func (r *NotebookRepository) SaveCells(ctx context.Context, notebookID string, c
 			resultJSON = cell.ResultJSON
 		}
 
-		_, err = tx.ExecContext(ctx, query,
+		offset := i * 8
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+			offset+1, offset+2, offset+3, offset+4, offset+5, offset+6, offset+7, offset+8))
+
+		valueArgs = append(valueArgs,
 			cell.ID,
 			notebookID,
 			cell.Content,
@@ -214,9 +225,16 @@ func (r *NotebookRepository) SaveCells(ctx context.Context, notebookID string, c
 			cAt,
 			uAt,
 		)
-		if err != nil {
-			return fmt.Errorf("failed to insert cell at position %d: %w", i, err)
-		}
+	}
+
+	stmt := fmt.Sprintf(
+		"INSERT INTO notebook_cells (id, notebook_id, content, cell_type, result_json, position, created_at, updated_at) VALUES %s",
+		strings.Join(valueStrings, ", "),
+	)
+
+	_, err = tx.ExecContext(ctx, stmt, valueArgs...)
+	if err != nil {
+		return fmt.Errorf("failed to bulk insert cells: %w", err)
 	}
 
 	if err = tx.Commit(); err != nil {
