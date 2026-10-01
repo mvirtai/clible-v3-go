@@ -80,6 +80,9 @@ jobs:
       - name: Run ESLint quality code gates
         run: pnpm lint
 
+      - name: Run frontend test suite
+        run: pnpm test
+
       - name: Execute production build smoke-test
         run: pnpm build
 
