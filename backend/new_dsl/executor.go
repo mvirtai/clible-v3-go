@@ -12,6 +12,8 @@ import (
 	"github.com/mvirtai/clible-v3-go/internal/parsers"
 )
 
+const maxNgramLimit = 1000
+
 // VerseFetcher defines the interface for retrieving verses by reference.
 type VerseFetcher interface {
 	GetVerses(ctx context.Context, ref, translationID string) ([]models.Verse, error)
@@ -730,6 +732,9 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 				if err != nil || parsedLimit <= 0 {
 					return nil, fmt.Errorf("isla: ngrams limit must be a positive integer, got %q", m.Args[1])
 				}
+				if parsedLimit > maxNgramLimit {
+					return nil, fmt.Errorf("isla: ngrams limit must be <= %d, got %d", maxNgramLimit, parsedLimit)
+				}
 				limit = parsedLimit
 			}
 
@@ -1045,6 +1050,13 @@ func computeBasicAnalytics(text string) AnalyticsData {
 }
 
 func extractTopNgrams(text string, size, limit int) []models.ThemeItem {
+	if limit <= 0 {
+		return nil
+	}
+	if limit > maxNgramLimit {
+		limit = maxNgramLimit
+	}
+
 	clean := strings.ToLower(nonAlphaRegex.ReplaceAllString(text, " "))
 	tokens := strings.Fields(clean)
 	if len(tokens) < size {
