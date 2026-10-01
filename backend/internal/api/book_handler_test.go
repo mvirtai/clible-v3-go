@@ -39,6 +39,10 @@ func TestBookHandler_GetBooks(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
+	if cc := rr.Header().Get("Cache-Control"); cc != "public, max-age=86400" {
+		t.Errorf("expected Cache-Control 'public, max-age=86400', got %q", cc)
+	}
+
 	var books []models.Book
 	if err := json.NewDecoder(rr.Body).Decode(&books); err != nil {
 		t.Fatalf("failed to decode response body: %v", err)
@@ -61,6 +65,10 @@ func TestBookHandler_GetBookByID_Success(t *testing.T) {
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	if cc := rr.Header().Get("Cache-Control"); cc != "public, max-age=86400" {
+		t.Errorf("expected Cache-Control 'public, max-age=86400', got %q", cc)
 	}
 
 	var book models.Book

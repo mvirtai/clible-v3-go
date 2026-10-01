@@ -29,6 +29,7 @@ func (h *TranslationHandler) GetTranslations(w http.ResponseWriter, r *http.Requ
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		// Guest mode: all global translations are accessible and marked as installed
+		w.Header().Set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
 		translations, err := h.translationRepo.GetAllGlobal(ctx)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -43,6 +44,7 @@ func (h *TranslationHandler) GetTranslations(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	w.Header().Set("Cache-Control", "private, max-age=300, must-revalidate")
 	translations, err := h.translationRepo.GetAllWithInstalled(ctx, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
