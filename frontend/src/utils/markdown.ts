@@ -179,8 +179,8 @@ export function formatResultToMarkdown(type: string, data: CLIResultData, transl
       const l = leftVerses[i];
       const r = rightVerses[i];
       const verseNum = l?.verse || r?.verse || i + 1;
-      const lText = l?.text ? l.text.replace(/\|/g, '\\|') : '—';
-      const rText = r?.text ? r.text.replace(/\|/g, '\\|') : '—';
+      const lText = l?.text ? l.text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|') : '—';
+      const rText = r?.text ? r.text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|') : '—';
       md += `| **${verseNum}** | ${lText} | ${rText} |\n`;
     }
 

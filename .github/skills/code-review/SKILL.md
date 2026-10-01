@@ -1,9 +1,10 @@
  ---
+
 name: code-review
 description: >-
   Performs context-aware architectural, security, and quality code reviews for Clible v3,
   verifying Go 1.22+ backend standards, React 19.2 & React Compiler rules, Neon PG/SQLite
-  compatibility, and full bilingual i18n compliance.
+  compatibility, and full bilingual i18n compliance
 ---
 
 # Clible v3 Code Review & Architecture Audit Skill
