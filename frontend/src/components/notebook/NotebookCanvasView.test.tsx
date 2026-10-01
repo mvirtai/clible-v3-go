@@ -112,6 +112,9 @@ describe('NotebookCanvasView', () => {
 
     const text = container?.textContent || '';
     expect(text).toContain('2D Matrix');
-    expect(container?.querySelector('.grid-cols-24')).toBeDefined();
+    const emptyState = container?.querySelector('.col-span-24');
+    expect(container?.querySelector('.grid-cols-24')).not.toBeNull();
+    expect(emptyState).not.toBeNull();
+    expect(emptyState?.textContent?.trim()).toBeTruthy();
   });
 });
