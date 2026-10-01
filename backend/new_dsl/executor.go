@@ -712,18 +712,15 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 			}
 
 		case "ngrams":
-			if len(m.Args) > 2 {
-				return nil, fmt.Errorf("isla: ngrams accepts a size and an optional limit")
+			if len(m.Args) == 0 || len(m.Args) > 2 {
+				return nil, fmt.Errorf("isla: ngrams requires a size and accepts an optional limit")
 			}
 
-			size := 2
-			if len(m.Args) > 0 {
-				parsedSize, err := strconv.Atoi(m.Args[0])
-				if err != nil {
-					return nil, fmt.Errorf("isla: ngrams size must be 2 or 3, got %q", m.Args[0])
-				}
-				size = parsedSize
+			parsedSize, err := strconv.Atoi(m.Args[0])
+			if err != nil {
+				return nil, fmt.Errorf("isla: ngrams size must be 2 or 3, got %q", m.Args[0])
 			}
+			size := parsedSize
 			if size != 2 && size != 3 {
 				return nil, fmt.Errorf("isla: ngrams size must be 2 or 3, got %d", size)
 			}
