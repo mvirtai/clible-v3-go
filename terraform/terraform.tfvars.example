@@ -1,3 +1,9 @@
 project_id     = "clible-v3-go"
 region         = "europe-north1"
 gemini-api-key = "[GCP_API_KEY]"
+
+# Required for production deployments: use the canonical public HTTPS URL.
+app_base_url = "https://YOUR_PRODUCTION_DOMAIN"
+
+# Required for production email verification. Keep the real key out of this file.
+resend_api_key = "re_YOUR_RESEND_API_KEY"

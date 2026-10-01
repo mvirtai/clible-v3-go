@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -53,4 +54,50 @@ func TestLoadCustom(t *testing.T) {
 	if cfg.GeminiModelTone != "custom-tone-model" {
 		t.Errorf("expected custom-tone-model, got %s", cfg.GeminiModelTone)
 	}
+}
+
+func TestValidateProductionConfig(t *testing.T) {
+	t.Run("non-production config is not subject to production requirements", func(t *testing.T) {
+		cfg := &Config{Env: "development"}
+		if err := ValidateProductionConfig(cfg); err != nil {
+			t.Fatalf("expected non-production config to pass, got %v", err)
+		}
+	})
+
+	t.Run("nil config is ignored", func(t *testing.T) {
+		if err := ValidateProductionConfig(nil); err != nil {
+			t.Fatalf("expected nil config to pass, got %v", err)
+		}
+	})
+
+	t.Run("missing Resend API key is rejected", func(t *testing.T) {
+		cfg := &Config{Env: "production", AppBaseURL: "https://clible.example"}
+		err := ValidateProductionConfig(cfg)
+		if err == nil || !strings.Contains(err.Error(), "RESEND_API_KEY") {
+			t.Fatalf("expected RESEND_API_KEY validation error, got %v", err)
+		}
+	})
+
+	t.Run("localhost default app URL is rejected", func(t *testing.T) {
+		cfg := &Config{
+			Env:          "production",
+			ResendAPIKey: "re_live",
+			AppBaseURL:   "http://localhost:5173/",
+		}
+		err := ValidateProductionConfig(cfg)
+		if err == nil || !strings.Contains(err.Error(), "APP_BASE_URL") {
+			t.Fatalf("expected APP_BASE_URL validation error, got %v", err)
+		}
+	})
+
+	t.Run("valid production config passes", func(t *testing.T) {
+		cfg := &Config{
+			Env:          "production",
+			ResendAPIKey: "re_live",
+			AppBaseURL:   "https://clible.example",
+		}
+		if err := ValidateProductionConfig(cfg); err != nil {
+			t.Fatalf("expected valid production config to pass, got %v", err)
+		}
+	})
 }

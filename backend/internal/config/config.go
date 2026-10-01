@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strings"
 )
@@ -23,6 +24,23 @@ type Config struct {
 	SMTPPass            string
 	SMTPFrom            string
 	AppBaseURL          string
+}
+
+const defaultAppBaseURL = "http://localhost:5173"
+
+// ValidateProductionConfig rejects configuration that would disable real email
+// delivery or generate unusable verification links in production.
+func ValidateProductionConfig(cfg *Config) error {
+	if cfg == nil || cfg.Env != "production" {
+		return nil
+	}
+	if strings.TrimSpace(cfg.ResendAPIKey) == "" {
+		return fmt.Errorf("RESEND_API_KEY is required in production")
+	}
+	if strings.TrimRight(strings.TrimSpace(cfg.AppBaseURL), "/") == defaultAppBaseURL {
+		return fmt.Errorf("APP_BASE_URL must be set to the public application URL in production")
+	}
+	return nil
 }
 
 func cleanEnv(val string) string {
@@ -82,7 +100,7 @@ func Load() *Config {
 
 	appBaseURL := cleanEnv(os.Getenv("APP_BASE_URL"))
 	if appBaseURL == "" {
-		appBaseURL = "http://localhost:5173"
+		appBaseURL = defaultAppBaseURL
 	}
 
 	return &Config{
