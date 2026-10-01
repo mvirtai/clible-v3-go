@@ -122,7 +122,7 @@ export function NotebookCanvasView({
       >
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
           {/* 24-sarakkeinen tiivis CSS Grid -kontti 24px automaattisilla rivikorkeuksilla */}
-          <div className="grid grid-cols-24 auto-rows-[24px] grid-flow-row-dense gap-4 items-start relative">
+          <div className="grid grid-cols-24 auto-rows-[24px] grid-flow-row-dense gap-1 sm:gap-4 items-start relative">
             <GridOverlay visible={isAnyCardResizing} />
             {notebooks.map((nb, index) => (
               <SortableNotebookCard
