@@ -33,18 +33,20 @@ type AnalyticsData struct {
 	CharacterCount    int                `json:"character_count"`
 	AverageWordLength float64            `json:"avg_word_length"`
 	TopWords          []models.ThemeItem `json:"top_words"`
+	TopBigrams        []models.ThemeItem `json:"top_bigrams"`
+	TopTrigrams       []models.ThemeItem `json:"top_trigrams"`
 }
 
 // ExecutionContext is the runtime context for AST evaluation.
 type ExecutionContext struct {
-	Ctx              context.Context
-	DefaultTrans     string
-	ContextText      string
-	VerseFetcher     VerseFetcher
-	VerseSearcher    VerseSearcher
-	ThemeExtractor   func(text string, limit int) []models.ThemeItem
-	RefsFinder       func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
-	SuggestFinder    func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
+	Ctx                      context.Context
+	DefaultTrans             string
+	ContextText              string
+	VerseFetcher             VerseFetcher
+	VerseSearcher            VerseSearcher
+	ThemeExtractor           func(text string, limit int) []models.ThemeItem
+	RefsFinder               func(ctx context.Context, ref, translationID string, limit int) ([]models.Verse, error)
+	SuggestFinder            func(ctx context.Context, contextText, translationID string, limit int) ([]models.Verse, []string, error)
 	AnalyticsFinder          func(verses []models.Verse, text string, topN int) AnalyticsData
 	ClusteredAnalyticsFinder func(verses []models.Verse, text string, topN int) AnalyticsData
 	Lemmatizer               func(word string) string
@@ -52,22 +54,22 @@ type ExecutionContext struct {
 }
 
 var (
-	islaLineRegex          = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
-	codeBlockRegex         = regexp.MustCompile("(?s)```.*?```")
-	inlineCodeRegex        = regexp.MustCompile("`[^`]*`")
-	nonAlphaRegex          = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
-	whitespaceRegex        = regexp.MustCompile(`\s+`)
-	urlRegex               = regexp.MustCompile(`https?://\S+`)
-	markdownLinkRegex      = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`)
-	markdownHeaderRegex    = regexp.MustCompile(`(?m)^\s*#{1,6}\s+.*$`)
-	metadataLineRegex      = regexp.MustCompile(`(?mi)^\s*\*\*(?:Päivämäärä|Liturginen väri|Date|Liturgical color|Color):\*\*.*$`)
-	liturgicalRubricRegex  = regexp.MustCompile(`(?mi)^\s*(?:[-*]\s*)?\*(?:Ehdotus|Suggestion|Tai vaihtoehtoisesti|Alternatively|Päivän psalmi|Day psalm|Lyhyt yörukouksen|Virsi|Hymn).*$`)
-	liturgicalParenthesis  = regexp.MustCompile(`\*\([^)]+\)\*`)
-	liturgicalRoleRegex    = regexp.MustCompile(`(?mi)^\s*>\s*\*\*(?:E|S|L|C|Kaikki|All):\*\*\s*|\*\*(?:E|S|L|C|Kaikki|All):\*\*`)
-	liturgicalCrossRegex   = regexp.MustCompile(`\(\+\)`)
-	blockquoteLeaderRegex  = regexp.MustCompile(`(?m)^\s*>\s?`)
-	dividerLineRegex       = regexp.MustCompile(`(?m)^\s*---+.*$`)
-	verseRefExtractRegex   = regexp.MustCompile(`@(?:\(([^)]+)\)|([1-3]?[A-Za-zäöÄÖåÅ]+(?:\s+\d+(?::\d+(?:-\d+)?)?)?))`)
+	islaLineRegex         = regexp.MustCompile(`(?m)^\s*(!|ISLA|isla)\s+.*$`)
+	codeBlockRegex        = regexp.MustCompile("(?s)```.*?```")
+	inlineCodeRegex       = regexp.MustCompile("`[^`]*`")
+	nonAlphaRegex         = regexp.MustCompile(`[^a-zA-ZäöÄÖåÅ\s]+`)
+	whitespaceRegex       = regexp.MustCompile(`\s+`)
+	urlRegex              = regexp.MustCompile(`https?://\S+`)
+	markdownLinkRegex     = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`)
+	markdownHeaderRegex   = regexp.MustCompile(`(?m)^\s*#{1,6}\s+.*$`)
+	metadataLineRegex     = regexp.MustCompile(`(?mi)^\s*\*\*(?:Päivämäärä|Liturginen väri|Date|Liturgical color|Color):\*\*.*$`)
+	liturgicalRubricRegex = regexp.MustCompile(`(?mi)^\s*(?:[-*]\s*)?\*(?:Ehdotus|Suggestion|Tai vaihtoehtoisesti|Alternatively|Päivän psalmi|Day psalm|Lyhyt yörukouksen|Virsi|Hymn).*$`)
+	liturgicalParenthesis = regexp.MustCompile(`\*\([^)]+\)\*`)
+	liturgicalRoleRegex   = regexp.MustCompile(`(?mi)^\s*>\s*\*\*(?:E|S|L|C|Kaikki|All):\*\*\s*|\*\*(?:E|S|L|C|Kaikki|All):\*\*`)
+	liturgicalCrossRegex  = regexp.MustCompile(`\(\+\)`)
+	blockquoteLeaderRegex = regexp.MustCompile(`(?m)^\s*>\s?`)
+	dividerLineRegex      = regexp.MustCompile(`(?m)^\s*---+.*$`)
+	verseRefExtractRegex  = regexp.MustCompile(`@(?:\(([^)]+)\)|([1-3]?[A-Za-zäöÄÖåÅ]+(?:\s+\d+(?::\d+(?:-\d+)?)?)?))`)
 )
 
 // ExtractVerseRefs extracts Bible citations referenced via @(...) or @Book from raw text.
@@ -328,7 +330,6 @@ func executeRangeExpr(ctx *ExecutionContext, n *RangeNode, methods []MethodCall)
 			}
 		}
 	}
-
 
 	res := &models.CLIResult{
 		Type: "range",
@@ -706,6 +707,54 @@ func applyAnalyticalMethods(ctx *ExecutionContext, baseRes *models.CLIResult, ve
 				}
 			}
 
+		case "ngrams":
+			if len(m.Args) > 2 {
+				return nil, fmt.Errorf("isla: ngrams accepts a size and an optional limit")
+			}
+
+			size := 2
+			if len(m.Args) > 0 {
+				parsedSize, err := strconv.Atoi(m.Args[0])
+				if err != nil {
+					return nil, fmt.Errorf("isla: ngrams size must be 2 or 3, got %q", m.Args[0])
+				}
+				size = parsedSize
+			}
+			if size != 2 && size != 3 {
+				return nil, fmt.Errorf("isla: ngrams size must be 2 or 3, got %d", size)
+			}
+
+			limit := 10
+			if len(m.Args) > 1 {
+				parsedLimit, err := strconv.Atoi(m.Args[1])
+				if err != nil || parsedLimit <= 0 {
+					return nil, fmt.Errorf("isla: ngrams limit must be a positive integer, got %q", m.Args[1])
+				}
+				limit = parsedLimit
+			}
+
+			var items []models.ThemeItem
+			if ctx.AnalyticsFinder != nil {
+				analytics := ctx.AnalyticsFinder(verses, text, limit)
+				if size == 2 {
+					items = analytics.TopBigrams
+				} else {
+					items = analytics.TopTrigrams
+				}
+			} else {
+				items = extractTopNgrams(aggregateText(verses, text), size, limit)
+			}
+
+			currentRes = &models.CLIResult{
+				Type: "words",
+				Data: map[string]interface{}{
+					"words":      items,
+					"limit":      limit,
+					"count":      len(items),
+					"ngram_size": size,
+				},
+			}
+
 		case "stats":
 			if ctx.AnalyticsFinder != nil {
 				analytics := ctx.AnalyticsFinder(verses, text, 10)
@@ -978,6 +1027,7 @@ func computeBasicAnalytics(text string) AnalyticsData {
 		uniqueTokens[strings.ToLower(w)] = struct{}{}
 		totalChars += len([]rune(w))
 	}
+
 	uniqueCount := len(uniqueTokens)
 	ttr := 0.0
 	avgLen := 0.0
@@ -992,6 +1042,46 @@ func computeBasicAnalytics(text string) AnalyticsData {
 		CharacterCount:    totalChars,
 		AverageWordLength: avgLen,
 	}
+}
+
+func extractTopNgrams(text string, size, limit int) []models.ThemeItem {
+	clean := strings.ToLower(nonAlphaRegex.ReplaceAllString(text, " "))
+	tokens := strings.Fields(clean)
+	if len(tokens) < size {
+		return nil
+	}
+
+	counts := make(map[string]int)
+	for i := 0; i <= len(tokens)-size; i++ {
+		counts[strings.Join(tokens[i:i+size], " ")]++
+	}
+
+	type ngramCount struct {
+		ngram string
+		count int
+	}
+
+	items := make([]ngramCount, 0, len(counts))
+	for ngram, count := range counts {
+		items = append(items, ngramCount{ngram: ngram, count: count})
+	}
+	for i := range items {
+		for j := i + 1; j < len(items); j++ {
+			if items[j].count > items[i].count ||
+				(items[j].count == items[i].count && items[j].ngram < items[i].ngram) {
+				items[i], items[j] = items[j], items[i]
+			}
+		}
+	}
+
+	if limit > len(items) {
+		limit = len(items)
+	}
+	result := make([]models.ThemeItem, 0, limit)
+	for _, item := range items[:limit] {
+		result = append(result, models.ThemeItem{Word: item.ngram, Count: item.count})
+	}
+	return result
 }
 
 func inferTranslationFromScope(scope string, defaultTrans string) string {

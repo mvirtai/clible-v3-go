@@ -345,6 +345,37 @@ search("armo").at(epistolat).top(10) >>
 
 **Allowed on:** All objects
 
+### `.ngrams(size, [limit])` — Bigram and Trigram Frequencies
+
+Returns the most frequent consecutive word pairs or triples from the selected text.
+Use `2` for bigrams and `3` for trigrams. The optional `limit` controls how many
+ranked results are returned and defaults to `10`.
+
+```isla
+! @(Joh 7).ngrams(2, 3) =>
+! @(Joh 7).ngrams(3, 10) =>
+! ^.ngrams(2, 10) =>
+```
+
+The first two commands analyze the selected Bible passage. The last command analyzes
+the text of the current notebook cell. Results are shown in the frequency card as
+**Bigrams** or **Trigrams**, with the phrase and its count.
+
+| Argument | Accepted values | Example |
+|---|---|---|
+| `size` | `2` (bigrams) or `3` (trigrams) | `.ngrams(2, 10)` |
+| `limit` | Positive integer; defaults to `10` | `.ngrams(3, 5)` |
+
+Do not prefix the method name with an extra parenthesis and do not combine it with
+`.top()`: `.ngrams()` already selects and ranks phrase frequencies. For example,
+use `@(Joh 7).ngrams(2, 3)`, not `@(Joh 7).(ngrams(2, 3)` or
+`@(Joh 7).top(10).ngrams(2, 3)`.
+
+The engine rejects sizes other than `2` or `3`, a limit of `0` or less, and more
+than two arguments.
+
+**Allowed on:** All objects
+
 ### `.lemma()` / `.categorize()` / `.cluster()` — Finnish Lemmatization
 
 These three **pipeline-modifier methods** are synonymous: any one of them activates
@@ -622,6 +653,8 @@ isla: unknown method .thems()
 | **Word count** | `range(GEN, DEU).count(words) =>` | Count metric |
 | **Lexical analytics** | `range(ROM, GAL).stats() =>` | Stats card |
 | **Word frequencies** | `range(ROM, GAL).top(15) =>` | Frequency list |
+| **Bigram frequencies** | `@(Joh 7).ngrams(2, 10) =>` | Frequency list |
+| **Trigram frequencies** | `^.ngrams(3, 10) =>` | Frequency list |
 | **Lemmatized frequencies** | `range(ROM, GAL).lemma().top(15) =>` | Frequency list (merged forms) |
 | **Cluster cell context** | `^.cluster().top(10) =>` | Frequency list (merged forms) |
 | **Categorize + search** | `search("armo").at(NT).categorize().top(10) =>` | Frequency list (merged forms) |

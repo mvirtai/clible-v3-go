@@ -426,6 +426,17 @@ export const ISLA_METHOD_SUGGESTIONS: ISLASuggestion[] = [
     kind: 'function',
   },
   {
+    label: 'ngrams(...)',
+    insertText: 'ngrams(',
+    detail: 'N-grammit / N-gram frequencies',
+    documentation: {
+      fi: 'Laskee yleisimmät bigrammit tai trigrammit. Käytä ngrams(2, 10) tai ngrams(3, 10).',
+      en: 'Calculates the most frequent bigrams or trigrams. Use ngrams(2, 10) or ngrams(3, 10).',
+    },
+    example: '@(Joh 1:1-18).ngrams(2, 10)',
+    kind: 'function',
+  },
+  {
     label: 'stats()',
     insertText: 'stats()',
     detail: 'Tekstitilastot / Text statistics & TTR',

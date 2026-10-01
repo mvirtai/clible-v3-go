@@ -612,6 +612,24 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 		}
 	})
 
+	t.Run("execute ISLA v2 ngrams with leading bang", func(t *testing.T) {
+		res, err := cliService.ExecuteDSL(
+			ctx,
+			"! ^.ngrams(2, 2) =>",
+			"web",
+			"Jumalan armo kantaa. Jumalan armo riittää.",
+		)
+		if err != nil {
+			t.Fatalf("ExecuteDSL v2 ngrams failed: %v", err)
+		}
+		if res.Type != "words" {
+			t.Fatalf("expected type 'words', got %s", res.Type)
+		}
+		if res.Data["ngram_size"] != 2 {
+			t.Errorf("expected ngram_size 2, got %v", res.Data["ngram_size"])
+		}
+	})
+
 	t.Run("execute ISLA v2 verse ref with inline output @(JHN 3:16) =>", func(t *testing.T) {
 		res, err := cliService.ExecuteDSL(ctx, "! @(JHN 3:16) =>", "web", "")
 		if err != nil {
@@ -736,6 +754,3 @@ func TestCLIService_ExecuteDSL(t *testing.T) {
 		}
 	})
 }
-
-
-

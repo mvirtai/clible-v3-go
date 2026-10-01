@@ -75,4 +75,22 @@ describe('CellWordFreqResult', () => {
     const content = container?.textContent || '';
     expect(content).toContain('Ei tuloksia');
   });
+
+  it('labels n-gram results by their requested size', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CellWordFreqResult
+            data={{
+              words: [{ word: 'jumalan armo', count: 2 }],
+              ngram_size: 2,
+            }}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    expect(container?.textContent).toContain('Bigrammit');
+  });
 });

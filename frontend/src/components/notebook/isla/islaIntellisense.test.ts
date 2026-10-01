@@ -275,6 +275,7 @@ describe('islaIntellisense', () => {
       expect(suggestions.some((s) => s.label === 'refs(...)')).toBe(true);
       expect(suggestions.some((s) => s.label === 'stats()')).toBe(true);
       expect(suggestions.some((s) => s.label === 'top(...)')).toBe(true);
+      expect(suggestions.some((s) => s.label === 'ngrams(...)')).toBe(true);
       expect(suggestions.some((s) => s.label === 'lemma()')).toBe(true);
       expect(suggestions.some((s) => s.label === 'cluster()')).toBe(true);
       expect(suggestions.some((s) => s.label === 'categorize()')).toBe(true);
@@ -315,6 +316,10 @@ describe('islaIntellisense', () => {
       const lemmaSuggestions = getISLASuggestions('! @(Joh 3:16).le', 16);
       expect(lemmaSuggestions).toHaveLength(1);
       expect(lemmaSuggestions[0].label).toBe('lemma()');
+
+      const ngramSuggestions = getISLASuggestions('! @(Joh 3:16).ng', 16);
+      expect(ngramSuggestions).toHaveLength(1);
+      expect(ngramSuggestions[0].label).toBe('ngrams(...)');
     });
   });
 
@@ -533,4 +538,3 @@ describe('islaIntellisense', () => {
     });
   });
 });
-

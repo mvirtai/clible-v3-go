@@ -194,6 +194,7 @@ returns an error immediately, before any database I/O is attempted:
 | `.limit(n)` | ❌ | ❌ | ✅ | ❌ |
 | `.count([unit])` | ✅ | ✅ | ✅ | ✅ |
 | `.top(n)` | ✅ | ✅ | ✅ | ✅ |
+| `.ngrams(size, [limit])` | ✅ | ✅ | ✅ | ✅ |
 | `.stats()` | ✅ | ✅ | ✅ | ✅ |
 | `.themes(n)` | ✅ | ✅ | ✅ | ✅ |
 | `.suggest(n)` | ✅ | ✅ | ✅ | ✅ |
