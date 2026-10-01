@@ -108,8 +108,13 @@ func determineCacheStrategy(path string, method string) CacheStrategy {
 		return LongCache
 	}
 
-	// Liturgical calendar endpoints: long cache (fixed church year calendar days)
+	// Liturgical calendar endpoints:
+	// Relative / today -> ShortCache (5 mins) to prevent stale midnight rollover
+	// Fixed church year calendar days -> LongCache
 	if strings.HasPrefix(path, "/api/liturgical/") {
+		if path == "/api/liturgical/today" {
+			return ShortCache
+		}
 		return LongCache
 	}
 
@@ -128,19 +133,14 @@ func determineCacheStrategy(path string, method string) CacheStrategy {
 		return MediumCache
 	}
 
-	// History: short cache (recent user data, needs fresher than workspace)
+	// History: short cache (recent user data)
 	if path == "/api/history" {
 		return ShortCache
 	}
 
-	// Scopes and workspace: short cache (user-specific, mutable)
-	if strings.HasPrefix(path, "/api/scopes") {
-		return ShortCache
-	}
-
-	// Notebooks: short cache (user-specific content, mutable)
-	if strings.HasPrefix(path, "/api/notebooks") {
-		return ShortCache
+	// Scopes, workspaces and notebooks: never cache (private, mutable user documents)
+	if strings.HasPrefix(path, "/api/scopes") || strings.HasPrefix(path, "/api/notebooks") {
+		return NoCache
 	}
 
 	// User settings: never cache (private, sensitive)

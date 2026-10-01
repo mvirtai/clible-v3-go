@@ -29,8 +29,8 @@ func (h *TranslationHandler) GetTranslations(w http.ResponseWriter, r *http.Requ
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		// Guest mode: all global translations are accessible and marked as installed
-w.Header().Add("Vary", "Cookie")
 		w.Header().Set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
+		w.Header().Set("Vary", "Cookie, Authorization")
 		translations, err := h.translationRepo.GetAllGlobal(ctx)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

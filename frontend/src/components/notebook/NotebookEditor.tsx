@@ -168,6 +168,11 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
   const scheduleAutoSave = (updatedCells: Cell[]) => {
     const fingerprint = computeCellsFingerprint(updatedCells);
     if (fingerprint === lastSavedFingerprintRef.current) {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      setIsSaving(false);
       return;
     }
 

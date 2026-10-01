@@ -367,15 +367,46 @@ describe('NotebookEditor', () => {
     );
     expect(putCallsInitial.length).toBe(0);
 
-    // Fast-forward another 5 seconds to simulate idle time
+    // Double-click cell to enter edit mode
+    const proseDiv = container?.querySelector('div.prose');
+    expect(proseDiv).not.toBeNull();
     await act(async () => {
-      vi.advanceTimersByTime(5000);
+      proseDiv?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
     });
 
-    const putCallsAfterIdle = fetchSpy.mock.calls.filter(
+    const textarea = container?.querySelector('textarea');
+    expect(textarea).not.toBeNull();
+
+    const originalText = textarea?.value || '';
+
+    // Step 1: User edits content (A -> B), triggering pending autosave timeout
+    await act(async () => {
+      if (textarea) {
+        textarea.value = 'Temporary modified content';
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    // Step 2: User immediately reverts changes back to original (B -> A)
+    await act(async () => {
+      if (textarea) {
+        textarea.value = originalText;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    // Step 3: Advance past the debounce timer (1500ms)
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    // Verify zero PUT network requests were executed
+    const putCallsAfterRevert = fetchSpy.mock.calls.filter(
       (c) => typeof c[0] === 'string' && c[0].includes('/api/notebooks/nb-123/cells')
     );
-    expect(putCallsAfterIdle.length).toBe(0);
+    expect(putCallsAfterRevert.length).toBe(0);
 
     vi.useRealTimers();
   });
