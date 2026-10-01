@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getWordCloudFontSize } from './WordCloud';
+import { getWordCloudFontSize } from './wordCloudUtils';
 
 describe('getWordCloudFontSize', () => {
   it('keeps multi-word n-grams readable in a narrow cloud', () => {

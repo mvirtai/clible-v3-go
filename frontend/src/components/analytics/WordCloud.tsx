@@ -1,4 +1,5 @@
 import type { WordFrequency } from "../../types/bible";
+import { getWordCloudFontSize } from "./wordCloudUtils";
 
 /**
  * Properties for {@link WordCloud}.
@@ -25,19 +26,6 @@ const hashString = (str: string): number => {
   }
   return hash;
 };
-
-export function getWordCloudFontSize(
-  termLength: number,
-  frequencyRatio: number,
-): number {
-  const maxSize =
-    termLength > 20 ? 22 :
-    termLength > 14 ? 28 :
-    termLength > 8 ? 34 :
-    49;
-
-  return Math.min(Math.round(13 + frequencyRatio * 36), maxSize);
-}
 
 /**
  * Renders a lightweight tag-cloud using proportional font sizing based on word frequencies.
