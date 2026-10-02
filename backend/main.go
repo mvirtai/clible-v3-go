@@ -216,23 +216,31 @@ func main() {
 
 	// Static SPA fallback
 	fs := http.FileServer(http.Dir(cfg.FrontendDir))
-	absFrontendDir, _ := filepath.Abs(cfg.FrontendDir)
+	absFrontendDir, err := filepath.Abs(cfg.FrontendDir)
+	if err != nil {
+		slog.Error("invalid frontend directory", "frontendDir", cfg.FrontendDir, "error", err)
+		return
+	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			http.Error(w, "API endpoint not found", http.StatusNotFound)
 			return
 		}
 
-		// VULN-002: Prevent path traversal by validating resolved path stays within FrontendDir
+		// Prevent path traversal by ensuring resolved path stays within FrontendDir
 		cleanPath := filepath.Clean(r.URL.Path)
-		filePath := filepath.Join(cfg.FrontendDir, cleanPath)
-		absPath, _ := filepath.Abs(filePath)
-		if !strings.HasPrefix(absPath, absFrontendDir) {
+		absPath, err := filepath.Abs(filepath.Join(absFrontendDir, cleanPath))
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		relPath, err := filepath.Rel(absFrontendDir, absPath)
+		if err != nil || relPath == ".." || strings.HasPrefix(relPath, ".."+string(os.PathSeparator)) {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
 
-		info, err := os.Stat(filePath)
+		info, err := os.Stat(absPath)
 
 		if os.IsNotExist(err) || info.IsDir() {
 			http.ServeFile(w, r, filepath.Join(cfg.FrontendDir, "index.html"))
