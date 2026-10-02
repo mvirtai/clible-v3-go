@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -215,45 +218,22 @@ func main() {
 	mux.Handle("PUT /api/user/password", requireAuth(http.HandlerFunc(userSettingsHandler.UpdatePassword)))
 
 	// Static SPA fallback
-	fs := http.FileServer(http.Dir(cfg.FrontendDir))
 	absFrontendDir, err := filepath.Abs(cfg.FrontendDir)
 	if err != nil {
 		slog.Error("invalid frontend directory", "frontendDir", cfg.FrontendDir, "error", err)
 		os.Exit(1)
 	}
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/") {
-			http.Error(w, "API endpoint not found", http.StatusNotFound)
-			return
+	frontendRoot, err := os.OpenRoot(absFrontendDir)
+	if err != nil {
+		slog.Error("unable to open frontend directory", "frontendDir", absFrontendDir, "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if err := frontendRoot.Close(); err != nil {
+			slog.Error("Failed to close frontend root", "error", err)
 		}
-
-		// Prevent path traversal by ensuring resolved path stays within FrontendDir
-		cleanPath := filepath.Clean(r.URL.Path)
-		relRequestPath := strings.TrimLeft(cleanPath, `/\`)
-		if filepath.IsAbs(relRequestPath) {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
-		absPath, err := filepath.Abs(filepath.Join(absFrontendDir, relRequestPath))
-		if err != nil {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
-		relPath, err := filepath.Rel(absFrontendDir, absPath)
-		if err != nil || relPath == ".." || strings.HasPrefix(relPath, ".."+string(os.PathSeparator)) {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
-
-		info, err := os.Stat(absPath)
-
-		if os.IsNotExist(err) || info.IsDir() {
-			http.ServeFile(w, r, filepath.Join(cfg.FrontendDir, "index.html"))
-			return
-		}
-
-		fs.ServeHTTP(w, r)
-	})
+	}()
+	mux.Handle("/", frontendHandler(frontendRoot))
 
 	limiter := middleware.NewIPRateLimiter(rate.Limit(20), 30)
 
@@ -348,4 +328,77 @@ func main() {
 			os.Exit(1)
 		}
 	}
+}
+
+func frontendHandler(root *os.Root) http.Handler {
+	serveIndex := func(w http.ResponseWriter, r *http.Request) {
+		file, err := root.Open("index.html")
+		if errors.Is(err, fs.ErrNotExist) {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Unable to serve frontend", http.StatusInternalServerError)
+			return
+		}
+		defer func() {
+			if err := file.Close(); err != nil {
+				slog.Error("Failed to close frontend index file", "error", err)
+			}
+		}()
+
+		info, err := file.Stat()
+		if err != nil {
+			http.Error(w, "Unable to serve frontend", http.StatusInternalServerError)
+			return
+		}
+		if info.IsDir() {
+			http.NotFound(w, r)
+			return
+		}
+		http.ServeContent(w, r, "index.html", info.ModTime(), file)
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			http.Error(w, "API endpoint not found", http.StatusNotFound)
+			return
+		}
+
+		name := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+		if name == "" {
+			name = "."
+		}
+
+		file, err := root.Open(filepath.FromSlash(name))
+		if errors.Is(err, fs.ErrNotExist) {
+			serveIndex(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		defer func() {
+			if err := file.Close(); err != nil {
+				slog.Error("Failed to close frontend file", "path", name, "error", err)
+			}
+		}()
+
+		info, err := file.Stat()
+		if errors.Is(err, fs.ErrNotExist) {
+			serveIndex(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Unable to serve frontend", http.StatusInternalServerError)
+			return
+		}
+		if info.IsDir() {
+			serveIndex(w, r)
+			return
+		}
+
+		http.ServeContent(w, r, filepath.Base(name), info.ModTime(), file)
+	})
 }
