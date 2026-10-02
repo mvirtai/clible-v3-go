@@ -36,6 +36,8 @@ This document provides a comprehensive, unified collection of all operational co
 * **Instruction Documents (`.plans/`) & Plan Template**:
   * All step-by-step guides, design plans, tutorials, and variable references prepared for the developer must be written as markdown files inside `.plans/` rather than dumping verbose code blocks directly in chat.
   * Technical design proposals should follow `pr_stories/templates/TECHNICAL_DESIGN.template.md` (Finnish). If `.plans/templates/PLAN_TEMPLATE.md` exists locally, use it for phase documents; otherwise follow the directory rules below.
+  * The canonical private planning repository is [`mvirtai/clible-plans`](https://github.com/mvirtai/clible-plans). It contains internal plans, templates, and planning boards. Clone it once with `gh repo clone mvirtai/clible-plans "$HOME/code/clible-plans"`, then expose it in each Clible worktree with `task plans:link` (or pass `PLANS_DIR=/path/to/clible-plans`).
+  * If the private clone is missing, tell the developer to clone the repository before creating or editing plans; do not silently create a separate local `.plans/` directory that can diverge from the canonical repository.
   * This provides a persistent reference that the developer can consult during coding.
   * **Developer-facing step-by-step plans** must be clear, Finnish-language teaching materials: explain the implementation in understandable steps, teach the relevant technical concepts, and make the engineering principles, trade-offs, and rationale explicit. The goal is to build the developer's technical understanding, not merely enumerate edits.
   * **Agent task instructions** may be concise and high-level, focused on scope, constraints, expected outcome, and verification; they do not need the same tutorial depth.
@@ -46,8 +48,8 @@ This document provides a comprehensive, unified collection of all operational co
   * Keep the overview's phase links and progress checkboxes synchronized with the actual phase documents and implementation status. Do not mark a phase complete before its work is implemented and verified.
 
 * **Internal Documentation vs. Commits**:
-  * Files in `.plans/`, `.visions/`, and local notes are strictly internal developer references and **MUST NEVER** be committed or included in `task git:commit FILES="..."`.
-  * `.plans/` is gitignored, so git worktrees do not contain it. To keep it private yet visible to agents, keep it in the main checkout (or a separate private repository) and expose it to each worktree with a symlink (`task plans:link PLANS_DIR=<path>`, default `~/code/clible-plans`). Agents must never copy its contents into tracked files. Publishing plans requires an explicit developer decision and a cleanup pass first.
+  * Files in `.plans/`, `.visions/`, and local notes are internal developer references. Never commit them to the public `mvirtai/clible-v3-go` repository or include them in its `task git:commit FILES="..."`.
+  * `.plans/` is gitignored in `mvirtai/clible-v3-go`; worktrees should link to the private canonical repository `mvirtai/clible-plans` using `task plans:link` (default clone path: `~/code/clible-plans`). Plan changes intended for persistence belong in that private repository, not the public application repository. Agents must never copy private plan contents into tracked public files. Publishing plan contents publicly requires an explicit developer decision and a cleanup pass first.
   * The documentation files committed to git are Pull Request stories (`pr_stories/`), VitePress documentation (`docs/`), and verified security audits (`.security_audits/`).
 
 * **Task Management with Markdown Kanban**:
