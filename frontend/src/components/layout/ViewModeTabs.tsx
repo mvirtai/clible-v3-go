@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -79,6 +80,22 @@ const VIEW_GROUPS: ViewGroup[] = [
 const MENU_OPTIONS = [READER_OPTION, ...VIEW_GROUPS.flatMap((group) => group.options), NOTEBOOKS_OPTION];
 
 type OpenMenu = 'mobile' | ViewGroup['id'] | null;
+type PendingArrowFocus = {
+  menu: Exclude<OpenMenu, null>;
+  optionId: ViewMode;
+};
+
+const getMenuId = (menu: Exclude<OpenMenu, null>) =>
+  menu === 'mobile' ? 'mobile-view-options' : `${menu}-view-options`;
+
+const focusMenuOption = (
+  navigation: HTMLDivElement | null,
+  { menu, optionId }: PendingArrowFocus,
+) => {
+  navigation
+    ?.querySelector<HTMLButtonElement>(`#${getMenuId(menu)} [data-view-option="${optionId}"]`)
+    ?.focus();
+};
 
 /**
  * Grouped navigation for workspace views.
@@ -93,10 +110,7 @@ export function ViewModeTabs({
   const { strings } = useLanguage();
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
   const navigationRef = useRef<HTMLDivElement>(null);
-  const pendingArrowFocus = useRef<{
-    menu: Exclude<OpenMenu, null>;
-    position: 'first' | 'last';
-  } | null>(null);
+  const pendingArrowFocus = useRef<PendingArrowFocus | null>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const exploreTriggerRef = useRef<HTMLButtonElement>(null);
   const planningTriggerRef = useRef<HTMLButtonElement>(null);
@@ -154,11 +168,48 @@ export function ViewModeTabs({
             ? 'planning'
             : null;
 
+    if (
+      !openMenu &&
+      !triggerMenu &&
+      target.dataset.viewVariant === 'desktop' &&
+      (event.key === 'ArrowDown' || event.key === 'ArrowUp')
+    ) {
+      const currentIndex = MENU_OPTIONS.findIndex((option) => option.id === target.dataset.viewMode);
+      if (currentIndex < 0) return;
+
+      event.preventDefault();
+      const offset = event.key === 'ArrowDown' ? 1 : -1;
+      const nextIndex = (currentIndex + offset + MENU_OPTIONS.length) % MENU_OPTIONS.length;
+      const nextOption = MENU_OPTIONS[nextIndex];
+      const group = VIEW_GROUPS.find((item) =>
+        item.options.some((option) => option.id === nextOption.id),
+      );
+
+      if (group) {
+        pendingArrowFocus.current = { menu: group.id, optionId: nextOption.id };
+        setOpenMenu(group.id);
+      } else {
+        navigationRef.current
+          ?.querySelector<HTMLButtonElement>(
+            `[data-view-mode="${nextOption.id}"][data-view-variant="desktop"]`,
+          )
+          ?.focus();
+      }
+      return;
+    }
+
     if (!openMenu && triggerMenu && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
       event.preventDefault();
+      const menuOptions =
+        triggerMenu === 'mobile'
+          ? MENU_OPTIONS
+          : VIEW_GROUPS.find((group) => group.id === triggerMenu)?.options ?? [];
+      const option =
+        event.key === 'ArrowDown' ? menuOptions[0] : menuOptions[menuOptions.length - 1];
+      if (!option) return;
       pendingArrowFocus.current = {
         menu: triggerMenu,
-        position: event.key === 'ArrowDown' ? 'first' : 'last',
+        optionId: option.id,
       };
       setOpenMenu(triggerMenu);
       return;
@@ -166,7 +217,7 @@ export function ViewModeTabs({
 
     if (!openMenu) return;
 
-    const openMenuId = openMenu === 'mobile' ? 'mobile-view-options' : `${openMenu}-view-options`;
+    const openMenuId = getMenuId(openMenu);
     const openMenuTrigger =
       triggerMenu === openMenu
         ? target
@@ -208,15 +259,67 @@ export function ViewModeTabs({
     const request = pendingArrowFocus.current;
     if (!request || request.menu !== openMenu) return;
 
-    const menuId =
-      request.menu === 'mobile' ? 'mobile-view-options' : `${request.menu}-view-options`;
-    const optionButtons = navigationRef.current?.querySelectorAll<HTMLButtonElement>(
-      `#${menuId} [data-view-option]`,
-    );
-    const index = request.position === 'first' ? 0 : (optionButtons?.length ?? 0) - 1;
-    optionButtons?.[index]?.focus();
+    focusMenuOption(navigationRef.current, request);
     pendingArrowFocus.current = null;
   }, [openMenu]);
+
+  useEffect(() => {
+    const handleBodyArrowKey = (event: globalThis.KeyboardEvent) => {
+      if (
+        event.target !== document.body ||
+        document.activeElement !== document.body ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        (event.key !== 'ArrowDown' && event.key !== 'ArrowUp')
+      ) {
+        return;
+      }
+
+      const currentIndex = MENU_OPTIONS.findIndex((option) => option.id === viewMode);
+      if (currentIndex < 0) return;
+
+      const offset = event.key === 'ArrowDown' ? 1 : -1;
+      const nextIndex = (currentIndex + offset + MENU_OPTIONS.length) % MENU_OPTIONS.length;
+      const nextOption = MENU_OPTIONS[nextIndex];
+      event.preventDefault();
+
+      if (window.innerWidth < 640) {
+        const request: PendingArrowFocus = { menu: 'mobile', optionId: nextOption.id };
+        if (openMenu === 'mobile') {
+          focusMenuOption(navigationRef.current, request);
+        } else {
+          pendingArrowFocus.current = request;
+          setOpenMenu('mobile');
+        }
+        return;
+      }
+
+      const group = VIEW_GROUPS.find((item) =>
+        item.options.some((option) => option.id === nextOption.id),
+      );
+      if (group) {
+        const request: PendingArrowFocus = { menu: group.id, optionId: nextOption.id };
+        if (openMenu === group.id) {
+          focusMenuOption(navigationRef.current, request);
+        } else {
+          pendingArrowFocus.current = request;
+          setOpenMenu(group.id);
+        }
+        return;
+      }
+
+      setOpenMenu(null);
+      navigationRef.current
+        ?.querySelector<HTMLButtonElement>(
+          `[data-view-mode="${nextOption.id}"][data-view-variant="desktop"]`,
+        )
+        ?.focus();
+    };
+
+    document.addEventListener('keydown', handleBodyArrowKey);
+    return () => document.removeEventListener('keydown', handleBodyArrowKey);
+  }, [openMenu, viewMode]);
 
   const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
     if (openMenu && !(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) {
@@ -247,7 +350,9 @@ export function ViewModeTabs({
           onClick={() => handleSelect(option.id)}
           className={className}
           aria-current={isSelected ? 'page' : undefined}
-          data-view-option
+          data-view-mode={option.id}
+          data-view-option={option.id}
+          data-view-variant={variant}
         >
           <Icon
             size={variant === 'mobile' ? 17 : 16}
@@ -275,6 +380,8 @@ export function ViewModeTabs({
             : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]/50'
         }`}
         aria-current={isSelected ? 'page' : undefined}
+        data-view-mode={option.id}
+        data-view-variant="desktop"
       >
         <Icon size={16} className="shrink-0" aria-hidden="true" />
         <span>{strings[option.labelKey]}</span>

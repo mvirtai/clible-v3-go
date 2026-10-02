@@ -11,6 +11,7 @@ describe('ViewModeTabs', () => {
   let root: Root | null = null;
 
   beforeEach(() => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 });
     container = document.createElement('div');
     document.body.appendChild(container);
   });
@@ -179,6 +180,53 @@ describe('ViewModeTabs', () => {
       analyticsOption.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
     });
     expect(document.activeElement).toBe(searchOption);
+  });
+
+  it('starts arrow navigation from body focus at the current view without a mouse click', () => {
+    renderTabs('reader');
+
+    const exploreOptions = container?.querySelector('#explore-view-options') as HTMLDivElement;
+    expect(document.activeElement).toBe(document.body);
+
+    act(() => {
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      );
+    });
+
+    expect(exploreOptions.hidden).toBe(false);
+    expect(document.activeElement).toBe(buttonWithText(exploreOptions, 'Haku'));
+
+    act(() => {
+      buttonWithText(exploreOptions, 'Haku').dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
+      );
+    });
+    expect(document.activeElement).toBe(buttonWithText(exploreOptions, 'Käännösvertailu'));
+  });
+
+  it('starts mobile arrow navigation from body focus and does not intercept focused inputs', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    renderTabs('reader');
+
+    const mobileOptions = container?.querySelector('#mobile-view-options') as HTMLDivElement;
+    act(() => {
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(mobileOptions.hidden).toBe(false);
+    expect(document.activeElement).toBe(buttonWithText(mobileOptions, 'Haku'));
+
+    const input = document.createElement('input');
+    container?.appendChild(input);
+    act(() => input.focus());
+    act(() => {
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(document.activeElement).toBe(input);
   });
 
   it('keeps mobile selection compact and presents destinations in the same groups', () => {
