@@ -205,6 +205,23 @@ tasks:
       - pnpm run dev
 
   # --- Documentation (VitePress) Tasks --- #
+  plans:link:
+    desc: 'Symlink the private plans directory into this worktree. Usage: task plans:link [PLANS_DIR=/path/to/private/plans]'
+    cmds:
+      - |
+        SRC="{{.PLANS_DIR}}"
+        if [ -z "$SRC" ]; then SRC="$HOME/code/clible-plans"; fi
+        if [ ! -d "$SRC" ]; then
+          echo "ERROR: plans directory '$SRC' not found. Clone your private plans repository there or pass PLANS_DIR=..."
+          exit 1
+        fi
+        if [ -e .plans ] && [ ! -L .plans ]; then
+          echo "ERROR: .plans already exists and is not a symlink."
+          exit 1
+        fi
+        ln -sfn "$SRC" .plans
+        echo "[TASK] .plans -> $SRC (gitignored, never commit)"
+
   docs:install:
     desc: Install documentation dependencies
     dir: docs

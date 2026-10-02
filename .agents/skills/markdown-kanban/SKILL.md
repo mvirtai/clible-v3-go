@@ -81,7 +81,7 @@ Markdown Kanban boards are standard markdown files structured specifically for t
   - `workload: Easy | Medium | Hard` — Complexity estimation.
   - `defaultExpanded: true | false` — Whether the card opens expanded by default.
   - `steps:` — Subtask checklist with `- [ ]` and `- [x]`.
-- **Description Block**: Indented markdown fence (````md ...````) containing rich markdown, links to plans (`.plans/...`), code references, and instructions.
+- **Description Block**: Indented markdown fence (````md ...````) containing rich markdown, links to plans, code references, and instructions.
 
 ---
 
@@ -90,7 +90,8 @@ Markdown Kanban boards are standard markdown files structured specifically for t
 - **Adding Tasks**: Place new tasks under `## To Do` or `## Backlog` with relevant tags (`frontend`, `backend`, `security`, `ui`, `i18n`, `performance`, `isla`).
 - **Moving Tasks**: When starting work, move the task card under `## In Progress`. When completed and verified by quality gates, move under `## Done`.
 - **Subtasks**: Update `steps:` checklist items as milestone stages complete.
-- **Plan References**: Always link detailed architectural plans (`.plans/*.md`) in the task's description block.
+- **Plan References**: When a plan exists, link its overview (`.plans/<topic>/00-overview.md`) and the relevant phase document(s) (`.plans/<topic>/01-<phase>.md`, `.plans/<topic>/02-<phase>.md`, etc.) in the task's description block. Do not use the obsolete flat `.plans/*.md` convention.
+- **Board Currency**: Keep the board synchronized with every task. Add a card when the task is not already represented, move active work to `## In Progress`, update its checklist as work progresses, and move it to `## Done` only after implementation and verification are complete.
 
 ---
 

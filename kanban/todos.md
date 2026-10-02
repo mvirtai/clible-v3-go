@@ -87,26 +87,83 @@
     Mahdollistaa semanttisen haun löytämien jakeiden nopean kuratoinnin ja karsinnan. Puhelimella jakeita voi pyyhkäistä (swipe) hyväksytyiksi tai hylätyiksi luonnollisilla eleillä, ja työpöydällä kuratointi hoituu intuitiivisilla pikanapeilla ja pikanäppäimillä.
     ```
 
+## Done
+
+### Teknisen suunnittelun pohja ja suunnitelmien dokumentointikäytännöt
+
+- due: 2026-10-02
+- tags: \[docs, planning, agents, kanban\]
+- priority: medium
+- workload: Easy
+- defaultExpanded: false
+- steps:
+  - [x] Lisää suomenkielinen teknisen suunnittelun Markdown-pohja
+  - [x] Päivitä agenttiohjeet kielistä, suunnitelmien opetustavasta ja `.plans/`-hakemistorakenteesta
+  - [x] Lisää vaatimus Kanban-taulun pitämisestä ajan tasalla
+  - [x] Tarkista ohjeiden ja taulun rakenne sekä siirrä kortti valmistuneisiin
+
+    ```md
+    Suunnitelmapohja: [pr_stories/templates/TECHNICAL_DESIGN.template.md](../pr_stories/templates/TECHNICAL_DESIGN.template.md)
+    Päivittää teknisen suunnittelun pohjan sekä agenttien kieli-, suunnittelu-, suunnitelmahakemisto- ja Kanban-käytännöt.
+    ```
+
 ### Käyttäjäasetukset ja profiilinäkymä (User Settings & Profile View)
 
 - due: 2026-09-26
 - tags: \[ui, settings, user, profile, preferences, frontend, backend\]
 - priority: high
-- defaultExpanded: true
+- defaultExpanded: false
 - steps:
-  - [ ] Tietokantamigraatio backend/migrations/016_user_preferences.sql (kieli, teema, oletuskäännös)
-  - [ ] Backend API /api/user/settings (GET & PUT) ja user_repo.go -kyselyt
-  - [ ] Kaksikieliset käännösavaimet i18n.ts asetussivulle (FI/EN)
-  - [ ] UserSettingsView.tsx -sivun luonti ja /settings -reititys
-  - [ ] UserMenuDropdown.tsx -valikon "Asetukset"-painikkeen kytkeminen navigointiin
-  - [ ] Yksikkötestit ja laatuporttien varmistus (task check)
+  - [x] Tietokantamigraatio backend/migrations/016_user_preferences.sql (kieli, teema, oletuskäännös)
+  - [x] Backend API /api/user/settings (GET & PUT) ja user_repo.go -kyselyt
+  - [x] Kaksikieliset käännösavaimet i18n.ts asetussivulle (FI/EN)
+  - [x] UserSettingsView.tsx -sivun luonti ja /settings -reititys
+  - [x] UserMenuDropdown.tsx -valikon "Asetukset"-painikkeen kytkeminen navigointiin
+  - [x] Yksikkötestit ja laatuporttien varmistus (task check)
 
     ```md
     Suunnitelma: [.plans/14-kayttaja-ja-tili/29-kayttaja-asetukset-ja-profiilinakyma.md](file:///home/vivaldev/code/clible-v3-go/.plans/14-kayttaja-ja-tili/29-kayttaja-asetukset-ja-profiilinakyma.md)
-    Toteuttaa keskitetyn käyttäjäasetukset- ja profiilinäkymän, josta käyttäjä voi hallita nimeään, oletuskäännöstä, teemaa, käyttöliittymäkieltä sekä tarkastella tilaustaan ja AI-kiintiötään.
+    Toteutettu ja yhdistetty PR:ssä [#97](https://github.com/mvirtai/clible-v3-go/pull/97).
     ```
 
-## Done
+### Mobiililähtöinen responsiivinen käyttöliittymä
+
+- tags: \[ui, frontend, responsive, mobile\]
+- priority: high
+- workload: Medium
+- defaultExpanded: false
+- steps:
+  - [x] Responsiivisuuden parannukset toteutettu ja yhdistetty
+
+    ```md
+    PR: [#98](https://github.com/mvirtai/clible-v3-go/pull/98).
+    ```
+
+### Henkilökohtainen AI-käyttö ja ryhmitellyt käännökset
+
+- tags: \[ai, usage, translations, frontend, backend\]
+- priority: high
+- workload: Medium
+- defaultExpanded: false
+- steps:
+  - [x] Henkilökohtainen AI-käyttö ja ryhmitellyt käännökset toteutettu ja yhdistetty
+
+    ```md
+    PR: [#99](https://github.com/mvirtai/clible-v3-go/pull/99).
+    ```
+
+### Telemetrian ja käyttäjäasetusten tietoturvakovennukset
+
+- tags: \[security, telemetry, settings, backend\]
+- priority: high
+- workload: Medium
+- defaultExpanded: false
+- steps:
+  - [x] Tietoturvakovennukset toteutettu ja yhdistetty
+
+    ```md
+    PR: [#100](https://github.com/mvirtai/clible-v3-go/pull/100).
+    ```
 
 ### Kirkkovuoden ja rukoushetkien stop-sanojen ja URL-linkkien suodatus ISLA-viennissä
 
@@ -124,6 +181,7 @@
     ```md
     Suunnitelma: [.plans/02-luku-ja-haku/34-stop-sanojen-ja-linkkien-suodatus-isla-rukoushetkissa.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/34-stop-sanojen-ja-linkkien-suodatus-isla-rukoushetkissa.md)
     Poistaa ylimääräiset stop-sanat, Markdown-linkit ja raa'at URL-osoitteet rukoushetkien ja kirkkovuoden ISLA-tekstiviennistä, taaten puhtaan komentosyntaksin ja luettavuuden muistikirjasoluissa.
+    Toteutettu ja yhdistetty PR:ssä [#105](https://github.com/mvirtai/clible-v3-go/pull/105).
     ```
 
 ### Suomen kielen taivutusmuotojen lemmatisointi ja sanojen klusterointi ISLA DSL:ssä
@@ -142,6 +200,176 @@
     ```md
     Suunnitelma: [.plans/02-luku-ja-haku/35-suomen-kielen-taivutusmuotojen-lemmatisointi-ja-klusterointi-isla.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/35-suomen-kielen-taivutusmuotojen-lemmatisointi-ja-klusterointi-isla.md)
     Toteutettu suomen kielen taivutusmuotojen tunnistus ja klusterointi ISLA DSL:n frekvenssianalyysiin (esim. `! ^.top(20).categorize(true)` tai `.lemma()`), jolloin saman sanan eri sijamuodot (Jeesus/Jeesuksen, Herra/Herralle) yhdistyvät yhdeksi ryhmäksi kanonisen perusmuodon alle.
+    Toteutettu ja yhdistetty PR:ssä [#110](https://github.com/mvirtai/clible-v3-go/pull/110).
+    ```
+
+### Opiskelumenetelmien mallit ja monilukusuunnitelmat
+
+- tags: \[study, reading-plans, templates, frontend\]
+- priority: medium
+- workload: Medium
+- defaultExpanded: false
+- steps:
+  - [x] Opiskelumenetelmien mallit ja monilukusuunnitelmat toteutettu ja yhdistetty
+
+    ```md
+    PR: [#111](https://github.com/mvirtai/clible-v3-go/pull/111).
+    ```
+
+### Muistikirja-API:n viiveoptimointi
+
+- tags: \[performance, notebook, api, backend\]
+- priority: high
+- workload: Medium
+- defaultExpanded: false
+- steps:
+  - [x] Muistikirja-API:n viiveoptimoinnit toteutettu ja yhdistetty
+
+    ```md
+    PR: [#112](https://github.com/mvirtai/clible-v3-go/pull/112).
+    ```
+
+### Kattavat suorituskykyoptimoinnit
+
+- tags: \[performance, backend, frontend\]
+- priority: high
+- workload: Hard
+- defaultExpanded: false
+- steps:
+  - [x] Kattavat suorituskykyoptimoinnit toteutettu ja yhdistetty
+
+    ```md
+    PR: [#113](https://github.com/mvirtai/clible-v3-go/pull/113).
+    ```
+
+### Muistikirjakankaan vieritys ja kirkkovuoden hymnilinkit
+
+- tags: \[notebook, ui, liturgical, frontend\]
+- priority: medium
+- workload: Medium
+- defaultExpanded: false
+- steps:
+  - [x] Muistikirjakankaan vieritys ja hymnilinkit parannettu sekä yhdistetty
+
+    ```md
+    PR: [#114](https://github.com/mvirtai/clible-v3-go/pull/114).
+    ```
+
+### Clible v3:n koodikatselmointitaito
+
+- tags: \[agents, skills, docs, code-review\]
+- priority: medium
+- workload: Easy
+- defaultExpanded: false
+- steps:
+  - [x] Koodikatselmointitaito dokumentoitu ja yhdistetty
+
+    ```md
+    PR: [#115](https://github.com/mvirtai/clible-v3-go/pull/115).
+    ```
+
+### Tokenien uudelleenkäyttö käännösvertailun analytiikassa
+
+- tags: \[performance, analytics, backend\]
+- priority: medium
+- workload: Easy
+- defaultExpanded: false
+- steps:
+  - [x] Tokenien uudelleenkäyttö toteutettu ja yhdistetty
+
+    ```md
+    PR: [#116](https://github.com/mvirtai/clible-v3-go/pull/116).
+    ```
+
+### Frontend-testit CI-putkeen
+
+- tags: \[ci, frontend, tests\]
+- priority: high
+- workload: Easy
+- defaultExpanded: false
+- steps:
+  - [x] Frontend-testit lisätty CI-putkeen ja PR yhdistetty
+
+    ```md
+    PR: [#117](https://github.com/mvirtai/clible-v3-go/pull/117).
+    ```
+
+### Version merkkijonojen synkronointi versioon 3.12.0
+
+- tags: \[release, versioning, fix\]
+- priority: medium
+- workload: Easy
+- defaultExpanded: false
+- steps:
+  - [x] Versiomerkkijonot synkronoitu ja PR yhdistetty
+
+    ```md
+    PR: [#118](https://github.com/mvirtai/clible-v3-go/pull/118).
+    ```
+
+### Tuotannon runtime-asetusten koventaminen Terraformissa
+
+- tags: \[terraform, security, deployment\]
+- priority: high
+- workload: Medium
+- defaultExpanded: false
+- steps:
+  - [x] Tuotannon runtime-asetukset kovennettu ja PR yhdistetty
+
+    ```md
+    PR: [#119](https://github.com/mvirtai/clible-v3-go/pull/119).
+    ```
+
+### Lisenssitiedon korjaus ja NOTICE-attribuutio
+
+- tags: \[docs, license, compliance\]
+- priority: low
+- workload: Easy
+- defaultExpanded: false
+- steps:
+  - [x] Lisenssiviite korjattu, NOTICE-attribuutio lisätty ja PR yhdistetty
+
+    ```md
+    PR: [#120](https://github.com/mvirtai/clible-v3-go/pull/120).
+    ```
+
+### Olemassa olevan tekstianalytiikan avaaminen rajapinnan kautta
+
+- tags: \[analytics, api, backend\]
+- priority: medium
+- workload: Medium
+- defaultExpanded: false
+- steps:
+  - [x] Tekstianalytiikka avattu rajapinnan kautta ja PR yhdistetty
+
+    ```md
+    PR: [#121](https://github.com/mvirtai/clible-v3-go/pull/121).
+    ```
+
+### Työtilan navigoinnin ryhmittely
+
+- tags: \[workspace, navigation, ui, frontend\]
+- priority: medium
+- workload: Medium
+- defaultExpanded: false
+- steps:
+  - [x] Työtilan navigoinnin ryhmittely toteutettu ja PR yhdistetty
+
+    ```md
+    PR: [#122](https://github.com/mvirtai/clible-v3-go/pull/122).
+    ```
+
+### Polun käsittelyn koodiskannauskorjaus
+
+- tags: \[security, code-scanning, backend\]
+- priority: high
+- workload: Easy
+- defaultExpanded: false
+- steps:
+  - [x] Polun käsittelyn koodiskannauskorjaus toteutettu ja PR yhdistetty
+
+    ```md
+    PR: [#123](https://github.com/mvirtai/clible-v3-go/pull/123).
     ```
 
 ### Kirkkovuoden datan upottaminen Go-binääriin ja tuotannon 404-korjaus
@@ -161,6 +389,7 @@
     ```md
     Toteutettu PR-tarinassa #97 ja yhdistetty haaraan main (#104).
     Korjaa tuotannossa (clible.fi) esiintyvän 404-virheen /api/liturgical/day -reiteissä upottamalla kirkkovuosi_2026.json suoraan Go-binääriin //go:embed -direktiivillä.
+    PR: [#104](https://github.com/mvirtai/clible-v3-go/pull/104).
     ```
 
 ### Kirkkovuoden tekstien ISLA DSL -kooste muistiinpanoihin ja pikanäppäin
@@ -180,6 +409,7 @@
     ```md
     Suunnitelma: [.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/33-kirkkovuoden-tekstien-isla-muistiinpanokooste.md)
     Kokoaa päivän liturgiset tekstit, teemat, rukoukset ja lukukappaleet suoraan interaktiiviseksi ISLA v2 DSL -muistikirjasoluksi yhdellä pikanäppäimellä (Alt+N) tai painikkeella.
+    Toteutettu ja yhdistetty PR:ssä [#102](https://github.com/mvirtai/clible-v3-go/pull/102).
     ```
 
 ### Cliblen SEO & GEO (Generative Engine Optimization) -kokonaisuudistus
@@ -200,6 +430,7 @@
     ```md
     Suunnitelma: [.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md](file:///home/vivaldev/code/clible-v3-go/.plans/15-docs-ja-viestinta/32-seo-ja-geo-generative-engine-optimization.md)
     Korjataan Google-indeksointi ja tekoälybotti-tunnistus (GEO). Estetään AI-mallien harha 'Clible on kirjoitusvirhe sanasta Bible' luomalla llms.txt, Schema.org FAQPage/SoftwareApplication -entiteettiankkurointi ja AI-indeksointituki.
+    Toteutettu ja yhdistetty PR:ssä [#103](https://github.com/mvirtai/clible-v3-go/pull/103).
     ```
 
 ### Kirkkovuoden hetkipalvelusten tarkennukset: Ad Sextam, Completorium ja Aattorukous
@@ -220,6 +451,7 @@
     ```md
     Toteutettu PR-tarinassa #94 ja yhdistetty haaraan main (#101).
     Keskipäivän hetkipalvelus korjattu (Ad Sextam), lisätty Completorium pysyvin tekstein, siirretty vigilia edeltävälle päivälle ja lisätty oletusnäkymäasetus käyttäjälle.
+    PR: [#101](https://github.com/mvirtai/clible-v3-go/pull/101).
     ```
 
 ### Clible v3.*Asiantuntija-arkkitehti ja Spesifit Subagentit (Clible v3.* Expert & Subagents)
