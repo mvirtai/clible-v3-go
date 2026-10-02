@@ -47,6 +47,7 @@ This document provides a comprehensive, unified collection of all operational co
 
 * **Internal Documentation vs. Commits**:
   * Files in `.plans/`, `.visions/`, and local notes are strictly internal developer references and **MUST NEVER** be committed or included in `task git:commit FILES="..."`.
+  * `.plans/` is gitignored, so git worktrees do not contain it. To keep it private yet visible to agents, keep it in the main checkout (or a separate private repository) and expose it to each worktree with a symlink (`ln -s <main-checkout>/.plans .plans`). Agents must never copy its contents into tracked files. Publishing plans requires an explicit developer decision and a cleanup pass first.
   * The documentation files committed to git are Pull Request stories (`pr_stories/`), VitePress documentation (`docs/`), and verified security audits (`.security_audits/`).
 
 * **Task Management with Markdown Kanban**:
