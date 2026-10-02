@@ -229,7 +229,12 @@ func main() {
 
 		// Prevent path traversal by ensuring resolved path stays within FrontendDir
 		cleanPath := filepath.Clean(r.URL.Path)
-		absPath, err := filepath.Abs(filepath.Join(absFrontendDir, cleanPath))
+		relRequestPath := strings.TrimLeft(cleanPath, `/\`)
+		if filepath.IsAbs(relRequestPath) {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		absPath, err := filepath.Abs(filepath.Join(absFrontendDir, relRequestPath))
 		if err != nil {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
