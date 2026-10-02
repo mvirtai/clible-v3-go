@@ -2,20 +2,31 @@
 
 This document provides a comprehensive, unified collection of all operational conventions, communication protocols, architectural standards, and development workflows established across the Clible codebase and `.agents/` environment.
 
+> **MANDATORY — READ, UNDERSTAND, AND ACKNOWLEDGE THE LANGUAGE POLICY BEFORE EVERY TASK**
+>
+> Every agent working in this repository, including the main agent and any delegated or custom agent, MUST read and follow the language policy in Section 1 before inspecting or changing files. At the start of each task, the agent MUST explicitly acknowledge in its first user-visible progress message: **"Luin ja ymmärsin kieliasetukset: suunnitelmat, niiden pohjat, sisäiset dokumentaatiot ja muistiot suomeksi; PR storyt englanniksi; koodi ja kommentit englanniksi; git-haarat ja muu git-/projektin metatieto englanniksi."**
+>
+> When delegating work, the parent agent MUST include this policy and the required acknowledgment in the child agent's instructions; do not assume the child has inherited or read this file. A file's directory does not override its intended document type or language: for example, a technical design template under `pr_stories/templates/` is Finnish, while an actual PR story is English. If the requested artifact's type is unclear, resolve that before drafting it.
+
 ---
 
 ## 1. Communication & Document Language Policy
 
 * **Finnish (Suomi)**:
   * Used for all direct conversational chat interactions between the AI agent and the developer.
-  * Used for all internal plan and instruction documents created under the `.plans/` directory (e.g., `.plans/08-uusi-ominaisuus.md`).
+  * Used for all plans and plan templates, internal documentation, memos, and instruction documents (including `.plans/` documents and technical design templates, regardless of their directory).
   * Used for step-by-step mentoring guides, tutorial walkthroughs, and architectural explanations directed to the developer.
 
 * **English**:
   * Used for all source code (Go, TypeScript, React, SQL migrations, scripts).
-  * Used for all commit messages, branch names, configuration files, and code comments.
+  * Used for all code comments, commit messages, branch names, and other Git or project metadata.
   * Used for all Pull Request stories located in `pr_stories/`.
   * All English content must maintain senior-level software engineering terminology without superficial embellishments.
+
+* **Language boundary**:
+  * Classify a document by its purpose, not its path or filename. Plans, plan templates, internal documentation, and memos are Finnish; PR stories are English.
+  * Keep code and comments English even when they appear inside a Finnish plan, memo, or technical design document.
+  * Do not translate or change an artifact's language based solely on the directory containing it.
 
 * **Markdown Formatting Quality (MD032 & Lint Compliance)**:
   * All markdown documents (`.plans/`, `pr_stories/`, `.security_audits/`, rules, and reviews) must strictly adhere to standard markdownlint rules.
@@ -24,16 +35,25 @@ This document provides a comprehensive, unified collection of all operational co
 
 * **Instruction Documents (`.plans/`) & Plan Template**:
   * All step-by-step guides, design plans, tutorials, and variable references prepared for the developer must be written as markdown files inside `.plans/` rather than dumping verbose code blocks directly in chat.
-  * Plans should follow the standardized template at `.plans/templates/PLAN_TEMPLATE.md` to ensure structural uniformity.
+  * Technical design proposals should follow `pr_stories/templates/TECHNICAL_DESIGN.template.md` (Finnish). If `.plans/templates/PLAN_TEMPLATE.md` exists locally, use it for phase documents; otherwise follow the directory rules below.
   * This provides a persistent reference that the developer can consult during coding.
+  * **Developer-facing step-by-step plans** must be clear, Finnish-language teaching materials: explain the implementation in understandable steps, teach the relevant technical concepts, and make the engineering principles, trade-offs, and rationale explicit. The goal is to build the developer's technical understanding, not merely enumerate edits.
+  * **Agent task instructions** may be concise and high-level, focused on scope, constraints, expected outcome, and verification; they do not need the same tutorial depth.
+  * Before drafting a plan or set of instructions, determine which audience and purpose the developer intends. If they have not explicitly specified it, ALWAYS ask whether they want (1) an educational, developer-facing step-by-step plan or (2) concise task instructions for an agent. Do not guess based on context or default to one format.
+  * Organize every plan or distinct planning workstream as its own directory named for the subject. Use an English, lowercase kebab-case directory/file slug to keep repository metadata consistent; write the plan prose in Finnish.
+  * Every plan directory must contain a `00-overview.md` index with a Finnish overview or description, links to each numbered phase, and checkboxes that track phase progress and completion.
+  * Write each phase as a separate Markdown document linked from `00-overview.md`, numbered sequentially from `01-` (`01-...md`, `02-...md`, and so on). Keep phase content in Finnish; code snippets and code comments remain in English.
+  * Keep the overview's phase links and progress checkboxes synchronized with the actual phase documents and implementation status. Do not mark a phase complete before its work is implemented and verified.
 
 * **Internal Documentation vs. Commits**:
   * Files in `.plans/`, `.visions/`, and local notes are strictly internal developer references and **MUST NEVER** be committed or included in `task git:commit FILES="..."`.
   * The documentation files committed to git are Pull Request stories (`pr_stories/`), VitePress documentation (`docs/`), and verified security audits (`.security_audits/`).
 
 * **Task Management with Markdown Kanban**:
-  * All tasks, sprint backlogs, and roadmap tracking are managed using the VS Code **Markdown Kanban** format (`.plans/TODOS.md`, `kanban/*.md`).
-  * Before adding, modifying, or completing tasks, always search for existing boards and maintain the Markdown Kanban schema (`# Title`, `## Column`, `### Task`, indented metadata `due`, `tags`, `priority`, `workload`, `steps`, and description code fence).
+ * All tasks, sprint backlogs, and roadmap tracking are managed using the VS Code **Markdown Kanban** format (`.plans/TODOS.md`, `.plans/todos/*.md`, and `kanban/*.md`).
+ * Before adding, modifying, or completing tasks, search these board locations strictly within the workspace and maintain the Markdown Kanban schema (`# Title`, `## Column`, `### Task`, indented metadata `due`, `tags`, `priority`, `workload`, `steps`, and description code fence).
+ * Keep the relevant Kanban board current for every task: find the existing board before editing, add a card if the task is not already represented, move active work to `## In Progress`, update its `steps` as work advances, and move it to `## Done` only after implementation and verification are complete.
+ * Keep Kanban cards linked to their plan overview or relevant design document when one exists. Never leave a completed task active or report work as complete while its board status still says otherwise.
 
 ---
 
@@ -355,14 +375,18 @@ This document provides a comprehensive, unified collection of all operational co
 ### Feature Planning Workflow (`.plans/`)
 
 1. **Research**: Analyze existing backend endpoints, database schema in `backend/migrations/`, and frontend interfaces.
-2. **Draft Plan (`.plans/<seq>-<feature>.md`)**:
-   * Follow the template at `.plans/templates/PLAN_TEMPLATE.md`.
-   * Language: Finnish (Suomi) with English code snippets.
-   * Educational format: Step-by-step mentor instructions for the developer to write the code.
+2. **Confirm Audience and Depth**: Unless the developer has explicitly stated the intended format, ask whether they want an educational, developer-facing step-by-step plan or concise agent task instructions. The former must explain concepts and engineering rationale in Finnish; the latter may be high-level and task-focused.
+3. **Create a Plan Directory**: Create `.plans/<topic-kebab-case>/` for the subject. Add `00-overview.md` first, with a Finnish overview, links to sequentially numbered phase documents, and a checklist tracking phase progress. Name phase documents `01-<phase>.md`, `02-<phase>.md`, and so on.
+4. **Draft the Overview and Phases**:
+   * Follow `pr_stories/templates/TECHNICAL_DESIGN.template.md` for design proposals, and `.plans/templates/PLAN_TEMPLATE.md` for phase documents when it exists locally.
+   * Language: Finnish (Suomi) with English code snippets and comments.
+   * For developer-facing plans, use clear, educational step-by-step mentoring: explain why each major decision fits, which engineering principles it applies, and what trade-offs or failure modes matter.
+   * For agent-facing instructions, state scope, constraints, acceptance criteria, and verification succinctly; extensive teaching is optional.
+   * Keep the phase links and completion checkboxes in `00-overview.md` current as implementation progresses; check off a phase only after its implementation and verification are complete.
    * **Mandatory Pre-Flight Audit**: Always include explicit React 19.2 & React Compiler audit (zero `useEffect` for state sync, `useSyncExternalStore`, `useActionState`, derived state, `i18n.ts`).
    * Required sections: Goals, Database Migrations (PostgreSQL/SQLite compatible), Go Backend changes (routing, repository, service), React 19.2 Frontend changes (types, UI, i18n), Verification Strategy.
-3. **Developer Approval**: Present plan in chat and wait for approval before any code or terminal commands.
-4. **Execution Tracking**: Track progress with a session-specific task list.
+5. **Developer Approval**: Present plan in chat and wait for approval before any code or terminal commands.
+6. **Execution Tracking**: Track progress with the relevant Markdown Kanban board, maintaining its card and steps as the work proceeds.
 
 ### Bugfix & Verification Workflow
 

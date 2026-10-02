@@ -20,7 +20,7 @@ Ennen koodiin koskemista, agentin on analysoitava nykyistä koodipohjaa liittyen
 
 ### 2. Suunnitelman laatiminen (.plans/)
 
-Luo uusi suomenkielinen toteutussuunnitelma kansioon `.plans/` käyttäen mallipohjaa `.plans/templates/PLAN_TEMPLATE.md` ja seuraavaa vapaata juoksevaa numerointia (esim. `.plans/08-uusi-ominaisuus.md`).
+Luo uusi suomenkielinen toteutussuunnitelma omaan kansioonsa `.plans/<aihe-kebab-case>/`. Kansioon luodaan ensin `00-overview.md` (yleiskuvaus, linkit vaiheisiin ja edistymisen seurantaruudut) ja sen jälkeen vaihetiedostot `01-<vaihe>.md`, `02-<vaihe>.md` jne. Teknisen suunnitteludokumentin pohjana voi käyttää `pr_stories/templates/TECHNICAL_DESIGN.template.md`-mallia. Kysy ennen aloitusta, haluaako kehittäjä opetuksellisen suunnitelman vai tiiviit agenttiohjeet.
 
 > [!IMPORTANT]
 > Ellei kehittäjä erikseen toisin pyydä, suunnitelman ensisijainen tarkoitus on toimia **opetuksellisena, yksityiskohtaisena step-by-step-oppaana kehittäjälle**, joka kirjoittaa koodin itse. Agentin rooli on opastaa kehittäjää, selittää valitut suunnittelumallit ja tarjota valmiit koodimallit/mallitoteutukset suunnitelmatiedostossa.
