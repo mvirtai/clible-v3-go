@@ -12,6 +12,9 @@ export interface Messages {
   hideLabel: string;
   settingsTitle: string;
   signOutTitle: string;
+  primaryNavigation: string;
+  navExplore: string;
+  navPlanning: string;
   tabReader: string;
   tabAnalytics: string;
   tabCompare: string;
@@ -585,6 +588,9 @@ export const strings: Record<UILanguage, Messages> = {
         hideLabel: 'Hide',
         settingsTitle: 'User Settings & Profile',
         signOutTitle: 'Sign out',
+        primaryNavigation: 'Primary navigation',
+        navExplore: 'Explore',
+        navPlanning: 'Plan',
         tabReader: 'Reader',
         tabAnalytics: 'Analytics',
         tabCompare: 'Compare',
@@ -1151,6 +1157,9 @@ export const strings: Record<UILanguage, Messages> = {
     hideLabel: 'Piilota',
     settingsTitle: 'Käyttäjäasetukset ja profiili',
     signOutTitle: 'Kirjaudu ulos',
+    primaryNavigation: 'Päänavigaatio',
+    navExplore: 'Tutki',
+    navPlanning: 'Suunnittele',
     tabReader: 'Lukija',
     tabAnalytics: 'Analytiikka',
     tabCompare: 'Käännösvertailu',
