@@ -219,7 +219,7 @@ func main() {
 	absFrontendDir, err := filepath.Abs(cfg.FrontendDir)
 	if err != nil {
 		slog.Error("invalid frontend directory", "frontendDir", cfg.FrontendDir, "error", err)
-		return
+		os.Exit(1)
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/") {
