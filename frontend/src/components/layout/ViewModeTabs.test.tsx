@@ -143,6 +143,44 @@ describe('ViewModeTabs', () => {
     expect(document.activeElement).toBe(planningTrigger);
   });
 
+  it('opens desktop groups with arrows and moves through their options', () => {
+    renderTabs('reader');
+
+    const exploreTrigger = buttonWithText(container!.querySelector('.hidden.sm\\:flex')!, 'Tutki');
+    const exploreOptions = container?.querySelector('#explore-view-options') as HTMLDivElement;
+    act(() => exploreTrigger.focus());
+    act(() => {
+      exploreTrigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
+
+    const searchOption = buttonWithText(exploreOptions, 'Haku');
+    const compareOption = buttonWithText(exploreOptions, 'Käännösvertailu');
+    const analyticsOption = buttonWithText(exploreOptions, 'Analytiikka');
+
+    expect(exploreOptions.hidden).toBe(false);
+    expect(document.activeElement).toBe(searchOption);
+
+    act(() => {
+      searchOption.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(compareOption);
+
+    act(() => {
+      compareOption.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(searchOption);
+
+    act(() => {
+      searchOption.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(analyticsOption);
+
+    act(() => {
+      analyticsOption.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(searchOption);
+  });
+
   it('keeps mobile selection compact and presents destinations in the same groups', () => {
     const onSelectViewMode = vi.fn();
     const onSelectNotebookId = vi.fn();
@@ -156,8 +194,12 @@ describe('ViewModeTabs', () => {
     expect(mobileTrigger.getAttribute('aria-expanded')).toBe('false');
     expect(mobileOptions.hidden).toBe(true);
 
-    act(() => mobileTrigger.click());
+    act(() => mobileTrigger.focus());
+    act(() => {
+      mobileTrigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
     expect(mobileOptions.hidden).toBe(false);
+    expect(document.activeElement).toBe(buttonWithText(mobileOptions, 'Lukija'));
     expect(mobileOptions.textContent).toContain('Lukija');
     expect(mobileOptions.textContent).toContain('Tutki');
     expect(mobileOptions.textContent).toContain('Suunnittele');
@@ -171,8 +213,19 @@ describe('ViewModeTabs', () => {
     expect(buttonWithText(mobileOptions, 'Kirkkovuosi').getAttribute('aria-current')).toBe('page');
     expect(mobileOptions.querySelector('[role="menu"], [role="menuitem"]')).toBeNull();
 
+    const searchOption = buttonWithText(mobileOptions, 'Haku');
+    const compareOption = buttonWithText(mobileOptions, 'Käännösvertailu');
+    const notebooksOption = buttonWithText(mobileOptions, 'Muistikirjat');
     act(() => {
-      mobileTrigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      searchOption.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(compareOption);
+    act(() => {
+      compareOption.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(notebooksOption);
+    act(() => {
+      notebooksOption.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
     expect(mobileOptions.hidden).toBe(true);
     expect(document.activeElement).toBe(mobileTrigger);

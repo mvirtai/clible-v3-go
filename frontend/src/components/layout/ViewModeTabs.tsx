@@ -1,4 +1,10 @@
-import { useRef, useState, type FocusEvent, type KeyboardEvent } from 'react';
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+} from 'react';
 import {
   Activity,
   BookOpen,
@@ -86,6 +92,11 @@ export function ViewModeTabs({
 }: ViewModeTabsProps) {
   const { strings } = useLanguage();
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
+  const navigationRef = useRef<HTMLDivElement>(null);
+  const pendingArrowFocus = useRef<{
+    menu: Exclude<OpenMenu, null>;
+    position: 'first' | 'last';
+  } | null>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const exploreTriggerRef = useRef<HTMLButtonElement>(null);
   const planningTriggerRef = useRef<HTMLButtonElement>(null);
@@ -124,8 +135,88 @@ export function ViewModeTabs({
     if (event.key === 'Escape' && openMenu) {
       event.preventDefault();
       closeMenu(true);
+      return;
     }
+
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+    const target = event.target instanceof HTMLButtonElement ? event.target : null;
+    const isArrowNavigationKey = ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key);
+    if (!isArrowNavigationKey || !target) return;
+
+    const controlledMenu = target.getAttribute('aria-controls');
+    const triggerMenu =
+      controlledMenu === 'mobile-view-options'
+        ? 'mobile'
+        : controlledMenu === 'explore-view-options'
+          ? 'explore'
+          : controlledMenu === 'planning-view-options'
+            ? 'planning'
+            : null;
+
+    if (!openMenu && triggerMenu && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      event.preventDefault();
+      pendingArrowFocus.current = {
+        menu: triggerMenu,
+        position: event.key === 'ArrowDown' ? 'first' : 'last',
+      };
+      setOpenMenu(triggerMenu);
+      return;
+    }
+
+    if (!openMenu) return;
+
+    const openMenuId = openMenu === 'mobile' ? 'mobile-view-options' : `${openMenu}-view-options`;
+    const openMenuTrigger =
+      triggerMenu === openMenu
+        ? target
+        : null;
+    const optionButtons = Array.from(
+      navigationRef.current?.querySelectorAll<HTMLButtonElement>(
+        `#${openMenuId} [data-view-option]`,
+      ) ?? [],
+    );
+
+    if (openMenuTrigger && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      event.preventDefault();
+      const index = event.key === 'ArrowDown' ? 0 : optionButtons.length - 1;
+      optionButtons[index]?.focus();
+      return;
+    }
+
+    const currentIndex = optionButtons.indexOf(target);
+    if (currentIndex < 0 || optionButtons.length === 0) return;
+
+    let nextIndex: number;
+    if (event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % optionButtons.length;
+    } else if (event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + optionButtons.length) % optionButtons.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = optionButtons.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    optionButtons[nextIndex]?.focus();
   };
+
+  useLayoutEffect(() => {
+    const request = pendingArrowFocus.current;
+    if (!request || request.menu !== openMenu) return;
+
+    const menuId =
+      request.menu === 'mobile' ? 'mobile-view-options' : `${request.menu}-view-options`;
+    const optionButtons = navigationRef.current?.querySelectorAll<HTMLButtonElement>(
+      `#${menuId} [data-view-option]`,
+    );
+    const index = request.position === 'first' ? 0 : (optionButtons?.length ?? 0) - 1;
+    optionButtons?.[index]?.focus();
+    pendingArrowFocus.current = null;
+  }, [openMenu]);
 
   const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
     if (openMenu && !(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) {
@@ -156,6 +247,7 @@ export function ViewModeTabs({
           onClick={() => handleSelect(option.id)}
           className={className}
           aria-current={isSelected ? 'page' : undefined}
+          data-view-option
         >
           <Icon
             size={variant === 'mobile' ? 17 : 16}
@@ -192,6 +284,7 @@ export function ViewModeTabs({
 
   return (
     <div
+      ref={navigationRef}
       className="relative mb-6 sm:mb-8"
       onKeyDownCapture={handleKeyDown}
       onBlurCapture={handleBlur}
