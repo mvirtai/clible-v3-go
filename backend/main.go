@@ -360,6 +360,11 @@ func frontendHandler(root *os.Root) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.Header().Set("Allow", "GET, HEAD")
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			http.Error(w, "API endpoint not found", http.StatusNotFound)
 			return
