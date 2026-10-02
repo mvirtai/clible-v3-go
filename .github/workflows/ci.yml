@@ -97,7 +97,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build Docker image (Smoke Test)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -152,7 +152,7 @@ jobs:
 
       # 3. Käännetään ja pushataan uusi Docker-kuva
       - name: Build and push production image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
