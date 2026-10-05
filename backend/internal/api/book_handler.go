@@ -19,16 +19,15 @@ func NewBookHandler(bookService *services.BookService) *BookHandler {
 // GetBooks handles GET /api/books to return a list of all canonical books.
 func (h *BookHandler) GetBooks(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "public, max-age=86400")
 
 	books, err := h.bookService.GetAllBooks(ctx)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to retrieve books: " + err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(books)
 }
@@ -36,24 +35,22 @@ func (h *BookHandler) GetBooks(w http.ResponseWriter, r *http.Request) {
 // GetBookByID handles GET /api/books/{id} to return details of a single book.
 func (h *BookHandler) GetBookByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "public, max-age=86400")
 
 	// Read path parameter natively using Go 1.22+ PathValue support
 	id := r.PathValue("id")
 	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing book id path parameter"})
+		WriteError(w, "invalid query parameter", http.StatusBadRequest, nil)
 		return
 	}
 
 	book, err := h.bookService.GetBookByID(ctx, id)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "not found", http.StatusNotFound, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(book)
 }

@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -47,26 +46,22 @@ type SearchHistoryResponse struct {
 // AddSearch handles POST /api/history to log a new user search query event.
 func (h *HistoryHandler) AddSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	var req SearchHistoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid JSON payload request body"})
+		WriteError(w, "invalid request body", http.StatusBadRequest, err)
 		return
 	}
 
 	// Basic request boundary validation rule
 	if req.QueryText == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "queryText parameter is explicitly required"})
+		WriteError(w, "queryText parameter is explicitly required", http.StatusBadRequest, nil)
 		return
 	}
 
@@ -82,11 +77,11 @@ func (h *HistoryHandler) AddSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.historyService.AddSearch(ctx, &historyItem); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to persist telemetry history: " + err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{"id": historyItem.ID, "status": "success"})
 }
@@ -94,12 +89,10 @@ func (h *HistoryHandler) AddSearch(w http.ResponseWriter, r *http.Request) {
 // GetRecentHistory handles GET /api/history to retrieve a bounded historical log array list.
 func (h *HistoryHandler) GetRecentHistory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
@@ -116,9 +109,7 @@ func (h *HistoryHandler) GetRecentHistory(w http.ResponseWriter, r *http.Request
 
 	dbHistory, err := h.historyService.GetRecentHistory(ctx, userID, limit)
 	if err != nil {
-		slog.Error("GetRecentHistory failed", "error", err, "userId", userID)
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to query history log state: " + err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -137,6 +128,7 @@ func (h *HistoryHandler) GetRecentHistory(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(responseList)
 }
