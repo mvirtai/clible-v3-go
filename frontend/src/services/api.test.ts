@@ -41,6 +41,28 @@ describe('ApiService', () => {
         await expect(apiService.getVerses('John 3:16', 'web')).rejects.toThrow('GET /api/verses returned 500');
     });
 
+    it('extracts sanitized error message from JSON error response (VULN-004)', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 400,
+            json: async () => ({ error: 'Invalid reference format' }),
+        } as unknown as Response);
+
+        await expect(apiService.getVerses('INVALID', 'web')).rejects.toThrow('Invalid reference format');
+    });
+
+    it('falls back to status code when JSON error response cannot be parsed', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 502,
+            json: async (): Promise<unknown> => {
+                throw new Error('Bad Gateway HTML');
+            },
+        } as unknown as Response);
+
+        await expect(apiService.getVerses('John 1:1', 'web')).rejects.toThrow('GET /api/verses returned 502');
+    });
+
     it('fetches installed translations successfully (getTranslations)', async () => {
         const mockTranslations = [
             { id: 'web', name: 'World English Bible', language: 'en', format: 'xml', sourceUrl: '', installedAt: '' }
