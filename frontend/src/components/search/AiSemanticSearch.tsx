@@ -152,10 +152,6 @@ export function AiSemanticSearch({
 
           <button
             type="submit"
-            onClick={() => {
-              // Clear input immediately upon search click before loading state changes button text
-              setQueryInput('');
-            }}
             disabled={isPending || !queryInput.trim()}
             className="px-5 py-3 sm:py-2.5 rounded-xl text-xs font-semibold bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px] shrink-0"
           >
