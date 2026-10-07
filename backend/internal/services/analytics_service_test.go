@@ -191,6 +191,35 @@ func TestAnalyticService_CompareTranslations_ExactMatch(t *testing.T) {
 	}
 }
 
+func TestAnalyticService_ComputeSequenceRatio(t *testing.T) {
+	svc, err := NewAnalyticService(nil, false, "en")
+	if err != nil {
+		t.Fatalf("failed to initialize analytic service: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		a    string
+		b    string
+		want float64
+	}{
+		{name: "both empty", a: "", b: "", want: 1},
+		{name: "one empty", a: "word", b: "", want: 0},
+		{name: "identical", a: "scripture", b: "scripture", want: 1},
+		{name: "partial subsequence", a: "abc", b: "adc", want: 2.0 / 3.0},
+		{name: "shorter first string", a: "adc", b: "abc", want: 2.0 / 3.0},
+		{name: "second string longer", a: "cat", b: "the cat", want: 6.0 / 10.0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := svc.computeSequenceRatio(tt.a, tt.b); got != tt.want {
+				t.Errorf("computeSequenceRatio(%q, %q) = %v, want %v", tt.a, tt.b, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAnalyticService_AnalyzeVersesClustered(t *testing.T) {
 	svc, err := NewAnalyticService(nil, false, "fi")
 	if err != nil {
