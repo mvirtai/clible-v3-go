@@ -3,7 +3,7 @@ import { Search, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { VerseSearch } from './VerseSearch';
 import type { SearchVerse } from '@/types/search';
-import type { AiSearchResponse } from '@/types/aiSearch';
+import type { SemanticSearchSnapshot } from '@/types/aiSearch';
 import { AiSemanticSearch } from './AiSemanticSearch';
 
 export type SearchSubModule = 'lexical' | 'semantic';
@@ -29,11 +29,10 @@ export interface SearchHubProps {
         scopeValue: string | null;
         results: SearchVerse[];
     } | null;
-    /** Optional restored semantic search state */
-    loadedSemanticData?: {
-        query: string;
-        data: AiSearchResponse;
-    } | null;
+    /** Optional restored semantic search state (ignored if translation differs) */
+    loadedSemanticData?: SemanticSearchSnapshot | null;
+    /** Fired when a semantic search completes so the parent can retain it */
+    onSemanticSearchCompleted?: (result: SemanticSearchSnapshot) => void;
     /** Clear external loaded state */
     onClearLoadedResults?: () => void;
 }
@@ -50,6 +49,7 @@ export function SearchHub({
     onTabChange,
     loadedSavedResults,
     loadedSemanticData,
+    onSemanticSearchCompleted,
     onClearLoadedResults,
 }: SearchHubProps) {
     const [activeTab, setActiveTab] = useState<SearchSubModule>(initialTab ?? 'lexical');
@@ -133,6 +133,7 @@ export function SearchHub({
           activeScopeId={activeScopeId}
           onWorkspaceUpdated={onWorkspaceUpdated}
           loadedData={loadedSemanticData}
+          onSearchCompleted={onSemanticSearchCompleted}
         />
       )}
     </div>

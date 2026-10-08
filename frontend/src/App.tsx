@@ -27,7 +27,7 @@ import type { SavedSearch, SavedAnalysis } from './types/workspace';
 import type { SearchVerse } from './types/search';
 import type { OriginalStudyResult } from './types/originalStudy';
 import type { AiTextResponse } from './types/ai';
-import type { AiSearchResponse } from './types/aiSearch';
+import type { AiSearchResponse, SemanticSearchSnapshot } from './types/aiSearch';
 import type { Notebook, Cell } from './components/notebook/types';
 import type { LiturgicalDay } from './types/liturgical';
 import { useViewModeNavigation } from './hooks/useViewModeNavigation';
@@ -100,10 +100,8 @@ export function App() {
 
   // Saved results states for quick loading
   const [loadedSearch, setLoadedSearch] = useState<LoadedSearchState | null>(null);
-  const [loadedSemanticSearch, setLoadedSemanticSearch] = useState<{
-    query: string;
-    data: AiSearchResponse;
-  } | null>(null);
+  const [loadedSemanticSearch, setLoadedSemanticSearch] =
+    useState<SemanticSearchSnapshot | null>(null);
   const [searchTab, setSearchTab] = useState<SearchSubModule>('lexical');
   const [loadedStats, setLoadedStats] = useState<LoadedStatsState | null>(null);
   const [loadedComparison, setLoadedComparison] = useState<LoadedComparisonState | null>(null);
@@ -409,6 +407,7 @@ export function App() {
       if (data) {
         setLoadedSemanticSearch({
           query: s.queryText,
+          translationId: s.translationId,
           data,
         });
         setLoadedSearch(null);
@@ -723,6 +722,7 @@ export function App() {
                   onTabChange={setSearchTab}
                   loadedSavedResults={loadedSearch}
                   loadedSemanticData={loadedSemanticSearch}
+                  onSemanticSearchCompleted={setLoadedSemanticSearch}
                   onClearLoadedResults={() => {
                     setLoadedSearch(null);
                     setLoadedSemanticSearch(null);

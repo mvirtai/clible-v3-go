@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
 import { apiService } from '../../services/api';
-import type { AiSearchResponse } from '../../types/aiSearch';
+import type { AiSearchResponse, SemanticSearchSnapshot } from '../../types/aiSearch';
 import {
   Sparkles,
   Search,
@@ -26,11 +26,17 @@ export interface AiSemanticSearchProps {
   activeScopeId?: string;
   /** Callback for when workspace is updated */
   onWorkspaceUpdated?: () => void;
-  /** Optional initial loaded data */
-  loadedData?: {
-    query: string;
-    data: AiSearchResponse;
-  } | null;
+  /**
+   * Optional restored search. Ignored when its `translationId` differs from
+   * the active `translation`, because the verse text is translation-specific.
+   */
+  loadedData?: SemanticSearchSnapshot | null;
+  /**
+   * Fired after a successful search so the parent can retain the result.
+   * The component is unmounted when navigating to the reader, so the parent
+   * owns persistence and feeds it back through `loadedData` on remount.
+   */
+  onSearchCompleted?: (result: SemanticSearchSnapshot) => void;
 }
 
 interface SaveActionState {
@@ -40,6 +46,8 @@ interface SaveActionState {
 
 interface SemanticSearchState {
   data: AiSearchResponse | null;
+  /** Translation that produced `data`; null when there is no result. */
+  translationId: string | null;
   error: string | null;
 }
 
@@ -52,8 +60,12 @@ export function AiSemanticSearch({
   activeScopeId,
   onWorkspaceUpdated,
   loadedData,
+  onSearchCompleted,
 }: AiSemanticSearchProps) {
-  const [queryInput, setQueryInput] = useState(loadedData?.query ?? '');
+  // Pure derived value: a retained result is only valid for its own translation.
+  const restored =
+    loadedData && loadedData.translationId === translation ? loadedData : null;
+  const [queryInput, setQueryInput] = useState(restored?.query ?? '');
   const { strings, lang, aiLang } = useLanguage();
 
   // Pure derived state: localized search suggestions
@@ -79,35 +91,38 @@ export function AiSemanticSearch({
   >(async (_prevState, formData) => {
     const q = ((formData.get('query') as string) || '').trim();
     if (!q || !translation) {
-      return { data: null, error: null };
+      return { data: null, translationId: null, error: null };
     }
     try {
       const targetLang = aiLang === 'auto' ? lang : (aiLang as 'fi' | 'en');
       const resp = await apiService.executeAiSearch(q, translation, targetLang);
-      return { data: resp, error: null };
+      onSearchCompleted?.({ query: q, translationId: translation, data: resp });
+      return { data: resp, translationId: translation, error: null };
     } catch (err: unknown) {
       console.error('Semantic search failed:', err);
-      return { data: null, error: strings.semanticSearchError };
+      return { data: null, translationId: null, error: strings.semanticSearchError };
     }
   }, {
-    data: loadedData?.data ?? null,
+    data: restored?.data ?? null,
+    translationId: restored?.translationId ?? null,
     error: null,
   });
 
   const [saveState, saveAction, isSaving] = useActionState(
     async (_prevState: SaveActionState, formData: FormData): Promise<SaveActionState> => {
       const title = (formData.get('title') as string)?.trim();
-      if (!title || !activeScopeId || !searchState.data) {
+      if (!title || !activeScopeId || !searchState.data || !searchState.translationId) {
         return { status: 'error', errorMessage: 'Missing required data' };
       }
       try {
+        // Persist the translation that produced the result, not the current selector value.
         await apiService.saveSearch({
           scopeId: activeScopeId,
           name: title,
           queryText: queryInput,
           searchScope: 'semantic',
-          scopeValue: translation,
-          translationId: translation,
+          scopeValue: searchState.translationId,
+          translationId: searchState.translationId,
           resultJson: JSON.stringify(searchState.data),
         });
         onWorkspaceUpdated?.();
