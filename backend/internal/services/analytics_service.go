@@ -425,27 +425,30 @@ func (s *AnalyticService) computeSequenceRatio(a, b string) float64 {
 		return 0.0
 	}
 
+	if len(b) > len(a) {
+		a, b = b, a
+	}
+
 	m := len(a)
 	n := len(b)
-	dp := make([][]int, m+1)
-	for i := range dp {
-		dp[i] = make([]int, n+1)
-	}
+	previous := make([]int, n+1)
+	current := make([]int, n+1)
 
 	for i := 1; i <= m; i++ {
+		current[0] = 0
 		for j := 1; j <= n; j++ {
 			if a[i-1] == b[j-1] {
-				dp[i][j] = dp[i-1][j-1] + 1
+				current[j] = previous[j-1] + 1
+			} else if previous[j] > current[j-1] {
+				current[j] = previous[j]
 			} else {
-				dp[i][j] = dp[i-1][j]
-				if dp[i][j-1] > dp[i][j] {
-					dp[i][j] = dp[i][j-1]
-				}
+				current[j] = current[j-1]
 			}
 		}
+		previous, current = current, previous
 	}
 
-	lcsLength := dp[m][n]
+	lcsLength := previous[n]
 	return float64(2*lcsLength) / float64(m+n)
 }
 
