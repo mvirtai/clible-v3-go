@@ -58,14 +58,14 @@ describe('AiSemanticSearch state retention', () => {
     vi.clearAllMocks();
   });
 
-  it('restores query and results from loadedData after remount', () => {
+  it('restores query and results from loadedData when translation matches', () => {
     act(() => {
       root = createRoot(container!);
       root.render(
         <LanguageProvider>
           <AiSemanticSearch
             translation="web"
-            loadedData={{ query: 'calming the storm', data: mockResponse }}
+            loadedData={{ query: 'calming the storm', translationId: 'web', data: mockResponse }}
           />
         </LanguageProvider>,
       );
@@ -75,6 +75,24 @@ describe('AiSemanticSearch state retention', () => {
     expect(input.value).toBe('calming the storm');
     expect(container!.textContent).toContain('Then he rebuked the winds and the sea.');
     expect(container!.textContent).toContain('MAT 8:26');
+  });
+
+  it('discards retained results produced by a different translation', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <AiSemanticSearch
+            translation="fin-1992"
+            loadedData={{ query: 'calming the storm', translationId: 'web', data: mockResponse }}
+          />
+        </LanguageProvider>,
+      );
+    });
+
+    const input = container!.querySelector('input[name="query"]') as HTMLInputElement;
+    expect(input.value).toBe('');
+    expect(container!.textContent).not.toContain('Then he rebuked the winds and the sea.');
   });
 
   it('reports completed searches to the parent via onSearchCompleted', async () => {
@@ -103,6 +121,7 @@ describe('AiSemanticSearch state retention', () => {
     expect(onSearchCompleted).toHaveBeenCalledTimes(1);
     const arg = onSearchCompleted.mock.calls[0][0];
     expect(arg.data).toBe(mockResponse);
+    expect(arg.translationId).toBe('web');
     expect(arg.query).toMatch(/Armor of God|Jumalan taisteluvarustus/);
   });
 });
