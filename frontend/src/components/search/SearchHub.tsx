@@ -34,6 +34,8 @@ export interface SearchHubProps {
         query: string;
         data: AiSearchResponse;
     } | null;
+    /** Fired when a semantic search completes so the parent can retain it */
+    onSemanticSearchCompleted?: (result: { query: string; data: AiSearchResponse }) => void;
     /** Clear external loaded state */
     onClearLoadedResults?: () => void;
 }
@@ -50,6 +52,7 @@ export function SearchHub({
     onTabChange,
     loadedSavedResults,
     loadedSemanticData,
+    onSemanticSearchCompleted,
     onClearLoadedResults,
 }: SearchHubProps) {
     const [activeTab, setActiveTab] = useState<SearchSubModule>(initialTab ?? 'lexical');
@@ -133,6 +136,7 @@ export function SearchHub({
           activeScopeId={activeScopeId}
           onWorkspaceUpdated={onWorkspaceUpdated}
           loadedData={loadedSemanticData}
+          onSearchCompleted={onSemanticSearchCompleted}
         />
       )}
     </div>

@@ -723,6 +723,7 @@ export function App() {
                   onTabChange={setSearchTab}
                   loadedSavedResults={loadedSearch}
                   loadedSemanticData={loadedSemanticSearch}
+                  onSemanticSearchCompleted={setLoadedSemanticSearch}
                   onClearLoadedResults={() => {
                     setLoadedSearch(null);
                     setLoadedSemanticSearch(null);

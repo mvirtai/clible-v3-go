@@ -31,6 +31,12 @@ export interface AiSemanticSearchProps {
     query: string;
     data: AiSearchResponse;
   } | null;
+  /**
+   * Fired after a successful search so the parent can retain the result.
+   * The component is unmounted when navigating to the reader, so the parent
+   * owns persistence and feeds it back through `loadedData` on remount.
+   */
+  onSearchCompleted?: (result: { query: string; data: AiSearchResponse }) => void;
 }
 
 interface SaveActionState {
@@ -52,6 +58,7 @@ export function AiSemanticSearch({
   activeScopeId,
   onWorkspaceUpdated,
   loadedData,
+  onSearchCompleted,
 }: AiSemanticSearchProps) {
   const [queryInput, setQueryInput] = useState(loadedData?.query ?? '');
   const { strings, lang, aiLang } = useLanguage();
@@ -84,6 +91,7 @@ export function AiSemanticSearch({
     try {
       const targetLang = aiLang === 'auto' ? lang : (aiLang as 'fi' | 'en');
       const resp = await apiService.executeAiSearch(q, translation, targetLang);
+      onSearchCompleted?.({ query: q, data: resp });
       return { data: resp, error: null };
     } catch (err: unknown) {
       console.error('Semantic search failed:', err);
