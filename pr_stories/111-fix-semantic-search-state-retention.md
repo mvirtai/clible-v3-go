@@ -79,3 +79,8 @@ Manual browser verification (search, open a result verse, press Back; and the sa
 | `frontend/src/components/search/SearchHub.tsx` | Added `onSemanticSearchCompleted` prop; uses the shared snapshot type. |
 | `frontend/src/App.tsx` | Retains `SemanticSearchSnapshot` state; tags saved-search loads with their translation. |
 | `frontend/src/components/search/AiSemanticSearch.test.tsx` | New regression tests for restoration, translation mismatch, and the completion callback. |
+| `pr_stories/111-fix-semantic-search-state-retention.md` | PR Story documenting the semantic search state retention architecture and verification. |
+| `VERSION` | Bumped patch version from 3.13.1 to 3.13.2. |
+| `backend/internal/version/version.go` | Synchronized Go backend version constant to 3.13.2. |
+| `frontend/package.json` | Synchronized frontend package version to 3.13.2. |
+| `frontend/src/utils/version.ts` | Synchronized frontend runtime version constant to 3.13.2. |
