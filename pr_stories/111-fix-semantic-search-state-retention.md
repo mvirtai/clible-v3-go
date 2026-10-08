@@ -56,7 +56,7 @@ The global translation selector stays available in the Reader, so the active tra
 
 ### Automated Backend Tests
 
-Not applicable. No backend files changed.
+Not applicable. No backend behavior changed; the only backend file change synchronizes the release version.
 
 ### Automated Frontend Tests
 
