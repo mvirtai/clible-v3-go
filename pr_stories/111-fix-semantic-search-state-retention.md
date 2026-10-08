@@ -30,12 +30,21 @@ sequenceDiagram
 
 ### 1. Component state flow
 
-- `AiSemanticSearch` gains an optional `onSearchCompleted({ query, data })` prop, called after a successful `executeAiSearch` inside the existing form action. Failed searches do not call it.
+- `AiSemanticSearch` gains an optional `onSearchCompleted(snapshot)` prop, called after a successful `executeAiSearch` inside the existing form action. Failed searches do not call it.
+- The retained value is a `SemanticSearchSnapshot` (`query`, `translationId`, `data`), defined in `types/aiSearch.ts`. `translationId` records which translation produced the verse text.
 - `SearchHub` forwards the callback as `onSemanticSearchCompleted`.
-- `App.tsx` passes `setLoadedSemanticSearch` as that callback. The existing `loadedSemanticData` prop feeds the result back on remount.
+- `App.tsx` passes `setLoadedSemanticSearch` as that callback. The existing `loadedSemanticData` prop feeds the snapshot back on remount. Loading a saved semantic search now also tags the snapshot with the saved `translationId`.
 - No `useEffect` or `useRef` is introduced. The parent is updated from the action handler, not from a render-time or effect-based sync.
 
-### 2. Behavioral notes
+### 2. Translation consistency
+
+The global translation selector stays available in the Reader, so the active translation can change between leaving and returning to the search view.
+
+- **Invalidation on mismatch:** `AiSemanticSearch` derives `restored` as the snapshot only when `snapshot.translationId === translation`. Otherwise the view mounts empty, so one translation's verse text is never shown under another.
+- **Correct save metadata:** the search state now carries the `translationId` that produced the result. Saving a result persists that value (`translationId` and `scopeValue`) instead of the current selector value, which also fixes mislabeling when the selector changes while the search view stays mounted.
+- Invalidation was chosen over restoring the translation, because restoring would change the global selector as a side effect of pressing Back.
+
+### 3. Behavioral notes
 
 - The same mechanism restores results when switching between the lexical and semantic tabs, because switching tabs also remounts `AiSemanticSearch`.
 - `loadedData` only seeds the initial state. Updating `loadedSemanticSearch` while the component is mounted therefore does not reset the visible state.
@@ -51,19 +60,13 @@ Not applicable. No backend files changed.
 
 ### Automated Frontend Tests
 
-New file `AiSemanticSearch.test.tsx` adds two tests:
+New file `AiSemanticSearch.test.tsx` adds three tests:
 
-- Restores the query input value and the verse list from `loadedData` after a fresh mount.
-- Calls `onSearchCompleted` with the query and the API response after a search is triggered from a suggestion chip.
+- Restores the query input value and the verse list from `loadedData` when the translation matches.
+- Discards a retained snapshot produced by a different translation (empty input, no verse text).
+- Calls `onSearchCompleted` with the query, the producing `translationId`, and the API response after a search is triggered from a suggestion chip.
 
-Result of `task frontend:check` (type check, ESLint, Vitest):
-
-```text
- Test Files  52 passed (52)
-      Tests  398 passed (398)
-```
-
-Manual browser verification (search, open a result verse, press Back) has not been recorded for this change and is listed as a pre-merge step.
+Manual browser verification (search, open a result verse, press Back; and the same flow after changing translation in the Reader) has not been recorded for this change and is listed as a pre-merge step.
 
 ---
 
@@ -71,7 +74,8 @@ Manual browser verification (search, open a result verse, press Back) has not be
 
 | File | Change Summary |
 |------|----------------|
-| `frontend/src/components/search/AiSemanticSearch.tsx` | Added `onSearchCompleted` prop and call after successful search. |
-| `frontend/src/components/search/SearchHub.tsx` | Added `onSemanticSearchCompleted` prop and forwarded it to `AiSemanticSearch`. |
-| `frontend/src/App.tsx` | Passed `setLoadedSemanticSearch` as `onSemanticSearchCompleted`. |
-| `frontend/src/components/search/AiSemanticSearch.test.tsx` | New regression tests for state restoration and completion callback. |
+| `frontend/src/types/aiSearch.ts` | Added `SemanticSearchSnapshot` (query, translationId, data). |
+| `frontend/src/components/search/AiSemanticSearch.tsx` | Added `onSearchCompleted` prop; validates restored snapshot against the active translation; saves with the producing translation. |
+| `frontend/src/components/search/SearchHub.tsx` | Added `onSemanticSearchCompleted` prop; uses the shared snapshot type. |
+| `frontend/src/App.tsx` | Retains `SemanticSearchSnapshot` state; tags saved-search loads with their translation. |
+| `frontend/src/components/search/AiSemanticSearch.test.tsx` | New regression tests for restoration, translation mismatch, and the completion callback. |
