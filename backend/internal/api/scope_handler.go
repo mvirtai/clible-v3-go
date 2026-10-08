@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/mvirtai/clible-v3-go/internal/middleware"
@@ -50,29 +49,26 @@ type SaveAnalysisRequest struct {
 // CreateScope handles POST /api/scopes to spin up a fresh context window.
 func (h *ScopeHandler) CreateScope(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	var req ScopeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json body sequence"})
+		WriteError(w, "invalid request body", http.StatusBadRequest, err)
 		return
 	}
 
 	scope, err := h.scopeService.CreateScope(ctx, req.Name, userID)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(scope)
 }
@@ -80,23 +76,20 @@ func (h *ScopeHandler) CreateScope(w http.ResponseWriter, r *http.Request) {
 // GetScopes handles GET /api/scopes to yield a chronologically ordered index list.
 func (h *ScopeHandler) GetScopes(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	scopes, err := h.scopeService.GetScopes(ctx, userID)
 	if err != nil {
-		slog.Error("GetScopes failed", "error", err, "userId", userID)
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(scopes)
 }
@@ -104,28 +97,25 @@ func (h *ScopeHandler) GetScopes(w http.ResponseWriter, r *http.Request) {
 // DeleteScope handles DELETE /api/scopes?id=... releasing children automatically.
 func (h *ScopeHandler) DeleteScope(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "query parameter 'id' is required"})
+		WriteError(w, "invalid query parameter", http.StatusBadRequest, nil)
 		return
 	}
 
 	if err := h.scopeService.DeleteScope(ctx, id, userID); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
@@ -133,12 +123,10 @@ func (h *ScopeHandler) DeleteScope(w http.ResponseWriter, r *http.Request) {
 // SaveSearch handles POST /api/scopes/saved-searches pinning search activity.
 func (h *ScopeHandler) SaveSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	var req SaveSearchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json format payload"})
+		WriteError(w, "invalid request body", http.StatusBadRequest, err)
 		return
 	}
 
@@ -153,11 +141,11 @@ func (h *ScopeHandler) SaveSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.scopeService.SaveSearch(ctx, &searchItem); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(searchItem)
 }
@@ -165,12 +153,10 @@ func (h *ScopeHandler) SaveSearch(w http.ResponseWriter, r *http.Request) {
 // SaveAnalysis handles POST /api/scopes/saved-analyses pinning text statistics metric sets.
 func (h *ScopeHandler) SaveAnalysis(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	var req SaveAnalysisRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json format payload"})
+		WriteError(w, "invalid request body", http.StatusBadRequest, err)
 		return
 	}
 
@@ -185,11 +171,11 @@ func (h *ScopeHandler) SaveAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.scopeService.SaveAnalysis(ctx, &analysisItem); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(analysisItem)
 }
@@ -197,30 +183,26 @@ func (h *ScopeHandler) SaveAnalysis(w http.ResponseWriter, r *http.Request) {
 // GetScopeWorkspace handles GET /api/scopes/workspace?id=... aggregating nested elements.
 func (h *ScopeHandler) GetScopeWorkspace(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "query parameter 'id' is required"})
+		WriteError(w, "invalid query parameter", http.StatusBadRequest, nil)
 		return
 	}
 
 	workspace, err := h.scopeService.GetScopeWorkspace(ctx, id, userID)
 	if err != nil {
-		slog.Error("GetScopeWorkspace failed", "error", err, "scopeId", id, "userId", userID)
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(workspace)
 }
@@ -234,28 +216,25 @@ type RenameScopeRequest struct {
 // RenameScope handles PUT /api/scopes.
 func (h *ScopeHandler) RenameScope(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	var req RenameScopeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json payload"})
+		WriteError(w, "invalid request body", http.StatusBadRequest, err)
 		return
 	}
 
 	if err := h.scopeService.RenameScope(ctx, req.ID, req.Name, userID); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "renamed"})
 }
@@ -263,28 +242,25 @@ func (h *ScopeHandler) RenameScope(w http.ResponseWriter, r *http.Request) {
 // DeleteSearch handles DELETE /api/scopes/saved-searches?id=...
 func (h *ScopeHandler) DeleteSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "id parameter required"})
+		WriteError(w, "invalid query parameter", http.StatusBadRequest, nil)
 		return
 	}
 
 	if err := h.scopeService.DeleteSearch(ctx, id, userID); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
@@ -298,28 +274,25 @@ type RenameSavedItemRequest struct {
 // RenameSearch handles PUT /api/scopes/saved-searches.
 func (h *ScopeHandler) RenameSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	var req RenameSavedItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json payload"})
+		WriteError(w, "invalid request body", http.StatusBadRequest, err)
 		return
 	}
 
 	if err := h.scopeService.RenameSearch(ctx, req.ID, req.Name, userID); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "renamed"})
 }
@@ -327,28 +300,25 @@ func (h *ScopeHandler) RenameSearch(w http.ResponseWriter, r *http.Request) {
 // DeleteAnalysis handles DELETE /api/scopes/saved-analyses?id=...
 func (h *ScopeHandler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "id parameter required"})
+		WriteError(w, "invalid query parameter", http.StatusBadRequest, nil)
 		return
 	}
 
 	if err := h.scopeService.DeleteAnalysis(ctx, id, userID); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
@@ -356,28 +326,25 @@ func (h *ScopeHandler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
 // RenameAnalysis handles PUT /api/scopes/saved-analyses.
 func (h *ScopeHandler) RenameAnalysis(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
 		return
 	}
 
 	var req RenameSavedItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json payload"})
+		WriteError(w, "invalid request body", http.StatusBadRequest, err)
 		return
 	}
 
 	if err := h.scopeService.RenameAnalysis(ctx, req.ID, req.Name, userID); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "renamed"})
 }
