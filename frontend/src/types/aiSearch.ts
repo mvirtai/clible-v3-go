@@ -40,3 +40,14 @@ export interface AiSearchResponse {
     summary: AiSearchSummary | null;
     usageMetadata?: GeminiUsageMetadata;
 }
+
+/**
+ * A completed semantic search retained outside the search view.
+ * `translationId` is the translation that produced `data`; the verse text
+ * in `data` is only valid for that translation.
+ */
+export interface SemanticSearchSnapshot {
+    query: string;
+    translationId: string;
+    data: AiSearchResponse;
+}

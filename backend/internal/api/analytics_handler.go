@@ -43,14 +43,12 @@ func (h *AnalyticsHandler) Analyze(w http.ResponseWriter, r *http.Request) {
 
 	var req AnalyzeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json request structure"})
+		WriteError(w, "invalid request body", http.StatusBadRequest, err)
 		return
 	}
 
 	if req.Reference == "" || req.TranslationID == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing mandatory fields: reference and translationId"})
+		WriteError(w, "missing mandatory fields: reference and translationId", http.StatusBadRequest, nil)
 		return
 	}
 
@@ -58,12 +56,10 @@ func (h *AnalyticsHandler) Analyze(w http.ResponseWriter, r *http.Request) {
 	verses, err := h.verseService.GetVerses(ctx, req.Reference, req.TranslationID)
 	if err != nil {
 		if strings.Contains(err.Error(), "failed to parse reference") {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			WriteError(w, "failed to parse reference", http.StatusBadRequest, err)
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -81,14 +77,12 @@ func (h *AnalyticsHandler) Compare(w http.ResponseWriter, r *http.Request) {
 
 	var req CompareRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json request structure"})
+		WriteError(w, "invalid request body", http.StatusBadRequest, err)
 		return
 	}
 
 	if req.Reference == "" || req.TranslationID1 == "" || req.TranslationID2 == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing validation arguments"})
+		WriteError(w, "missing validation arguments", http.StatusBadRequest, nil)
 		return
 	}
 
@@ -96,12 +90,10 @@ func (h *AnalyticsHandler) Compare(w http.ResponseWriter, r *http.Request) {
 	verses1, err := h.verseService.GetVerses(ctx, req.Reference, req.TranslationID1)
 	if err != nil {
 		if strings.Contains(err.Error(), "failed to parse reference") {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			WriteError(w, "failed to parse reference", http.StatusBadRequest, err)
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -109,12 +101,10 @@ func (h *AnalyticsHandler) Compare(w http.ResponseWriter, r *http.Request) {
 	verses2, err := h.verseService.GetVerses(ctx, req.Reference, req.TranslationID2)
 	if err != nil {
 		if strings.Contains(err.Error(), "failed to parse reference") {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			WriteError(w, "failed to parse reference", http.StatusBadRequest, err)
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		WriteError(w, "internal server error", http.StatusInternalServerError, err)
 		return
 	}
 

@@ -156,6 +156,19 @@ export class ApiService {
   private baseUrl = '/api';
 
   /**
+   * Centralized error response parser.
+   * Extracts sanitized JSON `error` field sent by Go backend (VULN-004),
+   * falling back to standard HTTP status message if unparseable or empty.
+   */
+  private async handleError(res: Response, fallbackEndpoint: string): Promise<never> {
+    const errData =
+      typeof res.json === 'function'
+        ? ((await res.json().catch(() => ({}))) as { error?: string })
+        : {};
+    throw new Error(errData.error || `${fallbackEndpoint} returned ${res.status}`);
+  }
+
+  /**
    * Gets verses from a specified book or range of books and translation.
    * @param reference - Reference to fetch verses for (e.g. "MAT 1:1-5").
    * @param translation - Translation to use (e.g. "KJV").
@@ -172,7 +185,7 @@ export class ApiService {
       { credentials: 'include' },
     );
     if (!res.ok)
-      throw new Error(`GET ${this.baseUrl}/verses returned ${res.status}`);
+      await this.handleError(res, `GET ${this.baseUrl}/verses`);
     return await res.json();
   }
 
@@ -197,7 +210,7 @@ export class ApiService {
       { credentials: 'include' },
     );
     if (!res.ok)
-      throw new Error(`GET ${this.baseUrl}/search returned ${res.status}`);
+      await this.handleError(res, `GET ${this.baseUrl}/search`);
     return await res.json();
   }
 
@@ -212,9 +225,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(
-        `GET ${this.baseUrl}/translations returned ${res.status}`,
-      );
+      await this.handleError(res, `GET ${this.baseUrl}/translations`);
     return await res.json();
   }
 
@@ -229,7 +240,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(`GET ${this.baseUrl}/history returned ${res.status}`);
+      await this.handleError(res, `GET ${this.baseUrl}/history`);
     return await res.json();
   }
 
@@ -250,7 +261,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(`POST ${this.baseUrl}/history returned ${res.status}`);
+      await this.handleError(res, `POST ${this.baseUrl}/history`);
   }
 
   /**
@@ -269,9 +280,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(
-        `POST ${this.baseUrl}/analytics/analyze returned ${res.status}`,
-      );
+      await this.handleError(res, `POST ${this.baseUrl}/analytics/analyze`);
 
     const raw = (await res.json()) as RawTextStats;
     return mapTextStats(raw);
@@ -298,9 +307,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(
-        `POST ${this.baseUrl}/analytics/compare returned ${res.status}`,
-      );
+      await this.handleError(res, `POST ${this.baseUrl}/analytics/compare`);
 
     const raw = (await res.json()) as RawComparisonResult;
     return mapComparisonResult(raw);
@@ -319,12 +326,8 @@ export class ApiService {
       body: JSON.stringify({ translationId }),
       credentials: 'include',
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(
-        errData.error || `POST /translations/link returned ${res.status}`,
-      );
-    }
+    if (!res.ok)
+      await this.handleError(res, 'POST /translations/link');
   }
 
   /**
@@ -340,12 +343,8 @@ export class ApiService {
       body: JSON.stringify({ translationId }),
       credentials: 'include',
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(
-        errData.error || `DELETE /translations/link returned ${res.status}`,
-      );
-    }
+    if (!res.ok)
+      await this.handleError(res, 'DELETE /translations/link');
   }
 
   /**
@@ -358,12 +357,8 @@ export class ApiService {
       body: JSON.stringify({ email, password }),
       credentials: 'include',
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(
-        errData.error || `POST /auth/register returned ${res.status}`,
-      );
-    }
+    if (!res.ok)
+      await this.handleError(res, 'POST /auth/register');
     return await res.json();
   }
 
@@ -377,12 +372,8 @@ export class ApiService {
       body: JSON.stringify({ email, password }),
       credentials: 'include',
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(
-        errData.error || `POST /auth/login returned ${res.status}`,
-      );
-    }
+    if (!res.ok)
+      await this.handleError(res, 'POST /auth/login');
     return await res.json();
   }
 
@@ -394,7 +385,8 @@ export class ApiService {
       method: 'POST',
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`POST /auth/logout returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'POST /auth/logout');
   }
 
   /**
@@ -411,12 +403,8 @@ export class ApiService {
       body: JSON.stringify(params),
       credentials: 'include',
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(
-        errData.error || `POST /auth/verify-email returned ${res.status}`,
-      );
-    }
+    if (!res.ok)
+      await this.handleError(res, 'POST /auth/verify-email');
     const data = await res.json();
     return (data.user as UserResponse) || (data as UserResponse);
   }
@@ -431,13 +419,8 @@ export class ApiService {
       body: JSON.stringify({ email, language: language || 'fi' }),
       credentials: 'include',
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(
-        errData.error ||
-          `POST /auth/resend-verification returned ${res.status}`,
-      );
-    }
+    if (!res.ok)
+      await this.handleError(res, 'POST /auth/resend-verification');
   }
 
   /**
@@ -447,10 +430,8 @@ export class ApiService {
     const res = await fetch(`${this.baseUrl}/auth/me`, {
       credentials: 'include',
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `GET /auth/me returned ${res.status}`);
-    }
+    if (!res.ok)
+      await this.handleError(res, 'GET /auth/me');
     return await res.json();
   }
 
@@ -461,7 +442,8 @@ export class ApiService {
     const res = await fetch(`${this.baseUrl}/scopes`, {
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`GET /scopes returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'GET /scopes');
     return await res.json();
   }
 
@@ -475,7 +457,8 @@ export class ApiService {
       body: JSON.stringify({ name }),
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`POST /scopes returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'POST /scopes');
     return await res.json();
   }
 
@@ -490,7 +473,8 @@ export class ApiService {
         credentials: 'include',
       },
     );
-    if (!res.ok) throw new Error(`DELETE /scopes returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'DELETE /scopes');
   }
 
   /**
@@ -504,7 +488,7 @@ export class ApiService {
       },
     );
     if (!res.ok)
-      throw new Error(`GET /scopes/workspace returned ${res.status}`);
+      await this.handleError(res, 'GET /scopes/workspace');
     return await res.json();
   }
 
@@ -521,7 +505,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(`POST /scopes/saved-searches returned ${res.status}`);
+      await this.handleError(res, 'POST /scopes/saved-searches');
     return await res.json();
   }
 
@@ -538,7 +522,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(`POST /scopes/saved-analyses returned ${res.status}`);
+      await this.handleError(res, 'POST /scopes/saved-analyses');
     return await res.json();
   }
 
@@ -552,7 +536,8 @@ export class ApiService {
       body: JSON.stringify({ id, name }),
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`PUT /scopes returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'PUT /scopes');
   }
 
   /**
@@ -567,7 +552,7 @@ export class ApiService {
       },
     );
     if (!res.ok)
-      throw new Error(`DELETE /scopes/saved-searches returned ${res.status}`);
+      await this.handleError(res, 'DELETE /scopes/saved-searches');
   }
 
   /**
@@ -581,7 +566,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(`PUT /scopes/saved-searches returned ${res.status}`);
+      await this.handleError(res, 'PUT /scopes/saved-searches');
   }
 
   /**
@@ -596,7 +581,7 @@ export class ApiService {
       },
     );
     if (!res.ok)
-      throw new Error(`DELETE /scopes/saved-analyses returned ${res.status}`);
+      await this.handleError(res, 'DELETE /scopes/saved-analyses');
   }
 
   /**
@@ -610,7 +595,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(`PUT /scopes/saved-analyses returned ${res.status}`);
+      await this.handleError(res, 'PUT /scopes/saved-analyses');
   }
 
   /**
@@ -623,7 +608,8 @@ export class ApiService {
       body: JSON.stringify({ text, focus, outputLanguage }),
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`POST /ai/insight returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'POST /ai/insight');
     return await res.json();
   }
 
@@ -637,7 +623,8 @@ export class ApiService {
       body: JSON.stringify({ text, focus, outputLanguage }),
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`POST /ai/tone returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'POST /ai/tone');
     return await res.json();
   }
 
@@ -660,7 +647,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(`POST /ai/original-study returned ${res.status}`);
+      await this.handleError(res, 'POST /ai/original-study');
     return await res.json();
   }
 
@@ -688,7 +675,8 @@ export class ApiService {
       }),
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`POST /ai/deep-dive returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'POST /ai/deep-dive');
     return await res.json();
   }
 
@@ -706,7 +694,8 @@ export class ApiService {
       body: JSON.stringify({ query, translationId, uiLanguage }),
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`POST /ai/search returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'POST /ai/search');
     return await res.json();
   }
 
@@ -727,7 +716,8 @@ export class ApiService {
       body: JSON.stringify(params),
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`POST /ai/compare returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'POST /ai/compare');
     return await res.json();
   }
 
@@ -738,7 +728,8 @@ export class ApiService {
     const res = await fetch(`${this.baseUrl}/ai/usage/me?days=${days}`, {
       credentials: 'include',
     });
-    if (!res.ok) throw new Error(`GET /ai/usage/me returned ${res.status}`);
+    if (!res.ok)
+      await this.handleError(res, 'GET /ai/usage/me');
     return await res.json();
   }
 
@@ -750,7 +741,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok)
-      throw new Error(`GET /ai/usage/summary returned ${res.status}`);
+      await this.handleError(res, 'GET /ai/usage/summary');
     return await res.json();
   }
 
@@ -763,7 +754,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok) {
-      throw new Error(`GET /user/settings returned ${res.status}`);
+      await this.handleError(res, 'GET /user/settings');
     }
     return await res.json();
   }
@@ -782,10 +773,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(
-        errData.error || `PUT /user/settings returned ${res.status}`,
-      );
+      await this.handleError(res, 'PUT /user/settings');
     }
     return await res.json();
   }
@@ -805,8 +793,7 @@ export class ApiService {
       credentials: 'include',
     });
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || `PUT /user/password returned ${res.status}`);
+      await this.handleError(res, 'PUT /user/password');
     }
   }
 }
