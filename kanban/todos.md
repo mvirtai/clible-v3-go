@@ -49,27 +49,27 @@
 
 ## In Progress
 
+## Done
+
 ### Semanttisen haun jakeiden kuratointi ja Swipe-triage (Mobiili & Työpöytä)
 
 - due: 2026-09-28
 - tags: [search, ai, mobile, swipe, gestures, curation, frontend]
 - priority: high
-- defaultExpanded: true
+- defaultExpanded: false
 - steps:
-  - [ ] CuratedVerseCard.tsx -komponentti mobiilin kosketuspyyhkäisyillä (Swipe Right = hyväksy, Swipe Left = hylkää)
-  - [ ] Työpöydän nopeat hyväksy/hylkää-pikapainikkeet ja pikanäppäintuki
-  - [ ] VerseCurationHeader.tsx -suodatuspalkki (Kaikki | Hyväksytyt | Hylätyt) ja tilastolaskurit
-  - [ ] Kumoa/palauta-toiminto hylätyille jakeille
-  - [ ] Kaksikieliset i18n.ts-käännökset kuratointieleille ja opastukselle
-  - [ ] Työtilaan tallennus: tallenna ensisijaisesti vain hyväksytyt kuratoidut jakeet
-  - [ ] Yksikkötestit CuratedVerseCardille ja AiSemanticSearch-integraatiolle
+  - [x] CuratedVerseCard.tsx -komponentti mobiilin kosketuspyyhkäisyillä (Swipe Right = hyväksy, Swipe Left = hylkää)
+  - [x] Työpöydän nopeat hyväksy/hylkää-pikapainikkeet ja pikanäppäintuki
+  - [x] VerseCurationHeader.tsx -suodatuspalkki (Kaikki | Hyväksytyt | Hylätyt) ja tilastolaskurit
+  - [x] Kumoa/palauta-toiminto hylätyille jakeille
+  - [x] Kaksikieliset i18n.ts-käännökset kuratointieleille ja opastukselle
+  - [x] Työtilaan tallennus: tallenna ensisijaisesti vain hyväksytyt kuratoidut jakeet
+  - [x] Yksikkötestit CuratedVerseCardille ja AiSemanticSearch-integraatiolle
 
     ```md
     Suunnitelma: [.plans/02-luku-ja-haku/30-semanttisen-haun-jakeiden-kuratointi-ja-swipe-triage.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/30-semanttisen-haun-jakeiden-kuratointi-ja-swipe-triage.md)
     Mahdollistaa semanttisen haun löytämien jakeiden nopean kuratoinnin ja karsinnan. Puhelimella jakeita voi pyyhkäistä (swipe) hyväksytyiksi tai hylätyiksi luonnollisilla eleillä, ja työpöydällä kuratointi hoituu intuitiivisilla pikanapeilla ja pikanäppäimillä.
     ```
-
-## Done
 
 ### VitePress-dokumentaation suomentaminen (Kaksikielinen EN/FI -dokumentaatio)
 
