@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
 import { apiService } from '../../services/api';
 import type { AiSearchResponse, SemanticSearchSnapshot } from '../../types/aiSearch';
+import { VerseCurationHeader, type CurationFilter } from './VerseCurationHeader';
+import { CuratedVerseCard } from './CuratedVerseCard';
 import {
   Sparkles,
   Search,
@@ -68,6 +70,10 @@ export function AiSemanticSearch({
   const [queryInput, setQueryInput] = useState(restored?.query ?? '');
   const { strings, lang, aiLang } = useLanguage();
 
+  const [acceptedIds, setAcceptedIds] = useState<Set<string>>(() => new Set());
+  const [rejectedIds, setRejectedIds] = useState<Set<string>>(() => new Set());
+  const [curationFilter, setCurationFilter] = useState<CurationFilter>('all');
+
   // Pure derived state: localized search suggestions
   const examples =
     lang === 'fi'
@@ -97,6 +103,9 @@ export function AiSemanticSearch({
       const targetLang = aiLang === 'auto' ? lang : (aiLang as 'fi' | 'en');
       const resp = await apiService.executeAiSearch(q, translation, targetLang);
       onSearchCompleted?.({ query: q, translationId: translation, data: resp });
+      setAcceptedIds(new Set());
+      setRejectedIds(new Set());
+      setCurationFilter('all');
       return { data: resp, translationId: translation, error: null };
     } catch (err: unknown) {
       console.error('Semantic search failed:', err);
@@ -115,6 +124,19 @@ export function AiSemanticSearch({
         return { status: 'error', errorMessage: 'Missing required data' };
       }
       try {
+        const curatedPayload: AiSearchResponse = {
+          ...searchState.data,
+          search: searchState.data.search
+            ? {
+                ...searchState.data.search,
+                verses:
+                  acceptedIds.size > 0
+                    ? searchState.data.search.verses.filter((v) => acceptedIds.has(v.id))
+                    : searchState.data.search.verses,
+              }
+            : searchState.data.search,
+        };
+
         // Persist the translation that produced the result, not the current selector value.
         await apiService.saveSearch({
           scopeId: activeScopeId,
@@ -123,7 +145,7 @@ export function AiSemanticSearch({
           searchScope: 'semantic',
           scopeValue: searchState.translationId,
           translationId: searchState.translationId,
-          resultJson: JSON.stringify(searchState.data),
+          resultJson: JSON.stringify(curatedPayload),
         });
         onWorkspaceUpdated?.();
         return { status: 'success', errorMessage: null };
@@ -143,6 +165,50 @@ export function AiSemanticSearch({
       await searchAction(fd);
     });
   };
+
+  // Curatation handlers
+  const handleAcceptVerse = (id: string) => {
+    setAcceptedIds(prev => new Set(prev).add(id))
+    setRejectedIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleRejectVerse = (id: string) => {
+    setRejectedIds(prev => new Set(prev).add(id));
+    setAcceptedIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleRestoreVerse = (id: string) => {
+    setAcceptedIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    setRejectedIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleAcceptAll = (allVerses: { id: string }[]) => {
+    setAcceptedIds(new Set(allVerses.map(v => v.id)));
+    setRejectedIds(new Set());
+  };
+
+  const handleResetCuration = () => {
+    setAcceptedIds(new Set());
+    setRejectedIds(new Set());
+  };
+
+  
 
   const { data, error } = searchState;
 
@@ -331,14 +397,24 @@ export function AiSemanticSearch({
 
           {/* 4. Scripture Verse Hits */}
           {(() => {
-            const verses = data.search?.verses || [];
+            const allVerses = data.search?.verses || [];
+            const displayedVerses = allVerses.filter((v) => {
+              if (curationFilter === 'accepted') return acceptedIds.has(v.id);
+              if (curationFilter === 'rejected') return rejectedIds.has(v.id);
+              return true;
+            });
+            const acceptedCount = allVerses.filter((v) => acceptedIds.has(v.id)).length;
+            const rejectedCount = allVerses.filter((v) => rejectedIds.has(v.id)).length;
+
             return (
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold tracking-tight text-[var(--text)]">
-                  {strings.semanticHitsTitle} ({verses.length})
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold tracking-tight text-[var(--text)]">
+                    {strings.semanticHitsTitle} ({allVerses.length})
+                  </h3>
+                </div>
 
-                {verses.length === 0 ? (
+                {allVerses.length === 0 ? (
                   <div className="p-5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-[var(--text)] space-y-2 shadow-xs">
                     <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-semibold text-sm">
                       <SearchX className="w-4 h-4 shrink-0" />
@@ -349,28 +425,48 @@ export function AiSemanticSearch({
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {verses.map((v) => {
-                      const ref = `${v.bookId} ${v.chapter}:${v.verse}`;
-                      return (
-                        <div
-                          key={v.id}
-                          onClick={() => onSelectVerse?.(ref)}
-                          className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] hover:shadow-xs transition-all cursor-pointer group"
-                        >
-                          <div className="flex items-center justify-between text-xs font-semibold text-[var(--accent)] mb-1">
-                            <span>{ref}</span>
-                            <ArrowRight
-                              size={12}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  <div className="space-y-3">
+                    <VerseCurationHeader
+                      strings={strings}
+                      filter={curationFilter}
+                      onFilterChange={setCurationFilter}
+                      totalCount={allVerses.length}
+                      acceptedCount={acceptedCount}
+                      rejectedCount={rejectedCount}
+                      onAcceptAll={() => handleAcceptAll(allVerses)}
+                      onResetCuration={handleResetCuration}
+                    />
+
+                    {displayedVerses.length === 0 ? (
+                      <div className="p-4 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-2)]/40 text-center text-xs text-[var(--muted)]">
+                        {curationFilter === 'accepted'
+                          ? strings.curateAcceptedCount(0)
+                          : strings.curateRejectedCount(0)}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-2.5">
+                        {displayedVerses.map((v) => {
+                          const status = acceptedIds.has(v.id)
+                            ? 'accepted'
+                            : rejectedIds.has(v.id)
+                              ? 'rejected'
+                              : 'unreviewed';
+
+                          return (
+                            <CuratedVerseCard
+                              key={v.id}
+                              verse={v}
+                              status={status}
+                              strings={strings}
+                              onAccept={handleAcceptVerse}
+                              onReject={handleRejectVerse}
+                              onRestore={handleRestoreVerse}
+                              onSelectVerse={onSelectVerse}
                             />
-                          </div>
-                          <p className="text-xs sm:text-sm text-[var(--text)] leading-relaxed">
-                            {v.text}
-                          </p>
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

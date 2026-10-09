@@ -445,6 +445,20 @@ export interface Messages {
   saveSemanticSearchSuccess: string;
   saveSemanticSearchButton: string;
   savingSemanticSearch: string;
+  curateAll: string;
+  curateAccepted: string;
+  curateRejected: string;
+  curateAccept: string;
+  curateReject: string;
+  curateRestore: string;
+  curateSwipeHint: string;
+  curateSaveOnlyAccepted: string;
+  curateSaveAll: string;
+  curateAcceptAll: string;
+  curateReset: string;
+  curateKeyboardHint: string;
+  curateAcceptedCount: (count: number) => string;
+  curateRejectedCount: (count: number) => string;
 
   // User Settings & Profile
   settingsSubtitle: string;
@@ -1021,6 +1035,20 @@ export const strings: Record<UILanguage, Messages> = {
     saveSemanticSearchSuccess: 'Semantic search saved to workspace!',
     saveSemanticSearchButton: 'Save',
     savingSemanticSearch: 'Saving...',
+    curateAll: 'All',
+    curateAccepted: 'Accepted',
+    curateRejected: 'Rejected',
+    curateAccept: 'Accept verse',
+    curateReject: 'Reject verse',
+    curateRestore: 'Restore verse',
+    curateSwipeHint: 'Swipe right to accept, left to reject',
+    curateSaveOnlyAccepted: 'Save only accepted verses',
+    curateSaveAll: 'Save all discovered verses',
+    curateAcceptAll: 'Accept all',
+    curateReset: 'Reset curation',
+    curateKeyboardHint: 'Desktop: click buttons or use keyboard (A = accept, D = reject)',
+    curateAcceptedCount: (count: number) => `${count} accepted`,
+    curateRejectedCount: (count: number) => `${count} rejected`,
 
     // User Settings & Profile
     settingsSubtitle: 'Manage your account details, reading preferences, and security.',
@@ -1594,6 +1622,20 @@ export const strings: Record<UILanguage, Messages> = {
     saveSemanticSearchSuccess: 'Semanttinen haku tallennettu työtilaan!',
     saveSemanticSearchButton: 'Tallenna',
     savingSemanticSearch: 'Tallennetaan...',
+    curateAll: 'Kaikki',
+    curateAccepted: 'Hyväksytyt',
+    curateRejected: 'Hylätyt',
+    curateAccept: 'Hyväksy jae',
+    curateReject: 'Hylkää jae',
+    curateRestore: 'Palauta tuloksiin',
+    curateSwipeHint: 'Pyyhkäise oikealle hyväksyäksesi, vasemmalle hylätäksesi',
+    curateSaveOnlyAccepted: 'Tallenna vain hyväksytyt jakeet',
+    curateSaveAll: 'Tallenna kaikki löydetyt jakeet',
+    curateAcceptAll: 'Hyväksy kaikki',
+    curateReset: 'Nollaa karsinta',
+    curateKeyboardHint: 'Työpöytä: käytä nappeja tai pikanäppäimiä (A = hyväksy, D = hylkää)',
+    curateAcceptedCount: (count: number) => `${count} hyväksytty`,
+    curateRejectedCount: (count: number) => `${count} hylätty`,
 
     // Käyttäjäasetukset ja profiili
     settingsSubtitle: 'Hallitse tilitietojasi, lukupreferenssejäsi ja turvallisuutta.',
