@@ -90,11 +90,14 @@ Object          ::= VerseRef
                   | RangeExpr
                   | SearchExpr
                   | CellCtxExpr
+                  | VariableRef
 
 VerseRef        ::= "@(" Citation ")"
 
 RangeExpr       ::= "range(" RangePart "," RangePart ")"
-RangePart       ::= (* any tokens up to "," or ")" *)
+                  | "(" RangePart ".." RangePart ")"
+                  | "@(" RangePart ".." RangePart ")"
+RangePart       ::= (* any tokens up to "," or ")" or ".." *)
 
 SearchExpr      ::= ("search(" | "?") SearchBody
 SearchBody      ::= StringLiteral
@@ -109,6 +112,8 @@ RegexLiteral    ::= "/" (* regexp chars *) "/"
 
 CellCtxExpr     ::= "^" [ Number | "all" ]
 
+VariableRef     ::= "#" Ident
+
 Method          ::= "." MethodName "(" MethodArgs? ")"
 
 MethodName      ::= "use" | "vs" | "at" | "refs" | "themes"
@@ -117,13 +122,13 @@ MethodName      ::= "use" | "vs" | "at" | "refs" | "themes"
 MethodArgs      ::= Arg { "," Arg }
 Arg             ::= StringLiteral | Ident | Number
 
-OutputOp        ::= "=>"                   (* OutputInline: render in current cell *)
-                  | ">" [ CellName ]       (* OutputNewCellAbove *)
-                  | ">>" [ CellName ]      (* OutputNewCellBelow *)
+OutputOp        ::= "=>" [ CellName ]    (* OutputInline: render in current cell *)
+                  | ">" [ CellName ]     (* OutputNewCellAbove *)
+                  | ">>" [ CellName ]    (* OutputNewCellBelow *)
 
-CellName        ::= "#" Slug              (* #slug identifier *)
-                  | StringLiteral          (* "quoted title" *)
-                  | Ident { Ident }        (* free title words *)
+CellName        ::= "#" Slug            (* #slug identifier *)
+                  | StringLiteral        (* "quoted title" *)
+                  | Ident { Ident }      (* free title words *)
 
 Citation        ::= BookRef [ Chapter [ ":" VerseRange ] ]
 VerseRange      ::= Number [ "-" Number ]
@@ -138,16 +143,16 @@ VerseRange      ::= Number [ "-" Number ]
 
 ## 4. AST Node Types
 
-The parser produces a typed `ISLAExpression` root node containing one of four concrete
+The parser produces a typed `ISLAExpression` root node containing one of five concrete
 object types. All types are defined in `backend/new_dsl/ast.go`.
 
 ### `ISLAExpression` — Root
 
 ```go
 type ISLAExpression struct {
-    Object  Object       // Mandatory: one of the four object types
+    Object  Object       // Mandatory: one of the five object types
     Methods []MethodCall // Zero or more chained method calls, in order
-    Output  OutputOp     // Mandatory: => | > [name] | >> [name]
+    Output  OutputOp     // Mandatory: => [name] | > [name] | >> [name]
 }
 ```
 
@@ -156,9 +161,10 @@ type ISLAExpression struct {
 | AST Type | Syntax | ObjectKind constant |
 |---|---|---|
 | `VerseRefNode` | `@(Joh 3:16)` | `ObjectVerseRef` |
-| `RangeNode` | `range(GEN, DEU)` | `ObjectRange` |
-| `SearchNode` | `search("grace")` | `ObjectSearch` |
+| `RangeNode` | `range(GEN, DEU)` / `(MAT .. JOH)` | `ObjectRange` |
+| `SearchNode` | `search("grace")` / `? "armo"` | `ObjectSearch` |
 | `CellCtxNode` | `^` / `^3` / `^all` | `ObjectCellCtx` |
+| `VariableNode` | `#variable` | `ObjectVariable` |
 
 ### `MethodCall` — Chained Transformation
 
@@ -185,19 +191,19 @@ type OutputOp struct {
 The parser enforces method applicability at parse time. Calling a forbidden method
 returns an error immediately, before any database I/O is attempted:
 
-| Method | `@()` | `range()` | `search()` | `^` |
-|---|---|---|---|---|
-| `.use(trans)` | ✅ | ✅ | ✅ | ❌ |
-| `.vs(t1, t2)` | ✅ | ❌ | ❌ | ❌ |
-| `.refs(n)` | ✅ | ❌ | ❌ | ❌ |
-| `.at(scope)` | ❌ | ❌ | ✅ | ❌ |
-| `.limit(n)` | ❌ | ❌ | ✅ | ❌ |
-| `.count([unit])` | ✅ | ✅ | ✅ | ✅ |
-| `.top(n)` | ✅ | ✅ | ✅ | ✅ |
-| `.ngrams(size, [limit])` | ✅ | ✅ | ✅ | ✅ |
-| `.stats()` | ✅ | ✅ | ✅ | ✅ |
-| `.themes(n)` | ✅ | ✅ | ✅ | ✅ |
-| `.suggest(n)` | ✅ | ✅ | ✅ | ✅ |
+| Method | `@()` | `range()` | `search()` | `^` | `#var` |
+|---|---|---|---|---|---|
+| `.use(trans)` | ✅ | ✅ | ✅ | ❌ | ✅ |
+| `.vs(t1, t2)` | ✅ | ❌ | ❌ | ❌ | ✅ |
+| `.refs(n)` | ✅ | ❌ | ❌ | ❌ | ✅ |
+| `.at(scope)` | ❌ | ❌ | ✅ | ❌ | ❌ |
+| `.limit(n)` | ❌ | ❌ | ✅ | ❌ | ❌ |
+| `.count([unit])` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.top(n)` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.ngrams(size, [limit])` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.stats()` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.themes(n)` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.suggest(n)` | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 

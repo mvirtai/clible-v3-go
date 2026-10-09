@@ -58,3 +58,16 @@ Clicking or tapping any individual verse in the Reader opens the **Verse Action 
 - **Analyze in Original Language**: Opens the [Original Languages View](/guide/original-languages) to inspect the Greek or Hebrew root words, lemmas, and grammatical morphology.
 - **Generate AI Insight**: Triggers the [Theological AI Engine](/guide/ai-study-tools) to provide exegesis commentary and literary context.
 - **Send to Notebook**: Appends the verse into an active 2D canvas study sheet.
+
+---
+
+## 5. Church Year & Daily Liturgy Integration
+
+The Reader is directly integrated with the **Liturgical Calendar**:
+
+- **Liturgical Header Banner**: Displays the active church year celebration title (e.g., *"17. sunnuntai helluntaista"*), current season (*Helluntaiaika*), and liturgical colour banner (*green*, *white*, *violet*, *red*, *black*).
+- **Today's Psalms & Lectionary Readings**: Fast one-click access to the day's psalm and three lectionary reading cycles (Old Testament, Epistle, Gospel).
+- **Daily Prayer Offices**: Access structured morning, noon, evening, and Completorium prayers with scripture readings and antiphons directly above the scripture view.
+- **Mobile Bottom Navigation & FAB**: Optimized for touchscreens with Safe Area Inset support, high-contrast badges, and quick drawer menus.
+
+See the [Liturgical Calendar & Prayer Offices](/guide/liturgical-calendar) guide for full details.

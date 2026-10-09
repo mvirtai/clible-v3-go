@@ -206,6 +206,36 @@ Retrieves details for a single book.
 
 ---
 
+## Liturgical Calendar API (Public)
+
+### 1. Today's Liturgical Day
+
+Retrieves full liturgical metadata, lectionary readings, psalms, and prayer offices for the current calendar date.
+
+- **Endpoint**: `GET /api/liturgical/today`
+- **Response (200 OK)**: Returns the `LiturgicalDay` object.
+
+### 2. Liturgical Day by Date
+
+Retrieves liturgical celebration details for a specific date (supports ISO `YYYY-MM-DD` or Finnish `D.M.YYYY` formats).
+
+- **Endpoint**: `GET /api/liturgical/day?date=2026-09-27`
+- **Query Parameters**:
+  - `date` (string, required): e.g. `2026-09-27` or `27.9.2026`
+- **Response (200 OK)**: Returns the `LiturgicalDay` object.
+
+### 3. Liturgical Month Overview
+
+Retrieves an array of all liturgical days across a given month for calendar grid views.
+
+- **Endpoint**: `GET /api/liturgical/month?year=2026&month=9`
+- **Query Parameters**:
+  - `year` (integer, required): e.g. `2026`
+  - `month` (integer, required): `1` to `12`
+- **Response (200 OK)**: Returns `[]LiturgicalDay`.
+
+---
+
 ## Translations API (Protected)
 
 ### 1. List Translations Catalog
@@ -681,6 +711,72 @@ Deletes a notebook along with all its nested cells.
   ```json
   {
     "status": "deleted"
+  }
+  ```
+
+### 7. Execute Cell Command
+
+Executes a CLI command (`$ clible ...`) within the context of a notebook cell, saving results and context flags.
+
+- **Endpoint**: `POST /api/notebooks/{id}/cells/{cell_id}/execute`
+- **Request Body**:
+
+  ```json
+  {
+    "command": "search \"armo\" --scope=UT"
+  }
+  ```
+
+- **Response (200 OK)**: Returns the executed `models.CLIResult` object.
+
+---
+
+## ISLA DSL & Query Evaluation API (Public / Optional Auth)
+
+### 1. Evaluate ISLA Query
+
+Executes a single-line or multi-line ISLA v2 query against Bible translations, passages, or cell contexts, supporting cross-cell variables and output directives.
+
+- **Endpoint**: `POST /api/dsl/eval`
+- **Authentication**: Optional (`OptionalAuth` middleware). Accessible to both guest visitors and authenticated users.
+- **Payload Limit**: 10 MB maximum request size.
+- **Request Body**:
+
+  ```json
+  {
+    "query": "! @(Joh 3:16) => #joh316",
+    "translationId": "web",
+    "contextText": "Optional preceding cell narrative text",
+    "variables": {
+      "armo": {
+        "type": "read",
+        "data": { "verses": [] }
+      }
+    }
+  }
+  ```
+
+- **Response (200 OK)**:
+
+  ```json
+  {
+    "type": "read",
+    "data": {
+      "verses": [
+        {
+          "id": "web:JHN:3:16",
+          "translation_id": "web",
+          "book_id": "JHN",
+          "chapter": 3,
+          "verse": 16,
+          "text": "For God so loved the world, that he gave his only Son..."
+        }
+      ],
+      "output_op": {
+        "kind": "inline",
+        "name": "#joh316"
+      }
+    }
   }
   ```
 

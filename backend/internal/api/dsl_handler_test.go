@@ -225,4 +225,65 @@ func TestDSLHandler_EvalDSL(t *testing.T) {
 			t.Errorf("expected output_op name '#armo-maara', got %v", outputOp["name"])
 		}
 	})
+
+	t.Run("Success evaluation of variable assignment, cross-cell resolution, and inline execution", func(t *testing.T) {
+		// Step 1: Evaluate inline assignment: ! @(JHN 3:16) => #joh316
+		assignReqBody, _ := json.Marshal(api.DSLEvalRequest{
+			Query:         "! @(JHN 3:16) => #joh316",
+			TranslationID: "web",
+		})
+		assignReq := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(assignReqBody))
+		assignRR := httptest.NewRecorder()
+
+		handler.EvalDSL(assignRR, assignReq)
+
+		if assignRR.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d: %s", assignRR.Code, assignRR.Body.String())
+		}
+
+		var assignRes models.CLIResult
+		if err := json.NewDecoder(assignRR.Body).Decode(&assignRes); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+
+		outputOp, ok := assignRes.Data["output_op"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected output_op in response data, got %v", assignRes.Data)
+		}
+		if outputOp["kind"] != "inline" {
+			t.Errorf("expected output_op kind 'inline', got %v", outputOp["kind"])
+		}
+		if outputOp["name"] != "#joh316" {
+			t.Errorf("expected output_op name '#joh316', got %v", outputOp["name"])
+		}
+
+		// Step 2: Cross-cell evaluation referencing #joh316 in subsequent cell
+		downstreamReqBody, _ := json.Marshal(api.DSLEvalRequest{
+			Query:         "! #joh316.count(words) =>",
+			TranslationID: "web",
+			Variables: map[string]*models.CLIResult{
+				"joh316": &assignRes,
+			},
+		})
+		downstreamReq := httptest.NewRequest(http.MethodPost, "/api/dsl/eval", bytes.NewBuffer(downstreamReqBody))
+		downstreamRR := httptest.NewRecorder()
+
+		handler.EvalDSL(downstreamRR, downstreamReq)
+
+		if downstreamRR.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d: %s", downstreamRR.Code, downstreamRR.Body.String())
+		}
+
+		var downstreamRes models.CLIResult
+		if err := json.NewDecoder(downstreamRR.Body).Decode(&downstreamRes); err != nil {
+			t.Fatalf("failed to decode downstream response: %v", err)
+		}
+
+		if downstreamRes.Type != "count" {
+			t.Errorf("expected downstream result type 'count', got %q", downstreamRes.Type)
+		}
+		if countVal, ok := downstreamRes.Data["count"].(float64); !ok || countVal <= 0 {
+			t.Errorf("expected positive count value, got %v", downstreamRes.Data["count"])
+		}
+	})
 }

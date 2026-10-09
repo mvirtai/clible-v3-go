@@ -94,17 +94,14 @@ See the [ISLA v2 Language Guide](/guide/isla-guide) for the complete syntax refe
 
 ---
 
-## ISLAEditor — Interactive Query Input
+## ISLAEditor — Interactive Query Input & Gestures
 
-*(In active development — see plan 21)*
+The **ISLAEditor** component provides real-time language intelligence and ergonomic gestures directly in the
+notebook cell editor, powered by pure modular TypeScript helpers (`islaLexer.ts`, `islaIntellisense.ts`, `islaEditorGestures.ts`):
 
-The **ISLAEditor** component provides real-time language intelligence directly in the
-notebook cell editor, powered by three standalone TypeScript modules:
+### Syntax Highlighting Overlay Pattern
 
-### Syntax Highlighting
-
-The editor uses an **overlay pattern** to render ISLA tokens in colour without the
-complexity of a full code editor framework:
+The editor uses an **overlay pattern** to render ISLA tokens in rich color without the overhead of heavy external web editor dependencies:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -117,18 +114,30 @@ complexity of a full code editor framework:
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-The `<textarea>` handles all keyboard input and cursor management with `color: transparent`.
-The overlay `div` renders the same text as colour-coded `<span>` elements,
-sharing identical font, padding, and line-height for pixel-perfect alignment.
+The `<textarea>` handles standard browser keyboard input, native selections, and undo stacks with `color: transparent`, while the `aria-hidden` overlay renders matching tokenized `<span>` elements aligned pixel-perfectly.
 
-### Autocompletion
+### Smart Typing Gestures
+
+To speed up analytical composition, the editor includes automated typing helpers:
+
+- **Smart `!` Command Trigger**: Typing `!` at the start of an empty command line automatically inserts `! ` and immediately triggers the root autocompletion menu.
+- **Smart `@` Verse Trigger**: Typing `@` automatically outputs `@()` with the cursor positioned inside `@(|)` to prompt instant biblical book suggestions.
+- **Auto-Closing Delimiters**: Typing `(`, `"`, or `'` inserts the matching pair with centered caret placement.
+- **Selection Wrapping**: Selecting text and typing `@`, `(`, `"`, or `'` wraps the selection non-destructively.
+- **Overtype Skipping**: Typing `)`, `"`, or `'` against existing closing punctuation skips forward without duplicating the character.
+- **Pair Deletion**: Pressing Backspace inside `@(|)` removes the entire wrapper cleanly.
+
+### Autocompletion & Intellisense
 
 Typing in the editor triggers context-aware suggestions:
 
 | Cursor context | Suggestions offered |
 |---|---|
-| `@(` | Book names: `Joh`, `ROM`, `GEN`, `Ps`, ... |
-| `search(` | Query templates, boolean patterns |
+| `!` | Root snippet queries (`@(Joh 3:16) =>`, `search("armo") =>`) |
+| `@(` | Canonical book names and smart genre groups (`Joh`, `ROM`, `GEN`, `epistolat`, ...) |
+| `search(` / `?` | Query templates, boolean patterns, regex literals |
+| `range(` / `(` | Canonical book and chapter range patterns with `..` support |
+| `#` | Known variable names for cross-cell chaining (`#armo`, `#joh316`) |
 | `.` | All valid methods for the current object type |
 | `.at(` | All scope identifiers and book names |
 | `.use(` | Installed translation IDs |
@@ -136,15 +145,9 @@ Typing in the editor triggers context-aware suggestions:
 
 Keyboard navigation: `↑↓` moves focus, `Enter/Tab` selects, `Escape` closes.
 
-### Hover Documentation
+### Hover Documentation & Levenshtein Diagnostics
 
-Hovering over any ISLA keyword or method name in the editor displays an inline
-documentation card showing the method signature, description, and a working example.
-
-### Levenshtein Diagnostics
-
-The backend parser performs Levenshtein distance matching on unrecognized method names,
-returning structured correction suggestions rendered inline in the editor:
+Hovering over any ISLA keyword or method displays documentation with type signatures and examples. Unrecognized method names return instant Levenshtein suggestions:
 
 ```
 isla: unknown method .cnt()

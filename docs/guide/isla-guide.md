@@ -172,7 +172,7 @@ Counting how many books, chapters, or verses mention a specific word without wri
 
 ---
 
-## 3. The Four Source Objects
+## 3. The Five Source Objects
 
 ### `@(Citation)` — Verse Reference
 
@@ -188,24 +188,26 @@ Loads a single verse, verse range, or chapter:
 The parentheses are required and may contain spaces, colons, and verse ranges using
 standard `Book chapter:verse-verse` notation.
 
-### `range(start, end)` — Passage Range
+### `range(start, end)` / `(start .. end)` — Passage & Book Range
 
 Loads a contiguous span of text from a starting reference to an ending reference.
 Both arguments may be books, chapters, or specific verses:
 
 ```isla
 range(Joh 1:1, Joh 1:18) =>
-range(GEN, DEU) =>
+(MAT .. JOH) =>
+@(GEN .. DEU) =>
 range(ROM, GAL) =>
 range(Ps 1:1, Ps 23:6) =>
 ```
 
-### `search("query")` — Full-Text & Boolean Search
+### `search("query")` / `? "query"` — Full-Text & Boolean Search
 
 Executes a full-text or regex search against the database:
 
 ```isla
 search("grace") =>
+? "armo" =>
 search("armo" AND "rauha") =>
 search("kuolema" OR "elämä") =>
 search(/righteous.*/) =>
@@ -596,40 +598,59 @@ flowchart TD
 
 ---
 
-## 8. Monaco IntelliSense
+## 8. ISLAEditor & Language Intelligence
 
-ISLA features a rich language intelligence layer integrated into the notebook editor:
+The **ISLAEditor** component delivers real-time language intelligence inside notebook cells via a lightweight overlay architecture and automated typing gestures:
+
+### Overlay Pattern & Real-Time Highlighting
+
+Instead of loading heavy, monolithic editor frameworks, ISLAEditor uses a high-performance **overlay pattern**:
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ div.relative (wrapper)                                                │
+│ ├─ div[aria-hidden] ISLASyntaxLayer  ← colour-coded token overlay    │
+│ │   ├─ @(          ← amber (trigger)                                 │
+│ │   ├─ Joh 3:16   ← cyan (citation)                                 │
+│ │   └─ .vs(       ← fuchsia (method)                                │
+│ └─ <textarea>      ← transparent text, visible amber caret           │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+The underlying `<textarea>` handles all standard browser keyboard input, selection, and undo histories, while the `aria-hidden` overlay renders colour-coded `<span>` tokens aligned pixel-for-pixel.
+
+### Smart Typing Gestures
+
+ISLAEditor includes modern editor ergonomics to accelerate query authoring:
+
+1. **Smart `!` Command Gesture**: Typing `!` at the beginning of an empty line automatically outputs `! ` and opens the primary ISLA template dropdown.
+2. **Smart `@` Citation Gesture**: Typing `@` automatically produces `@()` and places the caret inside `@(|)`, immediately displaying biblical book completions.
+3. **Auto-Closing Pairs**: Typing `(`, `"`, or `'` automatically inserts closing pairs (`()`, `""`, `''`) with the caret placed between them.
+4. **Selection Wrapping**: Selecting text and typing `@`, `(`, `"`, or `'` non-destructively wraps the selection (e.g. `Joh 3:16` → `@(Joh 3:16)`).
+5. **Overtype / Leapfrog**: Typing `)`, `"`, or `'` when the caret is adjacent to a closing symbol skips over without duplicating it.
+6. **Token Pair Deletion**: Pressing Backspace inside `@(|)` removes the entire `@()` token cleanly.
 
 ### Autocompletion Triggers
 
 | Typed text | Completion offered |
 |---|---|
-| `@(` | Book name suggestions (`Joh`, `ROM`, `GEN`, ...) |
-| `search(` | Query templates: string literal, boolean, regex |
-| `range(` | Book and chapter reference patterns |
+| `!` | Root ISLA query snippets (`@(Joh 3:16) =>`, `search("armo") =>`) |
+| `@(` | Book name suggestions (`Joh`, `ROM`, `GEN`, ...) and genre groups |
+| `search(` / `?` | Query templates: string literal, boolean, regex |
+| `range(` / `(` | Book and chapter reference patterns with `..` range support |
+| `#` | Currently registered cross-cell variable identifiers (`#armo`, `#joh316`) |
 | `.` | All valid methods for the current object type |
 | `.at(` | All scope identifiers and book names |
 | `.use(` | All installed translation IDs |
 | `.vs(` | Two-translation pair templates |
 
-### Hover Documentation
+### Hover Documentation & Error Suggestions
 
-Hovering over any ISLA keyword or method name in the editor displays an inline
-documentation card showing the method signature, description, and a working example.
-
-### Levenshtein Diagnostic Errors
-
-The parser performs Levenshtein distance matching on unrecognized method names and
-returns structured correction suggestions:
+Hovering over any ISLA keyword or method displays an inline signature and example card. Unrecognized method names trigger Levenshtein distance matching:
 
 ```
 isla: unknown method .cnt()
       Did you mean: .count() ?
-```
-
-```
-isla: unknown method .thems()
-      Did you mean: .themes() ?
 ```
 
 ---
@@ -642,15 +663,20 @@ isla: unknown method .thems()
 | **Force translation** | `@(Joh 3:16).use(KR92) =>` | Verse card |
 | **Side-by-side comparison** | `@(Joh 3:16).vs(KR92, KJV) =>` | Comparison matrix |
 | **Passage range** | `range(Joh 1:1, Joh 1:18) =>` | Verse collection |
+| **Multi-book span (dot-dot)** | `(MAT .. JOH).count(books) =>` | Count metric |
 | **Cross-references** | `@(Joh 3:16).refs(5) =>` | Verse collection |
 | **Thematic keywords** | `@(Joh 3:16).themes(5) =>` | Keyword cloud |
 | **Contextual suggestions** | `^.suggest(5) =>` | Verse collection |
 | **Single-term search** | `search("grace") =>` | Verse list |
+| **Shorthand search** | `? "armo" =>` | Verse list |
 | **Boolean AND search** | `search("armo" AND "rauha") =>` | Verse list |
 | **Boolean OR search** | `search("kuolema" OR "elämä") =>` | Verse list |
 | **Regex search** | `search(/righteous.*/).at(ROM) =>` | Verse list |
 | **Scoped search** | `search("light").at(gospels) =>` | Verse list |
 | **Scoped search with limit** | `search("armo").at(epistolat).limit(5) =>` | Verse list |
+| **Variable assignment (inline)** | `search("armo").at(UT) => #armo` | Verse list + `#armo` badge |
+| **Variable method chaining** | `#armo.count(words) =>` | Count metric |
+| **Variable top frequencies** | `#armo.top(10) =>` | Frequency list |
 | **Verse count** | `search("grace").at(NT).count() =>` | Count metric |
 | **Word count** | `range(GEN, DEU).count(words) =>` | Count metric |
 | **Lexical analytics** | `range(ROM, GAL).stats() =>` | Stats card |
