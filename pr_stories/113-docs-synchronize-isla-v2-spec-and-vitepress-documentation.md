@@ -39,8 +39,9 @@ This Pull Request brings 100% synchronization across the official ISLA v2 specif
 | [`docs/architecture/isla-specification.md`](file:///home/vivaldev/code/clible-v3-go/docs/architecture/isla-specification.md) | Synchronized EBNF, AST Object Types, and Method Validation Matrix |
 | [`docs/architecture/overview.md`](file:///home/vivaldev/code/clible-v3-go/docs/architecture/overview.md) | Updated ISLA query sequence diagram to `POST /api/dsl/eval` |
 | [`docs/guide/isla-guide.md`](file:///home/vivaldev/code/clible-v3-go/docs/guide/isla-guide.md) | Updated source objects, ISLAEditor gestures, and variable cheat sheet |
+| [`docs/guide/liturgical-calendar.md`](file:///home/vivaldev/code/clible-v3-go/docs/guide/liturgical-calendar.md) | Updated liturgical endpoints, query fallbacks, and Liturgical Calendar view navigation |
 | [`docs/guide/notebooks.md`](file:///home/vivaldev/code/clible-v3-go/docs/guide/notebooks.md) | Updated ISLAEditor section with overlay pattern and autocompletion |
-| [`docs/guide/reader.md`](file:///home/vivaldev/code/clible-v3-go/docs/guide/reader.md) | Documented church year integration and mobile-first UX |
+| [`docs/guide/reader.md`](file:///home/vivaldev/code/clible-v3-go/docs/guide/reader.md) | Documented navigation, cross-view jumps, and mobile workspace drawer FAB |
 
 ---
 

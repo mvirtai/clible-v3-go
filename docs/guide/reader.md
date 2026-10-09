@@ -61,13 +61,13 @@ Clicking or tapping any individual verse in the Reader opens the **Verse Action 
 
 ---
 
-## 5. Church Year & Daily Liturgy Integration
+## 5. Navigation & Workspace Integration
 
-The Reader is directly integrated with the **Liturgical Calendar**:
+The Scripture Reader acts as the central hub for reading and cross-view study transitions:
 
-- **Liturgical Header Banner**: Displays the active church year celebration title (e.g., *"17. sunnuntai helluntaista"*), current season (*Helluntaiaika*), and liturgical colour banner (*green*, *white*, *violet*, *red*, *black*).
-- **Today's Psalms & Lectionary Readings**: Fast one-click access to the day's psalm and three lectionary reading cycles (Old Testament, Epistle, Gospel).
-- **Daily Prayer Offices**: Access structured morning, noon, evening, and Completorium prayers with scripture readings and antiphons directly above the scripture view.
-- **Mobile Bottom Navigation & FAB**: Optimized for touchscreens with Safe Area Inset support, high-contrast badges, and quick drawer menus.
+- **Top Navigation Bar**: Seamlessly switch between study modes (Reader, Search Hub, Comparison Matrix, Lexical Analytics, Original Languages, Notebooks, Liturgical Calendar, and Reading Plans).
+- **Cross-View Reference Jumping**: Clicking any scripture reading in the Liturgical Calendar, Search Hub, or Reading Plans automatically navigates directly to the Scripture Reader at that exact passage.
+- **Mobile Floating Workspace Button (FAB)**: On touchscreens, a dedicated floating button docked at the bottom-right corner with Safe Area Inset support provides instant access to the Workspace Drawer without cluttering the reading view.
+- **Desktop Workspace Sidebar**: Provides persistent access to custom study scopes, saved searches, and recent search history alongside scripture text.
 
-See the [Liturgical Calendar & Prayer Offices](/guide/liturgical-calendar) guide for full details.
+For church year celebrations, prayer offices, and lectionary readings, explore the dedicated [Liturgical Calendar & Prayer Offices](/guide/liturgical-calendar) guide.

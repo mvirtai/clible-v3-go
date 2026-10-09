@@ -84,7 +84,7 @@ graph LR
 The following grammar precisely reflects the parser implementation in `backend/new_dsl/parser.go`:
 
 ```ebnf
-ISLAExpression  ::= Object Method* OutputOp
+ISLAExpression  ::= Object Method* OutputOp?
 
 Object          ::= VerseRef
                   | RangeExpr
@@ -94,7 +94,7 @@ Object          ::= VerseRef
 
 VerseRef        ::= "@(" Citation ")"
 
-RangeExpr       ::= "range(" RangePart "," RangePart ")"
+RangeExpr       ::= "range(" RangePart ("," | "..") RangePart ")"
                   | "(" RangePart ".." RangePart ")"
                   | "@(" RangePart ".." RangePart ")"
 RangePart       ::= (* any tokens up to "," or ")" or ".." *)
@@ -118,15 +118,18 @@ Method          ::= "." MethodName "(" MethodArgs? ")"
 
 MethodName      ::= "use" | "vs" | "at" | "refs" | "themes"
                   | "suggest" | "count" | "top" | "stats" | "limit"
+                  | "ngrams" | "categorize" | "lemma" | "cluster"
 
 MethodArgs      ::= Arg { "," Arg }
 Arg             ::= StringLiteral | Ident | Number
 
-OutputOp        ::= "=>" [ CellName ]    (* OutputInline: render in current cell *)
+OutputOp        ::= "=>" [ VarName ]     (* OutputInline: render in current cell *)
                   | ">" [ CellName ]     (* OutputNewCellAbove *)
                   | ">>" [ CellName ]    (* OutputNewCellBelow *)
 
-CellName        ::= "#" Slug            (* #slug identifier *)
+VarName         ::= "#" Slug             (* #slug variable identifier *)
+
+CellName        ::= "#" Slug             (* #slug identifier *)
                   | StringLiteral        (* "quoted title" *)
                   | Ident { Ident }      (* free title words *)
 
@@ -152,7 +155,7 @@ object types. All types are defined in `backend/new_dsl/ast.go`.
 type ISLAExpression struct {
     Object  Object       // Mandatory: one of the five object types
     Methods []MethodCall // Zero or more chained method calls, in order
-    Output  OutputOp     // Mandatory: => [name] | > [name] | >> [name]
+    Output  OutputOp     // Populated in AST; defaults to OutputInline when omitted in query source
 }
 ```
 
@@ -170,7 +173,7 @@ type ISLAExpression struct {
 
 ```go
 type MethodCall struct {
-    Name string   // "use", "vs", "at", "refs", "count", "top", "stats", "themes", "suggest", "limit"
+    Name string   // "use", "vs", "at", "refs", "count", "top", "stats", "themes", "suggest", "limit", "ngrams", "categorize", "lemma", "cluster"
     Args []string // String arguments, e.g. ["KR92"], ["KR92", "KJV"], ["5"]
 }
 ```
@@ -204,6 +207,9 @@ returns an error immediately, before any database I/O is attempted:
 | `.stats()` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `.themes(n)` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `.suggest(n)` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.categorize([n])` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.lemma()` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.cluster([n])` | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 

@@ -221,7 +221,7 @@ Retrieves liturgical celebration details for a specific date (supports ISO `YYYY
 
 - **Endpoint**: `GET /api/liturgical/day?date=2026-09-27`
 - **Query Parameters**:
-  - `date` (string, required): e.g. `2026-09-27` or `27.9.2026`
+  - `date` (string, optional): e.g. `2026-09-27` or `27.9.2026`. If omitted or empty, falls back to today's date.
 - **Response (200 OK)**: Returns the `LiturgicalDay` object.
 
 ### 3. Liturgical Month Overview
@@ -230,8 +230,8 @@ Retrieves an array of all liturgical days across a given month for calendar grid
 
 - **Endpoint**: `GET /api/liturgical/month?year=2026&month=9`
 - **Query Parameters**:
-  - `year` (integer, required): e.g. `2026`
-  - `month` (integer, required): `1` to `12`
+  - `year` (integer, optional): e.g. `2026` (defaults to current year if omitted or invalid)
+  - `month` (integer, optional): `1` to `12` (defaults to current month if omitted or invalid)
 - **Response (200 OK)**: Returns `[]LiturgicalDay`.
 
 ---
@@ -716,17 +716,12 @@ Deletes a notebook along with all its nested cells.
 
 ### 7. Execute Cell Command
 
-Executes a CLI command (`$ clible ...`) within the context of a notebook cell, saving results and context flags.
+Executes the stored command within the specified notebook cell's `content` in the backend interpreter, updating the cell's output and context flags.
 
 - **Endpoint**: `POST /api/notebooks/{id}/cells/{cell_id}/execute`
-- **Request Body**:
-
-  ```json
-  {
-    "command": "search \"armo\" --scope=UT"
-  }
-  ```
-
+- **Query Parameters**:
+  - `translation` (string, optional): Overrides the active translation ID for command execution (e.g. `?translation=web`).
+- **Request Body**: None (the backend retrieves and executes the saved cell content from the database).
 - **Response (200 OK)**: Returns the executed `models.CLIResult` object.
 
 ---
@@ -765,8 +760,8 @@ Executes a single-line or multi-line ISLA v2 query against Bible translations, p
       "verses": [
         {
           "id": "web:JHN:3:16",
-          "translation_id": "web",
-          "book_id": "JHN",
+          "translationId": "web",
+          "bookId": "JHN",
           "chapter": 3,
           "verse": 16,
           "text": "For God so loved the world, that he gave his only Son..."

@@ -638,7 +638,7 @@ ISLAEditor includes modern editor ergonomics to accelerate query authoring:
 | `@(` | Book name suggestions (`Joh`, `ROM`, `GEN`, ...) and genre groups |
 | `search(` / `?` | Query templates: string literal, boolean, regex |
 | `range(` / `(` | Book and chapter reference patterns with `..` range support |
-| `#` | Currently registered cross-cell variable identifiers (`#armo`, `#joh316`) |
+| `#` | Variable snippet templates containing `#` (`! #armo.top(10) =>`) |
 | `.` | All valid methods for the current object type |
 | `.at(` | All scope identifiers and book names |
 | `.use(` | All installed translation IDs |

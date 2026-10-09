@@ -137,7 +137,7 @@ Typing in the editor triggers context-aware suggestions:
 | `@(` | Canonical book names and smart genre groups (`Joh`, `ROM`, `GEN`, `epistolat`, ...) |
 | `search(` / `?` | Query templates, boolean patterns, regex literals |
 | `range(` / `(` | Canonical book and chapter range patterns with `..` support |
-| `#` | Known variable names for cross-cell chaining (`#armo`, `#joh316`) |
+| `#` | Variable snippet templates containing `#` (`! #armo.top(10) =>`) |
 | `.` | All valid methods for the current object type |
 | `.at(` | All scope identifiers and book names |
 | `.use(` | Installed translation IDs |
