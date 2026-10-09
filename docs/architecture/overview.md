@@ -171,20 +171,20 @@ sequenceDiagram
 
 ## ISLA Query Request Flow
 
-For an ISLA execution request (`POST /api/isla/execute`):
+For an ISLA execution request (`POST /api/dsl/eval`):
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as "User Browser"
-    participant API as "API Layer"
+    participant API as "API Layer (dsl_handler.go)"
     participant ISLA as "ISLA Engine (new_dsl/)"
     participant DB as "Repository Layer"
     participant SQL as "Database (PostgreSQL)"
 
-    User->>API: POST /api/isla/execute { code, translation, contextText }
+    User->>API: POST /api/dsl/eval { query, translationId, contextText, variables }
     activate API
-    API->>ISLA: ParseISLA(code)
+    API->>ISLA: ParseISLA(query)
     activate ISLA
     ISLA->>ISLA: Lexer: strip prefix, tokenize
     ISLA->>ISLA: Parser: extract OutputOp, build AST

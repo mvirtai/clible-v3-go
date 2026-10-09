@@ -58,3 +58,16 @@ Clicking or tapping any individual verse in the Reader opens the **Verse Action 
 - **Analyze in Original Language**: Opens the [Original Languages View](/guide/original-languages) to inspect the Greek or Hebrew root words, lemmas, and grammatical morphology.
 - **Generate AI Insight**: Triggers the [Theological AI Engine](/guide/ai-study-tools) to provide exegesis commentary and literary context.
 - **Send to Notebook**: Appends the verse into an active 2D canvas study sheet.
+
+---
+
+## 5. Navigation & Workspace Integration
+
+The Scripture Reader acts as the central hub for reading and cross-view study transitions:
+
+- **Top Navigation Bar**: Seamlessly switch between study modes (Reader, Search Hub, Comparison Matrix, Lexical Analytics, Original Languages, Notebooks, Liturgical Calendar, and Reading Plans).
+- **Cross-View Reference Jumping**: Clicking any scripture reading in the Liturgical Calendar, Search Hub, or Reading Plans automatically navigates directly to the Scripture Reader at that exact passage.
+- **Mobile Floating Workspace Button (FAB)**: On touchscreens, a dedicated floating button docked at the bottom-right corner with Safe Area Inset support provides instant access to the Workspace Drawer without cluttering the reading view.
+- **Desktop Workspace Sidebar**: Provides persistent access to custom study scopes, saved searches, and recent search history alongside scripture text.
+
+For church year celebrations, prayer offices, and lectionary readings, explore the dedicated [Liturgical Calendar & Prayer Offices](/guide/liturgical-calendar) guide.

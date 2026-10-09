@@ -84,17 +84,20 @@ graph LR
 The following grammar precisely reflects the parser implementation in `backend/new_dsl/parser.go`:
 
 ```ebnf
-ISLAExpression  ::= Object Method* OutputOp
+ISLAExpression  ::= Object Method* OutputOp?
 
 Object          ::= VerseRef
                   | RangeExpr
                   | SearchExpr
                   | CellCtxExpr
+                  | VariableRef
 
 VerseRef        ::= "@(" Citation ")"
 
-RangeExpr       ::= "range(" RangePart "," RangePart ")"
-RangePart       ::= (* any tokens up to "," or ")" *)
+RangeExpr       ::= "range(" RangePart ("," | "..") RangePart ")"
+                  | "(" RangePart ".." RangePart ")"
+                  | "@(" RangePart ".." RangePart ")"
+RangePart       ::= (* any tokens up to "," or ")" or ".." *)
 
 SearchExpr      ::= ("search(" | "?") SearchBody
 SearchBody      ::= StringLiteral
@@ -109,21 +112,26 @@ RegexLiteral    ::= "/" (* regexp chars *) "/"
 
 CellCtxExpr     ::= "^" [ Number | "all" ]
 
+VariableRef     ::= "#" Ident
+
 Method          ::= "." MethodName "(" MethodArgs? ")"
 
 MethodName      ::= "use" | "vs" | "at" | "refs" | "themes"
                   | "suggest" | "count" | "top" | "stats" | "limit"
+                  | "ngrams" | "categorize" | "lemma" | "cluster"
 
 MethodArgs      ::= Arg { "," Arg }
 Arg             ::= StringLiteral | Ident | Number
 
-OutputOp        ::= "=>"                   (* OutputInline: render in current cell *)
-                  | ">" [ CellName ]       (* OutputNewCellAbove *)
-                  | ">>" [ CellName ]      (* OutputNewCellBelow *)
+OutputOp        ::= "=>" [ VarName ]     (* OutputInline: render in current cell *)
+                  | ">" [ CellName ]     (* OutputNewCellAbove *)
+                  | ">>" [ CellName ]    (* OutputNewCellBelow *)
 
-CellName        ::= "#" Slug              (* #slug identifier *)
-                  | StringLiteral          (* "quoted title" *)
-                  | Ident { Ident }        (* free title words *)
+VarName         ::= "#" Slug             (* #slug variable identifier *)
+
+CellName        ::= "#" Slug             (* #slug identifier *)
+                  | StringLiteral        (* "quoted title" *)
+                  | Ident { Ident }      (* free title words *)
 
 Citation        ::= BookRef [ Chapter [ ":" VerseRange ] ]
 VerseRange      ::= Number [ "-" Number ]
@@ -138,16 +146,16 @@ VerseRange      ::= Number [ "-" Number ]
 
 ## 4. AST Node Types
 
-The parser produces a typed `ISLAExpression` root node containing one of four concrete
+The parser produces a typed `ISLAExpression` root node containing one of five concrete
 object types. All types are defined in `backend/new_dsl/ast.go`.
 
 ### `ISLAExpression` — Root
 
 ```go
 type ISLAExpression struct {
-    Object  Object       // Mandatory: one of the four object types
+    Object  Object       // Mandatory: one of the five object types
     Methods []MethodCall // Zero or more chained method calls, in order
-    Output  OutputOp     // Mandatory: => | > [name] | >> [name]
+    Output  OutputOp     // Populated in AST; defaults to OutputInline when omitted in query source
 }
 ```
 
@@ -156,15 +164,16 @@ type ISLAExpression struct {
 | AST Type | Syntax | ObjectKind constant |
 |---|---|---|
 | `VerseRefNode` | `@(Joh 3:16)` | `ObjectVerseRef` |
-| `RangeNode` | `range(GEN, DEU)` | `ObjectRange` |
-| `SearchNode` | `search("grace")` | `ObjectSearch` |
+| `RangeNode` | `range(GEN, DEU)` / `(MAT .. JOH)` | `ObjectRange` |
+| `SearchNode` | `search("grace")` / `? "armo"` | `ObjectSearch` |
 | `CellCtxNode` | `^` / `^3` / `^all` | `ObjectCellCtx` |
+| `VariableNode` | `#variable` | `ObjectVariable` |
 
 ### `MethodCall` — Chained Transformation
 
 ```go
 type MethodCall struct {
-    Name string   // "use", "vs", "at", "refs", "count", "top", "stats", "themes", "suggest", "limit"
+    Name string   // "use", "vs", "at", "refs", "count", "top", "stats", "themes", "suggest", "limit", "ngrams", "categorize", "lemma", "cluster"
     Args []string // String arguments, e.g. ["KR92"], ["KR92", "KJV"], ["5"]
 }
 ```
@@ -185,19 +194,22 @@ type OutputOp struct {
 The parser enforces method applicability at parse time. Calling a forbidden method
 returns an error immediately, before any database I/O is attempted:
 
-| Method | `@()` | `range()` | `search()` | `^` |
-|---|---|---|---|---|
-| `.use(trans)` | ✅ | ✅ | ✅ | ❌ |
-| `.vs(t1, t2)` | ✅ | ❌ | ❌ | ❌ |
-| `.refs(n)` | ✅ | ❌ | ❌ | ❌ |
-| `.at(scope)` | ❌ | ❌ | ✅ | ❌ |
-| `.limit(n)` | ❌ | ❌ | ✅ | ❌ |
-| `.count([unit])` | ✅ | ✅ | ✅ | ✅ |
-| `.top(n)` | ✅ | ✅ | ✅ | ✅ |
-| `.ngrams(size, [limit])` | ✅ | ✅ | ✅ | ✅ |
-| `.stats()` | ✅ | ✅ | ✅ | ✅ |
-| `.themes(n)` | ✅ | ✅ | ✅ | ✅ |
-| `.suggest(n)` | ✅ | ✅ | ✅ | ✅ |
+| Method | `@()` | `range()` | `search()` | `^` | `#var` |
+|---|---|---|---|---|---|
+| `.use(trans)` | ✅ | ✅ | ✅ | ❌ | ✅ |
+| `.vs(t1, t2)` | ✅ | ❌ | ❌ | ❌ | ✅ |
+| `.refs(n)` | ✅ | ❌ | ❌ | ❌ | ✅ |
+| `.at(scope)` | ❌ | ❌ | ✅ | ❌ | ❌ |
+| `.limit(n)` | ❌ | ❌ | ✅ | ❌ | ❌ |
+| `.count([unit])` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.top(n)` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.ngrams(size, [limit])` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.stats()` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.themes(n)` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.suggest(n)` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.categorize([n])` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.lemma()` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `.cluster([n])` | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 

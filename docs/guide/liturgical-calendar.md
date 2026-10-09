@@ -11,7 +11,8 @@ lectionary cycles, psalm assignments, hymn recommendations, and liturgical colou
 The liturgical calendar answers the question: *"What day is the church celebrating today, and
 what scriptures and prayers accompany it?"* In Clible, this data powers:
 
-- The **Reader view** — showing today's liturgical day, colour banner, and psalm of the day.
+- The **Liturgical Calendar view** — showing today's liturgical day, colour banner,
+  and psalm of the day, with one-click navigation into the Scripture Reader for any lectionary reading.
 - The **Prayer Office panel** — structured morning, noon, evening, eve, and Completorium
   prayer offices with scripture texts and antiphons.
 - The **Lectionary sidebar** — listing the three lectionary cycles (I, II, III) for the day
@@ -138,20 +139,23 @@ Returns the `LiturgicalDay` for the current server date (Helsinki timezone).
 }
 ```
 
-### `GET /api/liturgical/date?date=YYYY-MM-DD`
+### `GET /api/liturgical/day?date=YYYY-MM-DD`
 
-Returns the `LiturgicalDay` for a specific ISO date. Returns `404` if the date
-is outside the embedded dataset range.
+Returns the `LiturgicalDay` for a specific ISO date (`YYYY-MM-DD`) or Finnish date (`D.M.YYYY`).
+If the `date` query parameter is omitted or empty, it automatically falls back to today's liturgical day.
+Returns `404` if the specified date is outside the embedded dataset range.
 
 **Example:**
+
 ```
-GET /api/liturgical/date?date=2026-12-25
+GET /api/liturgical/day?date=2026-12-25
 ```
 
 ### `GET /api/liturgical/month?year=2026&month=12`
 
 Returns an array of `LiturgicalDay` objects for the specified month, useful for
-calendar grid rendering and monthly office browsing.
+calendar grid rendering and monthly office browsing. If `year` or `month` query
+parameters are omitted or invalid, they fall back to the current year and month.
 
 ---
 
