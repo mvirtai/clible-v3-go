@@ -244,7 +244,12 @@ tasks:
         echo "=== Clible Plans Status ==="
         if [ -L "$ROOT/.plans" ]; then
           DEST=$(readlink -f "$ROOT/.plans")
-          echo "🔗 Symlink active: $ROOT/.plans -> $DEST"
+          EXPECTED=$(readlink -f "$SRC")
+          if [ "$DEST" = "$EXPECTED" ]; then
+            echo "🔗 Symlink active: $ROOT/.plans -> $DEST"
+          else
+            echo "⚠️  $ROOT/.plans points to $DEST, expected $EXPECTED. Run 'task plans:link' to fix."
+          fi
         elif [ -d "$ROOT/.plans" ]; then
           echo "⚠️  $ROOT/.plans is a local directory, not a symlink to $SRC. Run 'task plans:link' to link."
         else
