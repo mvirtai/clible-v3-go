@@ -135,9 +135,7 @@ export function AiSemanticSearch({
             ? {
                 ...searchState.data.search,
                 verses:
-                  committedVerses !== null
-                    ? committedVerses
-                    : acceptedIds.size > 0
+                    : acceptedIds.size > 0 || rejectedIds.size > 0
                     ? searchState.data.search.verses.filter((v) => acceptedIds.has(v.id))
                     : searchState.data.search.verses,
               }
