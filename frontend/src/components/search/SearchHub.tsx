@@ -128,6 +128,7 @@ export function SearchHub({
 
       {activeTab === 'semantic' && (
         <AiSemanticSearch
+          key={`${translation}-${loadedSemanticData?.query ?? 'default'}`}
           translation={translation}
           onSelectVerse={onSelectVerse}
           activeScopeId={activeScopeId}

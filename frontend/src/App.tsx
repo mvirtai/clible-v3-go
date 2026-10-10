@@ -711,6 +711,7 @@ export function App() {
             {viewMode === 'search' && (
               <div onClick={handleSearchFinished}>
                 <SearchHub
+                  key={searchTab}
                   translation={selectedTranslation}
                   onSelectVerse={(ref) => {
                     handleSelectReference(ref);
