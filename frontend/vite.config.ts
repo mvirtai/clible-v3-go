@@ -34,6 +34,11 @@ export default defineConfig({
     },
   },
   plugins: [react(), tailwindcss()],
+  css: {
+    postcss: {
+      plugins: [],
+    },
+  },
   server: {
     port: 3173,
     proxy: {
