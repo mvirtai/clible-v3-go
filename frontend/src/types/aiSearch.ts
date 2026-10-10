@@ -52,4 +52,7 @@ export interface SemanticSearchSnapshot {
     query: string;
     translationId: string;
     data: AiSearchResponse;
+    savedSearchId?: string;
+    savedName?: string;
 }
+

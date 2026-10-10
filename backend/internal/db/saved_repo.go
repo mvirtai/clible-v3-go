@@ -18,11 +18,18 @@ func NewSavedRepository(db *sql.DB) *SavedRepository {
 	return &SavedRepository{db: db}
 }
 
-// SaveSearch stores a parameterized FTS text search workflow.
+// SaveSearch stores or updates a parameterized FTS text search workflow.
 func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch) error {
 	query := `
 		INSERT INTO saved_searches (id, scope_id, name, query_text, search_scope, scope_value, translation_id, result_json, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (id) DO UPDATE SET
+			name = EXCLUDED.name,
+			query_text = EXCLUDED.query_text,
+			search_scope = EXCLUDED.search_scope,
+			scope_value = EXCLUDED.scope_value,
+			translation_id = EXCLUDED.translation_id,
+			result_json = EXCLUDED.result_json
 	`
 
 	var scopeValue sql.NullString

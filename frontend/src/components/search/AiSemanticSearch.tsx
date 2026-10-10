@@ -143,7 +143,9 @@ export function AiSemanticSearch({
         };
 
         // Persist the translation that produced the result, not the current selector value.
+        // If restored from an existing saved search, update that search in-place by passing id.
         await apiService.saveSearch({
+          id: restored?.savedSearchId,
           scopeId: activeScopeId,
           name: title,
           queryText: queryInput,
@@ -332,17 +334,23 @@ export function AiSemanticSearch({
       {/* Search Results */}
       {data && (
         <div className="space-y-6">
-          {/* Save to workspace card */}
+          {/* Save / Update to workspace card */}
           {activeScopeId && (
             <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
               <div className="space-y-0.5">
                 <div className="text-xs font-semibold text-[var(--text)] flex items-center gap-1.5">
                   <Bookmark size={13} className="text-[var(--accent)]" />
-                  <span>{strings.saveSemanticSearch}</span>
+                  <span>
+                    {restored?.savedSearchId
+                      ? strings.updateSemanticSearch
+                      : strings.saveSemanticSearch}
+                  </span>
                 </div>
                 {saveState.status === 'success' && (
                   <p className="text-xs text-emerald-500 font-medium animate-pulse">
-                    {strings.saveSemanticSearchSuccess}
+                    {restored?.savedSearchId
+                      ? strings.updateSemanticSearchSuccess
+                      : strings.saveSemanticSearchSuccess}
                   </p>
                 )}
                 {saveState.status === 'error' && (
@@ -358,7 +366,7 @@ export function AiSemanticSearch({
                   type="text"
                   required
                   placeholder={strings.saveSemanticSearchPlaceholder}
-                  defaultValue={queryInput}
+                  defaultValue={restored?.savedName ?? queryInput}
                   className="px-3 py-1.5 rounded-lg text-xs bg-[var(--surface)] border border-[var(--border-soft)] text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)] transition-colors min-w-[200px]"
                 />
                 <button
@@ -373,8 +381,8 @@ export function AiSemanticSearch({
                   )}
                   <span>
                     {isSaving
-                      ? strings.savingSemanticSearch
-                      : strings.saveSemanticSearchButton}
+                      ? (restored?.savedSearchId ? strings.updatingSemanticSearch : strings.savingSemanticSearch)
+                      : (restored?.savedSearchId ? strings.updateSemanticSearchButton : strings.saveSemanticSearchButton)}
                   </span>
                 </button>
               </form>

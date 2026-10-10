@@ -409,6 +409,8 @@ export function App() {
           query: s.queryText,
           translationId: s.translationId,
           data,
+          savedSearchId: s.id,
+          savedName: s.name,
         });
         setLoadedSearch(null);
         setSearchTab('semantic');

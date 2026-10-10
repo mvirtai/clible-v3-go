@@ -445,6 +445,10 @@ export interface Messages {
   saveSemanticSearchSuccess: string;
   saveSemanticSearchButton: string;
   savingSemanticSearch: string;
+  updateSemanticSearch: string;
+  updateSemanticSearchButton: string;
+  updatingSemanticSearch: string;
+  updateSemanticSearchSuccess: string;
   curateAll: string;
   curateAccepted: string;
   curateRejected: string;
@@ -1042,6 +1046,10 @@ export const strings: Record<UILanguage, Messages> = {
     saveSemanticSearchSuccess: 'Semantic search saved to workspace!',
     saveSemanticSearchButton: 'Save',
     savingSemanticSearch: 'Saving...',
+    updateSemanticSearch: 'Update saved search',
+    updateSemanticSearchButton: 'Update',
+    updatingSemanticSearch: 'Updating...',
+    updateSemanticSearchSuccess: 'Saved search updated in workspace!',
     curateAll: 'All',
     curateAccepted: 'Accepted',
     curateRejected: 'Rejected',
@@ -1639,6 +1647,10 @@ export const strings: Record<UILanguage, Messages> = {
     saveSemanticSearchSuccess: 'Semanttinen haku tallennettu työtilaan!',
     saveSemanticSearchButton: 'Tallenna',
     savingSemanticSearch: 'Tallennetaan...',
+    updateSemanticSearch: 'Päivitä tallennettu haku',
+    updateSemanticSearchButton: 'Päivitä',
+    updatingSemanticSearch: 'Päivitetään...',
+    updateSemanticSearchSuccess: 'Tallennettu haku päivitetty työtilassa!',
     curateAll: 'Kaikki',
     curateAccepted: 'Hyväksytyt',
     curateRejected: 'Hylätyt',

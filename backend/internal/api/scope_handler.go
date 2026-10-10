@@ -26,6 +26,7 @@ type ScopeRequest struct {
 
 // SaveSearchRequest maps client camelCase schema representations for saved searches.
 type SaveSearchRequest struct {
+	ID            string `json:"id,omitempty"`
 	ScopeID       string `json:"scopeId"`
 	Name          string `json:"name"`
 	QueryText     string `json:"queryText"`
@@ -131,6 +132,7 @@ func (h *ScopeHandler) SaveSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	searchItem := models.SavedSearch{
+		ID:            req.ID,
 		ScopeID:       req.ScopeID,
 		Name:          req.Name,
 		QueryText:     req.QueryText,

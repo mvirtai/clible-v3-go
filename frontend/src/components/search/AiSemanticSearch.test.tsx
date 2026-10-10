@@ -251,5 +251,48 @@ describe('AiSemanticSearch state retention', () => {
       expect(v1Card.getAttribute('data-status')).toBe('accepted');
       expect(v2Card.getAttribute('data-status')).toBe('accepted');
     });
+
+    it('updates existing saved search when loadedData provides savedSearchId and savedName', async () => {
+      act(() => {
+        root = createRoot(container!);
+        root.render(
+          <LanguageProvider>
+            <AiSemanticSearch
+              translation="web"
+              activeScopeId="scope-123"
+              loadedData={{
+                query: 'faith',
+                translationId: 'web',
+                data: multiVerseResponse,
+                savedSearchId: 'search-xyz-456',
+                savedName: 'Vanha Uskohaku',
+              }}
+            />
+          </LanguageProvider>,
+        );
+      });
+
+      const titleInput = container!.querySelector('input[name="title"]') as HTMLInputElement;
+      expect(titleInput).not.toBeNull();
+      expect(titleInput.value).toBe('Vanha Uskohaku');
+
+      const saveForm = titleInput.closest('form') as HTMLFormElement;
+      expect(saveForm).not.toBeNull();
+      const saveSubmitBtn = saveForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+      await act(async () => {
+        if (typeof saveForm.requestSubmit === 'function') {
+          saveForm.requestSubmit(saveSubmitBtn);
+        } else {
+          saveSubmitBtn.click();
+        }
+      });
+
+      expect(apiService.saveSearch).toHaveBeenCalledTimes(1);
+      const savePayload = vi.mocked(apiService.saveSearch).mock.calls[0][0];
+      expect(savePayload.id).toBe('search-xyz-456');
+      expect(savePayload.scopeId).toBe('scope-123');
+      expect(savePayload.name).toBe('Vanha Uskohaku');
+    });
   });
 });
