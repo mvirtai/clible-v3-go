@@ -294,5 +294,94 @@ describe('AiSemanticSearch state retention', () => {
       expect(savePayload.scopeId).toBe('scope-123');
       expect(savePayload.name).toBe('Vanha Uskohaku');
     });
+
+    it('shows unreviewed banner when committing with unclassified verses and allows accepting all remaining', () => {
+      act(() => {
+        root = createRoot(container!);
+        root.render(
+          <LanguageProvider>
+            <AiSemanticSearch
+              translation="web"
+              loadedData={{ query: 'faith', translationId: 'web', data: multiVerseResponse }}
+            />
+          </LanguageProvider>,
+        );
+      });
+
+      // Accept verse v1 only, leaving v2 unclassified
+      const v1Card = container!.querySelector('[data-testid="curated-verse-v1"]') as HTMLElement;
+      const acceptBtn = v1Card.querySelector('button[aria-label*="Accept"], button[aria-label*="Hyväksy"]') as HTMLButtonElement;
+      act(() => {
+        acceptBtn.click();
+      });
+
+      // Click "Apply selection" / "Toteuta valinnat"
+      const buttons = Array.from(container!.querySelectorAll('button'));
+      const commitBtn = buttons.find((b) => /Apply selection|Toteuta valinnat/.test(b.textContent ?? ''));
+      expect(commitBtn).toBeDefined();
+
+      act(() => {
+        commitBtn!.click();
+      });
+
+      // Banner should now be visible asking what to do with unreviewed verses
+      const acceptRemainingBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Accept all remaining|Hyväksy kaikki loput/.test(b.textContent ?? ''),
+      );
+      expect(acceptRemainingBtn).toBeDefined();
+
+      // Click "Accept all remaining"
+      act(() => {
+        acceptRemainingBtn!.click();
+      });
+
+      // Now both verses remain committed and banner disappears
+      expect(container!.querySelector('[data-testid="curated-verse-v1"]')).not.toBeNull();
+      expect(container!.querySelector('[data-testid="curated-verse-v2"]')).not.toBeNull();
+      expect(container!.textContent).not.toContain('Hyväksy kaikki loput');
+    });
+
+    it('rejects remaining unclassified verses and removes them permanently upon commit', () => {
+      act(() => {
+        root = createRoot(container!);
+        root.render(
+          <LanguageProvider>
+            <AiSemanticSearch
+              translation="web"
+              loadedData={{ query: 'faith', translationId: 'web', data: multiVerseResponse }}
+            />
+          </LanguageProvider>,
+        );
+      });
+
+      // Accept verse v1 only
+      const v1Card = container!.querySelector('[data-testid="curated-verse-v1"]') as HTMLElement;
+      const acceptBtn = v1Card.querySelector('button[aria-label*="Accept"], button[aria-label*="Hyväksy"]') as HTMLButtonElement;
+      act(() => {
+        acceptBtn.click();
+      });
+
+      // Click commit
+      const commitBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Apply selection|Toteuta valinnat/.test(b.textContent ?? ''),
+      );
+      act(() => {
+        commitBtn!.click();
+      });
+
+      // Click "Reject all remaining"
+      const rejectRemainingBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Reject all remaining|Hylkää kaikki loput/.test(b.textContent ?? ''),
+      );
+      expect(rejectRemainingBtn).toBeDefined();
+
+      act(() => {
+        rejectRemainingBtn!.click();
+      });
+
+      // Only v1 remains in the finalized view, v2 is discarded
+      expect(container!.querySelector('[data-testid="curated-verse-v1"]')).not.toBeNull();
+      expect(container!.querySelector('[data-testid="curated-verse-v2"]')).toBeNull();
+    });
   });
 });

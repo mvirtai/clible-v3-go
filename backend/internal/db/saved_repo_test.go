@@ -60,6 +60,44 @@ func TestSavedRepository_SaveAndGet(t *testing.T) {
 		}
 	})
 
+	t.Run("successfully update existing saved search on conflict", func(t *testing.T) {
+		updatedItem := models.SavedSearch{
+			ID:            "search-1",
+			ScopeID:       "test-scope-id",
+			Name:          "Nuoli haku Päivitetty",
+			QueryText:     "nuoli uusi",
+			SearchScope:   "ot",
+			ScopeValue:    "GEN",
+			TranslationID: "fin-1992",
+			ResultJSON:    `[{"text":"Päivitetty tulos","verse":2}]`,
+			CreatedAt:     time.Now().UTC(),
+		}
+
+		if err := repo.SaveSearch(ctx, &updatedItem); err != nil {
+			t.Fatalf("SaveSearch update failed: %v", err)
+		}
+
+		list, err := repo.GetSearchesByScope(ctx, "test-scope-id")
+		if err != nil {
+			t.Fatalf("GetSearchesByScope failed: %v", err)
+		}
+
+		if len(list) != 1 {
+			t.Errorf("expected still 1 saved search after update, got %d", len(list))
+		}
+
+		retrieved := list[0]
+		if retrieved.Name != "Nuoli haku Päivitetty" {
+			t.Errorf("expected updated name, got %s", retrieved.Name)
+		}
+		if retrieved.QueryText != "nuoli uusi" {
+			t.Errorf("expected updated query text, got %s", retrieved.QueryText)
+		}
+		if retrieved.ResultJSON != updatedItem.ResultJSON {
+			t.Errorf("expected updated ResultJSON %s, got %s", updatedItem.ResultJSON, retrieved.ResultJSON)
+		}
+	})
+
 	t.Run("successfully save and retrieve saved analyses with cached result json", func(t *testing.T) {
 		item := models.SavedAnalysis{
 			ID:            "analysis-1",
