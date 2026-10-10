@@ -96,6 +96,7 @@ describe('CurationUnreviewedBanner', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
 
     if (closeBtn) {
+      expect(closeBtn.getAttribute('aria-label')).toBe(localeStrings.curateCancelCommit);
       act(() => {
         closeBtn.click();
       });

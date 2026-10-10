@@ -283,7 +283,56 @@ func TestScopeHandler_SaveSearch_Success_NewAndExisting(t *testing.T) {
 	if updated.ID != created.ID {
 		t.Errorf("expected same ID %s, got %s", created.ID, updated.ID)
 	}
-	if updated.Name != "Faith Search Curated" {
-		t.Errorf("expected updated name, got %s", updated.Name)
+	// 3. Attacker attempts to overwrite the victim's saved search with the same ID
+	attackerPayload := map[string]interface{}{
+		"id":            created.ID,
+		"scopeId":       "scope-1",
+		"name":          "Hacked Title",
+		"queryText":     "hacked",
+		"searchScope":   "nt",
+		"scopeValue":    "",
+		"translationId": "web",
+		"resultJson":    `{"verses":[]}`,
+	}
+	attackerBody, _ := json.Marshal(attackerPayload)
+	attackerReq := httptest.NewRequest(http.MethodPost, "/api/scopes/saved-searches", bytes.NewReader(attackerBody))
+	attackerReq = attackerReq.WithContext(context.WithValue(attackerReq.Context(), middleware.UserIDKey, "attacker-user-id"))
+	attackerRR := httptest.NewRecorder()
+
+	handler.SaveSearch(attackerRR, attackerReq)
+	if attackerRR.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403 Forbidden on cross-user overwrite attempt, got %d", attackerRR.Code)
+	}
+
+	// Verify original record is intact
+	searches, _ := savedRepo.GetSearchesByScope(ctx, "scope-1")
+	if len(searches) != 1 || searches[0].Name != "Faith Search Curated" {
+		t.Errorf("saved search was corrupted by cross-user request: %+v", searches)
+	}
+}
+
+func TestScopeHandler_SaveSearch_Unauthorized(t *testing.T) {
+	handler := api.NewScopeHandler(nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/scopes/saved-searches", bytes.NewBufferString("{}"))
+	rr := httptest.NewRecorder()
+
+	handler.SaveSearch(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rr.Code)
+	}
+}
+
+func TestScopeHandler_SaveAnalysis_Unauthorized(t *testing.T) {
+	handler := api.NewScopeHandler(nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/scopes/saved-analyses", bytes.NewBufferString("{}"))
+	rr := httptest.NewRecorder()
+
+	handler.SaveAnalysis(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected status %d, got %d", http.StatusUnauthorized, rr.Code)
 	}
 }

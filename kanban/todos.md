@@ -77,7 +77,7 @@
 - defaultExpanded: false
 - steps:
   - [x] CuratedVerseCard.tsx -komponentti mobiilin kosketuspyyhkäisyillä (Swipe Right = hyväksy, Swipe Left = hylkää)
-  - [x] Työpöydän nopeat hyväksy/hylkää-pikapainikkeet ja pikanäppäintuki
+  - [x] Työpöydän nopeat hyväksy/hylkää-pikapainikkeet
   - [x] VerseCurationHeader.tsx -suodatuspalkki (Kaikki | Hyväksytyt | Hylätyt) ja tilastolaskurit
   - [x] Kumoa/palauta-toiminto hylätyille jakeille
   - [x] Kaksikieliset i18n.ts-käännökset kuratointieleille ja opastukselle
@@ -86,7 +86,7 @@
 
     ```md
     Suunnitelma: [.plans/02-luku-ja-haku/30-semanttisen-haun-jakeiden-kuratointi-ja-swipe-triage.md](file:///home/vivaldev/code/clible-v3-go/.plans/02-luku-ja-haku/30-semanttisen-haun-jakeiden-kuratointi-ja-swipe-triage.md)
-    Mahdollistaa semanttisen haun löytämien jakeiden nopean kuratoinnin ja karsinnan. Puhelimella jakeita voi pyyhkäistä (swipe) hyväksytyiksi tai hylätyiksi luonnollisilla eleillä, ja työpöydällä kuratointi hoituu intuitiivisilla pikanapeilla ja pikanäppäimillä.
+    Mahdollistaa semanttisen haun löytämien jakeiden nopean kuratoinnin ja karsinnan. Puhelimella jakeita voi pyyhkäistä (swipe) hyväksytyiksi tai hylätyiksi luonnollisilla eleillä, ja työpöydällä kuratointi hoituu intuitiivisilla pikanapeilla.
     ```
 
 ### VitePress-dokumentaation suomentaminen (Kaksikielinen EN/FI -dokumentaatio)

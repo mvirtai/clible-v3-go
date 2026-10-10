@@ -383,5 +383,67 @@ describe('AiSemanticSearch state retention', () => {
       expect(container!.querySelector('[data-testid="curated-verse-v1"]')).not.toBeNull();
       expect(container!.querySelector('[data-testid="curated-verse-v2"]')).toBeNull();
     });
+
+    it('persists only committed verses when saving search after curation commit', async () => {
+      act(() => {
+        root = createRoot(container!);
+        root.render(
+          <LanguageProvider>
+            <AiSemanticSearch
+              translation="web"
+              activeScopeId="scope-123"
+              loadedData={{ query: 'faith', translationId: 'web', data: multiVerseResponse }}
+            />
+          </LanguageProvider>,
+        );
+      });
+
+      // Accept verse v1 only
+      const v1Card = container!.querySelector('[data-testid="curated-verse-v1"]') as HTMLElement;
+      const acceptBtn = v1Card.querySelector('button[aria-label*="Accept"], button[aria-label*="Hyväksy"]') as HTMLButtonElement;
+      act(() => {
+        acceptBtn.click();
+      });
+
+      // Click commit
+      const commitBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Apply selection|Toteuta valinnat/.test(b.textContent ?? ''),
+      );
+      act(() => {
+        commitBtn!.click();
+      });
+
+      // Reject all remaining (discards v2)
+      const rejectRemainingBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Reject all remaining|Hylkää kaikki loput/.test(b.textContent ?? ''),
+      );
+      act(() => {
+        rejectRemainingBtn!.click();
+      });
+
+      // Now save search
+      const titleInput = container!.querySelector('input[name="title"]') as HTMLInputElement;
+      expect(titleInput).not.toBeNull();
+      titleInput.value = 'Committed Faith Search';
+
+      const saveForm = titleInput.closest('form') as HTMLFormElement;
+      const saveSubmitBtn = saveForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+      await act(async () => {
+        if (typeof saveForm.requestSubmit === 'function') {
+          saveForm.requestSubmit(saveSubmitBtn);
+        } else {
+          saveSubmitBtn.click();
+        }
+      });
+
+      expect(apiService.saveSearch).toHaveBeenCalledTimes(1);
+      const savePayload = vi.mocked(apiService.saveSearch).mock.calls[0][0];
+      const parsedResult = JSON.parse(savePayload.resultJson);
+      // Must only contain committed verse v1, rejected v2 must NOT be restored
+      expect(parsedResult.search.verses).toHaveLength(1);
+      expect(parsedResult.search.verses[0].id).toBe('v1');
+    });
   });
 });
+

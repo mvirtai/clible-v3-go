@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/mvirtai/clible-v3-go/internal/middleware"
 	"github.com/mvirtai/clible-v3-go/internal/models"
@@ -125,6 +126,12 @@ func (h *ScopeHandler) DeleteScope(w http.ResponseWriter, r *http.Request) {
 func (h *ScopeHandler) SaveSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
+		return
+	}
+
 	var req SaveSearchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, "invalid request body", http.StatusBadRequest, err)
@@ -142,8 +149,14 @@ func (h *ScopeHandler) SaveSearch(w http.ResponseWriter, r *http.Request) {
 		ResultJSON:    req.ResultJSON,
 	}
 
-	if err := h.scopeService.SaveSearch(ctx, &searchItem); err != nil {
-		WriteError(w, "internal server error", http.StatusInternalServerError, err)
+	if err := h.scopeService.SaveSearch(ctx, &searchItem, userID); err != nil {
+		if strings.Contains(err.Error(), "unauthorized") || strings.Contains(err.Error(), "does not belong") {
+			WriteError(w, "forbidden", http.StatusForbidden, err)
+		} else if strings.Contains(err.Error(), "not found") {
+			WriteError(w, "not found", http.StatusNotFound, err)
+		} else {
+			WriteError(w, "internal server error", http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -155,6 +168,12 @@ func (h *ScopeHandler) SaveSearch(w http.ResponseWriter, r *http.Request) {
 // SaveAnalysis handles POST /api/scopes/saved-analyses pinning text statistics metric sets.
 func (h *ScopeHandler) SaveAnalysis(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		WriteError(w, "unauthorized", http.StatusUnauthorized, nil)
+		return
+	}
 
 	var req SaveAnalysisRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -172,8 +191,14 @@ func (h *ScopeHandler) SaveAnalysis(w http.ResponseWriter, r *http.Request) {
 		ResultJSON:    req.ResultJSON,
 	}
 
-	if err := h.scopeService.SaveAnalysis(ctx, &analysisItem); err != nil {
-		WriteError(w, "internal server error", http.StatusInternalServerError, err)
+	if err := h.scopeService.SaveAnalysis(ctx, &analysisItem, userID); err != nil {
+		if strings.Contains(err.Error(), "unauthorized") || strings.Contains(err.Error(), "does not belong") {
+			WriteError(w, "forbidden", http.StatusForbidden, err)
+		} else if strings.Contains(err.Error(), "not found") {
+			WriteError(w, "not found", http.StatusNotFound, err)
+		} else {
+			WriteError(w, "internal server error", http.StatusInternalServerError, err)
+		}
 		return
 	}
 

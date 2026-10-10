@@ -25,6 +25,7 @@ export function CurationUnreviewedBanner({
         </div>
         <button
           type="button"
+          aria-label={strings.curateCancelCommit}
           onClick={onCancel}
           className="text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-md cursor-pointer"
         >

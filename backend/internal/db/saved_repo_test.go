@@ -38,7 +38,7 @@ func TestSavedRepository_SaveAndGet(t *testing.T) {
 			CreatedAt:     time.Now().UTC(),
 		}
 
-		if err := repo.SaveSearch(ctx, &item); err != nil {
+		if err := repo.SaveSearch(ctx, &item, "test-user-id"); err != nil {
 			t.Fatalf("SaveSearch failed: %v", err)
 		}
 
@@ -73,7 +73,7 @@ func TestSavedRepository_SaveAndGet(t *testing.T) {
 			CreatedAt:     time.Now().UTC(),
 		}
 
-		if err := repo.SaveSearch(ctx, &updatedItem); err != nil {
+		if err := repo.SaveSearch(ctx, &updatedItem, "test-user-id"); err != nil {
 			t.Fatalf("SaveSearch update failed: %v", err)
 		}
 
@@ -95,6 +95,39 @@ func TestSavedRepository_SaveAndGet(t *testing.T) {
 		}
 		if retrieved.ResultJSON != updatedItem.ResultJSON {
 			t.Errorf("expected updated ResultJSON %s, got %s", updatedItem.ResultJSON, retrieved.ResultJSON)
+		}
+	})
+
+	t.Run("reject cross-user update on conflict when target scope belongs to another user", func(t *testing.T) {
+		// Seed second user and second user's scope
+		_, _ = conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES ('other-user-id', 'other@example.com', 'hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
+		_, _ = conn.ExecContext(ctx, `INSERT INTO scopes (id, name, user_id, created_at) VALUES ('other-scope-id', 'Other Scope', 'other-user-id', CURRENT_TIMESTAMP)`)
+
+		// Other user attempts to overwrite search-1 owned by test-user-id
+		crossUserItem := models.SavedSearch{
+			ID:            "search-1",
+			ScopeID:       "other-scope-id",
+			Name:          "Hacked Name",
+			QueryText:     "hacked query",
+			SearchScope:   "ot",
+			ScopeValue:    "",
+			TranslationID: "fin-1992",
+			ResultJSON:    `[{"text":"hacked"}]`,
+			CreatedAt:     time.Now().UTC(),
+		}
+
+		err := repo.SaveSearch(ctx, &crossUserItem, "other-user-id")
+		if err == nil {
+			t.Fatalf("expected error on cross-user overwrite attempt, got nil")
+		}
+
+		// Verify original record is unmodified
+		original, err := repo.GetSearchByID(ctx, "search-1")
+		if err != nil {
+			t.Fatalf("GetSearchByID failed: %v", err)
+		}
+		if original == nil || original.Name == "Hacked Name" {
+			t.Errorf("search-1 was unexpectedly overwritten: %+v", original)
 		}
 	})
 

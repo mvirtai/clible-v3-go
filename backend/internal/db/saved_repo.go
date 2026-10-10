@@ -19,7 +19,8 @@ func NewSavedRepository(db *sql.DB) *SavedRepository {
 }
 
 // SaveSearch stores or updates a parameterized FTS text search workflow.
-func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch) error {
+// Constrains the update on conflict so that a user cannot overwrite another user's saved search.
+func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch, userID string) error {
 	query := `
 		INSERT INTO saved_searches (id, scope_id, name, query_text, search_scope, scope_value, translation_id, result_json, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -30,6 +31,7 @@ func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch)
 			scope_value = EXCLUDED.scope_value,
 			translation_id = EXCLUDED.translation_id,
 			result_json = EXCLUDED.result_json
+		WHERE saved_searches.scope_id IN (SELECT id FROM scopes WHERE user_id = $10)
 	`
 
 	var scopeValue sql.NullString
@@ -42,13 +44,47 @@ func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch)
 		translationID = sql.NullString{String: s.TranslationID, Valid: true}
 	}
 
-	_, err := r.db.ExecContext(ctx, query,
-		s.ID, s.ScopeID, s.Name, s.QueryText, s.SearchScope, scopeValue, translationID, s.ResultJSON, s.CreatedAt,
+	res, err := r.db.ExecContext(ctx, query,
+		s.ID, s.ScopeID, s.Name, s.QueryText, s.SearchScope, scopeValue, translationID, s.ResultJSON, s.CreatedAt, userID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to persist saved search item: %w", err)
 	}
+
+	rows, err := res.RowsAffected()
+	if err == nil && rows == 0 {
+		return fmt.Errorf("saved search does not belong to user or scope not found")
+	}
+
 	return nil
+}
+
+// GetSearchByID retrieves a single saved search by its unique identifier.
+func (r *SavedRepository) GetSearchByID(ctx context.Context, id string) (*models.SavedSearch, error) {
+	query := `
+		SELECT id, scope_id, name, query_text, search_scope, scope_value, translation_id, result_json, created_at
+		FROM saved_searches WHERE id = $1
+	`
+
+	var s models.SavedSearch
+	var scopeValue sql.NullString
+	var translationID sql.NullString
+	var resultJSON sql.NullString
+
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&s.ID, &s.ScopeID, &s.Name, &s.QueryText, &s.SearchScope, &scopeValue, &translationID, &resultJSON, &s.CreatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query saved search by id: %w", err)
+	}
+
+	s.ScopeValue = scopeValue.String
+	s.TranslationID = translationID.String
+	s.ResultJSON = resultJSON.String
+	return &s, nil
 }
 
 // GetSearchesByScope retrieves all search parameters associated with a specific context.

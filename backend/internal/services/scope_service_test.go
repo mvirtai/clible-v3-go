@@ -53,7 +53,7 @@ func TestScopeService_WorkspaceFlow(t *testing.T) {
 			ResultJSON:    `[{"text":"in grace we stand"}]`,
 		}
 
-		if err := service.SaveSearch(ctx, searchItem); err != nil {
+		if err := service.SaveSearch(ctx, searchItem, "test-user-id"); err != nil {
 			t.Fatalf("SaveSearch failed: %v", err)
 		}
 
@@ -67,7 +67,7 @@ func TestScopeService_WorkspaceFlow(t *testing.T) {
 			ResultJSON:    `{"frequencies":{"grace":5}}`,
 		}
 
-		if err := service.SaveAnalysis(ctx, analysisItem); err != nil {
+		if err := service.SaveAnalysis(ctx, analysisItem, "test-user-id"); err != nil {
 			t.Fatalf("SaveAnalysis failed: %v", err)
 		}
 
@@ -93,6 +93,50 @@ func TestScopeService_WorkspaceFlow(t *testing.T) {
 		}
 		if workspace.Analyses[0].ResultJSON != analysisItem.ResultJSON {
 			t.Errorf("expected Analysis ResultJSON %s, got %s", analysisItem.ResultJSON, workspace.Analyses[0].ResultJSON)
+		}
+	})
+
+	t.Run("reject cross-user save search and analysis attempts", func(t *testing.T) {
+		_, _ = conn.ExecContext(ctx, `INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES ('attacker-user-id', 'attacker@example.com', 'hash', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
+		_, _ = conn.ExecContext(ctx, `INSERT INTO scopes (id, name, user_id, created_at) VALUES ('attacker-scope-id', 'Attacker Scope', 'attacker-user-id', CURRENT_TIMESTAMP)`)
+
+		// 1. Attacker attempts to save into victim's scope
+		victimScopeSearch := &models.SavedSearch{
+			ScopeID:   activeScopeID,
+			Name:      "Victim Scope Search",
+			QueryText: "test",
+		}
+		err := service.SaveSearch(ctx, victimScopeSearch, "attacker-user-id")
+		if err == nil {
+			t.Errorf("expected error when saving to another user's scope, got nil")
+		}
+
+		// 2. Attacker attempts to overwrite victim's saved search item by supplying victim's search ID
+		existingSearches, _ := savedRepo.GetSearchesByScope(ctx, activeScopeID)
+		if len(existingSearches) > 0 {
+			victimSearchID := existingSearches[0].ID
+			overwriteSearch := &models.SavedSearch{
+				ID:        victimSearchID,
+				ScopeID:   "attacker-scope-id",
+				Name:      "Overwritten Name",
+				QueryText: "overwritten query",
+			}
+			err = service.SaveSearch(ctx, overwriteSearch, "attacker-user-id")
+			if err == nil {
+				t.Errorf("expected error when attempting to overwrite another user's search ID, got nil")
+			}
+		}
+
+		// 3. Attacker attempts to save analysis into victim's scope
+		victimScopeAnalysis := &models.SavedAnalysis{
+			ScopeID:      activeScopeID,
+			Name:         "Victim Scope Analysis",
+			Reference:    "Rom 1",
+			AnalysisType: "single_stats",
+		}
+		err = service.SaveAnalysis(ctx, victimScopeAnalysis, "attacker-user-id")
+		if err == nil {
+			t.Errorf("expected error when saving analysis to another user's scope, got nil")
 		}
 	})
 
