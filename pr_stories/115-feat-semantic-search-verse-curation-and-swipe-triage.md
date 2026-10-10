@@ -13,7 +13,7 @@ This PR introduces an end-to-end curation, commit triage, and workspace update p
 3. **Workspace Upsert (`ON CONFLICT`) & Ownership Protection:** When returning to an existing saved search from a workspace, curation modifications update the existing database record in place instead of creating duplicates. Updates are guarded by strict ownership verification in both the repository and service layers.
 4. **Taskfile Automation Hygiene:** Upgrades `task plans:link` with automatic directory synchronization and introduces `task plans:push` and `task plans:status`.
 
-Version is bumped from `3.14.0` to `3.15.0`.
+Version is bumped from `3.13.5` to `3.15.0`.
 
 ---
 
