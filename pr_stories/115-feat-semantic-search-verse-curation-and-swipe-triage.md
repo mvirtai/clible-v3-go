@@ -77,7 +77,7 @@ stateDiagram-v2
 
 - **Triage Tabs & Counters:** All, Accepted, and Rejected filters with real-time badges derived during render.
 - **Unreviewed Triage Guard:** If the user attempts to finalize selections while unreviewed verses exist, `CurationUnreviewedBanner` prompts whether to accept or reject all remaining verses in batch. Close button includes accessible `aria-label`.
-- **Permanent Curation Commit:** Committing selection sets `committedVerses`, filtering rejected items out of memory and DOM. Saving after commit serializes only the committed verse set.
+- **Permanent Curation Commit:** Committing selection sets `committedVerses`, filtering rejected items out of memory and DOM. The filtered snapshot is propagated to `App`, so rejected verses stay excluded after navigating away and returning without saving. Saving after commit serializes only the committed verse set.
 
 ### 3. Workspace Search Update (Backend & Frontend)
 
@@ -86,9 +86,10 @@ stateDiagram-v2
   - `backend/internal/services/scope_service.go`: Validates scope ownership for caller and verifies target saved-search ownership before executing updates.
   - `backend/internal/db/saved_repo.go`: Updated `SaveSearch` to use SQL `ON CONFLICT (id) DO UPDATE SET ... WHERE saved_searches.scope_id IN (SELECT id FROM scopes WHERE user_id = $10)`. Compatible with both Neon PostgreSQL and in-memory SQLite `:memory:` test harnesses. Added `GetSearchByID`.
 - **Frontend App & SearchHub:**
-  - `frontend/src/App.tsx`: Passes `savedSearchId` and `savedName` through `SemanticSearchSnapshot` when restoring a workspace search.
-  - `frontend/src/components/search/AiSemanticSearch.tsx`: Detects existing `savedSearchId`, renders dynamic "Update saved search" form title and prefilled name, builds payload from `committedVerses` when present, and sends the ID on submit.
-  - `frontend/src/components/search/SearchHub.tsx`: Key-bound tab rendering includes `savedSearchId` for independent mounting and clean state resets.
+  - `frontend/src/App.tsx`: Passes saved-search metadata through `SemanticSearchSnapshot` and retains committed curation snapshots across navigation.
+  - `frontend/src/components/search/AiSemanticSearch.tsx`: Detects existing `savedSearchId`, renders the update form, builds save payloads from committed verses, and notifies the parent when curation is committed.
+  - `frontend/src/components/search/SearchHub.tsx`: Key-bound tab rendering includes `savedSearchId` and forwards committed curation snapshots to the parent.
+  - `frontend/src/components/search/SearchHub.test.tsx`: Verifies accepted/rejected curation remains filtered after the search component unmounts and remounts.
 
 ### 4. Taskfile Automation Hygiene
 
@@ -116,7 +117,7 @@ stateDiagram-v2
 
 - **SQL Injection Prevention:** Updated `SaveSearch` query in `backend/internal/db/saved_repo.go` uses strict `$1..$10` parameterization.
 - **Access Control & Cross-User Isolation:** All workspace search endpoints require authentication via `middleware.RequireAuth`. `ScopeService.SaveSearch` and `SavedRepository.SaveSearch` verify that the target scope and any pre-existing saved-search record belong to the caller, preventing cross-user record tampering.
-- **Input Sanitization:** JSON decode payloads are length-bounded and schema-checked.
+- **Input Handling:** Saved-search JSON bodies are decoded and required fields are validated; the endpoint does not enforce a request-size limit or strict schema validation, and accepts unknown JSON fields.
 - **Zero Leaks:** No private plans or tokens are tracked in git; `.plans` symlink is explicitly ignored in `.gitignore`.
 
 ---
@@ -138,14 +139,15 @@ stateDiagram-v2
 | `backend/internal/version/version.go` | Bumped version to `3.15.0` |
 | `backend/migrations/clible-db-schema.png` | Database schema reference diagram |
 | `frontend/package.json` | Bumped version to `3.15.0` |
-| `frontend/src/App.tsx` | Propagates `savedSearchId` and `savedName` on saved search restoration |
-| `frontend/src/components/search/AiSemanticSearch.tsx` | Integrated curation, commit triage guard, workspace search update, and fixed `committedVerses` save payload |
+| `frontend/src/App.tsx` | Propagates saved-search metadata and retains committed curation across navigation |
+| `frontend/src/components/search/AiSemanticSearch.tsx` | Integrated curation, commit triage guard, parent snapshot updates, workspace search update, and committed-verse save payload |
 | `frontend/src/components/search/AiSemanticSearch.test.tsx` | Added tests for unreviewed guard, accept/reject remaining, update flow, and saving after commit |
 | `frontend/src/components/search/CuratedVerseCard.tsx` | Verse card with swipe gestures, desktop triage buttons, and restore |
 | `frontend/src/components/search/CuratedVerseCard.test.tsx` | Gesture and action tests for curated verse card |
 | `frontend/src/components/search/CurationPromptModal.tsx` | New unreviewed triage guard banner component with accessible close button |
 | `frontend/src/components/search/CurationPromptModal.test.tsx` | Unit tests for unreviewed triage banner and close button `aria-label` |
-| `frontend/src/components/search/SearchHub.tsx` | Key-bound rendering including `savedSearchId` for independent mount state |
+| `frontend/src/components/search/SearchHub.tsx` | Key-bound rendering and committed curation snapshot handoff |
+| `frontend/src/components/search/SearchHub.test.tsx` | Added remount regression coverage for committed curation |
 | `frontend/src/components/search/VerseCurationHeader.tsx` | Added commit selection action, counters, and triage filter tabs |
 | `frontend/src/components/search/VerseCurationHeader.test.tsx` | Tests for curation header actions and counts |
 | `frontend/src/services/api.ts` | Updated `saveSearch` parameter signature to accept optional `id` |

@@ -726,6 +726,11 @@ export function App() {
                   loadedSavedResults={loadedSearch}
                   loadedSemanticData={loadedSemanticSearch}
                   onSemanticSearchCompleted={setLoadedSemanticSearch}
+                  onSemanticCurationCommitted={(data) => {
+                    setLoadedSemanticSearch((current) =>
+                      current ? { ...current, data } : current
+                    );
+                  }}
                   onClearLoadedResults={() => {
                     setLoadedSearch(null);
                     setLoadedSemanticSearch(null);

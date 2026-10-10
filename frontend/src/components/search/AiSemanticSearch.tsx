@@ -40,6 +40,8 @@ export interface AiSemanticSearchProps {
    * owns persistence and feeds it back through `loadedData` on remount.
    */
   onSearchCompleted?: (result: SemanticSearchSnapshot) => void;
+  /** Fired after curation is committed so the parent can retain the filtered result. */
+  onCurationCommitted?: (data: AiSearchResponse) => void;
 }
 
 interface SaveActionState {
@@ -64,6 +66,7 @@ export function AiSemanticSearch({
   onWorkspaceUpdated,
   loadedData,
   onSearchCompleted,
+  onCurationCommitted,
 }: AiSemanticSearchProps) {
   // Pure derived value: a retained result is only valid for its own translation.
   const restored =
@@ -135,6 +138,8 @@ export function AiSemanticSearch({
             ? {
                 ...searchState.data.search,
                 verses:
+                  committedVerses !== null
+                    ? committedVerses
                     : acceptedIds.size > 0 || rejectedIds.size > 0
                     ? searchState.data.search.verses.filter((v) => acceptedIds.has(v.id))
                     : searchState.data.search.verses,
@@ -258,7 +263,15 @@ export function AiSemanticSearch({
 
     // Keep only accepted verses permanently
     const kept = currentVerses.filter((v) => finalAccepted.has(v.id));
+    const committedData = {
+      ...data,
+      search: {
+        ...data.search,
+        verses: kept,
+      },
+    };
     setCommittedVerses(kept);
+    onCurationCommitted?.(committedData);
     setAcceptedIds(new Set());
     setRejectedIds(new Set());
     setCurationFilter('all');

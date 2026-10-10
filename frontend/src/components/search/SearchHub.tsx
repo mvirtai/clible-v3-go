@@ -3,7 +3,7 @@ import { Search, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { VerseSearch } from './VerseSearch';
 import type { SearchVerse } from '@/types/search';
-import type { SemanticSearchSnapshot } from '@/types/aiSearch';
+import type { AiSearchResponse, SemanticSearchSnapshot } from '@/types/aiSearch';
 import { AiSemanticSearch } from './AiSemanticSearch';
 
 export type SearchSubModule = 'lexical' | 'semantic';
@@ -33,6 +33,8 @@ export interface SearchHubProps {
     loadedSemanticData?: SemanticSearchSnapshot | null;
     /** Fired when a semantic search completes so the parent can retain it */
     onSemanticSearchCompleted?: (result: SemanticSearchSnapshot) => void;
+    /** Fired after curation is committed so the parent retains the filtered result */
+    onSemanticCurationCommitted?: (data: AiSearchResponse) => void;
     /** Clear external loaded state */
     onClearLoadedResults?: () => void;
 }
@@ -50,6 +52,7 @@ export function SearchHub({
     loadedSavedResults,
     loadedSemanticData,
     onSemanticSearchCompleted,
+    onSemanticCurationCommitted,
     onClearLoadedResults,
 }: SearchHubProps) {
     const [activeTab, setActiveTab] = useState<SearchSubModule>(initialTab ?? 'lexical');
@@ -135,6 +138,7 @@ export function SearchHub({
           onWorkspaceUpdated={onWorkspaceUpdated}
           loadedData={loadedSemanticData}
           onSearchCompleted={onSemanticSearchCompleted}
+          onCurationCommitted={onSemanticCurationCommitted}
         />
       )}
     </div>
