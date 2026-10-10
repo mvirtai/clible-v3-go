@@ -269,8 +269,11 @@ tasks:
           exit 1
         fi
         echo "Pushing changes in $SRC..."
-        git -C "$SRC" add -A
-        git -C "$SRC" commit -m "{{.MSG}}" || echo "Nothing new to commit in plans repository."
+        if ! git -C "$SRC" diff --cached --quiet; then
+          git -C "$SRC" commit -m "{{.MSG}}" || exit 1
+        else
+          echo "Nothing new to commit in plans repository."
+        fi
         BRANCH=$(git -C "$SRC" branch --show-current)
         git -C "$SRC" push origin "$BRANCH"
         echo "✅ Plans pushed successfully to canonical repository!"
