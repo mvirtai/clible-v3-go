@@ -3,24 +3,24 @@
 > **ISLA** — *Inline Structure & Logic Architecture*
 > *(Myös: Interactive Scripture & Layout Analyzer)*
 >
-> Täydellinen opas ISLA v2 -objekti-metodi-kyselykieleen — kattaa syntaksin,
-> jokaisen lähdeobjektityypin, metodiviitteet, tulosoperaattorit, älykkäät skoopit
+> Täydellinen opas ISLA v2:n objekti–metodi-kyselykieleen — kattaa syntaksin,
+> lähdeobjektit, metodit, tulosoperaattorit, älykkäät rajaukset
 > ja Monaco/ISLAEditor IntelliSense -kieliälymoottorin.
 
 ---
 
 ## 1. Yleiskatsaus ja suunnittelufilosofia
 
-ISLA on varta vasten suunniteltu ergonominen kyselykieli, joka toimii suoraan Markdown-tutkimusasiakirjojen sisällä. Se siltaa kuilun kahden ääripään välillä, joiden väliltä useimmat tutkimusohjelmistot pakottavat valitsemaan:
+ISLA on kyselykieli, jota voi käyttää suoraan Markdown-tutkimusasiakirjoissa. Se yhdistää kaksi tavallista lähestymistapaa:
 
 1. **Staattinen teksti (Markdown)**: Ihanteellinen lukemiseen ja julkaisemiseen, mutta kykenemätön hakemaan tai vertailemaan raamatunkohtia dynaamisesti ilman jatkuvaa leikkaa-liimaa-työtä.
 2. **Komentosolut (CLI / REPL)**: Tehokkaita kyselyihin, mutta tuottavat pirstaleisia, solupainotteisia dokumentteja, joita ei voi lukea sujuvana yhtenäisenä kommentaarina.
 
-**ISLA yhdistää molemmat** hybridirakenteella: kirjoitat puhdasta, standardia Markdownia ja upotat sen lomaan salamannopeita ISLA-komentoja, jotka piirtyvät elävinä jaevertailukortteina, analyysiyhteenvetoina tai sanapilvinä suoraan leipätekstin virtaan.
+**ISLA yhdistää nämä lähestymistavat**: kirjoitat Markdownia ja upotat siihen ISLA-komentoja, jotka näyttävät tuloksina jaevertailuja, analyysiyhteenvetoja tai sanapilviä.
 
 ### `!` ja `!isla ` -laukaisinetuliitteet
 
-Kun kirjoitat tutkimusmuistiinpanoja **Notebook Markdown -solussa**, ISLA-komento alkaa `!`- tai `!isla `-etuliitteellä. Tämä ilmoittaa editorille ja Markdown-renderöijälle, että rivi ei ole tavallista tekstiä vaan suoritettava ISLA-komento:
+Kun kirjoitat muistiinpanoja tutkimusvihkon **Markdown-soluun**, aloita ISLA-komento etuliitteellä `!` tai `!isla `. Etuliite ilmaisee editorille ja Markdown-muotoilijalle, että kyseessä on suoritettava komento:
 
 ```isla
 ! @(Joh 3:16).vs(KR92, KJV) =>
@@ -29,11 +29,11 @@ Kun kirjoitat tutkimusmuistiinpanoja **Notebook Markdown -solussa**, ISLA-koment
 ```
 
 > [!TIP]
-> Lekseri poistaa automaattisesti `!`- ja `!isla `-etuliitteet ennen AST-jäsennystä. Tämä varmistaa puhtaan suorituksen riippumatta siitä, kutsutaanko komentoja Markdown-muistiinpanoissa, REST API -rajapinnan kautta vai interaktiivisissa syötekentissä.
+> Lekseri poistaa `!`- ja `!isla `-etuliitteet ennen AST-jäsennystä. Komennot toimivat näin Markdown-muistiinpanoissa, REST API -rajapinnan kautta ja interaktiivisissa syötekentissä.
 
 ### ISLA v2:n objekti-metodi-paradigma
 
-ISLA v2 esittelee yhtenäisen lauserakenteen, jossa jokainen kysely noudattaa intuitiivista objekti-metodi-anatomiaa:
+ISLA v2:n kyselyissä käytetään yhtenäistä objekti–metodi-rakennetta:
 
 ![ISLA v2 Expression Anatomy](/isla-anatomy.svg)
 
@@ -46,9 +46,9 @@ ISLA v2 esittelee yhtenäisen lauserakenteen, jossa jokainen kysely noudattaa in
 
 ---
 
-## 2. Top-5 arkikäyttötapausta: ISLA vs. puhdas SQL
+## 2. Viisi esimerkkiä: ISLA ja SQL
 
-Ymmärtääksesi ISLA:n tehon tarkastele, mitä taustamoottori todellisuudessa suorittaa PostgreSQL-tietokannassa. Sen sijaan että kirjoittaisit monimutkaisia tietokantakyselyitä liitoksineen (JOIN), kokotekstivektoreineen ja tilastollisine ryhmittelyineen, ISLA tiivistää teologisen eksegetiikan luettaviin, yksirivisiin komentoihin.
+ISLA muuntaa kyselyt tietokantatoiminnoiksi. Sen sijaan, että kirjoittaisit SQL-kyselyitä liitoksineen (JOIN), kokotekstihakuineen ja tilastollisine ryhmittelyineen, voit käyttää niitä vastaavia yksirivisiä ISLA-komentoja.
 
 ### 1. Rinnakkainen käännösmatriisi: Käännösvertailu
 Jakeiden vertaileminen eri kielten tai historiallisten käännösten välillä on ISLA:lla välitöntä, kun taas SQL vaatii monimutkaisia itseliitoksia tai alikyselyitä:
@@ -93,8 +93,8 @@ Teologisten käsitteiden etsiminen tietyistä tekstiryhmistä (kuten Paavalin ki
   LIMIT 10;
   ```
 
-### 3. Kvantitatiivinen eksegetiikka ja sanastotilastot (TTR ja sanatiheys)
-Kokonaissanamäärän, sanaston rikkauden (Type-Token Ratio) ja leksikaalisen tiheyden laskeminen koko kirjan tai jakson yli:
+### 3. Määrällinen sanastoanalyysi (TTR ja sanatiheys)
+Laske sanojen kokonaismäärä, sanaston monimuotoisuus (Type-Token Ratio) ja sanojen yleisyys koko kirjasta tai tekstijaksosta:
 
 * **ISLA-komento**:
   ```isla
@@ -234,7 +234,7 @@ search("armo").at(UT) => #armo
 Metodit ketjutetaan objektin perään pistenotaatiolla: `.metodinNimi(argumentit)`.
 Ne suoritetaan järjestyksessä vasemmalta oikealle.
 
-### `.use(käännösID)` — Käännöksen ylikirjoitus
+### `.use(käännösID)` — Käännöksen valinta
 
 Pakottaa tietyn raamatunkäännöksen syrjäyttäen älykkään skooppipäättelyn:
 
@@ -269,9 +269,9 @@ Hakee jakeelle jopa `n` kanonista rinnakkaisviitettä tietokannasta (oletus: 5):
 
 **Sallittu objekteille:** `@()`, `#muuttuja`
 
-### `.at(skooppi)` — Skooppisuodatin
+### `.at(skooppi)` — Haun rajaus
 
-Rajaa haun tiettyyn kirjaan tai genreryhmään (katso [Älykkäät skoopit](#6-älykkäät-skoopit)):
+Rajaa haun tiettyyn kirjaan tai tekstiryhmään (katso [Älykkäät rajaukset](#6-älykkäät-rajaukset)):
 
 ```isla
 search("armo").at(epistolat) =>
@@ -462,11 +462,11 @@ range(GEN, DEU).count(words) >>
 
 ---
 
-## 6. Älykkäät skoopit
+## 6. Älykkäät rajaukset
 
-Kun metodia `.at(skooppi)` käytetään genreryhmätunnisteella (tai kun suomen-/englanninkielinen alias tunnistetaan), ISLA päättelee automaattisesti luontevimman raamatunkäännöksen:
+Kun `.at(skooppi)`-metodille annetaan tunnistettu tekstiryhmä tai sen suomen- tai englanninkielinen nimi, ISLA valitsee ryhmälle sopivan raamatunkäännöksen:
 
-| Skooppitunniste | Kirjat | Automaattisesti päätelty käännös | Esimerkki |
+| Rajauksen tunniste | Kirjat | Automaattisesti valittu käännös | Esimerkki |
 |---|---|---|---|
 | `epistolat` / `kirjeet` | Paavalin ja yleiset kirjeet (ROM..JUD) | **KR92** | `search("armo").at(epistolat)` |
 | `epistles` / `letters` | Paavalin ja yleiset kirjeet (ROM..JUD) | **WEB** | `search("grace").at(epistles)` |
@@ -480,10 +480,10 @@ Kun metodia `.at(skooppi)` käytetään genreryhmätunnisteella (tai kun suomen-
 | `VT` / `OT` | Vanha testamentti | Kielen mukaan | `search("armo").at(VT).count()` |
 | `UT` / `NT` | Uusi testamentti | Kielen mukaan | `search("armo").at(UT).count()` |
 
-Yksittäiset kirjatunnisteet (`Joh`, `ROM`, `Ps`, `GEN` jne.) ovat myös kelvollisia skooppeja.
+Yksittäiset kirjatunnisteet (`Joh`, `ROM`, `Ps`, `GEN` jne.) toimivat myös rajauksina.
 
 > [!TIP]
-> **Eksplisiittinen ohitus:** Lisää `.use(käännösID)` metodin `.at(skooppi)` perään pakottaaksesi haluamasi käännöksen skooppipäättelystä riippumatta:
+> **Käännöksen valinta:** Lisää `.use(käännösID)`-metodi `.at(skooppi)`-metodin perään, jos haluat valita käännöksen itse:
 > `search("grace").at(epistolat).use(KJV) =>`
 
 ---
@@ -580,7 +580,7 @@ Raskaiden koodieditorikirjastojen sijaan ISLAEditor käyttää suorituskykyistä
 | `.use(` | Asennettujen käännösten tunnisteet |
 | `.vs(` | Kahden käännöksen vertailupohjat |
 
-### Leijuva dokumentaatio ja Levenshtein-virhe-ehdotukset
+### Metodien ohjeet ja Levenshtein-korjausehdotukset
 
 Hiiren vieminen minkä tahansa ISLA-avainsanan tai -metodin päälle näyttää tyyppisignatuurin ja esimerkin. Tuntemattomat metodinimet laukaisevat Levenshtein-etäisyyssovituksen:
 

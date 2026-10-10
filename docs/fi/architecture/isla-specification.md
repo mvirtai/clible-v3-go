@@ -9,9 +9,9 @@
 
 ## 1. Johdanto ja tiivistelmä
 
-**ISLA v2** on ergonominen, deterministinen ja verkkonatiivi täsmäkyselykieli (DSL), joka on suunniteltu rakenteelliseen tekstintutkimukseen, moniulotteiseen vertailuun ja reaktiiviseen dokumenttiupotukseen. Se on toteutettu puhtaana Go-pakettina (`backend/new_dsl/`) ilman ulkoisia riippuvuuksia.
+**ISLA v2** on helppokäyttöinen, deterministinen kyselykieli (DSL) tekstien rakenteelliseen tutkimiseen, vertailuun ja kyselyiden upottamiseen dokumentteihin. Se on toteutettu Go-pakettina (`backend/new_dsl/`) ilman ulkoisia riippuvuuksia.
 
-ISLA v2 esittelee selkeän **objekti-metodi-paradigman**: jokainen lauseke koostuu tyypitetystä lähdeobjektista, nollasta tai useammasta ketjutetusta metodimuunnoksesta sekä pakollisesta tulosoperaattorista. Tämä rakenne on tiukasti deterministinen (LL(1)-jäsennettävä) ja ratkeaa muuttumattomaksi abstraktiksi syntaksipuuksi (AST) alle 50 mikrosekunnissa.
+ISLA v2:n **objekti–metodi-rakenteessa** lauseke koostuu tyypitetystä lähdeobjektista, valinnaisista ketjutetuista metodeista ja pakollisesta tulosoperaattorista. Rakenne on deterministinen ja LL(1)-jäsennettävä. Se muunnetaan muuttumattomaksi abstraktiksi syntaksipuuksi (AST) alle 50 mikrosekunnissa.
 
 ```mermaid
 graph LR
@@ -56,12 +56,12 @@ graph LR
 
 ## 2. Keskeiset suunnitteluperiaatteet
 
-1. **Yhtenäinen objekti-metodi-rakenne**: Jokainen lauseke noudattaa muotoa `Objekti.Metodi*().TulosOp`. Kieliopissa ei ole moniselitteisyyttä eikä jäsennin tarvitse peruuttavaa hakua (backtracking).
+1. **Yhtenäinen objekti–metodi-rakenne**: Jokainen lauseke noudattaa muotoa `Objekti.Metodi*().TulosOp`. Kielioppi ei ole moniselitteinen, eikä jäsennin tarvitse peruutusta (backtracking).
 2. **Deterministinen ja kontekstiton**: Kielioppi on puhtaasti LL(1) / Pratt-jäsennettävä, mikä takaa huippunopean jäsennyksen (< 100 µs) ilman keon muistiallokaatioita kuumalla polulla.
-3. **Metodien kompostoitavuus**: Useita metodeja voidaan ketjuttaa vasemmalta oikealle. Jokainen metodi muuntaa tai annotoi edellisen askeleen tulosta.
+3. **Metodien ketjutettavuus**: Metodeja voidaan ketjuttaa vasemmalta oikealle. Kukin metodi muuntaa tai täydentää edellisen vaiheen tulosta.
 4. **Tulosoperaattori ensiluokkaisena osana**: Tulosoperaattori (`=>`, `>`, `>>`) on pakollinen ja se erotetaan token-virran hännästä ennen varsinaista lausekejäsennystä, mikä erottaa laskennan renderöintikohteesta.
 5. **Alustariippumaton upotettavuus**: `!`- ja `isla `-laukaisimet poistetaan läpinäkyvästi lekserissä, joten ISLA-lausekkeet toimivat identtisesti Markdown-soluissa, CLI-päätteessä ja REST API -kutsuissa.
-6. **Tiukka metodivalidointi**: Jäsennin tarkistaa metodien kelvollisuuden kyseiselle objektityypille jo jäsennysvaiheessa palauttaen jäsennellyn virhediagnostiikan ennen minkään tietokanta-I/O:n aloittamista.
+6. **Metodien tarkistus**: Jäsennin tarkistaa jo jäsennysvaiheessa, voiko metodia käyttää kyseisen objektityypin kanssa. Virheestä ilmoitetaan ennen tietokantatoimintoja.
 
 ---
 
@@ -221,7 +221,7 @@ sequenceDiagram
 1. **Tokenisointi (Lekseri)**: Poistaa `!`-laukaisimen, skannaa syötteen rune-merkit sijaintitokeneiksi (`TokenAtOpen`, `TokenSearch`, `TokenCaret`, `TokenDot` jne.) yhdellä O(1) lineaarisella läpikäynnillä.
 2. **Tulosoperaattorin erotus**: Ennen lausekerungon jäsennystä jäsennin etsii token-virran lopusta tulosoperaattorin (`=>`, `>`, `>>`). Tämä tekee syntaksista yksiselitteisen.
 3. **Syntaksianalyysi (Jäsennys)**: Muuntaa jäljelle jääneet tokenit tyypitetyksi `ISLAExpression`-syntaksipuuksi ja tarkistaa metodien sallittavuuden.
-4. **Suoritus (AST-moottori)**: Suorittaa haun objektityypin mukaan, päättelee käännöksen (älykkäät skoopit), ajaa tietokantakyselyt ja soveltaa ketjutetut analyysimetodit tulosjoukkoon.
+4. **Suoritus (AST-moottori)**: Suorittaa haun objektityypin mukaan, valitsee käännöksen (älykkäät rajaukset), tekee tietokantakyselyt ja soveltaa analyysimetodit tuloksiin.
 
 ---
 

@@ -1,8 +1,8 @@
 # Tutkimusvihkot, 2D Canvas ja hybridisolut
 
-clible-v3 esittelee **Clible-tutkimusvihkot** (Notebooks) — interaktiivisen, moniulotteisen työtilan, joka on suunniteltu syvälliseen teologiseen tutkimukseen, yhteisölliseen raamatuntutkisteluun ja jäsenneltyyn dokumentointiin.
+**Clible-tutkimusvihkot** (Notebooks) ovat interaktiivisia työtiloja teologiseen tutkimukseen, raamatuntutkisteluun ja muistiinpanojen järjestämiseen.
 
-Tutkimusvihkot yhdistävät tekstin, reaaliaikaiset kyselyt, 2D-matriisiruudukon ja upotetut **reaktiiviset ISLA v2 -komennot**, joiden avulla tutkijat voivat rakentaa toistettavia tutkimuspolkuja eri solutyyppejä hyödyntäen.
+Tutkimusvihkoissa teksti, kyselyt ja **ISLA v2 -komennot** yhdistyvät 2D-ruudukkoon. Eri solutyypeillä voit koota tutkimuksen yhdeksi dokumentiksi.
 
 ---
 
@@ -11,11 +11,11 @@ Tutkimusvihkot yhdistävät tekstin, reaaliaikaiset kyselyt, 2D-matriisiruudukon
 Tutkimusvihko on joustava tutkimusasiakirja, joka koostuu järjestetyistä **soluista** (Cells). Soluja voidaan tarkastella joko lineaarisena asiakirjana tai laajana **2D Canvas -matriisina**:
 
 - **24 sarakkeen skaalautuva ruudukko**: Jokainen kortti määrittää oman leveytensä (`colSpan`, 1–24 saraketta, oletuksena 12) ja valinnaisen korkeuden (`colHeight`, pikseleinä) rinnakkaisia vertailuasetelmia varten.
-- **Korttimatriisin yleiskuva**: Useat rinnakkaiset tutkimushaarat näkyvät vierekkäin ilman vaakasuuntaisen vierityksen rajoitteita.
+- **Rinnakkaiset kortit**: Asettele tutkimuksen eri osat vierekkäin ilman vaakavieritystä.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│  Tutkimusvihko: Room 5 Eksegetiikka (2D Canvas Matrix)                 │
+│  Tutkimusvihko: Room 5:n tutkimus (2D Canvas)                           │
 │  ────────────────────────────────────────────────────────────────────  │
 │  [Kortti 1: Markdown-muistiinpanot] │ [Kortti 2: Elävä ISLA v2 -upotus] │
 │  colSpan: 12                        │ colSpan: 12                       │
@@ -40,7 +40,7 @@ Clible-vihkot tukevat kolmea keskeistä solumuotoa:
 
 ### 1. Markdown-solut (`markdown`)
 
-Markdown-solut ovat muotoiltuja tekstilohkoja eksegetiikkamuistiinpanoille, saarnaluonnoksille ja osio-otsikoille:
+Markdown-solut ovat muotoiltuja tekstilohkoja raamatuntekstien tulkintaa koskeville muistiinpanoille, saarnaluonnoksille ja väliotsikoille:
 
 - **Syntaksi**: Täysi GitHub Flavored Markdown (GFM).
 - **Upotetut reaktiiviset komennot**: Voit upottaa eläviä ISLA v2 -komentoja suoraan leipätekstin lomaan:
@@ -53,15 +53,15 @@ Markdown-solut ovat muotoiltuja tekstilohkoja eksegetiikkamuistiinpanoille, saar
 
   ! @(Rom 5:1-5).stats() >>
   ```
-- **Viimeistelty lukutila**: Kyselysyntaksi piilotetaan lukutilassa ja korvataan tyylikkäillä jaekorteilla. Kortin päälle vietäessä näkyviin tulee `✦`-tunnus, jota klikkaamalla näet taustalla olevan ISLA-lausekkeen.
+- **Lukutila**: Kyselysyntaksi piilotetaan ja korvataan jaekorteilla. Kun viet osoittimen kortin päälle, näkyviin tulee `✦`-tunnus. Valitsemalla sen näet ISLA-lausekkeen.
 
 ### 2. CLI-komentosolut (`code`) — Jatkuva luonnoslehtiö
 
-Komentosolut tarjoavat interaktiivisen komentorivin suoraan selaimessa:
+Komentosolu tarjoaa interaktiivisen komentorivin selaimessa:
 
 - **Syntaksi**: Alkaa `$ clible` -komennolla (esim. `$ clible read Joh 3:16`, `$ clible search "armo" --scope=NT`).
 - **Interaktiiviset valintaruudut**: Tuloksissa näkyy valintaruutu kunkin löydetyn jakeen vieressä.
-- **"Jäädytä" (Freeze) -työnkulku**: Klikkaamalla **Jäädytä** valitut jakeet muunnetaan pysyväksi muotoilluksi Markdown-soluksi ja samalla CLI-syötekenttä **nollautuu välittömästi** puhtaaseen `$ clible` -tilaan. Yksi luonnoslehtiösolu palvelee näin jatkuvana tutkimuspöytänä koko työskentelyn ajan ilman tarvetta luoda kymmeniä erillisiä kyselysoluja.
+- **Jäädytä-toiminto**: Valitut jakeet muunnetaan pysyväksi Markdown-soluksi, ja komentorivin syöte palautuu `$ clible` -alkutilaan. Sama luonnoslehtiösolu sopii useiden kyselyiden tekemiseen.
 
 ### 3. Reaktiiviset ISLA v2 -upotukset
 
@@ -78,13 +78,13 @@ Tutustu täyteen syntaksioppaaseen sivulla [ISLA v2 -kieliopas](/fi/guide/isla-g
 
 ---
 
-## ISLAEditor — Älykäs syöte ja kirjoituselealyt
+## ISLAEditor — Älykäs syöte ja kirjoittamisen apuvälineet
 
-**ISLAEditor** tarjoaa reaaliaikaisen kieliälyn ja ergonomiset eleet suoraan solueditorissa modulaaristen TypeScript-apureiden voimalla (`islaLexer.ts`, `islaIntellisense.ts`, `islaEditorGestures.ts`):
+**ISLAEditor** tarjoaa reaaliaikaisia kooditäydennyksiä ja kirjoittamisen apuvälineitä. Toiminnot perustuvat TypeScript-moduuleihin (`islaLexer.ts`, `islaIntellisense.ts`, `islaEditorGestures.ts`):
 
 ### Syntaksikorostuksen kerrosmalli (Overlay)
 
-Editori käyttää **kerrosmallia** (Overlay Pattern) värittämään ISLA-tokenit ilman raskaiden ulkoisten web-editorien riippuvuuksia:
+Editori käyttää **kerrosmallia** (Overlay Pattern) ISLA-tokenien värittämiseen ilman raskaita ulkoisia verkkopohjaisia koodieditoreja:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -103,8 +103,8 @@ Editori käyttää **kerrosmallia** (Overlay Pattern) värittämään ISLA-token
 
 Kirjoittamisen nopeuttamiseksi editori sisältää useita automaattisia avustimia:
 
-- **Älykäs `!` -komentolaukaisin**: Huutomerkin `!` kirjoittaminen tyhjän rivin alkuun lisää automaattisesti välilyönnin `! ` ja avaa heti juuritason autocompletion-valikon.
-- **Älykäs `@` -jaelaukaisin**: `@`-merkin kirjoittaminen täydentää automaattisesti muotoon `@()` ja asettaa kohdistimen sulkeiden sisään `@(|)` ehdottaakseen heti raamatunkirjoja.
+- **`!`-komennon aloitus**: Kun kirjoitat huutomerkin `!` tyhjän rivin alkuun, editori lisää välilyönnin ja avaa kyselymallit.
+- **`@`-viitteen aloitus**: `@`-merkin kirjoittaminen täydentää sen muotoon `@()` ja asettaa kohdistimen sulkeiden sisään. Editorissa näkyvät raamatunkirjojen ehdotukset.
 - **Sulkeutuvat erottimet**: Merkkien `(`, `"` tai `'` kirjoittaminen lisää automaattisesti vastaavan sulkevan merkin ja pitää kohdistimen niiden välissä.
 - **Valinnan ympäröinti (Wrap)**: Tekstin maalaaminen ja merkin `@`, `(`, `"` tai `'` painaminen käärii valitun tekstin merkkien sisään tuhoamatta sitä.
 - **Ylikirjoituksen ohitus (Overtype)**: Sulkevan merkin `)`, `"` tai `'` kirjoittaminen olemassa olevan sulkumerkin edessä hyppää sen yli luomatta tuplamerkkiä.

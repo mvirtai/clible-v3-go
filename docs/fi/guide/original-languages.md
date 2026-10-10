@@ -1,6 +1,6 @@
 # Alkukielet ja morfologia
 
-**Alkukielten tutkimusnäkymä** (`/original`) tarjoaa tutkijoille, teologeille ja kielistä kiinnostuneille syvällisen morfologisen ja leksikaalisen erittelyn Raamatun hepreasta (Vanha testamentti) ja koinee-kreikasta (Uusi testamentti).
+**Alkukielten tutkimusnäkymä** (`/original`) auttaa tutkimaan Raamatun hepreaa (Vanha testamentti) ja koinee-kreikkaa (Uusi testamentti) sanojen muotojen ja merkitysten tasolla.
 
 ---
 
@@ -11,11 +11,11 @@ clible-v3 tukee standardeja tieteellisiä alkukielten tekstieditioita:
 - **Koinee-kreikka**: SBL Greek New Testament (`greeksblgnt`).
 - **Raamatun heprea**: Aleppo Codex ja Leningrad Codex (`hebrewaleppocodex`).
 
-Kun valitset lukukappaleen, järjestelmä tunnistaa automaattisesti, kuuluuko viite Vanhaan testamenttiin (heprea) vai Uuteen testamenttiin (kreikka), ja aktivoi vastaavan lähdekielimoottorin.
+Kun valitset raamatunkohdan, järjestelmä tunnistaa, kuuluuko se Vanhaan testamenttiin (heprea) vai Uuteen testamenttiin (kreikka), ja näyttää vastaavan lähdekielen tiedot.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│  📜 Alkukielten tutkimus: Johannes 1:1 (Koinee-kreikka)                │
+│  📜 Alkukielten tutkimus: Johannes 1:1 (koinee-kreikka)                │
 │  ────────────────────────────────────────────────────────────────────  │
 │  Ἐν ἀρχῇ ἦν ὁ λόγος, καὶ ὁ λόγος ἦν πρὸς τὸν θεόν, καὶ θεὸς ἦν ὁ λόγος.│
 │  ────────────────────────────────────────────────────────────────────  │
@@ -35,20 +35,20 @@ Kun valitset lukukappaleen, järjestelmä tunnistaa automaattisesti, kuuluuko vi
 
 Jokaiselle alkukielen sanalle interlineaarinen analyysi tarjoaa:
 
-1. **Alkuperäinen kirjoitusasu ja translitteraatio**: Selkeä kreikan tai heprean kirjasin foneettisella translitteraatiolla.
+1. **Alkuperäinen kirjoitusasu ja translitteraatio**: Kreikan- tai hepreankielinen sana ja sen ääntämistä kuvaava translitteraatio.
 2. **Lemma (perusmuoto)**: Sanan taivuttamaton sanakirjamuoto.
 3. **Sanaluokka ja kieliopilliset tunnisteet**:
    - **Substantiivit / Adjektiivit**: Sijamuoto (nominatiivi, genetiivi, datiivi, akkusatiivi, vokatiivi), suku (maskuliini, feminiini, neutri), luku (yksikkö, monikko).
    - **Verbit**: Aikamuoto (preesens, aoristi, imperfekti, perfekti, pluskvamperfekti, futuuri), pääluokka (aktiivi, medipassiivi, passiivi), tapaluokka (indikatiivi, konjunktiivi, imperatiivi, infinitiivi, partisiippi), persoona ja luku.
-4. **Semanttinen merkityskenttä**: Kattava sanakirjamääritelmä ja käännösvastineet.
+4. **Merkitys**: Sanakirjamääritelmä ja sanan mahdolliset käännösvastineet.
 
 ---
 
-## 3. Kontekstuaalinen eksegetiikka ja kantasanatutkimus
+## 3. Kontekstin tulkinta ja kantasanatutkimus
 
 Yksittäisten sanojen ohella näkymä syntetisoi laajemman kielellisen kokonaisuuden:
 
-- **Syntaksi ja sanajärjestys**: Selittää poikkeukselliset sanajärjestykset, korostukset ja kiasmit.
-- **Teologisten avainsanojen erittely**: Avaa sanoja, joilla on rikas opillinen tausta (kuten *Hesed*, *Agape*, *Dikaiosyne*, *Shalom*).
-- **Tutkimusehdotukset (NextFocusChips)**: Interaktiiviset napit tarjoavat lisätutkimuspolkuja (esim. *Tutki Johanneksen Logos-käsitettä*, *Vertaile 1. Moos. 1:1 heprean Bereshit-sanaan*).
+- **Syntaksi ja sanajärjestys**: Selittää poikkeavia sanajärjestyksiä, painotuksia ja kiasmeja.
+- **Teologisten avainsanojen tarkastelu**: Taustoittaa sanoja, joilla on teologista merkitystä (kuten *Hesed*, *Agape*, *Dikaiosyne* ja *Shalom*).
+- **Jatkotutkimusehdotukset (NextFocusChips)**: Ehdotusnapit tarjoavat aiheeseen liittyviä tutkimuspolkuja (esim. *Tutki Johanneksen Logos-käsitettä* tai *Vertaile 1. Moos. 1:1:n hepreankielistä Bereshit-sanaa*).
 - **Syventävät eksegeettiset kortit**: Laajennettavat osiot tarjoavat historiallis-kieliopillista taustaa.

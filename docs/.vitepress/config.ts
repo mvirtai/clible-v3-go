@@ -103,7 +103,7 @@ export default defineConfig({
       lang: "fi-FI",
       link: "/fi/",
       description:
-        "Web-natiivi Raamatuntutkimuksen ja tekstianalytiikan alusta: ISLA v2 -kyselykieli, 2D canvas -tutkimusvihkot, tekstianalytiikka, rinnakkaiskäännökset ja Google Gemini AI -integraatio.",
+        "Verkkopohjainen Raamatun tutkimisen ja tekstianalyysin alusta: ISLA v2 -kyselykieli, 2D Canvas -tutkimusvihkot, rinnakkaiskäännökset ja Google Gemini -tekoäly.",
       themeConfig: {
         siteTitle: "clible-v3 dokumentaatio",
         nav: [
@@ -125,10 +125,10 @@ export default defineConfig({
                 { text: "Yleiskatsaus ja pikaopas", link: "/fi/guide/getting-started" },
                 { text: "Raamatun lukunäkymä", link: "/fi/guide/reader" },
                 { text: "Kirkkovuosikalenteri", link: "/fi/guide/liturgical-calendar" },
-                { text: "Käännösvertailu ja diff", link: "/fi/guide/compare-and-diff" },
+                { text: "Käännösvertailu ja tekstierot", link: "/fi/guide/compare-and-diff" },
                 { text: "Haku ja tekstianalytiikka", link: "/fi/guide/search-and-analytics" },
                 { text: "Alkukielet ja morfologia", link: "/fi/guide/original-languages" },
-                { text: "Teologiset AI-työkalut", link: "/fi/guide/ai-study-tools" },
+                { text: "Teologiset tekoälytyökalut", link: "/fi/guide/ai-study-tools" },
               ],
             },
             {
@@ -138,7 +138,7 @@ export default defineConfig({
                 { text: "2D Canvas -tutkimusvihkot", link: "/fi/guide/notebooks" },
                 { text: "ISLA-kieliopas", link: "/fi/guide/isla-guide" },
                 { text: "Käännökset ja tuonti", link: "/fi/guide/import-and-seeding" },
-                { text: "Itseisännöinti ja asennus", link: "/fi/guide/self-hosting" },
+                { text: "Asennus omalle palvelimelle", link: "/fi/guide/self-hosting" },
                 { text: "Käyttöehdot ja tietosuoja", link: "/fi/guide/terms-and-privacy" },
               ],
             },
@@ -159,7 +159,7 @@ export default defineConfig({
           text: "Muokkaa tätä sivua GitHubissa",
         },
         footer: {
-          message: "Katso NOTICE.md datalähteitä ja tekijänoikeuksia varten.",
+          message: "Datalähteet ja tekijätiedot: NOTICE.md.",
           copyright: "© 2026–nykyaika Valtteri",
         },
       },

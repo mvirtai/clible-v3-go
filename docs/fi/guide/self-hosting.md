@@ -1,16 +1,16 @@
-# Itseisännöinti ja paikallinen kehitys
+# Asennus omalle palvelimelle ja paikallinen kehitys
 
-Tämä opas on tarkoitettu kehittäjille, tutkijoille ja järjestelmäylläpitäjille, jotka haluavat ajaa clible-v3-alustaa paikallisesti, osallistua koodin kehitykseen tai ottaa käyttöön itsenäisen tuotantoasennuksen.
+Tämä opas on tarkoitettu kehittäjille, tutkijoille ja järjestelmäylläpitäjille, jotka haluavat käyttää clible-v3:a paikallisesti, osallistua sen kehittämiseen tai asentaa sen omalle palvelimelleen.
 
 ---
 
 ## 1. Järjestelmäarkkitehtuuri ja käyttöönotto
 
-clible-v3 on suunniteltu pilvinatiiviksi, tilattomaksi asiakas-palvelin-sovellukseksi:
+clible-v3 on tilaton asiakas-palvelinsovellus, joka soveltuu pilviympäristöön:
 
-- **Backend**: Yksi staattisesti käännetty Go 1.22+ -binaari vakiokirjaston HTTP-reitityksellä ja sisäänrakennetuilla SQL-migraatioilla.
-- **Frontend**: Moderni Single Page Application (SPA), joka on toteutettu React 19:llä, TypeScriptillä ja TailwindCSS v4:llä.
-- **Tietokanta**: PostgreSQL (kuten Neon PostgreSQL, Amazon Aurora tai oma PostgreSQL-palvelin). Muistissa toimivaa SQLitea käytetään automaattisesti eristettyihin yksikkötesteihin.
+- **Taustapalvelu**: Yksi staattisesti käännetty Go 1.22+ -ohjelma, joka käyttää Go-vakiokirjaston HTTP-reititystä ja sisältää SQL-migraatiot.
+- **Käyttöliittymä**: React 19:llä, TypeScriptillä ja Tailwind CSS v4:llä toteutettu yhden sivun sovellus (SPA).
+- **Tietokanta**: PostgreSQL (esimerkiksi Neon, Amazon Aurora tai oma PostgreSQL-palvelin). Yksikkötesteissä käytetään eristettyä, muistissa toimivaa SQLite-tietokantaa.
 
 ```mermaid
 flowchart LR
@@ -31,7 +31,7 @@ flowchart LR
     Browser -->|HTTP / JSON| API
     Browser -->|Käyttöliittymä| SPA
     API -->|SQL-kyselyt| DB
-    API -->|AI-pyynnöt| AI
+    API -->|Tekoälypyynnöt| AI
 ```
 
 ---
@@ -42,9 +42,9 @@ Järjestelmän kääntämiseen ja ajamiseen lähdekoodista tarvitaan seuraavat t
 
 - **Go**: 1.22+ ([Lataa](https://go.dev/dl/))
 - **Node.js**: 18+ ([Lataa](https://nodejs.org/))
-- **pnpm**: Pakettienhallinta frontendille ja dokumentaatiolle ([Asenna](https://pnpm.io/installation))
+- **pnpm**: Frontendin ja dokumentaation pakettienhallintaan ([Asenna](https://pnpm.io/installation))
 - **Task**: Tehtäväautomaatio ([Asenna](https://taskfile.dev/))
-- **golangci-lint**: Go-linteri laadunvarmistukseen ([Asenna](https://golangci-lint.run/usage/install/))
+- **golangci-lint**: Go-koodin laadun tarkistamiseen ([Asenna](https://golangci-lint.run/usage/install/))
 
 ---
 
@@ -84,7 +84,7 @@ FRONTEND_DIR=../frontend/dist
 # Istuntotunnisteiden salaisuus (vähintään 32 merkkiä)
 JWT_SECRET=oma_turvallinen_satunnainen_jwt_salaisuus_min_32_merkkia
 
-# Valinnainen: Google Gemini API -avain AI-ominaisuuksille
+# Valinnainen: Google Gemini API -avain tekoälyominaisuuksille
 GEMINI_API_KEY=oma_gemini_api_avain
 ```
 
@@ -95,7 +95,7 @@ GEMINI_API_KEY=oma_gemini_api_avain
 | `DATABASE_URL` | Kyllä | PostgreSQL-yhteyden URI (Neon PostgreSQL). | *Pakollinen tuotannossa* |
 | `FRONTEND_DIR` | Ei | Polku käännettyihin React-tiedostoihin. | `../frontend/dist` |
 | `JWT_SECRET` | Kyllä | Avain istunnon JWT-evästeiden allekirjoitukseen. | *Pakollinen* |
-| `GEMINI_API_KEY` | Ei | API-avain teologisille AI-työkaluille ja semanttiselle haulle. | *Tyhjä (AI pois käytöstä)* |
+| `GEMINI_API_KEY` | Ei | API-avain teologisille tekoälytyökaluille ja semanttiselle haulle. | *Tyhjä (tekoälyominaisuudet pois käytöstä)* |
 
 ---
 
@@ -127,7 +127,7 @@ Käynnistää sekä Go REST API -palvelimen (`:8080`) että Vite React -kehitysp
 
    *Käytettävissä osoitteessa `http://localhost:5173`.*
 
-3. **Käynnistä VitePress-dokumentaatiopalvelin:**
+3. **Käynnistä VitePress-dokumentaatiosivuston palvelin:**
 
    ```bash
    cd docs && pnpm run docs:dev
@@ -139,7 +139,7 @@ Käynnistää sekä Go REST API -palvelimen (`:8080`) että Vite React -kehitysp
 
 ## 6. Docker-konttiasennus
 
-clible-v3 sisältää monivaiheisen `Dockerfile`-tiedoston, joka kääntää Go-backendin ja React-frontendin kevyeksi, turvalliseksi distroless-konttikuvaksi:
+clible-v3 sisältää monivaiheisen `Dockerfile`-tiedoston, joka kääntää Go-taustapalvelun ja React-käyttöliittymän kevyeksi distroless-konttikuvaksi:
 
 ```bash
 # Rakenna Docker-kuva

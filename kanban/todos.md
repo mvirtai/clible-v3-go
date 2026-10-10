@@ -69,6 +69,23 @@
 
 ## Done
 
+### VitePressin semanttisen haun kuvaus ja suomenkielisen dokumentaation oikoluku
+
+- due: 2026-10-11
+- tags: [docs, vitepress, search, finnish, i18n]
+- priority: medium
+- workload: Medium
+- defaultExpanded: true
+- steps:
+  - [x] Lisää tehtävä projektin tehtävätaululle ja aloita työ
+  - [x] Päivitä semanttisen haun ohjeet vastaamaan toteutusta ja lisää kieliversioiden välinen vastaavuus
+  - [x] Oikolue ja yhdenmukaista suomenkielisten VitePress-sivujen kieli
+  - [x] Rakenna VitePress-dokumentaatio ja merkitse tehtävä valmiiksi
+
+    ```md
+    Semanttisen haun ohjeet kuvaavat Gemini-pohjaisen kyselysuunnittelun, kokotekstihaun, tunnistetun raamatunkohdan tuloksiin lisäämisen ja vektorihaun puuttumisen. Suomenkielinen VitePress-sisältö on oikoluettu ja termejä on yhdenmukaistettu. `task docs:build` onnistui; koko `task check` pysähtyi ennestään muokatun `backend/internal/services/ai_service.go`-tiedoston käännösvirheeseen, johon tätä dokumentaatiomuutosta ei tehty.
+    ```
+
 ### Semanttisen haun jakeiden kuratointi ja Swipe-triage (Mobiili & Työpöytä)
 
 - due: 2026-09-28

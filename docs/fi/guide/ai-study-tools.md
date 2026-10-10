@@ -1,29 +1,29 @@
-# Teologiset AI-työkalut
+# Teologiset tekoälytyökalut
 
-clible-v3 integroi Google Gemini AI -tekoälyn tarjoamaan hermeneuttista tukea, käsitteellistä hakua ja alkukielten eksegetiikkaa suoraan tutkimusprosessiisi.
+clible-v3 hyödyntää Google Gemini -tekoälyä raamatunkohtien tulkinnan, teemahaun ja alkukielten tutkimisen tukena.
 
 ---
 
-## 1. Keskeiset tekoälyominaisuudet
+## 1. Tekoälyominaisuudet
 
-Tekoälymoottori on räätälöity nimenomaan teologiseen tekstianalyysiin, kieliopilliseen jäsennykseen ja historialliseen taustoitukseen:
+Tekoälytyökalut auttavat tarkastelemaan raamatuntekstejä teologisesta, kielellisestä ja historiallisesta näkökulmasta:
 
 ```mermaid
 graph TD
     User(["Tutkija / Opiskelija"]) --> Query["Kohdejae / Aihe / Kysymys"]
 
-    subgraph AI_Engine ["AI-tutkimusmoottori (Google Gemini)"]
-        Query --> Insight["Jaeanalyysit ja hermeneutiikka"]
+    subgraph AI_Engine ["Tekoälypalvelu (Google Gemini)"]
+        Query --> Insight["Raamatunkohdan tulkinta"]
         Query --> Tone["Kirjallinen sävy ja rakenne"]
-        Query --> Deep["Teologinen syväsukellus"]
-        Query --> Semantic["Semanttinen käsitteellinen haku"]
-        Query --> Original["Kreikan/heprean morfologian erittely"]
+        Query --> Deep["Teeman syventävä tarkastelu"]
+        Query --> Semantic["Luonnollisen kielen semanttinen haku"]
+        Query --> Original["Kreikan ja heprean morfologinen analyysi"]
     end
 
-    subgraph UI_Components ["Interaktiiviset käyttöliittymäkomponentit"]
-        Insight & Tone & Deep & Semantic & Original --> Cards["DeepDiveCard ja eksegetiikkamuistiinpanot"]
-        Insight & Tone & Deep & Semantic & Original --> Chips["NextFocusChips -tutkimusehdotukset"]
-        Insight & Tone & Deep & Semantic & Original --> Usage["GeminiUsage -tokenseuranta"]
+    subgraph UI_Components ["Käyttöliittymä"]
+        Insight & Tone & Deep & Semantic & Original --> Cards["Syventävät analyysikortit"]
+        Insight & Tone & Deep & Semantic & Original --> Chips["Jatkotutkimusehdotukset"]
+        Insight & Tone & Deep & Semantic & Original --> Usage["Gemini-tekoälyn tokenkulutuksen seuranta"]
     end
 ```
 
@@ -31,38 +31,46 @@ graph TD
 
 ## 2. Jaeanalyysit ja liittohermeneutiikka
 
-Valitse mikä tahansa raamatunkohta ja pyydä AI-analyysi haluamallasi painotuksella:
+Valitse raamatunkohta ja pyydä analyysi haluamastasi näkökulmasta:
 
-- **Liittokonteksti**: Tarkastelee, miten tekstijakso kytkeytyy Raamatun liittoihin (Abrahamin, Mooseksen, Daavidin ja Uusi liitto).
-- **Kirjallinen sävy ja rakenne**: Erittelee retoriset keinot, heprealaisen runouden parallelismit ja kiasmirakenteet.
-- **Historiallis-kieliopillinen eksegetiikka**: Valottaa kulttuuritapoja, muinaisen Lähi-idän ilmauksia ja kreikkalais-roomalaista taustaa.
-
----
-
-## 3. Semanttinen käsitteellinen haku
-
-Toisin kuin perinteinen sanahaku, joka vaatii täsmälliset hakusanat, **Semanttinen haku** ymmärtää teologisia käsitteitä ja luonnollisen kielen kysymyksiä:
-
-- *"Missä Paavali kuvaa Jumalan taisteluvarustusta?"* → Löytää Efesolaiskirje 6:10–18.
-- *"Kohdat, joissa usko ilman tekoja sanotaan kuolleeksi"* → Löytää Jaakobin kirje 2:14–26.
-- *"Jeesus tyynnyttää myrskyn opetuslasten kanssa"* → Löytää Markuksen evankeliumi 4:35–41 rinnakkaispaikkoineen.
+- **Liittokonteksti**: Tarkastelee, miten tekstijakso liittyy Raamatun liittoihin (Abrahamin, Mooseksen ja Daavidin liittoon sekä uuteen liittoon).
+- **Kirjallinen sävy ja rakenne**: Tunnistaa retorisia keinoja, heprealaisen runouden rinnakkaisrakenteita ja kiasmeja.
+- **Historiallis-kieliopillinen tulkinta**: Taustoittaa tekstin ajan kulttuuria, muinaisen Lähi-idän ilmauksia ja kreikkalais-roomalaista maailmaa.
 
 ---
 
-## 4. Interaktiiviset eksegetiikkakomponentit
+## 3. Semanttinen haku luonnollisella kielellä
 
-### NextFocusChips
+Semanttisessa haussa voit kuvailla aihetta tai esittää kysymyksen omin sanoin sen sijaan, että etsisit vain tiettyä sanaa. Haku toimii tekoälyn ja kokotekstihaun yhteistyönä: Google Gemini muuntaa kysymyksen hakusuunnitelmaksi, jonka perusteella palvelu etsii osumia valitun käännöksen tekstistä.
 
-Jokainen tekoälyvastaus generoi automaattisesti interaktiiviset **NextFocusChips**-ehdotusnapit. Napin klikkaaminen haarauttaa tutkimuksesi välittömästi jatkotutkimukseen (kuten rinnakkaisviitteisiin, historiallisiin konteksteihin tai kielioppivivahteisiin).
+- *"Missä Paavali kuvaa Jumalan taisteluvarustusta?"* → voi tuottaa haun Efesolaiskirjeeseen 6:10–18.
+- *"Usko ilman tekoja on kuollut"* → voi tunnistaa Jaakobin kirjeen 2:14–26.
+- *"Jeesus tyynnyttää myrskyn opetuslasten kanssa"* → voi tunnistaa Markuksen evankeliumin 4:35–41.
 
-### DeepDiveCard
+Jos Gemini tunnistaa kysymyksestä tunnetun raamatunkohdan, palvelu hakee myös kyseisen kohdan jakeet. Ne täydentävät kokotekstihaun osumia, joten tuloksiin voi tulla koko tunnistettu kohta, vaikka kaikki sen jakeet eivät sisältäisi haun sanoja. Tuloksista näet hakusuunnitelman, osumajakeet ja niihin perustuvan tiivistelmän. Voit avata tunnistetun kohdan lukutilassa.
 
-Kattavat eksegeettiset tutkielmat ja monikohdalliset jäsennykset esitetään laajennettavissa `DeepDiveCard`-laatikoissa, mikä pitää päänäkymän selkeänä samalla kun laaja aineisto on heti avattavissa.
+> [!NOTE]
+> Semanttinen haku ei etsi lähimpiä osumia vektoriupotusten avulla. Gemini muodostaa kysymyksestä hakusanoja ja kokotekstihaun rajauksia, minkä lisäksi se voi täydentää tuloksia tunnistamallaan raamatunkohdalla. Siksi tulokset riippuvat valitusta käännöksestä ja haun muodostuksesta; kokeile tarvittaessa toista sanamuotoa tai käännöstä.
+
+### Näin käytät semanttista hakua
+
+1. Avaa sovelluksen **Haku**-näkymä ja valitse tutkittava raamatunkäännös.
+2. Kirjoita aihe tai kysymys omin sanoin, esimerkiksi *"Missä puhutaan anteeksiannosta?"*.
+3. Käynnistä semanttinen haku ja tarkastele Gemini-tekoälyn muodostamia hakusanoja, hakusuunnitelmaa ja löytyneitä jakeita.
+4. Avaa kiinnostava jae tai tunnistettu raamatunkohta lukutilassa. Aktiivisessa tutkimustyötilassa voit myös tallentaa haun myöhempää käyttöä varten.
+
+Gemini muodostaa tiivistelmän hakutuloksista; tiivistelmä perustuu enintään 15 haetun jakeen tekstikatkelmaan. Tarkista viitteet ja tulkinnat aina itse alkuperäisestä tekstistä.
+
+---
+
+## 4. Jatkotutkimusehdotukset ja syventävät analyysit
+
+Tekoälyn analyysien yhteydessä näkyvät jatkotutkimusehdotukset auttavat jatkamaan aiheeseen liittyvien rinnakkaisviitteiden, historiallisen taustan tai kieliopillisten yksityiskohtien tarkastelua. Laajat analyysit esitetään avattavissa korteissa, jotta näkymä säilyy selkeänä.
 
 ---
 
 ## 5. Yksityisyys, kiintiöt ja turvallisuus
 
 - **Ei aineistojen koulutuskäyttöä**: Henkilökohtaisia tutkimusmuistiinpanojasi, työtilojasi tai hakujasi ei koskaan käytetä ulkoisten tekoälymallien kouluttamiseen.
-- **Tiukka pyyntörajoitus**: Palvelin valvoo IP-kohtaista Token Bucket -kiintiötä (15 pyyntöä/tunti 5 pyynnön puskurilla) kiintiöiden tahattoman ylittymisen estämiseksi.
-- **Täysin valinnainen**: Mikäli palvelimelle ei ole määritetty `GEMINI_API_KEY`-avainta, tekoälyominaisuudet kytkeytyvät pois siististi samalla kun koko muu alusta (lukutila, haku, vertailu, 2D Canvas -vihkot, ISLA DSL) toimii 100 % normaalisti.
+- **Pyyntöjen rajoitus**: Palvelin rajoittaa pyyntömäärää IP-osoitteen perusteella. Rajoitus on 15 pyyntöä tunnissa, ja lyhytaikainen puskuri sallii enintään viisi lisäpyyntöä.
+- **Valinnainen ominaisuus**: Jos palvelimelle ei ole määritetty `GEMINI_API_KEY`-avainta, tekoälyominaisuudet eivät ole käytettävissä. Lukutila, haku, vertailu, 2D Canvas -tutkimusvihkot ja ISLA toimivat silti normaalisti.

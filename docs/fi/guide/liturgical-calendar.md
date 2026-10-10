@@ -1,17 +1,17 @@
 # Kirkkovuosikalenteri ja hetkipalvelukset
 
-Clible integroi **Suomen evankelis-luterilaisen kirkon kirkkovuosikalenterin** suoraan osaksi sovellusta. Sisäänrakennettu aineisto kattaa täyden liturgisen vuoden päivittäisine hetkipalveluksineen, vuosikertoineen, psalmiteksteineen, virsisuosituksineen ja liturgisine väreineen.
+Clible tuo **Suomen evankelis-luterilaisen kirkon kirkkovuosikalenterin** osaksi sovellusta. Aineisto kattaa koko liturgisen vuoden hetkipalveluksineen, vuosikertoineen, psalmiteksteineen, virsisuosituksineen ja liturgisine väreineen.
 
 ---
 
 ## Yleiskatsaus
 
-Kirkkovuosikalenteri vastaa kysymykseen: *"Mitä pyhää tai juhlaa kirkko tänään viettää, ja mitkä raamatuntekstit ja rukoukset siihen liittyvät?"* Cliblessä tämä aineisto ohjaa seuraavia toimintoja:
+Kirkkovuosikalenterista näet, mitä pyhää tai juhlaa kirkko tänään viettää ja mitkä raamatuntekstit sekä rukoukset siihen liittyvät. Sovelluksessa voit:
 
-- **Kirkkovuosikalenterin näkymä** — esittää kuluvan liturgisen päivän, väribannerin ja päivän psalmin yhdellä klikkauksella lukutilaan siirtymistä varten.
-- **Hetkipalveluspaneeli** — valmiiksi jäsennellyt aamu-, päivä-, ilta-, ehtoo- ja Completorium-rukoushetket raamatunteksteineen ja antifoneineen.
+- **Tarkastella kirkkovuoden päivää** — nähdä päivän nimen, liturgisen värin ja psalmin sekä siirtyä tekstistä lukutilaan.
+- **Avata hetkipalvelukset** — käyttää valmiiksi jäsenneltyjä aamu-, päivä-, ilta-, ehtoo- ja kompletoriumrukouksia raamatunteksteineen ja antifoneineen.
 - **Evankeliumikirjan vuosikerrat** — luettelee kolme vuosikertaa (I, II, III) Vanhan testamentin, kirje- ja evankeliumiteksteineen.
-- **ISLA v2 -tutkimusvihkot** — mahdollisuus viitata tämän päivän tai minkä tahansa päivän lukukappaleisiin suoraan vihkon soluissa.
+- **ISLA v2 -tutkimusvihkot** — viittaa tämän tai muun päivän lukukappaleisiin suoraan vihkon soluissa.
 
 ---
 
@@ -44,7 +44,7 @@ Jokainen kalenterin päivä esitetään `LiturgicalDay`-oliona. Seuraava taulukk
 
 `prayer_offices`-kenttä sisältää jopa kuusi päivittäistä rukoushetkeä, joista jokainen koostuu jäsennellystä `CleanTextItem`-listasta (raamattuviite + puhdistettu tekstisisältö):
 
-| Hetki | Kenttä | Ajankohta |
+| Rukoushetki | Kenttä | Ajankohta |
 |---|---|---|
 | Aamupalvelus | `morning` | Aamu |
 | Päiväpalvelus | `noon` | Keskipäivä |
@@ -96,11 +96,11 @@ Vuosikertojen kierto noudattaa ekumeenista kolmivuotista rytmiä (A/B/C → I/II
 
 ---
 
-## REST API -päätepisteet
+## REST API -reitit
 
 ### `GET /api/liturgical/today`
 
-Palauttaa kuluvan palvelinpäivän `LiturgicalDay`-olion (Helsingin aikavyöhykkeen mukaan).
+Palauttaa palvelimen nykyistä päivää vastaavan `LiturgicalDay`-olion Helsingin aikavyöhykkeen mukaan.
 
 **Esimerkkivastaus:**
 ```json
@@ -131,7 +131,7 @@ Palauttaa kuluvan palvelinpäivän `LiturgicalDay`-olion (Helsingin aikavyöhykk
 
 ### `GET /api/liturgical/day?date=YYYY-MM-DD`
 
-Palauttaa tietyn ISO-päivämäärän (`YYYY-MM-DD`) tai suomalaisen päivämäärän (`D.M.YYYY`) kirkkovuosipäivän. Mikäli parametri jätetään pois, oletuksena käytetään kuluvaa päivää.
+Palauttaa annetun ISO-päivämäärän (`YYYY-MM-DD`) tai suomalaisen päivämäärän (`D.M.YYYY`) kirkkovuosipäivän. Jos päivämäärää ei anneta, käytetään kuluvaa päivää.
 
 ### `GET /api/liturgical/month?year=2026&month=12`
 
@@ -139,7 +139,7 @@ Palauttaa valitun kuukauden kaikki päivät taulukkona, mikä soveltuu kuukausik
 
 ---
 
-## Sulautettu tietoaineisto
+## Sovellukseen sisällytetty tietoaineisto
 
 Vuoden 2026 kirkkovuosidata on käännetty staattisesti suoraan Go-binaariin `//go:embed`-direktiivillä:
 
@@ -149,9 +149,9 @@ var Kirkkovuosi2026JSON []byte
 ```
 
 Tämän ansiosta:
-- **Ei riippuvuuksia tiedostojärjestelmään** — kalenteri toimii täysin offline-tilassa ja konteissa ilman ulkoisia levykiinnityksiä.
-- **Nollalatenssi** — kaikki päivämäärähaut ovat O(1)-muistiin sijoitettuja hajautustauluhakuja.
-- **Atomiset julkaisut** — oikea kalenteriversio toimitetaan aina binaarin mukana.
+- **Ei tiedostojärjestelmäriippuvuuksia** — kalenteri toimii myös ilman ulkoisia levykiinnityksiä.
+- **Nopeat haut** — päivämäärät haetaan hajautustaulusta O(1)-ajassa.
+- **Yhtenäiset julkaisut** — käytössä oleva kalenteriversio toimitetaan aina ohjelman mukana.
 
 ---
 

@@ -2,20 +2,20 @@
 
 *Päivitetty viimeksi: 31. elokuuta 2026*
 
-Tervetuloa käyttämään **Clible**-alustaa (`clible-v3`) — avointa, web-natiivia ympäristöä raamatuntutkimukseen, leksikaaliseen analytiikkaan ja 2D canvas -tutkimusvihkoihin.
+Tervetuloa käyttämään **Clible**-alustaa (`clible-v3`) — verkkopohjaista ympäristöä Raamatun tutkimiseen, sanastoanalyysiin ja 2D Canvas -tutkimusvihkoihin.
 
-Uskomme, että tutkimustyökalujen tulee olla läpinäkyviä, kunnioittaa käyttäjän yksityisyyttä ja olla vapaita kaupallisesta datankalastelusta. Tämä asiakirja kuvaa käyttöehtomme ja tietosuojakäytäntömme.
+Tutkimustyökalujen tulee olla läpinäkyviä ja kunnioittaa käyttäjien yksityisyyttä. Tämä asiakirja kuvaa käyttöehtomme ja tietosuojakäytäntömme.
 
 ---
 
 ## 1. Soveltamisala ja hyväksyminen
 
-Käyttämällä Clibleä (joko **Vierastilassa** tai **Rekisteröityneenä käyttäjänä**) sitoudut näihin käyttöehtoihin ja tietosuojaselosteeseen. Mikäli et hyväksy ehtoja, voit vapaasti jättää palvelun käyttämättä.
+Käyttämällä Clibleä vierastilassa tai rekisteröityneenä käyttäjänä hyväksyt nämä käyttöehdot ja tietosuojaselosteen. Jos et hyväksy ehtoja, älä käytä palvelua.
 
 ```mermaid
 graph LR
     Guest(["Vierailija"]) -->|Ei rekisteröitymistä| FreeAccess["Raamatun luku, haku ja tekstianalytiikka heti"]
-    User(["Rekisteröitynyt tutkija"]) -->|10 sekunnin maksuton rekisteröinti| CloudFeatures["Jatkuvat työtilat, 2D Canvas -vihkot ja AI-työkalut"]
+    User(["Rekisteröitynyt tutkija"]) -->|Maksuton rekisteröityminen| CloudFeatures["Pysyvät työtilat, 2D Canvas -vihkot ja tekoälytyökalut"]
 ```
 
 ---
@@ -24,14 +24,14 @@ graph LR
 
 ### Vaivaton rekisteröityminen
 
-* Tilin luominen vaatii ainoastaan toimivan **sähköpostiosoitteen** ja turvallisen **salasanan**.
+* Tilin luomiseen tarvitaan toimiva **sähköpostiosoite** ja turvallinen **salasana**.
 * Emme kerää puhelinnumeroita, oikeita nimiä, luottokortteja tai tarpeettomia profiilitietoja.
-* Rekisteröityminen vie alle 10 sekuntia ja avaa pääsyn työtilojen pilvitallennukseen, vihkojen synkronointiin ja teologisiin AI-ominaisuuksiin.
+* Rekisteröityminen avaa pääsyn työtilojen pilvitallennukseen, vihkojen synkronointiin ja teologisiin tekoälyominaisuuksiin.
 
 ### Tilin tietoturva ja salasanat
 
-* Kaikki salasanat suojataan vahvalla **bcrypt**-tiivistyksellä ennen tallennusta.
-* Salasanoja ei koskaan tallenneta selväkielisenä, eivätkä palvelimen ylläpitäjät voi nähdä niitä.
+* Salasanat suojataan ennen tallentamista vahvalla **bcrypt**-tiivisteellä.
+* Salasanoja ei tallenneta selväkielisinä, eivätkä palvelimen ylläpitäjät voi nähdä niitä.
 
 ### Tilin sulkeminen ja tietojen poisto
 
@@ -58,7 +58,7 @@ Noudatamme tiukasti sisäänrakennetun yksityisyyden (Privacy by Design) periaat
 
 * ❌ **Ei kolmannen osapuolen mainosseurantaa**: Emme käytä Google Analyticsia, mainosevästeitä tai käyttäytymisen seurantajärjestelmiä.
 * ❌ **Ei tietojen myyntiä**: Emme koskaan myy, vuokraa tai luovuta henkilö- tai tutkimustietojasi kolmansille osapuolille.
-* ❌ **Ei AI-koulutusta muistiinpanoillasi**: Yksityisiä tutkimusmuistiinpanojasi ei koskaan käytetä julkisten kaupallisten AI-mallien koulutukseen.
+* ❌ **Muistiinpanojasi ei käytetä tekoälymallien koulutukseen**: Yksityisiä tutkimusmuistiinpanojasi ei käytetä julkisten kaupallisten tekoälymallien koulutukseen.
 
 ---
 
@@ -71,18 +71,18 @@ Noudatamme tiukasti sisäänrakennetun yksityisyyden (Privacy by Design) periaat
 
 ### Käyttäjän oma sisältö
 
-* Omistat **100 % immateriaalioikeudet** kaikkiin omiin tutkimusmuistiinpanoihisi ja eksegeettisiin kortteihisi.
-* Clible ei vaadi mitään tekijänoikeuksia tai kaupallisia oikeuksia käyttäjien tuottamiin aineistoihin.
+* Sinulla säilyvät kaikki oikeudet omiin tutkimusmuistiinpanoihisi ja eksegeettisiin kortteihisi.
+* Clible ei vaadi tekijänoikeuksia tai kaupallisia oikeuksia käyttäjien tuottamiin aineistoihin.
 
 ---
 
-## 5. Teologiset AI-työkalut ja vastuuvapauslauseke
+## 5. Teologiset tekoälytyökalut ja vastuuvapauslauseke
 
-Clible tarjoaa Google Gemini AI -tekoälyn tukemaa leksikaalista älyä eksegetiikan apuvälineeksi.
+Clible tarjoaa Google Gemini -tekoälyn avulla tukea raamatuntekstien tulkintaan ja sanastojen tutkimiseen.
 
 > [!IMPORTANT]
 > **Vastuuvapauslauseke**:
-> Tekoälyn tuottamat analyysit ovat laskennallisia tiivistelmiä ja apuvälineitä. Ne **eivät** edusta virallista kirkollista oppia tai erehtymätöntä teologista tulkintaa. Tutkijoita kehotetaan aina varmentamaan havainnot alkukielten käsikirjoituksista ja tieteellisistä sanakirjoista (kuten BDAG, HALOT).
+> Tekoälyn tuottamat analyysit ovat laskennallisia tiivistelmiä ja apuvälineitä. Ne **eivät** edusta virallista kirkollista oppia tai erehtymätöntä teologista tulkintaa. Tarkista havainnot aina alkukielisistä teksteistä ja tieteellisistä sanakirjoista, kuten BDAG:sta ja HALOT:sta.
 
 ---
 

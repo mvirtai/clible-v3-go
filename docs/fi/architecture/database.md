@@ -1,14 +1,14 @@
 # Tietokanta-arkkitehtuuri ja kokotekstihaku (FTS)
 
-clible-v3-go hyödyntää kaksoistietokanta-arkkitehtuuria. Se on suunniteltu ajettavaksi **PostgreSQL**:ssä (erityisesti **Neon PostgreSQL** -pilvipalvelussa kehitys- ja tuotantoympäristöissä) ensisijaisena relaatiomoottorina, tarjoten vankan pilvitallennuksen ja pistepalautuksen (Point-in-Time Recovery).
+clible-v3-go käyttää tuotannossa ensisijaisesti **PostgreSQL**:ää, erityisesti **Neon PostgreSQL** -pilvipalvelua. Se tarjoaa tietojen pysyvän tallennuksen ja pistepalautuksen (Point-in-Time Recovery).
 
-Yksikkö- ja integraatiotesteissä sovellus käyttää automaattisesti muistipohjaista **SQLite 3** -tietokantaa pitääkseen testit nopeina, eristettyinä ja itsenäisinä.
+Yksikkö- ja integraatiotesteissä käytetään automaattisesti muistissa toimivaa **SQLite 3** -tietokantaa. Näin testit pysyvät nopeina ja toisistaan eristettyinä.
 
 ---
 
 ## ER-kaavio (Entity-Relationship Diagram)
 
-Tietokantarakenne jakautuu kahteen pääalueeseen: staattisiin raamatunkäännöstauluihin ja dynaamisiin, käyttäjän tuottamiin työtila- ja historiatauluihin.
+Tietokantataulut jakautuvat kahteen ryhmään: raamatunkäännösten tietoihin sekä käyttäjien työtiloihin ja hakuhistoriaan liittyviin tietoihin.
 
 ```mermaid
 erDiagram
@@ -161,22 +161,22 @@ Sisältää kaikki yksittäiset raamatunjakeet:
 
 ---
 
-## Kokotekstihaku (Dual FTS)
+## Kokotekstihaku kahdella tietokannalla (Dual FTS)
 
 ### PostgreSQL GIN -indeksointi
 
-Tuotantoympäristössä nopea kokotekstihaku perustuu PostgreSQL:n natiiviin `tsvector`-vektoriin ja GIN-indeksiin:
+Tuotannossa kokotekstihaku perustuu PostgreSQL:n `tsvector`-vektoriin ja GIN-indeksiin:
 
 ```sql
 CREATE INDEX idx_verses_fts ON verses 
 USING gin(to_tsvector('simple', text));
 ```
 
-Hakukyselyt suoritetaan parametrisoidusti `to_tsquery('simple', ...)` -funktiolla, mikä mahdollistaa alimillisekunnin haut ilman ulkoisia hakupalvelimia.
+Hakukyselyt muodostetaan `to_tsquery('simple', ...)` -funktiolla parametrisoidusti. GIN-indeksi nopeuttaa hakuja ilman ulkoista hakupalvelua.
 
 ### SQLite FTS5 -varajärjestelmä testeissä
 
-Muistissa ajettavia yksikkötestejä varten luodaan FTS5-virtuaalitaulu triggereineen:
+Yksikkötestejä varten luodaan FTS5-virtuaalitaulu ja sitä ylläpitävät triggerit:
 
 ```sql
 CREATE VIRTUAL TABLE verses_fts USING fts5(

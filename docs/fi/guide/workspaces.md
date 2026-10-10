@@ -1,19 +1,19 @@
-# Tutkimustyötilat ja skoopit
+# Tutkimustyötilat ja rajaukset
 
-clible-v3 on suunniteltu **Tutkimustyötilojen (Scope)** ympärille. Sen sijaan että kirjanmerkit, haut ja muistiinpanot pirstoutuisivat irrallisiin istuntoihin, alusta mahdollistaa eksegeettisen tutkimuksen järjestämisen fokusoituneiksi, projektikohtaisiksi kokonaisuuksiksi.
+clible-v3:n **tutkimustyötilat (Scope)** kokoavat kirjanmerkit, haut ja muistiinpanot projektikohtaisiksi kokonaisuuksiksi.
 
 ---
 
 ## Mikä on tutkimustyötila?
 
-**Skooppi** on itsenäinen tutkimuskonteksti, joka kokoaa yhteen tiettyyn aihepiiriin, saarnasarjaan, kirja-analyysiin tai tieteelliseen artikkeliin liittyvät materiaalit.
+**Tutkimustyötila** on oma tutkimuskontekstinsa. Se kokoaa yhteen esimerkiksi aiheeseen, saarnasarjaan, Raamatun kirjan analyysiin tai tieteelliseen artikkeliin liittyvät materiaalit.
 
 Aktiivisessa työtilassa voit:
 
-- **Kiinnittää tallennettuja hakuja**: Tallenna monimutkaisia kokoteksti- ja regex-hakuja tuloksineen nopeaa palauttamista varten.
+- **Tallentaa hakuja**: Säilytä kokoteksti- ja regex-haut tuloksineen myöhempää tarkastelua varten.
 - **Tallentaa tekstianalyysejä**: Säilytä leksikaaliset tilastot, sanatiheysjakaumat ja käännösvertailut.
 - **Linkittää 2D Canvas -tutkimusvihkoja**: Liitä interaktiiviset muistiinpanot suoraan työtilaan.
-- **Vaihtaa kontekstia lennossa**: Siirry saumattomasti tutkimusprojektista toiseen yläpalkin valitsimesta menettämättä istunnon tilaa.
+- **Vaihtaa tutkimusprojektia**: Siirry yläpalkin valitsimesta toiseen työtilaan.
 
 ```mermaid
 graph TD
@@ -25,9 +25,9 @@ graph TD
         Scope --> Notebooks["Linkitetyt 2D Canvas -tutkimusvihkot"]
     end
     
-    subgraph Data_Cache ["Tietovälimuisti"]
-        Searches -.-> C1["Välimuistitetut hakutulokset"]
-        Analyses -.-> C2["Välimuistitetut tilastoluvut"]
+    subgraph Data_Cache ["Tallennetut tulokset"]
+        Searches -.-> C1["Tallennetut hakutulokset"]
+        Analyses -.-> C2["Tallennetut tilastot"]
         Notebooks -.-> C3["Järjestetyt hybridisolut"]
     end
 ```
@@ -38,25 +38,25 @@ graph TD
 
 ### 1. Työtilan luominen
 
-1. Etsi ylänavigaatiopalkista **Skooppivalitsin** (Scope Selector).
-2. Klikkaa **Luo uusi skooppi** (tai `+`-painiketta).
+1. Avaa ylänavigaatiopalkin **Skooppivalitsin** (Scope Selector).
+2. Valitse **Luo uusi skooppi** tai napsauta `+`-painiketta.
 3. Anna tutkimusprojektillesi kuvaava nimi (esim. *Paavalilainen armokäsitys*, *Vuorisaarna*, *Heprealaiskirje 11 Usko*).
-4. Klikkaa **Tallenna**. Uusi työtila luodaan ja asetetaan välittömästi aktiiviseksi skoopeksi.
+4. Valitse **Tallenna**. Uusi työtila luodaan ja otetaan käyttöön.
 
 ### 2. Työtilojen välillä vaihtaminen
 
-Skooppivalitsimen klikkaaminen avaa pudotusvalikon kaikista tutkimusprojekteistasi:
+Skooppivalitsimen avaaminen näyttää tutkimusprojektisi pudotusvalikossa:
 
-- Minkä tahansa työtilan valitseminen lataa välittömästi sen tallennetut haut, analyysit ja vihkot.
-- Valitsemalla **Yleinen (Ei skooppia)** voit tehdä vapaamuotoisia hakuja ja kokeiluja liittämättä niitä mihinkään tiettyyn projektiin.
+- Työtilan valitseminen lataa sen tallennetut haut, analyysit ja vihkot.
+- Valitsemalla **Yleinen (Ei skooppia)** voit tehdä hakuja liittämättä niitä tiettyyn projektiin.
 
 ### 3. Työtilojen nimeäminen ja poistaminen
 
-- **Nimen muokkaus**: Klikkaa aktiivisen työtilan nimen vieressä olevaa kynäikonia päivittääksesi nimen.
-- **Poistaminen**: Kun työtila poistetaan, tietokanta siivoaa haku- ja analyysitiedot (`ON DELETE CASCADE`).
+- **Nimen muokkaus**: Napsauta aktiivisen työtilan nimen vieressä olevaa kynäkuvaketta.
+- **Poistaminen**: Työtilan poistaminen poistaa siihen liitetyt haut ja analyysit tietokannasta (`ON DELETE CASCADE`).
 
 > [!IMPORTANT]
-> **Henkilökohtaisten muistiinpanojen suoja**: Työtilaan liitettyjä tutkimusvihkoja **EI** koskaan poisteta työtilan mukana. Tietokanta suorittaa `ON DELETE SET NULL` -säännön kentälle `notebooks.scope_id`, mikä takaa, että tutkimusmuistiinpanosi, korttisi ja luonnoksesi säilyvät pysyvästi saatavilla pääkirjastossasi.
+> **Henkilökohtaisten muistiinpanojen suoja**: Työtilaan liitettyjä tutkimusvihkoja ei poisteta työtilan mukana. Tietokanta asettaa `notebooks.scope_id`-kentän arvoksi `NULL` (`ON DELETE SET NULL`), joten muistiinpanosi, korttisi ja luonnoksesi säilyvät pääkirjastossasi.
 
 ---
 
@@ -64,16 +64,16 @@ Skooppivalitsimen klikkaaminen avaa pudotusvalikon kaikista tutkimusprojekteista
 
 Tehdessäsi syvällistä sanastotutkimusta käännösten yli tarkennat kyselyitä usein tarkoilla rajauksilla (kuten etsimällä sanaa `"armo"` KR92-käännöksen kirjeistä tai `"grace" AND "peace"` WEB-käännöksestä).
 
-### Haun kiinnittäminen työtilaan
+### Haun tallentaminen työtilaan
 
 1. Suorita kysely **Haku**-näkymässä.
-2. Klikkaa tulospalkista **Tallenna työtilaan**.
+2. Valitse tulospalkista **Tallenna työtilaan**.
 3. Anna haulle tunnistettava nimi (esim. *Armo-sanan esiintymät Roomalaiskirjeessä*).
 4. Haku tallentuu kaikkine asetuksineen:
    - Hakulauseke ja tila (fraasi, kokoteksti tai regex).
    - Hakuskooppi (koko Raamattu, VT, UT tai tietty kirjakoodi).
    - Kohdekäännös.
-   - Välimuistitettu tulosdata (estää turhan palvelinkuorman uudelleenlatauksissa).
+   - Tallennettu tulosdata, jotta hakutuloksia ei tarvitse hakea uudelleen.
 
 ---
 
@@ -84,21 +84,21 @@ Tehdessäsi syvällistä sanastotutkimusta käännösten yli tarkennat kyselyit�
 ### Analyysin tallentaminen
 
 1. Suorita analyysi tietylle luvulle tai jaksolle (esim. *Roomalaiskirje 8 Sanastoanalyysi*).
-2. Klikkaa **Tallenna analyysi työtilaan**.
+2. Valitse **Tallenna analyysi työtilaan**.
 3. Anna nimi ja vahvista.
 4. Tarkat parametrit ja lasketut tilastolliset tulokset (kokonaissanamäärä, uniikit sanat, TTR-suhdeluku ja frekvenssitaulukot) tallentuvat työtilaasi.
 
 ---
 
-## Suorituskykyinen yhdistetty työtilalataus
+## Työtilan tietojen lataaminen yhdellä pyynnöllä
 
-Jotta verkkosovellus toimisi salamannopeasti, backend tarjoaa yhdistetyn työtilapäätepisteen:
+Taustapalvelu tarjoaa yhden rajapintareitin, jolla työtilan tiedot voi hakea:
 
 ```http
 GET /api/scopes/workspace?id={scopeId}
 ```
 
-Erillisten HTTP-pyyntöjen sijaan Go REST API hakee työtilan metatiedot, sen tallennetut haut, analyysit ja linkitetyt vihkot yhdellä tietokantakyselyllä ja palauttaa yhtenäisen JSON-vastauksen:
+Go-rajapinta palauttaa työtilan metatiedot, tallennetut haut ja analyysit sekä siihen liitetyt vihkot yhdessä JSON-vastauksessa:
 
 ```json
 {
@@ -136,4 +136,4 @@ Erillisten HTTP-pyyntöjen sijaan Go REST API hakee työtilan metatiedot, sen ta
 }
 ```
 
-Tämä takaa nollaviiveen ja saumattoman siirtymisen eri tutkimusprojektien välillä ilman käyttöliittymän välkkymistä.
+Näin käyttöliittymä saa työtilan tiedot yhdellä vastauksella.

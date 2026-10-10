@@ -124,11 +124,11 @@ Compare two translations of the same passage side-by-side:
 
 ---
 
-## 5. AI-Powered Study Tools
+## 5. AI-Assisted Study Tools
 
 When enabled with a Google Gemini API key on the backend, clible-v3 provides advanced AI study tools directly within the web interface:
 
 - **Theological Insights**: Generate exegesis notes focusing on specific biblical covenants, historical context, or literary motifs.
 - **Original Language Studies**: Greek and Hebrew root word breakdowns, grammatical morphology, and lexicon cross-references.
-- **Semantic Search**: Ask conceptual natural language questions (e.g., *"Where does Paul talk about spiritual warfare?"*) to discover relevant passages even when exact keywords differ.
+- **Semantic Search**: Ask a question in your own words and search for related passages. Gemini turns the question into a full-text search plan, which can be supplemented with verses from a recognized passage. [Read more about Semantic Search](/guide/ai-study-tools).
 - **AI Translation Comparison**: Detailed analytical breakdown of theological nuances between distinct translations.

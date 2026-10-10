@@ -1,29 +1,29 @@
-# Käännösvertailu ja visuaalinen diff
+# Käännösvertailu ja tekstierot
 
-**Käännösvertailumatriisi** (`/compare`) on erikoistunut työtila tekstuaalisten poikkeamien, tyylillisten valintojen ja käännösvivahteiden analysointiin eri raamatunversioiden välillä.
+**Käännösvertailumatriisi** (`/compare`) auttaa tarkastelemaan eri raamatunkäännösten sanavalintoja, tyyliä ja merkityseroja.
 
 ---
 
-## 1. Rinnakkaisasettelu ja visuaalinen tekstidiff
+## 1. Rinnakkaisasettelu ja tekstierojen korostus
 
-Tutkittaessa teologisesti merkittäviä raamatunkohtia kahden eri käännöksen vertaileminen paljastaa sanastolliset painotusvalinnat ja lauserakenteelliset erot:
+Kahden käännöksen rinnakkainen vertailu auttaa havaitsemaan sanavalintojen ja lauserakenteiden eroja:
 
 ```mermaid
 flowchart LR
     User["Käyttäjän viite: Joh 3:16"] --> Fetch["Hae jakeet käännöksille A & B"]
     Fetch --> Align["Synkronoitu jaeasettelu"]
-    Align --> LCS["LCS-tekstidiff-algoritmi"]
+    Align --> LCS["LCS-tekstieroalgoritmi"]
     LCS --> Sim["Laske sanasto- ja lausesamankaltaisuus"]
-    Sim --> Matrix["Piirrä visuaalinen diff ja HSL-asteikko"]
+    Sim --> Matrix["Näytä tekstierot ja värillinen samankaltaisuusasteikko"]
 ```
 
-### Visuaaliset diff-korostukset
+### Tekstierojen korostukset
 
-Vertailumoottori laskee pisimmän yhteisen alijonon (**Longest Common Subsequence, LCS**) kahden käännetyn tekstin välillä:
+Vertailutoiminto laskee pisimmän yhteisen alijonon (**Longest Common Subsequence, LCS**) kahden käännöstekstin välillä:
 
 - **Samat sanat**: Esitetään normaalilla leipätekstillä.
 - **Eroavat sanat ja ilmaisut**: Korostetaan pehmeillä korostusväreillä, jolloin erot erottuvat silmälle välittömästi.
-- **Dynaaminen HSL-samankaltaisuusasteikko**: Reaaliaikainen visuaalinen mittari näyttää tekstien yhteneväisyysprosentin liukuen punaisesta (0 % yhteneväisyys) smaragdinvihreään (100 % yhteneväisyys).
+- **Värillinen samankaltaisuusasteikko**: Mittari näyttää tekstien laskennallisen samankaltaisuuden punaisesta (0 %) vihreään (100 %).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -37,18 +37,18 @@ Vertailumoottori laskee pisimmän yhteisen alijonon (**Longest Common Subsequenc
 │  meidän Herramme Jeesuksen        │  kanssa meidän Herramme Jeesuksen  │
 │  Kristuksen kautta.               │  Kristuksen kautta.                │
 │  ─────────────────────────────────┴──────────────────────────────────  │
-│  Samankaltaisuus: 88.5% [████████████████████░░░]                      │
+│  Samankaltaisuus: 88,5 % [████████████████████░░░]                     │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Integroitu teologinen AI-vertailukommentaari
+## 2. Tekoälyavusteinen käännösvertailu
 
-Algoritmisen sanadiffin ohella clible-v3 voi tuottaa tekoälypohjaisen teologisen vertailun valitusta jakeesta:
+Tekstierojen lisäksi clible-v3 voi tuottaa valitusta jakeesta tekoälyavusteisen käännösvertailun:
 
 - **Käännösvivahteiden analyysi**: Selittää, miten eri käännösratkaisut heijastelevat kreikan tai heprean käsikirjoitusperinteitä tai käännösteorioita (kuten dynaaminen vastaavuus vs. formaali vastaavuus).
-- **Interaktiiviset tutkimussuositukset (NextFocusChips)**: Klikattavat ehdotusnapit, joilla voit syventyä historiallisiin, kieliopillisiin tai opillisiin kysymyksiin.
+- **Jatkotutkimusehdotukset (NextFocusChips)**: Ehdotusnapit auttavat tarkastelemaan historiallisia, kieliopillisia tai teologisia kysymyksiä.
 - **Syventävät näkökulmakortit**: Laajennettavat osiot, jotka tarjoavat yksityiskohtaisia eksegeettisiä huomioita.
 
 ---
@@ -57,6 +57,6 @@ Algoritmisen sanadiffin ohella clible-v3 voi tuottaa tekoälypohjaisen teologise
 
 Voit tallentaa minkä tahansa vertailututkimuksen suoraan aktiiviseen [Tutkimustyötilaasi](/fi/guide/workspaces):
 
-1. Klikkaa ylätoimintopalkista **Tallenna vertailu työtilaan**.
+1. Valitse toimintopalkista **Tallenna vertailu työtilaan**.
 2. Anna vertailulle kuvaava nimi (esim. *Room 5:1 Vanhurskauttamiskäsitteen vertailu*).
-3. Vertailun parametrit, samankaltaisuusluvut, visuaalisen diffin tila ja AI-kommentaari tallentuvat työtilaasi välitöntä uudelleenavausta varten.
+3. Vertailun asetukset, samankaltaisuusluvut, tekstierot ja tekoälyn kommentaari tallentuvat työtilaasi myöhempää tarkastelua varten.
