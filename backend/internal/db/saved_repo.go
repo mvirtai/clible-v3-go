@@ -23,7 +23,8 @@ func NewSavedRepository(db *sql.DB) *SavedRepository {
 func (r *SavedRepository) SaveSearch(ctx context.Context, s *models.SavedSearch, userID string) error {
 	query := `
 		INSERT INTO saved_searches (id, scope_id, name, query_text, search_scope, scope_value, translation_id, result_json, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9
+		FROM scopes WHERE id = $2 AND user_id = $10
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			query_text = EXCLUDED.query_text,

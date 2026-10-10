@@ -131,6 +131,33 @@ func TestSavedRepository_SaveAndGet(t *testing.T) {
 		}
 	})
 
+	t.Run("reject insert when target scope belongs to another user", func(t *testing.T) {
+		newItem := models.SavedSearch{
+			ID:            "search-unauthorized-insert",
+			ScopeID:       "other-scope-id", // belongs to other-user-id
+			Name:          "Sneaky Insert",
+			QueryText:     "sneaky query",
+			SearchScope:   "nt",
+			TranslationID: "fin-1992",
+			ResultJSON:    `[]`,
+			CreatedAt:     time.Now().UTC(),
+		}
+
+		// test-user-id tries to insert into other-scope-id
+		err := repo.SaveSearch(ctx, &newItem, "test-user-id")
+		if err == nil {
+			t.Fatalf("expected error when inserting into another user's scope, got nil")
+		}
+
+		inserted, err := repo.GetSearchByID(ctx, "search-unauthorized-insert")
+		if err != nil {
+			t.Fatalf("GetSearchByID failed: %v", err)
+		}
+		if inserted != nil {
+			t.Errorf("expected no record inserted into unauthorized scope, found: %+v", inserted)
+		}
+	})
+
 	t.Run("successfully save and retrieve saved analyses with cached result json", func(t *testing.T) {
 		item := models.SavedAnalysis{
 			ID:            "analysis-1",
