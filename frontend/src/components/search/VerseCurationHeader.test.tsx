@@ -187,4 +187,32 @@ describe('VerseCurationHeader', () => {
     const resetBtn = container!.querySelector(`button[title="${strings.en.curateReset}"]`);
     expect(resetBtn).toBeNull();
   });
+
+  it('shows commit button when curated and calls onCommitSelection', () => {
+    const onCommit = vi.fn();
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <VerseCurationHeader
+          strings={strings.en}
+          filter="all"
+          onFilterChange={vi.fn()}
+          totalCount={5}
+          acceptedCount={2}
+          rejectedCount={1}
+          onAcceptAll={vi.fn()}
+          onResetCuration={vi.fn()}
+          onCommitSelection={onCommit}
+        />
+      );
+    });
+
+    const commitBtn = container!.querySelector(`button[title="${strings.en.curateCommitSelection}"]`) as HTMLButtonElement | null;
+    expect(commitBtn).not.toBeNull();
+    act(() => {
+      commitBtn?.click();
+    });
+    expect(onCommit).toHaveBeenCalledTimes(1);
+  });
 });
+

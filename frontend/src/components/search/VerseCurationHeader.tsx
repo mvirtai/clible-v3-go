@@ -1,5 +1,5 @@
 import type { Messages } from '../../utils/i18n';
-import { CheckCheck, RotateCcw } from 'lucide-react';
+import { Check, CheckCheck, RotateCcw } from 'lucide-react';
 
 export type CurationFilter = 'all' | 'accepted' | 'rejected';
 
@@ -12,6 +12,7 @@ export interface VerseCurationHeaderProps {
   rejectedCount: number;
   onAcceptAll: () => void;
   onResetCuration: () => void;
+  onCommitSelection?: () => void;
 }
 
 export function VerseCurationHeader({
@@ -23,6 +24,7 @@ export function VerseCurationHeader({
   rejectedCount,
   onAcceptAll,
   onResetCuration,
+  onCommitSelection,
 }: VerseCurationHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-[var(--surface-2)]/70 border border-[var(--border-soft)]">
@@ -101,6 +103,18 @@ export function VerseCurationHeader({
           >
             <RotateCcw size={13} />
             <span className="hidden xs:inline">{strings.curateReset}</span>
+          </button>
+        )}
+
+        {(acceptedCount > 0 || rejectedCount > 0) && onCommitSelection && (
+          <button
+            type="button"
+            onClick={onCommitSelection}
+            className="text-xs px-3 py-1 rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 font-medium transition-all shadow-xs flex items-center gap-1.5 cursor-pointer ml-1"
+            title={strings.curateCommitSelection}
+          >
+            <Check size={13} />
+            <span>{strings.curateCommitSelection}</span>
           </button>
         )}
       </div>

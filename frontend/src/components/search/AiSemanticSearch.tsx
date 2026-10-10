@@ -3,9 +3,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
 import { apiService } from '../../services/api';
-import type { AiSearchResponse, SemanticSearchSnapshot } from '../../types/aiSearch';
+import type { AiSearchResponse, AiVerseMatch, SemanticSearchSnapshot } from '../../types/aiSearch';
 import { VerseCurationHeader, type CurationFilter } from './VerseCurationHeader';
 import { CuratedVerseCard } from './CuratedVerseCard';
+import { CurationUnreviewedBanner } from './CurationPromptModal';
 import {
   Sparkles,
   Search,
@@ -73,6 +74,8 @@ export function AiSemanticSearch({
   const [acceptedIds, setAcceptedIds] = useState<Set<string>>(() => new Set());
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(() => new Set());
   const [curationFilter, setCurationFilter] = useState<CurationFilter>('all');
+  const [showUnreviewedPrompt, setShowUnreviewedPrompt] = useState(false);
+  const [committedVerses, setCommittedVerses] = useState<AiVerseMatch[] | null>(null);
 
   // Pure derived state: localized search suggestions
   const examples =
@@ -106,6 +109,8 @@ export function AiSemanticSearch({
       setAcceptedIds(new Set());
       setRejectedIds(new Set());
       setCurationFilter('all');
+      setCommittedVerses(null);
+      setShowUnreviewedPrompt(false);
       return { data: resp, translationId: translation, error: null };
     } catch (err: unknown) {
       console.error('Semantic search failed:', err);
@@ -208,9 +213,56 @@ export function AiSemanticSearch({
     setRejectedIds(new Set());
   };
 
-  
+  // Derived effective data: use committed verses if selection was finalized
+  const rawData = searchState.data;
+  const data = rawData
+    ? {
+        ...rawData,
+        search: rawData.search
+          ? {
+              ...rawData.search,
+              verses: committedVerses !== null ? committedVerses : rawData.search.verses,
+            }
+          : rawData.search,
+      }
+    : null;
+  const error = searchState.error;
 
-  const { data, error } = searchState;
+  const handleCommitCuration = (forceRemaining?: 'accept' | 'reject') => {
+    if (!data?.search?.verses) return;
+    const currentVerses = data.search.verses;
+
+    const finalAccepted = new Set(acceptedIds);
+    const finalRejected = new Set(rejectedIds);
+
+    if (forceRemaining === 'accept') {
+      currentVerses.forEach((v) => {
+        if (!finalRejected.has(v.id)) finalAccepted.add(v.id);
+      });
+    } else if (forceRemaining === 'reject') {
+      currentVerses.forEach((v) => {
+        if (!finalAccepted.has(v.id)) finalRejected.add(v.id);
+      });
+    } else {
+      // Check if unreviewed verses exist
+      const hasUnreviewed = currentVerses.some(
+        (v) => !finalAccepted.has(v.id) && !finalRejected.has(v.id)
+      );
+      if (hasUnreviewed) {
+        setShowUnreviewedPrompt(true);
+        return;
+      }
+    }
+
+    // Keep only accepted verses permanently
+    const kept = currentVerses.filter((v) => finalAccepted.has(v.id));
+    setCommittedVerses(kept);
+    setAcceptedIds(new Set());
+    setRejectedIds(new Set());
+    setCurationFilter('all');
+    setShowUnreviewedPrompt(false);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -435,7 +487,18 @@ export function AiSemanticSearch({
                       rejectedCount={rejectedCount}
                       onAcceptAll={() => handleAcceptAll(allVerses)}
                       onResetCuration={handleResetCuration}
+                      onCommitSelection={() => handleCommitCuration()}
                     />
+
+                    {showUnreviewedPrompt && (
+                      <CurationUnreviewedBanner
+                        strings={strings}
+                        unreviewedCount={allVerses.length - acceptedCount - rejectedCount}
+                        onAcceptRemaining={() => handleCommitCuration('accept')}
+                        onRejectRemaining={() => handleCommitCuration('reject')}
+                        onCancel={() => setShowUnreviewedPrompt(false)}
+                      />
+                    )}
 
                     {displayedVerses.length === 0 ? (
                       <div className="p-4 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-2)]/40 text-center text-xs text-[var(--muted)]">

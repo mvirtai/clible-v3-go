@@ -459,6 +459,13 @@ export interface Messages {
   curateKeyboardHint: string;
   curateAcceptedCount: (count: number) => string;
   curateRejectedCount: (count: number) => string;
+  curateCommitSelection: string;
+  curateCommitConfirmTitle: string;
+  curateUnreviewedPrompt: (count: number) => string;
+  curateAcceptRemaining: string;
+  curateRejectRemaining: string;
+  curateCancelCommit: string;
+  curateCommitSuccess: (keptCount: number, discardedCount: number) => string;
 
   // User Settings & Profile
   settingsSubtitle: string;
@@ -1049,6 +1056,16 @@ export const strings: Record<UILanguage, Messages> = {
     curateKeyboardHint: 'Desktop: click buttons or use keyboard (A = accept, D = reject)',
     curateAcceptedCount: (count: number) => `${count} accepted`,
     curateRejectedCount: (count: number) => `${count} rejected`,
+    curateCommitSelection: 'Apply selection',
+    curateCommitConfirmTitle: 'Unreviewed verses remaining',
+    curateUnreviewedPrompt: (count) =>
+      `You still have ${count} unreviewed verse${count > 1 ? 's' : ''}. How would you like to handle the remaining verses before applying?`,
+    curateAcceptRemaining: 'Accept all remaining',
+    curateRejectRemaining: 'Reject all remaining',
+    curateCancelCommit: 'Keep reviewing',
+    curateCommitSuccess: (kept, discarded) =>
+      `Selection applied: ${kept} verses kept, ${discarded} discarded.`,
+
 
     // User Settings & Profile
     settingsSubtitle: 'Manage your account details, reading preferences, and security.',
@@ -1636,6 +1653,15 @@ export const strings: Record<UILanguage, Messages> = {
     curateKeyboardHint: 'Työpöytä: käytä nappeja tai pikanäppäimiä (A = hyväksy, D = hylkää)',
     curateAcceptedCount: (count: number) => `${count} hyväksytty`,
     curateRejectedCount: (count: number) => `${count} hylätty`,
+    curateCommitSelection: 'Toteuta valinnat',
+    curateCommitConfirmTitle: 'Käsittelemättömiä jakeita jäljellä',
+    curateUnreviewedPrompt: (count) =>
+      `Sinulla on vielä ${count} luokittelematonta jaetta. Miten haluat käsitellä loput jakeet ennen valintojen toteuttamista?`,
+    curateAcceptRemaining: 'Hyväksy kaikki loput',
+    curateRejectRemaining: 'Hylkää kaikki loput',
+    curateCancelCommit: 'Jatka arviointia',
+    curateCommitSuccess: (kept, discarded) =>
+      `Valinnat toteutettu: ${kept} jaetta säilytetty, ${discarded} poistettu.`,
 
     // Käyttäjäasetukset ja profiili
     settingsSubtitle: 'Hallitse tilitietojasi, lukupreferenssejäsi ja turvallisuutta.',
