@@ -97,6 +97,13 @@ stateDiagram-v2
 - `task plans:status`: Checks symlink and git status of the canonical plans repository.
 - `task plans:push`: Automates staging, committing, and pushing in `~/code/clible-plans`.
 
+### 5. Dependency Security & Vite Configuration
+
+- Patched `source-map-js` to `1.2.2` and Vue / `@vue/server-renderer` to `3.5.43` in both frontend and documentation dependency graphs, addressing the reported high-severity advisories.
+- Added `docs/pnpm-workspace.yaml` overrides so pnpm 12 consistently resolves the patched transitive versions and records their verified package integrity in the docs lockfile.
+- Updated the frontend dependency manifest and lockfile, including the corresponding patched Vue and source-map resolutions.
+- Replaced `__dirname` in `frontend/vite.config.ts` with `import.meta.dirname` for compatibility with Vite's native config loader.
+
 ---
 
 ## Improvement Metrics & Key Figures
@@ -138,7 +145,10 @@ stateDiagram-v2
 | `backend/internal/services/scope_service_test.go` | Added unit tests for scope ownership and cross-user overwrite prevention |
 | `backend/internal/version/version.go` | Bumped version to `3.15.0` |
 | `backend/migrations/clible-db-schema.png` | Database schema reference diagram |
-| `frontend/package.json` | Bumped version to `3.15.0` |
+| `frontend/package.json` | Bumped version to `3.15.0` and updated frontend dependencies |
+| `docs/pnpm-workspace.yaml` | Pinned patched transitive `source-map-js` and Vue versions for pnpm 12 |
+| `docs/pnpm-lock.yaml` | Updated docs dependency graph and integrity metadata for patched packages |
+| `frontend/pnpm-lock.yaml` | Refreshed frontend dependency graph with patched Vue and `source-map-js` |
 | `frontend/src/App.tsx` | Propagates saved-search metadata and retains committed curation across navigation |
 | `frontend/src/components/search/AiSemanticSearch.tsx` | Integrated curation, commit triage guard, parent snapshot updates, workspace search update, and committed-verse save payload |
 | `frontend/src/components/search/AiSemanticSearch.test.tsx` | Added tests for unreviewed guard, accept/reject remaining, update flow, and saving after commit |
@@ -154,7 +164,7 @@ stateDiagram-v2
 | `frontend/src/types/aiSearch.ts` | Extracted `AiVerseMatch` and added `savedSearchId`/`savedName` to snapshot |
 | `frontend/src/utils/i18n.ts` | Added localized strings for curation, commit triage guard, and search update |
 | `frontend/src/utils/version.ts` | Bumped version to `3.15.0` |
-| `frontend/vite.config.ts` | Coverage threshold and Vitest configuration |
+| `frontend/vite.config.ts` | Uses `import.meta.dirname` for paths in native config-loader mode |
 | `go.work` | Synchronized Go toolchain directive |
 | `kanban/todos.md` | Marked curation task as done with desktop button checklist and moved AI refinement to in-progress |
 | `pr_stories/115-feat-semantic-search-verse-curation-and-swipe-triage.md` | Comprehensive PR story with full-stack architecture, flow diagrams, metrics, and security audit |
@@ -181,6 +191,19 @@ stateDiagram-v2
 
   ```bash
   task frontend:check
+  ```
+
+- Dependency audits report zero advisories:
+
+  ```bash
+  pnpm --dir docs audit
+  pnpm --dir frontend audit
+  ```
+
+- Documentation production build:
+
+  ```bash
+  pnpm --dir docs docs:build
   ```
 
 ### Manual Verification Checklist
