@@ -49,6 +49,24 @@
 
 ## In Progress
 
+### Semanttisen haun tekoäly-jatkokarsinta ja teemaryhmittely
+
+- due: 2026-10-15
+- tags: [ai, search, refinement, clustering, triage]
+- priority: high
+- workload: Medium
+- defaultExpanded: true
+- steps:
+  - [ ] Vaihe 1: Go Backend - AI Refine -rajapinta ja Gemini Structured Output
+  - [ ] Vaihe 2: Frontend API - Tyypit ja API-kutsut
+  - [ ] Vaihe 3: React 19.2 UI - Teemaryhmittely, tarkennussyöte ja pika-triage
+  - [ ] Vaihe 4: Kaksikielisyys (i18n), laatuportit ja testaus
+
+    ```md
+    Suunnitelma: [.plans/semantic-search-ai-refinement/00-overview.md](file:///home/vivaldev/code/clible-v3-go/.plans/semantic-search-ai-refinement/00-overview.md)
+    Mahdollistaa laajojen semanttisten hakutulosten jatkokarsinnan ja teemaryhmittelyn tekoälyn avulla.
+    ```
+
 ## Done
 
 ### Semanttisen haun jakeiden kuratointi ja Swipe-triage (Mobiili & Työpöytä)
