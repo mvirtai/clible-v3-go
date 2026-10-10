@@ -222,7 +222,10 @@ tasks:
         TARGET="$ROOT/.plans"
         if [ -e "$TARGET" ] && [ ! -L "$TARGET" ]; then
           echo "[TASK] Existing local directory found at $TARGET. Syncing changes to $SRC before linking..."
-          rsync -av --exclude='.git' "$TARGET/" "$SRC/"
+          if ! rsync -av --exclude='.git' "$TARGET/" "$SRC/"; then
+            echo "ERROR: failed to synchronize $TARGET to $SRC. Local directory was not removed."
+            exit 1
+          fi
           rm -rf "$TARGET"
         fi
         ln -sfn "$SRC" "$TARGET"
