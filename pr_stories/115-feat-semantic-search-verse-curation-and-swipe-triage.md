@@ -5,6 +5,7 @@
 When executing broad semantic queries in Clible (e.g. *"God's covenants with humanity throughout scripture"*), the AI semantic search returns a substantial hit set. Previously, users could not curate, triage, or discard secondary matches before persisting results to their workspace. Furthermore, repeatedly refining a saved search in the workspace caused duplicate saved-search records to be created instead of updating the existing study asset.
 
 This PR introduces an end-to-end curation, commit triage, and workspace update pipeline:
+
 1. **Interactive Curation & Gestures:** Users can accept, reject, or restore verses. Mobile users can swipe right to accept and swipe left to reject. Desktop users have dedicated buttons.
 2. **Commit Triage & Unreviewed Guard (`CurationUnreviewedBanner`):** When applying selections, users can permanently discard rejected verses while retaining accepted ones. If unclassified verses remain, an inline triage banner offers batch actions (*"Accept all remaining"* or *"Reject all remaining"*) with keyboard hints (`(A)`, `(R)`).
 3. **Workspace Upsert (`ON CONFLICT`):** When returning to an existing saved search from a workspace, curation modifications update the existing database record in place instead of creating duplicates.
@@ -65,16 +66,19 @@ stateDiagram-v2
 ## Architectural & UX Changes
 
 ### 1. `CuratedVerseCard` (Mobile Swipe & Desktop Triage)
+
 - **Zero External Dependencies:** Touch events are handled through native JSX handlers (`onTouchStart`, `onTouchMove`, `onTouchEnd`, `onTouchCancel`). No `useEffect`, no global listeners, no heavy external animation libraries.
 - **Physical Spring Feedback:** Offsets are clamped to ±140 px with spring-back physics when released under threshold (`SWIPE_THRESHOLD_PX = 75`).
 - **Accessible Selection:** Clean button semantics with `stopPropagation` to avoid triggering reader navigation.
 
 ### 2. `VerseCurationHeader` & `CurationPromptModal` (Commit Guard)
+
 - **Triage Tabs & Counters:** All, Accepted, and Rejected filters with real-time badges derived during render.
 - **Unreviewed Triage Guard:** If the user attempts to finalize selections while unreviewed verses exist, `CurationUnreviewedBanner` prompts whether to accept or reject all remaining verses in batch.
 - **Permanent Curation Commit:** Committing selection sets `committedVerses`, filtering rejected items out of memory and DOM.
 
 ### 3. Workspace Search Update (Backend & Frontend)
+
 - **Backend API & Repo:**
   - `backend/internal/api/scope_handler.go`: Added optional `ID` field to `SaveSearchRequest`.
   - `backend/internal/db/saved_repo.go`: Updated `SaveSearch` to use SQL `ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, query = EXCLUDED.query, result_json = EXCLUDED.result_json`. Compatible with both Neon PostgreSQL and in-memory SQLite `:memory:` test harnesses.
@@ -84,6 +88,7 @@ stateDiagram-v2
   - `frontend/src/components/search/SearchHub.tsx`: Key-bound tab rendering ensures clean component mounting and state resets.
 
 ### 4. Taskfile Automation Hygiene
+
 - `task plans:link`: Detects if `.plans` is a local directory; automatically synchronizes with `$HOME/code/clible-plans` via `rsync` before linking, preventing collisions and script failures.
 - `task plans:status`: Checks symlink and git status of the canonical plans repository.
 - `task plans:push`: Automates staging, committing, and pushing in `~/code/clible-plans`.
@@ -116,7 +121,7 @@ stateDiagram-v2
 ## Files Changed
 
 | File | Change Summary |
-|------|----------------|
+| ------ | ---------------- |
 | `backend/internal/api/scope_handler.go` | Added optional `ID` field to `SaveSearchRequest` and forwarded to model |
 | `backend/internal/api/scope_handler_test.go` | Added integration tests for creating and updating saved searches via HTTP |
 | `backend/internal/db/saved_repo.go` | Implemented `ON CONFLICT (id) DO UPDATE` upsert for `SaveSearch` |
@@ -147,20 +152,27 @@ stateDiagram-v2
 ## Testing Strategy
 
 ### Automated Verification
+
 - Full project verification:
+
   ```bash
   task check
   ```
+
 - Backend Go tests & race detector:
+
   ```bash
   task backend:check
   ```
+
 - Frontend typecheck, linter, and Vitest suite:
+
   ```bash
   task frontend:check
   ```
 
 ### Manual Verification Checklist
+
 - [x] Search query yields verses with curation action buttons.
 - [x] Swiping right marks verse as accepted (green badge, border).
 - [x] Swiping left marks verse as rejected (rose badge, border).
