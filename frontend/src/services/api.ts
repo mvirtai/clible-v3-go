@@ -496,7 +496,7 @@ export class ApiService {
    * Saves a text search configuration and its current results JSON.
    */
   async saveSearch(
-    search: Omit<SavedSearch, 'id' | 'createdAt'>,
+    search: Omit<SavedSearch, 'id' | 'createdAt'> & { id?: string },
   ): Promise<SavedSearch> {
     const res = await fetch(`${this.baseUrl}/scopes/saved-searches`, {
       method: 'POST',

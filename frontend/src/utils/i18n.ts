@@ -445,6 +445,31 @@ export interface Messages {
   saveSemanticSearchSuccess: string;
   saveSemanticSearchButton: string;
   savingSemanticSearch: string;
+  updateSemanticSearch: string;
+  updateSemanticSearchButton: string;
+  updatingSemanticSearch: string;
+  updateSemanticSearchSuccess: string;
+  curateAll: string;
+  curateAccepted: string;
+  curateRejected: string;
+  curateAccept: string;
+  curateReject: string;
+  curateRestore: string;
+  curateSwipeHint: string;
+  curateSaveOnlyAccepted: string;
+  curateSaveAll: string;
+  curateAcceptAll: string;
+  curateReset: string;
+  curateKeyboardHint: string;
+  curateAcceptedCount: (count: number) => string;
+  curateRejectedCount: (count: number) => string;
+  curateCommitSelection: string;
+  curateCommitConfirmTitle: string;
+  curateUnreviewedPrompt: (count: number) => string;
+  curateAcceptRemaining: string;
+  curateRejectRemaining: string;
+  curateCancelCommit: string;
+  curateCommitSuccess: (keptCount: number, discardedCount: number) => string;
 
   // User Settings & Profile
   settingsSubtitle: string;
@@ -1021,6 +1046,34 @@ export const strings: Record<UILanguage, Messages> = {
     saveSemanticSearchSuccess: 'Semantic search saved to workspace!',
     saveSemanticSearchButton: 'Save',
     savingSemanticSearch: 'Saving...',
+    updateSemanticSearch: 'Update saved search',
+    updateSemanticSearchButton: 'Update',
+    updatingSemanticSearch: 'Updating...',
+    updateSemanticSearchSuccess: 'Saved search updated in workspace!',
+    curateAll: 'All',
+    curateAccepted: 'Accepted',
+    curateRejected: 'Rejected',
+    curateAccept: 'Accept verse',
+    curateReject: 'Reject verse',
+    curateRestore: 'Restore verse',
+    curateSwipeHint: 'Swipe right to accept, left to reject',
+    curateSaveOnlyAccepted: 'Save only accepted verses',
+    curateSaveAll: 'Save all discovered verses',
+    curateAcceptAll: 'Accept all',
+    curateReset: 'Reset curation',
+    curateKeyboardHint: 'Desktop: click buttons or use keyboard (A = accept, D = reject)',
+    curateAcceptedCount: (count: number) => `${count} accepted`,
+    curateRejectedCount: (count: number) => `${count} rejected`,
+    curateCommitSelection: 'Apply selection',
+    curateCommitConfirmTitle: 'Unreviewed verses remaining',
+    curateUnreviewedPrompt: (count) =>
+      `You still have ${count} unreviewed verse${count > 1 ? 's' : ''}. How would you like to handle the remaining verses before applying?`,
+    curateAcceptRemaining: 'Accept all remaining',
+    curateRejectRemaining: 'Reject all remaining',
+    curateCancelCommit: 'Keep reviewing',
+    curateCommitSuccess: (kept, discarded) =>
+      `Selection applied: ${kept} verses kept, ${discarded} discarded.`,
+
 
     // User Settings & Profile
     settingsSubtitle: 'Manage your account details, reading preferences, and security.',
@@ -1594,6 +1647,33 @@ export const strings: Record<UILanguage, Messages> = {
     saveSemanticSearchSuccess: 'Semanttinen haku tallennettu työtilaan!',
     saveSemanticSearchButton: 'Tallenna',
     savingSemanticSearch: 'Tallennetaan...',
+    updateSemanticSearch: 'Päivitä tallennettu haku',
+    updateSemanticSearchButton: 'Päivitä',
+    updatingSemanticSearch: 'Päivitetään...',
+    updateSemanticSearchSuccess: 'Tallennettu haku päivitetty työtilassa!',
+    curateAll: 'Kaikki',
+    curateAccepted: 'Hyväksytyt',
+    curateRejected: 'Hylätyt',
+    curateAccept: 'Hyväksy jae',
+    curateReject: 'Hylkää jae',
+    curateRestore: 'Palauta tuloksiin',
+    curateSwipeHint: 'Pyyhkäise oikealle hyväksyäksesi, vasemmalle hylätäksesi',
+    curateSaveOnlyAccepted: 'Tallenna vain hyväksytyt jakeet',
+    curateSaveAll: 'Tallenna kaikki löydetyt jakeet',
+    curateAcceptAll: 'Hyväksy kaikki',
+    curateReset: 'Nollaa karsinta',
+    curateKeyboardHint: 'Työpöytä: käytä nappeja tai pikanäppäimiä (A = hyväksy, D = hylkää)',
+    curateAcceptedCount: (count: number) => `${count} hyväksytty`,
+    curateRejectedCount: (count: number) => `${count} hylätty`,
+    curateCommitSelection: 'Toteuta valinnat',
+    curateCommitConfirmTitle: 'Käsittelemättömiä jakeita jäljellä',
+    curateUnreviewedPrompt: (count) =>
+      `Sinulla on vielä ${count} luokittelematonta jaetta. Miten haluat käsitellä loput jakeet ennen valintojen toteuttamista?`,
+    curateAcceptRemaining: 'Hyväksy kaikki loput',
+    curateRejectRemaining: 'Hylkää kaikki loput',
+    curateCancelCommit: 'Jatka arviointia',
+    curateCommitSuccess: (kept, discarded) =>
+      `Valinnat toteutettu: ${kept} jaetta säilytetty, ${discarded} poistettu.`,
 
     // Käyttäjäasetukset ja profiili
     settingsSubtitle: 'Hallitse tilitietojasi, lukupreferenssejäsi ja turvallisuutta.',

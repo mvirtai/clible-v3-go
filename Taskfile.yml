@@ -204,23 +204,84 @@ tasks:
     cmds:
       - pnpm run dev
 
-  # --- Documentation (VitePress) Tasks --- #
+  # --- Documentation & Private Plans Tasks --- #
   plans:link:
-    desc: 'Symlink the private plans directory into this worktree. Usage: task plans:link [PLANS_DIR=/path/to/private/plans]'
+    desc: 'Symlink the private plans directory into this worktree (auto-syncs if local directory exists)'
+    vars:
+      ROOT_DIR:
+        sh: git rev-parse --show-toplevel 2>/dev/null || pwd
     cmds:
       - |
+        ROOT="{{.ROOT_DIR}}"
         SRC="{{.PLANS_DIR}}"
         if [ -z "$SRC" ]; then SRC="$HOME/code/clible-plans"; fi
         if [ ! -d "$SRC" ]; then
           echo "ERROR: plans directory '$SRC' not found. Clone your private plans repository there or pass PLANS_DIR=..."
           exit 1
         fi
-        if [ -e .plans ] && [ ! -L .plans ]; then
-          echo "ERROR: .plans already exists and is not a symlink."
+        TARGET="$ROOT/.plans"
+        if [ -e "$TARGET" ] && [ ! -L "$TARGET" ]; then
+          echo "[TASK] Existing local directory found at $TARGET. Syncing changes to $SRC before linking..."
+          if ! rsync -av --exclude='.git' "$TARGET/" "$SRC/"; then
+            echo "ERROR: failed to synchronize $TARGET to $SRC. Local directory was not removed."
+            exit 1
+          fi
+          rm -rf "$TARGET"
+        fi
+        ln -sfn "$SRC" "$TARGET"
+        echo "✅ [TASK] Symlink active: $TARGET -> $SRC (gitignored, never commit)"
+
+  plans:status:
+    desc: 'Check symlink status and git status of private plans repository'
+    vars:
+      ROOT_DIR:
+        sh: git rev-parse --show-toplevel 2>/dev/null || pwd
+    cmds:
+      - |
+        ROOT="{{.ROOT_DIR}}"
+        SRC="{{.PLANS_DIR}}"
+        if [ -z "$SRC" ]; then SRC="$HOME/code/clible-plans"; fi
+        echo "=== Clible Plans Status ==="
+        if [ -L "$ROOT/.plans" ]; then
+          DEST=$(readlink -f "$ROOT/.plans")
+          EXPECTED=$(readlink -f "$SRC")
+          if [ "$DEST" = "$EXPECTED" ]; then
+            echo "🔗 Symlink active: $ROOT/.plans -> $DEST"
+          else
+            echo "⚠️  $ROOT/.plans points to $DEST, expected $EXPECTED. Run 'task plans:link' to fix."
+          fi
+        elif [ -d "$ROOT/.plans" ]; then
+          echo "⚠️  $ROOT/.plans is a local directory, not a symlink to $SRC. Run 'task plans:link' to link."
+        else
+          echo "❌ $ROOT/.plans is missing. Run 'task plans:link' to create symlink."
+        fi
+        if [ -d "$SRC/.git" ]; then
+          echo ""
+          echo "=== Canonical Plans Repo Status ($SRC) ==="
+          git -C "$SRC" status -s
+        fi
+
+  plans:push:
+    desc: 'Commit and push changes in private plans repository. Usage: task plans:push MSG="your message"'
+    vars:
+      MSG: '{{default "docs(plans): update plans and tasks" .MSG}}'
+    cmds:
+      - |
+        SRC="{{.PLANS_DIR}}"
+        if [ -z "$SRC" ]; then SRC="$HOME/code/clible-plans"; fi
+        if [ ! -d "$SRC/.git" ]; then
+          echo "ERROR: $SRC is not a git repository."
           exit 1
         fi
-        ln -sfn "$SRC" .plans
-        echo "[TASK] .plans -> $SRC (gitignored, never commit)"
+        echo "Pushing changes in $SRC..."
+        git -C "$SRC" add -A
+        if ! git -C "$SRC" diff --cached --quiet; then
+        else
+          echo "Nothing new to commit in plans repository."
+        fi
+        BRANCH=$(git -C "$SRC" branch --show-current)
+        git -C "$SRC" push origin "$BRANCH"
+        echo "✅ Plans pushed successfully to canonical repository!"
 
   docs:install:
     desc: Install documentation dependencies

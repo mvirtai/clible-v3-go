@@ -409,6 +409,8 @@ export function App() {
           query: s.queryText,
           translationId: s.translationId,
           data,
+          savedSearchId: s.id,
+          savedName: s.name,
         });
         setLoadedSearch(null);
         setSearchTab('semantic');
@@ -711,6 +713,7 @@ export function App() {
             {viewMode === 'search' && (
               <div onClick={handleSearchFinished}>
                 <SearchHub
+                  key={searchTab}
                   translation={selectedTranslation}
                   onSelectVerse={(ref) => {
                     handleSelectReference(ref);
@@ -723,6 +726,11 @@ export function App() {
                   loadedSavedResults={loadedSearch}
                   loadedSemanticData={loadedSemanticSearch}
                   onSemanticSearchCompleted={setLoadedSemanticSearch}
+                  onSemanticCurationCommitted={(data) => {
+                    setLoadedSemanticSearch((current) =>
+                      current ? { ...current, data } : current
+                    );
+                  }}
                   onClearLoadedResults={() => {
                     setLoadedSearch(null);
                     setLoadedSemanticSearch(null);

@@ -9,11 +9,11 @@ import tailwindcss from '@tailwindcss/vite'
 // Extract single source of truth version with robust fallback
 let appVersion = '3.1.2'
 try {
-  const versionFilePath = path.resolve(__dirname, '../VERSION')
+  const versionFilePath = path.resolve(import.meta.dirname, '../VERSION')
   if (fs.existsSync(versionFilePath)) {
     appVersion = fs.readFileSync(versionFilePath, 'utf-8').trim()
   } else {
-    const pkgPath = path.resolve(__dirname, './package.json')
+    const pkgPath = path.resolve(import.meta.dirname, './package.json')
     if (fs.existsSync(pkgPath)) {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
       if (pkg.version) appVersion = pkg.version
@@ -30,10 +30,15 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   plugins: [react(), tailwindcss()],
+  css: {
+    postcss: {
+      plugins: [],
+    },
+  },
   server: {
     port: 3173,
     proxy: {

@@ -25,17 +25,19 @@ export interface AiSearchRequest {
     uiLanguage?: "fi" | "en";
 }
 
+export interface AiVerseMatch {
+    id: string;
+    translationId: string;
+    bookId: string;
+    chapter: number;
+    verse: number;
+    text: string;
+}
+
 export interface AiSearchResponse {
     plan: AiSearchPlan;
     search: {
-        verses: Array<{
-            id: string;
-            translationId: string;
-            bookId: string;
-            chapter: number;
-            verse: number;
-            text: string;
-        }>;
+        verses: AiVerseMatch[];
     };
     summary: AiSearchSummary | null;
     usageMetadata?: GeminiUsageMetadata;
@@ -50,4 +52,7 @@ export interface SemanticSearchSnapshot {
     query: string;
     translationId: string;
     data: AiSearchResponse;
+    savedSearchId?: string;
+    savedName?: string;
 }
+

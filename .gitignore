@@ -47,6 +47,7 @@ git-diffs.txt
 quota_report.txt
 quota_history.csv
 # Plans and design documents (local developer references)
+.plans
 .plans/
 .plans/**
 .notes/

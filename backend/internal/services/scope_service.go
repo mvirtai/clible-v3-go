@@ -60,25 +60,67 @@ func (s *ScopeService) DeleteScope(ctx context.Context, id string, userID string
 }
 
 // SaveSearch initializes tracking metrics and preserves an FTS bible search layout.
-func (s *ScopeService) SaveSearch(ctx context.Context, search *models.SavedSearch) error {
+// Verifies scope ownership and prevents cross-user overwrite of existing saved searches.
+func (s *ScopeService) SaveSearch(ctx context.Context, search *models.SavedSearch, userID string) error {
 	if search.ScopeID == "" || search.Name == "" || search.QueryText == "" {
 		return fmt.Errorf("missing critical fields required for saved search persistence")
 	}
+	if userID == "" {
+		return fmt.Errorf("user id required for saved search persistence")
+	}
 
-	if search.ID == "" {
+	// 1. Verify target scope belongs to authenticated user
+	scope, err := s.scopeRepo.GetByID(ctx, search.ScopeID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to verify scope ownership: %w", err)
+	}
+	if scope == nil {
+		return fmt.Errorf("scope not found or unauthorized")
+	}
+
+	// 2. If client supplied an existing ID, verify that the existing search belongs to caller's scopes
+	if search.ID != "" {
+		existing, err := s.savedRepo.GetSearchByID(ctx, search.ID)
+		if err != nil {
+			return fmt.Errorf("failed to verify target search: %w", err)
+		}
+		if existing != nil {
+			existingScope, err := s.scopeRepo.GetByID(ctx, existing.ScopeID, userID)
+			if err != nil {
+				return fmt.Errorf("failed to verify target search ownership: %w", err)
+			}
+			if existingScope == nil {
+				return fmt.Errorf("saved search does not belong to user")
+			}
+		}
+	} else {
 		search.ID = uuid.New().String()
 	}
+
 	if search.CreatedAt.IsZero() {
 		search.CreatedAt = time.Now().UTC()
 	}
 
-	return s.savedRepo.SaveSearch(ctx, search)
+	return s.savedRepo.SaveSearch(ctx, search, userID)
 }
 
 // SaveAnalysis initializes operational profiles and preserves an text analytic plot record.
-func (s *ScopeService) SaveAnalysis(ctx context.Context, analysis *models.SavedAnalysis) error {
+// Verifies target scope belongs to authenticated user.
+func (s *ScopeService) SaveAnalysis(ctx context.Context, analysis *models.SavedAnalysis, userID string) error {
 	if analysis.ScopeID == "" || analysis.Name == "" || analysis.Reference == "" || analysis.AnalysisType == "" {
 		return fmt.Errorf("missing critical fields required for saved analysis persistence")
+	}
+	if userID == "" {
+		return fmt.Errorf("user id required for saved analysis persistence")
+	}
+
+	// Verify target scope belongs to authenticated user
+	scope, err := s.scopeRepo.GetByID(ctx, analysis.ScopeID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to verify scope ownership: %w", err)
+	}
+	if scope == nil {
+		return fmt.Errorf("scope not found or unauthorized")
 	}
 
 	if analysis.ID == "" {

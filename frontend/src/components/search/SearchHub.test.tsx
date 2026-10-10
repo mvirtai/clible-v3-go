@@ -33,6 +33,14 @@ const mockResponse: AiSearchResponse = {
         verse: 26,
         text: 'Then he rebuked the winds and the sea.',
       },
+      {
+        id: 'v2',
+        translationId: 'web',
+        bookId: 'HEB',
+        chapter: 11,
+        verse: 1,
+        text: 'Now faith is the assurance of things hoped for.',
+      },
     ],
   },
   summary: null,
@@ -99,6 +107,9 @@ describe('SearchHub', () => {
               initialTab="semantic"
               loadedSemanticData={snapshot}
               onSemanticSearchCompleted={setSnapshot}
+              onSemanticCurationCommitted={(data) => {
+                setSnapshot((current) => current ? { ...current, data } : current);
+              }}
             />
           )}
         </div>
@@ -124,8 +135,29 @@ describe('SearchHub', () => {
       chip!.click();
     });
 
-    // Verify verse result is rendered
+    // Verify verse results are rendered
     expect(container!.textContent).toContain('Then he rebuked the winds and the sea.');
+    expect(container!.textContent).toContain('Now faith is the assurance of things hoped for.');
+
+    const v1Card = container!.querySelector('[data-testid="curated-verse-v1"]') as HTMLElement;
+    const v2Card = container!.querySelector('[data-testid="curated-verse-v2"]') as HTMLElement;
+    const acceptV1 = v1Card.querySelector('button[aria-label*="Accept"], button[aria-label*="Hyväksy"]') as HTMLButtonElement;
+    const rejectV2 = v2Card.querySelector('button[aria-label*="Reject"], button[aria-label*="Hylkää"]') as HTMLButtonElement;
+    act(() => {
+      acceptV1.click();
+      rejectV2.click();
+    });
+
+    const commitBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+      /Apply selection|Toteuta valinnat/.test(b.textContent ?? '')
+    );
+    expect(commitBtn).toBeDefined();
+    act(() => {
+      commitBtn!.click();
+    });
+
+    expect(container!.textContent).toContain('Then he rebuked the winds and the sea.');
+    expect(container!.textContent).not.toContain('Now faith is the assurance of things hoped for.');
 
     const toggleBtn = container!.querySelector('[data-testid="toggle-mount"]') as HTMLButtonElement;
 
@@ -144,7 +176,7 @@ describe('SearchHub', () => {
     const input = container!.querySelector('input[name="query"]') as HTMLInputElement;
     expect(input.value).toMatch(/Armor of God|Jumalan taisteluvarustus/);
     expect(container!.textContent).toContain('Then he rebuked the winds and the sea.');
+    expect(container!.textContent).not.toContain('Now faith is the assurance of things hoped for.');
     expect(container!.textContent).toContain('MAT 8:26');
   });
 });
-
