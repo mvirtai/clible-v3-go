@@ -1,6 +1,6 @@
-# Haku ja tekstianalytiikka
+# Haku ja tekstianalyysi
 
-clible-v3 tarjoaa suorituskykyisen haku- ja analyysimoottorin, joka on suunniteltu sekä nopeisiin jaehakuihin että syvälliseen lingvistiseen tutkimukseen useiden raamatunkäännösten yli.
+clible-v3 tarjoaa hakutyökaluja yksittäisten jakeiden etsimiseen ja raamatuntekstien kielelliseen tarkasteluun eri käännöksissä.
 
 ---
 
@@ -20,7 +20,7 @@ flowchart TD
     PHRASE --> ILIKE[("Kirjainkoosta riippumaton alimerkkijono")]
     REGEX --> RE2[("Go RE2 POSIX Regex -moottori")]
 
-    GIN --> SCOPE{"Käytä skooppirajasta"}
+    GIN --> SCOPE{"Rajaa haku"}
     ILIKE --> SCOPE
     RE2 --> SCOPE
 
@@ -37,9 +37,9 @@ flowchart TD
 
 ### Kokotekstihaku (FTS)
 
-- **PostgreSQL**: Haut suoritetaan **GIN-indeksoitua (Generalized Inverted Index)** `to_tsvector('simple', text) @@ to_tsquery('simple', ...)` -kyselyä vasten. Tämä takaa alle millisekunnin vasteajat kymmenientuhansien jakeiden yli.
+- **PostgreSQL**: Haut suoritetaan **GIN-indeksoidulla** `to_tsvector('simple', text) @@ to_tsquery('simple', ...)` -kyselyllä. Indeksi nopeuttaa hakua kymmenientuhansien jakeiden joukosta.
 - **SQLite-testit**: Yksikkötesteissä hyödynnetään **FTS5-virtuaalitaulua**, joka synkronoidaan automaattisilla triggereillä.
-- **Monisanahaut**: Tukee usean hakusanan yhdistelmiä ja relevanssijärjestystä.
+- **Monisanahaut**: Tukee usean hakusanan yhdistelmiä ja osumien järjestämistä relevanssin mukaan.
 
 ### Fraasihaku
 
@@ -61,11 +61,11 @@ Kielitieteelliseen ja morfologiseen analyysiin voit aktivoida **Regex**-kytkimen
 
 ---
 
-## 2. Hakuskoopit ja rajaus
+## 2. Haun rajaus
 
 Voit rajata minkä tahansa haun tiettyyn raamatunosioon hakutulosten tarkentamiseksi:
 
-| Skooppi | Kohdealue | Kuvaus |
+| Rajaus | Kohdealue | Kuvaus |
 |---|---|---|
 | **Koko Raamattu (`all`)** | 1. Moos.–Ilm. | Etsii kaikista 66 kanonisesta kirjasta. |
 | **Vanha testamentti (`ot`)** | 1. Moos.–Mal. | Rajaa haun heprealaisen kaanonin 39 kirjaan. |
@@ -78,9 +78,9 @@ Voit rajata minkä tahansa haun tiettyyn raamatunosioon hakutulosten tarkentamis
 
 Jokainen suoritettu haku tallentuu automaattisesti henkilökohtaiseen **Hakuhistoriaasi**:
 
-- **Aikaleima ja tila**: Tallentaa tarkan hakulausekkeen, hakutilan (FTS, fraasi, regex), kohdekäännöksen ja skoopin.
+- **Aikaleima ja tila**: Tallentaa hakulausekkeen, hakutavan (kokoteksti, fraasi tai regex), käännöksen ja rajauksen.
 - **Tulosten määrä**: Näyttää löytyneiden jakeiden lukumäärän yhdellä silmäyksellä.
-- **Uudelleenajo yhdellä klikkauksella**: Historian rivin klikkaaminen suorittaa haun heti uudelleen ilman tekstin uudelleenkirjoittamista.
+- **Uusi haku yhdellä napsautuksella**: Valitse historiasta aiempi haku, niin se suoritetaan uudelleen ilman hakutekstin kirjoittamista.
 - **Synkronoitu istuntojen yli**: Hakuhistoria tallentuu tietokantaan ja kulkee mukanasi eri laitteilla.
 
 ---
@@ -120,15 +120,15 @@ Jokainen suoritettu haku tallentuu automaattisesti henkilökohtaiseen **Hakuhist
 Vertailee samaa tekstijaksoa kahdesta eri käännöksestä rinnakkain:
 
 - **Samankaltaisuusasteikko**: Laskettu leksikaalinen vastaavuus käännösten välillä.
-- **Visuaalinen diff-korostus**: Korostaa lisäykset, poistot ja ilmaisulliset erot käännösten välillä (esim. KR92 vs. KR38 tai KJV vs. WEB).
+- **Tekstierojen korostus**: Korostaa käännösten lisäykset, poistot ja ilmaisuerot (esim. KR92:n ja KR38:n tai KJV:n ja WEB:n välillä).
 
 ---
 
-## 5. Teologiset AI-työkalut
+## 5. Tekoälyavusteiset tutkimustyökalut
 
-Kun järjestelmään on kytketty Google Gemini API -avain, clible-v3 tarjoaa edistyneet tekoälytyökalut suoraan käyttöliittymässä:
+Kun palvelimelle on määritetty Google Gemini API -avain, clible-v3 tarjoaa tekoälyavusteisia tutkimustyökaluja käyttöliittymässä:
 
-- **Teologiset näkökulmat**: Tuottaa eksegeettisiä huomioita liiton, historiallisen taustan tai kirjallisten teemojen näkökulmasta.
+- **Teologiset näkökulmat**: Tuottaa huomioita esimerkiksi liitoista, historiallisesta taustasta ja kirjallisista teemoista.
 - **Alkukielten analyysit**: Kreikan ja heprean kantasanajakaumat, kieliopillinen morfologia ja sanakirjalinkitykset.
-- **Semanttinen haku**: Kysy käsitteellisiä luonnollisen kielen kysymyksiä (esim. *"Missä Paavali puhuu hengellisestä taistelusta?"*) löytääksesi aiheeseen liittyvät jakeet, vaikka täsmälliset hakusanat vaihtelisivat.
-- **AI-käännösvertailu**: Yksityiskohtainen analyyttinen erittely kahden eri käännöksen teologisista sävyeroista.
+- **Semanttinen haku**: Esitä aiheesta kysymys omin sanoin ja hae siihen liittyviä jakeita. Gemini muodostaa kysymyksestä kokotekstihaun; haku voi lisäksi täydentyä tunnistetun raamatunkohdan jakeilla. [Lue lisää semanttisesta hausta](/fi/guide/ai-study-tools).
+- **Käännösvertailu tekoälyn avulla**: Tarkastele kahden käännöksen teologisia sävyeroja.

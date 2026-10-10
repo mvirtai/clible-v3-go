@@ -1,20 +1,20 @@
 # Käännöskatalogi ja tuontimoottori
 
-clible-v3 tarjoaa monipuolisen raamatunkäännösten hallintajärjestelmän. Käyttäjät voivat ottaa käännöksiä käyttöön globaalista katalogista, ja ylläpitäjät voivat ladata uusia käännöksiä XML-standardimuodoissa suoraan verkkorajapinnan kautta.
+clible-v3 tarjoaa työkalut raamatunkäännösten hallintaan. Käyttäjät voivat ottaa käyttöön yleisessä luettelossa olevia käännöksiä, ja ylläpitäjät voivat tuoda uusia käännöksiä XML-muodossa verkkorajapinnan kautta.
 
 ---
 
 ## 1. Käännösten hallinta käyttöliittymässä
 
-**Käännöskatalogi**-näkymässä (`/translations`) käyttäjät voivat selata ja määrittää saatavilla olevia raamatunversioita:
+**Käännöskatalogissa** (`/translations`) käyttäjät voivat selata ja hallita saatavilla olevia raamatunkäännöksiä:
 
-- **Globaali katalogi**: Esiasennetut vakiokäännökset (kuten suomalaiset KR92 ja KR38, World English Bible ja King James Version) ovat kaikkien käyttäjien saatavilla.
-- **Aktivointi ja linkitys**: **Ota käyttöön** -napin klikkaaminen linkittää käännöksen henkilökohtaiseen tiliisi (`POST /api/translations/link`), jolloin se on käytettävissä lukutilassa, haussa, käännösvertailussa ja ISLA-kyselyissä.
-- **Käytöstä poisto**: Käännöksen passivointi poistaa sen valitsimista poistamatta itse käännösdataa tietokannasta.
+- **Yleinen käännösluettelo**: Esiasennetut käännökset (kuten KR92, KR38, World English Bible ja King James Version) ovat kaikkien käyttäjien saatavilla.
+- **Käyttöönotto**: **Ota käyttöön** -painike liittää käännöksen tiliisi (`POST /api/translations/link`). Sen jälkeen voit käyttää käännöstä lukutilassa, haussa, käännösvertailussa ja ISLA-kyselyissä.
+- **Käytöstä poistaminen**: Käännöksen poistaminen valikoimasta ei poista sen tekstejä tietokannasta.
 
 ```mermaid
 graph LR
-    subgraph Catalog ["Globaali katalogi"]
+    subgraph Catalog ["Yleinen käännösluettelo"]
         T1["KR92: Suomi 1992"]
         T2["KR38: Suomi 1938"]
         T3["WEB: World English Bible"]
@@ -33,16 +33,16 @@ graph LR
 
 ## 2. Suorituskykyinen $O(1)$ XML-suoratoistomoottori
 
-Kun uusia käännöksiä tuodaan järjestelmään (`POST /api/translations/import` tai CLI-alustuksen kautta), backend hyödyntää muistitehokasta suoratoistoputkea, joka käsittelee suuretkin XML-tiedostot (3–15+ MB) **$O(1)$ vakioisella muistinkulutuksella**.
+Kun järjestelmään tuodaan käännös (`POST /api/translations/import` tai CLI-alustuksen kautta), taustapalvelu käsittelee XML-tiedoston muistitehokkaasti. Muistinkulutus pysyy vakiona tiedoston koosta riippumatta (**$O(1)$**).
 
 ### $O(1)$-tuontifilosofia
 
 Perinteiset XML-jäsentimet (kuten DOM-puun rakentajat tai koko tiedoston lukeminen muistiin) kuluttavat helposti 50–100+ MB RAM-muistia, mikä voi kaataa pienimuistiset konttiympäristöt.
 
-clible-v3 käyttää Go-kielen suoratoistavaa tokenijäsennintä (`xml.Decoder`):
+clible-v3 käyttää Go-kielen XML-suoratoistojäsennintä (`xml.Decoder`):
 
 - **Peräkkäinen tokenivirta**: Lukee XML-syötettä merkki kerrallaan pitäen muistissa vain nykyisen tagin.
-- **Funktionaalinen takaisinkutsukuvio**: Jakeet toimitetaan välittömästi puskuroidulle eräkirjoittimelle.
+- **Takaisinkutsut**: Jäsennetyt jakeet toimitetaan puskuroituun eräkirjoittimeen.
 - **Ei väliaikaistiedostoja levylle**: Suoratoistodata virtaa suoraan HTTP-verkkopyynnöstä tietokantaan.
 
 ```mermaid
@@ -51,7 +51,7 @@ graph TD
     
     subgraph XML_Parser ["XML-jäsennin: internal/parsers/xml_parser.go"]
         Dec --> Token["Lue seuraava tokeni"]
-        Token --> Filter{"Alaviite- tai viitetagi?"}
+        Token --> Filter{"Alaviite- tai ristiviittaustagi?"}
         Filter -- Kyllä --> Skip["Ohita metatietosisältö"]
         Filter -- Ei --> Process["Kokoa jaeteksti"]
     end
@@ -98,8 +98,8 @@ Rakenteellinen teologinen skeema elementtimääritteillä:
 
 XML-lähdetiedostoissa on usein alaviitteitä (`<f>`) ja ristiviitteitä (`<x>`). Jäsennin ylläpitää `skipDepth`-laskuria:
 
-- Kun havaitaan avaava `<f>` tai `<x>`, laskuri kasvaa ja merkkien keruu keskeytetään.
-- Kun havaitaan sulkeva `</f>` tai `</x>`, laskuri pienenee, jolloin indeksoidaan vain puhdas raamatunteksti.
+- Kun havaitaan avaava `<f>`- tai `<x>`-elementti, laskuri kasvaa ja tekstin keruu keskeytyy.
+- Kun vastaava sulkeva elementti havaitaan, laskuri pienenee ja varsinaisen raamatuntekstin keruu jatkuu.
 
 ---
 
@@ -109,7 +109,7 @@ Palvelukerroksen tuontiputki (`internal/services/seed_service.go`) soveltaa kolm
 
 ### 1. Kanonisten kirjojen validointi
 
-Ennen jäsennyksen alkua palvelu lataa 66 kanonisen kirjan määritelmät tietokannasta (`books`-taulu). Ei-kanoniset tekstit (kuten esipuheet tai sanastot) suodatetaan automaattisesti pois.
+Ennen jäsennystä palvelu lataa tietokannasta 66 kanonisen kirjan tiedot (`books`-taulu). Ei-kanoniset tekstit, kuten esipuheet ja sanastot, jätetään tuonnin ulkopuolelle.
 
 ### 2. Standardoidut kirjalyhenteet
 
@@ -117,18 +117,18 @@ Lähdetiedostoissa käytetään usein kirjavia nimiä (esim. `GENESIS.`, `1KGS`,
 
 ### 3. Puskuroitu erätallennus (500 jakeen erät)
 
-Kaikkien 31 102 jakeen tallentaminen yksitellen aiheuttaisi vakavaa lukkiutumista ja verkkolatenssia.
+Kaikkien 31 102 jakeen tallentaminen yksitellen aiheuttaisi tarpeettomia tietokantakyselyitä ja verkkoliikennettä.
 
 Palvelu puskuroi jakeet **500 jakeen ryhmiin** ja suorittaa monirivisiä erälisäyksiä:
 
-- **PostgreSQL**:ssä tämä lyhentää koko Raamatun tuontiajan yli minuutista **alle kahteen sekuntiin**.
+- **PostgreSQL:ssä** koko Raamatun tuonti nopeutuu yli minuutista **alle kahteen sekuntiin**.
 - Tiedostovirran päättyessä puskuri tyhjennetään siististi viimeisessä ACID-transaktiossa.
 
 ---
 
 ## 5. Ylläpidon tuontirajapinta (REST API)
 
-Uuden raamatunkäännöksen lataaminen katalogiin tapahtuu multipart POST -pyynnöllä:
+Uusi raamatunkäännös tuodaan luetteloon multipart POST -pyynnöllä:
 
 ```http
 POST /api/translations/import

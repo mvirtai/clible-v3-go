@@ -39,13 +39,18 @@ Select any passage and request an AI Insight with customizable hermeneutical foc
 
 ---
 
-## 3. Semantic & Conceptual Natural Language Search
+## 3. Semantic Search with Natural-Language Queries
 
-Unlike traditional keyword search which requires exact matching words, **Semantic Search** understands theological concepts and thematic queries:
+Semantic Search lets you describe a topic or ask a question in your own words instead of searching for a specific word. It combines Google Gemini with full-text search: Gemini turns the question into a search plan, and the backend searches the selected translation using the generated terms and scope.
 
-- *"Where does Paul describe the armor of God?"* → Resolves to Ephesians 6:10–18.
-- *"Scriptures on faith without works being dead"* → Resolves to James 2:14–26.
-- *"Jesus calming the sea with his disciples"* → Resolves to Mark 4:35–41 and parallels.
+- *"Where does Paul describe the armor of God?"* → May produce a search for Ephesians 6:10–18.
+- *"Scriptures on faith without works being dead"* → May identify James 2:14–26.
+- *"Jesus calming the sea with his disciples"* → May identify Mark 4:35–41.
+
+When Gemini recognizes a known passage, the backend also retrieves its verses and adds them to the full-text search results. This can include verses that do not contain the generated search terms. The results show the search plan, matching verses, and a summary grounded in the returned verse snippets; the summary uses up to 15 snippets. You can open an identified passage in the Reader or save the search to an active workspace.
+
+> [!NOTE]
+> Semantic Search does not retrieve nearest matches from vector embeddings. Gemini generates terms and full-text search parameters, and the backend can supplement those matches with a recognized passage. Results therefore depend on the selected translation and generated search plan; try another wording or translation if needed.
 
 ---
 

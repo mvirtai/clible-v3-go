@@ -1,12 +1,12 @@
 # Arkkitehtuurin yleiskatsaus ja kerrokset
 
-clible-v3-go on suunniteltu web-natiiviksi, tilattomaksi asiakas-palvelin-sovellukseksi. Erottamalla käyttöliittymän, tiedon prosessoinnin, ISLA-kyselymoottorin ja tallennuskerroksen toisistaan saavutetaan selkeät vastuurajat, korkea suorituskyky ja erinomainen pilvissiirrettävyys.
+clible-v3-go on verkkopohjainen, tilaton asiakas-palvelinsovellus. Käyttöliittymän, tietojen käsittelyn, ISLA-kyselymoottorin ja tallennuksen erottaminen toisistaan selkeyttää vastuita, parantaa suorituskykyä ja helpottaa sovelluksen siirtämistä pilviympäristöstä toiseen.
 
 ---
 
 ## Järjestelmäarkkitehtuuri
 
-Ylätasolla järjestelmä koostuu React-verkkokäyttöliittymästä, joka kommunikoi HTTP:n yli Go REST API -monoliitin kanssa. Monoliitti hallitsee käyttäjien todennusta HTTP-only JWT -istunnoilla, koordinoi tekstianalyysejä, suorittaa ISLA v2 -kyselyitä ja integroituu ulkoiseen Gemini AI API -rajapintaan. Kaikki tuotantotiedot tallennetaan Neon PostgreSQL -tietokantaan. Paikallista SQLite-tietokantaa käytetään yksinomaan nopeisiin muistipohjaisiin yksikkötesteihin.
+Järjestelmä koostuu React-käyttöliittymästä ja Go REST API -taustapalvelusta, jotka viestivät HTTP:n välityksellä. Taustapalvelu huolehtii käyttäjien todennuksesta HTTP-only JWT -istunnoilla, koordinoi tekstianalyysejä, suorittaa ISLA v2 -kyselyitä ja käyttää Gemini-tekoälypalvelua. Tuotantotiedot tallennetaan Neon PostgreSQL -tietokantaan. Yksikkötesteissä käytetään eristettyä, muistissa toimivaa SQLite-tietokantaa.
 
 ```mermaid
 graph TD
@@ -25,7 +25,7 @@ graph TD
     end
 
     DB[("PostgreSQL: Neon")]
-    AI["Gemini AI API"]
+    AI["Gemini-tekoälypalvelu"]
 
     UI --> API_CLIENT
     API_CLIENT -->|"HTTP / REST (JSON)"| MW_LAYER
@@ -47,17 +47,17 @@ Backend on jäsennelty viiteen kerrokseen, joilla on tiukat riippuvuussäännöt
 
 ### 1. API-kerros (`internal/api/`)
 
-Kaikkien HTTP-pyyntöjen sisääntulopiste. Määrittää päätepisteet, jäsentää parametrit, validoi JSON-pyynnöt ja kutsuu asianmukaisia palveluita tai ISLA-moottoria.
+HTTP-pyyntöjen sisääntulokerros. Se määrittää rajapintareitit, jäsentää parametrit, validoi JSON-pyynnöt ja kutsuu tarvittavia palveluita tai ISLA-moottoria.
 
-- **Vastuut**: Reititys, parametrien validointi, HTTP-tilakoodit, CORS ja JSON-vastausten kirjoitus.
+- **Vastuut**: Reititys, parametrien validointi, HTTP-tilakoodit, CORS ja JSON-vastausten muodostaminen.
 - **Rajat**: Ei saa ottaa suoria tietokantayhteyksiä, kirjoittaa SQL-kyselyitä tai tehdä tiedostojärjestelmä-/verkkotoimintoja.
 - **Optimointi**: Ylläpitää O(1) tilakompleksisuuden suoratoistamalla tiedostojen lataukset suoraan jäsenninkerrokselle ilman muistipuskurointia.
 
 ### 2. Palvelukerros (`internal/services/`)
 
-Koordinoi sovelluksen liiketoimintalogiikkaa. Toimii siltana API-käsittelijöiden, tietokantakerroksen ja apupakettien (kuten XML-jäsentimien ja AI-integraation) välillä.
+Koordinoi sovelluksen liiketoimintalogiikkaa ja yhdistää API-käsittelijät, tietokantakerroksen sekä apupaketit, kuten XML-jäsentimet ja tekoälyintegraation.
 
-- **Vastuut**: Hakualgoritmit, monivaiheiset transaktiot, työtilojen (skoopit) hallinta, tekstianalytiikka ja käännösten tuonti.
+- **Vastuut**: Hakualgoritmit, monivaiheiset transaktiot, tutkimustyötilojen hallinta, tekstianalytiikka ja käännösten tuonti.
 - **Rajat**: Ei saa käsitellä HTTP-käsitteitä (ei `http.ResponseWriter`- tai `http.Request`-viitteitä).
 - **Optimointi**: Käyttää 500 jakeen puskuroituja erälisäyksiä tehokkaaseen tietokantatallennukseen.
 
@@ -65,7 +65,7 @@ Koordinoi sovelluksen liiketoimintalogiikkaa. Toimii siltana API-käsittelijöid
 
 Itsenäinen Go-paketti, joka toteuttaa täyden ISLA v2 -kyselykielen. Käsittelee raa'at ISLA-lausekkeet nelivaiheisessa putkessa ja palauttaa jäsennellyt `models.CLIResult`-arvot.
 
-- **Vastuut**: Raakasyötteen leksointi tokeneiksi, jäsentäminen tyypitetyksi AST:ksi, metodien kelpoisuuden validointi, kyselyiden ajo `VerseFetcher`- ja `VerseSearcher`-rajapintojen kautta sekä ketjutettujen metodien soveltaminen.
+- **Vastuut**: Syötteen jakaminen tokeneiksi, jäsentäminen tyypitetyksi AST:ksi, metodien kelpoisuuden tarkistaminen ja kyselyiden suorittaminen `VerseFetcher`- ja `VerseSearcher`-rajapintojen kautta.
 - **Rajat**: Riippuu **vain** paketeista `internal/models` ja `internal/parsers`. Ei suoraa riippuvuutta palvelu- tai API-kerroksiin.
 - **Suorituskyky**: Deterministinen LL(1)-jäsennin alle 50 µs latenssilla. Syötteen pituus rajoitettu 2000 rune-merkkiin DoS-hyökkäysten estämiseksi.
 
