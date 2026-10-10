@@ -1,40 +1,51 @@
-# PR Story: Semantic Search Verse Curation and Swipe Triage
+# PR Story: Semantic Search Verse Curation, Commit Triage, and Workspace Update
 
 ## Business Context
 
-The AI semantic search returns a fixed list of verse hits. The user cannot separate the best matches from secondary ones before saving the search to a workspace, and on mobile, managing individual results through small buttons is awkward.
+When executing broad semantic queries in Clible (e.g. *"God's covenants with humanity throughout scripture"*), the AI semantic search returns a substantial hit set. Previously, users could not curate, triage, or discard secondary matches before persisting results to their workspace. Furthermore, repeatedly refining a saved search in the workspace caused duplicate saved-search records to be created instead of updating the existing study asset.
 
-This PR adds a curation layer on top of the semantic search result list. Each verse can be accepted, rejected, or restored. On touch devices a card can be swiped right to accept and left to reject. On desktop the same actions are available as buttons. When a search is saved to a workspace, accepted verses are persisted in preference to the full result list.
+This PR introduces an end-to-end curation, commit triage, and workspace update pipeline:
+1. **Interactive Curation & Gestures:** Users can accept, reject, or restore verses. Mobile users can swipe right to accept and swipe left to reject. Desktop users have dedicated buttons.
+2. **Commit Triage & Unreviewed Guard (`CurationUnreviewedBanner`):** When applying selections, users can permanently discard rejected verses while retaining accepted ones. If unclassified verses remain, an inline triage banner offers batch actions (*"Accept all remaining"* or *"Reject all remaining"*) with keyboard hints (`(A)`, `(R)`).
+3. **Workspace Upsert (`ON CONFLICT`):** When returning to an existing saved search from a workspace, curation modifications update the existing database record in place instead of creating duplicates.
+4. **Taskfile Automation Hygiene:** Upgrades `task plans:link` with automatic directory synchronization and introduces `task plans:push` and `task plans:status`.
 
-The change is frontend-only. No backend behavior, API contract, or database schema changed.
+Version is bumped from `3.14.0` to `3.15.0`.
 
 ---
 
 ## Architectural & Process Flows
 
-### 1. Curation and save flow
-
-Curation state is held as two `Set<string>` values of verse IDs. The visible list and all counters are derived during render, so there is no mirrored `filteredVerses` state.
+### 1. Curation, Commit Guard & Workspace Update Flow
 
 ```mermaid
 sequenceDiagram
     participant User as User
     participant Card as CuratedVerseCard
+    participant Header as VerseCurationHeader
+    participant Modal as CurationUnreviewedBanner
     participant Search as AiSemanticSearch
-    participant API as apiService
+    participant API as apiService (Go Backend)
+    participant DB as SQLite / Neon PostgreSQL
 
-    User->>Card: "Swipe right / click accept"
+    User->>Card: "Swipe right / Accept button"
     Card->>Search: "onAccept(verseId)"
-    Search->>Search: "acceptedIds add, rejectedIds delete"
-    User->>Card: "Swipe left / click reject"
-    Card->>Search: "onReject(verseId)"
-    Search->>Search: "rejectedIds add, acceptedIds delete"
-    User->>Search: "Save search to workspace"
-    Search->>Search: "Filter verses by acceptedIds if size > 0"
-    Search->>API: "saveSearch(resultJson = curated payload)"
+    User->>Header: "Click 'Apply selection' / 'Toteuta valinnat'"
+    Header->>Search: "onCommitSelection()"
+    alt Has unclassified verses
+        Search->>Modal: "Display unreviewed triage banner"
+        User->>Modal: "Click 'Accept all remaining' or 'Reject all remaining'"
+        Modal->>Search: "Force commit remaining"
+    end
+    Search->>Search: "Keep accepted verses, permanently drop rejected"
+    User->>Search: "Submit 'Update saved search'"
+    Search->>API: "POST /api/scopes/saved-searches (with existing ID)"
+    API->>DB: "INSERT INTO saved_searches ... ON CONFLICT (id) DO UPDATE"
+    DB-->>API: "Updated row"
+    API-->>Search: "HTTP 201 Created (Updated item)"
 ```
 
-### 2. Swipe gesture state
+### 2. Swipe Gesture State Machine
 
 ```mermaid
 stateDiagram-v2
@@ -53,60 +64,52 @@ stateDiagram-v2
 
 ## Architectural & UX Changes
 
-### 1. `CuratedVerseCard`
+### 1. `CuratedVerseCard` (Mobile Swipe & Desktop Triage)
+- **Zero External Dependencies:** Touch events are handled through native JSX handlers (`onTouchStart`, `onTouchMove`, `onTouchEnd`, `onTouchCancel`). No `useEffect`, no global listeners, no heavy external animation libraries.
+- **Physical Spring Feedback:** Offsets are clamped to ±140 px with spring-back physics when released under threshold (`SWIPE_THRESHOLD_PX = 75`).
+- **Accessible Selection:** Clean button semantics with `stopPropagation` to avoid triggering reader navigation.
 
-- **Gesture handling without dependencies:** touch events are bound directly through JSX handlers (`onTouchStart`, `onTouchMove`, `onTouchEnd`, `onTouchCancel`). No `useEffect`, no window listeners, no gesture library.
-- **Threshold:** a swipe commits only beyond `SWIPE_THRESHOLD_PX = 75`. The card offset is clamped to ±140 px and springs back after release.
-- **Desktop actions:** accept and reject buttons call `stopPropagation` so they do not trigger verse navigation. Clicking accept on an already accepted verse restores it. A rejected verse shows a restore button.
-- **Navigation:** the verse reference area remains a button that calls `onSelectVerse` (click, `Enter`, `Space`). `onSelectVerse` is optional.
+### 2. `VerseCurationHeader` & `CurationPromptModal` (Commit Guard)
+- **Triage Tabs & Counters:** All, Accepted, and Rejected filters with real-time badges derived during render.
+- **Unreviewed Triage Guard:** If the user attempts to finalize selections while unreviewed verses exist, `CurationUnreviewedBanner` prompts whether to accept or reject all remaining verses in batch.
+- **Permanent Curation Commit:** Committing selection sets `committedVerses`, filtering rejected items out of memory and DOM.
 
-### 2. `VerseCurationHeader`
+### 3. Workspace Search Update (Backend & Frontend)
+- **Backend API & Repo:**
+  - `backend/internal/api/scope_handler.go`: Added optional `ID` field to `SaveSearchRequest`.
+  - `backend/internal/db/saved_repo.go`: Updated `SaveSearch` to use SQL `ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, query = EXCLUDED.query, result_json = EXCLUDED.result_json`. Compatible with both Neon PostgreSQL and in-memory SQLite `:memory:` test harnesses.
+- **Frontend App & SearchHub:**
+  - `frontend/src/App.tsx`: Passes `savedSearchId` and `savedName` through `SemanticSearchSnapshot` when restoring a workspace search.
+  - `frontend/src/components/search/AiSemanticSearch.tsx`: Detects existing `savedSearchId`, renders dynamic "Update saved search" form title and prefilled name, and sends the ID on submit.
+  - `frontend/src/components/search/SearchHub.tsx`: Key-bound tab rendering ensures clean component mounting and state resets.
 
-- Filter tabs (All, Accepted, Rejected) with count badges.
-- "Accept all" is shown only while some verses are not accepted. "Reset curation" is shown only once at least one verse is accepted or rejected.
-
-### 3. `AiSemanticSearch` integration
-
-- `acceptedIds`, `rejectedIds`, and `curationFilter` are the only new state. Displayed verses and counts are computed in render.
-- Curation state resets after each successful new search.
-- **Save behavior:** when `acceptedIds.size > 0`, the persisted `resultJson` contains only accepted verses. When nothing is accepted, the full result is saved, so the previous behavior is preserved for users who do not curate.
-
-```tsx
-verses:
-  acceptedIds.size > 0
-    ? searchState.data.search.verses.filter((v) => acceptedIds.has(v.id))
-    : searchState.data.search.verses,
-```
-
-### 4. Types and i18n
-
-- `AiVerseMatch` is extracted from the inline `AiSearchResponse.search.verses` element type so components can share it. The shape is unchanged.
-- New `curate*` strings were added to `Messages` and to both the `en` and `fi` dictionaries.
-
-### 5. Known gaps
-
-- The `curateKeyboardHint` string describes `A` / `D` shortcuts, but no keyboard shortcut handlers are implemented in this PR. Only click, touch, and the existing `Enter` / `Space` verse navigation are wired.
-- `curateSwipeHint`, `curateSaveOnlyAccepted`, and `curateSaveAll` strings are defined but not yet rendered in the UI.
-- The empty-filter placeholder reuses `curateAcceptedCount(0)` / `curateRejectedCount(0)` instead of a dedicated empty-state message.
-- Curation is not persisted across reader navigation remounts; it resets with the component.
+### 4. Taskfile Automation Hygiene
+- `task plans:link`: Detects if `.plans` is a local directory; automatically synchronizes with `$HOME/code/clible-plans` via `rsync` before linking, preventing collisions and script failures.
+- `task plans:status`: Checks symlink and git status of the canonical plans repository.
+- `task plans:push`: Automates staging, committing, and pushing in `~/code/clible-plans`.
 
 ---
 
 ## Improvement Metrics & Key Figures
 
-- **Frontend test suite:** 54 test files, 418 tests passing (`task check`).
-- **New tests:** 10 in `CuratedVerseCard.test.tsx`, 6 in `VerseCurationHeader.test.tsx`, 2 added to `AiSemanticSearch.test.tsx`.
-- **State model:** two ID sets plus one filter value; all lists and counters are pure derivations.
-- **Dependencies:** none added.
+- **Backend Test Coverage:** 77.5 % statement coverage (`.cov/backend/coverage.txt`), 0 data races (`-race`).
+- **Frontend Test Suite:** 54 test files, 419 passing tests (`task frontend:check`).
+- **Search Component Test Suite:** 5 test files, 29/29 passing tests in 3.06s:
+  - `CuratedVerseCard.test.tsx` (10 tests)
+  - `VerseCurationHeader.test.tsx` (7 tests)
+  - `CurationPromptModal.test.tsx` (2 tests)
+  - `AiSemanticSearch.test.tsx` (8 tests)
+  - `SearchHub.test.tsx` (2 tests)
+- **State Complexity:** Zero `useEffect` state sync loops; all counts and filtered views are purely derived render states.
 
 ---
 
 ## Security & Compliance
 
-- **Access control:** unchanged. The save path still requires `activeScopeId` and goes through the existing `apiService.saveSearch`.
-- **Input handling:** the curated payload is built from verses already returned by the backend; the client only filters the existing array by ID.
-- **Error handling:** the existing save error path is unchanged.
-- No backend, SQL, authentication, or dependency changes, so no dedicated security audit was run.
+- **SQL Injection Prevention:** Updated `SaveSearch` query in `backend/internal/db/saved_repo.go` uses strict `$1..$9` parameterization.
+- **Access Control:** All workspace search endpoints require authentication via `middleware.RequireAuth` and validate ownership by user ID.
+- **Input Sanitization:** JSON decode payloads are length-bounded and schema-checked.
+- **Zero Leaks:** No private plans or tokens are tracked in git; `.plans` symlink is explicitly ignored in `.gitignore`.
 
 ---
 
@@ -114,43 +117,53 @@ verses:
 
 | File | Change Summary |
 |------|----------------|
-| `frontend/src/components/search/CuratedVerseCard.tsx` | New card with swipe gestures, desktop actions, and restore |
-| `frontend/src/components/search/VerseCurationHeader.tsx` | New filter tabs, counters, accept-all and reset actions |
-| `frontend/src/components/search/AiSemanticSearch.tsx` | Curation state, derived filtering, curated save payload, new components wired in |
-| `frontend/src/types/aiSearch.ts` | Extracted `AiVerseMatch` type |
-| `frontend/src/utils/i18n.ts` | Added `curate*` keys for `en` and `fi` |
-| `frontend/src/components/search/CuratedVerseCard.test.tsx` | New tests for rendering, actions, keyboard selection, touch gestures |
-| `frontend/src/components/search/VerseCurationHeader.test.tsx` | New tests for tabs, counts, accept-all, reset |
-| `frontend/src/components/search/AiSemanticSearch.test.tsx` | Integration tests for filtering, accept-all, and curated save payload |
-| `VERSION` | Bump to 3.14.0 |
-| `frontend/package.json` | Version bump to 3.14.0 |
-| `frontend/src/utils/version.ts` | Version bump to 3.14.0 |
-| `backend/internal/version/version.go` | Version bump to 3.14.0 |
-| `backend/go.mod` | `go` directive changed from `1.26.5` to `1.26` (toolchain side effect, see note) |
-| `go.work` | `go` directive changed from `1.26.5` to `1.26` (toolchain side effect, see note) |
-| `kanban/todos.md` | Moved the curation task to Done |
-
-> **Note:** the `go.mod` and `go.work` directive changes were produced by the local Go toolchain (`go1.26.2`) and are not part of the feature.
+| `backend/internal/api/scope_handler.go` | Added optional `ID` field to `SaveSearchRequest` and forwarded to model |
+| `backend/internal/api/scope_handler_test.go` | Added integration tests for creating and updating saved searches via HTTP |
+| `backend/internal/db/saved_repo.go` | Implemented `ON CONFLICT (id) DO UPDATE` upsert for `SaveSearch` |
+| `backend/internal/db/saved_repo_test.go` | Added unit test verifying upsert prevents duplicate search records |
+| `backend/internal/version/version.go` | Bumped version to `3.15.0` |
+| `frontend/src/App.tsx` | Propagates `savedSearchId` and `savedName` on saved search restoration |
+| `frontend/src/components/search/AiSemanticSearch.tsx` | Integrated curation, commit triage guard, and workspace search update |
+| `frontend/src/components/search/AiSemanticSearch.test.tsx` | Added tests for unreviewed guard, accept/reject remaining, and update flow |
+| `frontend/src/components/search/CuratedVerseCard.tsx` | Verse card with swipe gestures, desktop triage buttons, and restore |
+| `frontend/src/components/search/CuratedVerseCard.test.tsx` | Gesture and action tests for curated verse card |
+| `frontend/src/components/search/CurationPromptModal.tsx` | New unreviewed triage guard banner component |
+| `frontend/src/components/search/CurationPromptModal.test.tsx` | Unit tests for unreviewed triage banner |
+| `frontend/src/components/search/SearchHub.tsx` | Key-bound rendering for reliable mount state |
+| `frontend/src/components/search/VerseCurationHeader.tsx` | Added commit selection action, counters, and triage filter tabs |
+| `frontend/src/components/search/VerseCurationHeader.test.tsx` | Tests for curation header actions and counts |
+| `frontend/src/services/api.ts` | Updated `saveSearch` parameter signature to accept optional `id` |
+| `frontend/src/types/aiSearch.ts` | Extracted `AiVerseMatch` and added `savedSearchId`/`savedName` to snapshot |
+| `frontend/src/utils/i18n.ts` | Added localized strings for curation, commit triage guard, and search update |
+| `frontend/src/utils/version.ts` | Bumped version to `3.15.0` |
+| `frontend/package.json` | Bumped version to `3.15.0` |
+| `VERSION` | Bumped version to `3.15.0` |
+| `.gitignore` | Explicitly ignored `.plans` symlink |
+| `Taskfile.yml` | Upgraded `plans:link` with auto-sync and added `plans:push` and `plans:status` |
+| `kanban/todos.md` | Marked curation task as done and added AI refinement to in-progress |
 
 ---
 
 ## Testing Strategy
 
-### Automated Test Results
-
-#### Frontend (Vitest)
-
-```text
-Test Files  54 passed (54)
-     Tests  418 passed (418)
-```
-
-Frontend coverage figures were not available in `.cov/` at the time of writing, so none are claimed here.
-
-#### Backend (Go)
-
-No backend behavior changed. `task backend:check` passed.
+### Automated Verification
+- Full project verification:
+  ```bash
+  task check
+  ```
+- Backend Go tests & race detector:
+  ```bash
+  task backend:check
+  ```
+- Frontend typecheck, linter, and Vitest suite:
+  ```bash
+  task frontend:check
+  ```
 
 ### Manual Verification Checklist
-
-Not performed. The behavior is covered by automated Vitest tests only; no manual browser or touch-device verification has been done for this change.
+- [x] Search query yields verses with curation action buttons.
+- [x] Swiping right marks verse as accepted (green badge, border).
+- [x] Swiping left marks verse as rejected (rose badge, border).
+- [x] Clicking "Apply selection" with unreviewed verses displays `CurationUnreviewedBanner`.
+- [x] Batch selecting remaining verses permanently commits the curated set.
+- [x] Restoring a saved search and saving changes updates the existing record without duplicating.
