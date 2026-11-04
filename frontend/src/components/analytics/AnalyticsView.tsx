@@ -29,18 +29,19 @@ import {
   selectFrequencyData,
   type FrequencyLevel,
 } from "./frequencyData";
-import { resolveBookId } from "../../utils/bookNames";
+import { resolveBookId, isBibleReference } from "../../utils/bookNames";
 import ReactMarkdown from "react-markdown";
 import { useLanguage } from "../../context/LanguageContext";
 import remarkGfm from "remark-gfm";
 import { markdownComponents } from "../../utils/markdownComponents";
 import { NextFocusChips } from "../search/NextFocusChips";
-import { DeepDiveCard } from "../layout/DeepDiveCard";
+import { DeepDiveStack } from "../layout/DeepDiveStack";
 import { GeminiUsage } from "../layout/GeminiUsage";
+import { useDeepDiveChain } from "../../hooks/useDeepDiveChain";
+import { serializeChain } from "../../utils/deepDiveSerialization";
 import type {
   AiTextResponse,
   NextFocusItem,
-  GeminiUsageMetadata,
 } from "../../types/ai";
 
 /**
@@ -86,19 +87,24 @@ export const AnalyticsView = ({
   const [reference, setReference] = useState<string>(
     () => activeReference || "John 3",
   );
-  const [stats, setStats] = useState<TextStats | null>(null);
+  const [stats, setStats] = useState<TextStats | null>(
+    () => loadedSavedStats?.stats ?? null,
+  );
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [frequencyLevel, setFrequencyLevel] =
     useState<FrequencyLevel>("words");
 
   // AI states
-  const [toneResult, setToneResult] = useState<AiTextResponse | null>(null);
+  const [toneResult, setToneResult] = useState<AiTextResponse | null>(
+    () => loadedSavedTone ?? null,
+  );
   const [toneLoading, setToneLoading] = useState(false);
   const [toneError, setToneError] = useState<string | null>(null);
-  const [deepDiveText, setDeepDiveText] = useState<string | null>(null);
-  const [deepDiveUsage, setDeepDiveUsage] =
-    useState<GeminiUsageMetadata | null>(null);
+  const deepDiveChain = useDeepDiveChain({
+    savedText: loadedSavedDeepDive ?? null,
+    scope: toneResult,
+  });
 
   const [prevLoadedSavedTone, setPrevLoadedSavedTone] =
     useState<AiTextResponse | null>(null);
@@ -108,15 +114,6 @@ export const AnalyticsView = ({
     setPrevLoadedSavedTone(normalizedSavedTone);
   }
 
-  const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<
-    string | null
-  >(null);
-  const normalizedSavedDeepDive = loadedSavedDeepDive || null;
-  if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
-    setDeepDiveText(normalizedSavedDeepDive);
-    setDeepDiveUsage(null);
-    setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
-  }
   const [toneSaveStatus, setToneSaveStatus] = useState<
     "idle" | "saving" | "success" | "error"
   >("idle");
@@ -137,10 +134,6 @@ export const AnalyticsView = ({
     setError(null);
     if (!loadedSavedTone) {
       setToneResult(null);
-    }
-    if (!loadedSavedDeepDive) {
-      setDeepDiveText(null);
-      setDeepDiveUsage(null);
     }
     setToneError(null);
     if (loadedSavedStats.stats) {
@@ -164,7 +157,6 @@ export const AnalyticsView = ({
   const runAnalysis = async () => {
     if (!reference.trim() || !defaultTranslation) return;
     setToneResult(null);
-    setDeepDiveText(null);
     setToneError(null);
     const normalized = reference
       .trim()
@@ -229,7 +221,7 @@ export const AnalyticsView = ({
         resultJson: JSON.stringify({
           stats,
           tone: toneResult,
-          deepDive: deepDiveText,
+          deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null,
         }),
       });
       setToneSaveStatus("success");
@@ -245,22 +237,7 @@ export const AnalyticsView = ({
   };
 
   const handleNextFocusPick = async (it: NextFocusItem) => {
-    if (it.kind === "word" || it.kind === "theme") {
-      setToneLoading(true);
-      setToneError(null);
-      try {
-        const res = await apiService.getAiDeepDive(it.label, aiLang, {
-          reference,
-        });
-        setDeepDiveText(res.text);
-        setDeepDiveUsage(res.geminiUsageMetadata || null);
-        setToneLoading(false);
-      } catch (err) {
-        const errorObj = err as Error;
-        setToneError(errorObj.message || strings.deepDiveFailed);
-        setToneLoading(false);
-      }
-    } else {
+    if (isBibleReference(it.label)) {
       setReference(it.label);
       const normalized = it.label
         .trim()
@@ -271,8 +248,6 @@ export const AnalyticsView = ({
       setLoading(true);
       setError(null);
       setToneResult(null);
-      setDeepDiveText(null);
-      setDeepDiveUsage(null);
       try {
         const data = await apiService.analyze(normalized, defaultTranslation);
         setStats(data);
@@ -281,6 +256,11 @@ export const AnalyticsView = ({
         setError(strings.analyticsFetchFailed);
         setLoading(false);
       }
+    } else {
+      deepDiveChain.pick(it, {
+        language: aiLang,
+        context: { reference },
+      });
     }
   };
 
@@ -433,7 +413,7 @@ export const AnalyticsView = ({
                   setSaving(true);
                   try {
                     const resultPayload = toneResult
-                      ? { stats, tone: toneResult, deepDive: deepDiveText }
+                      ? { stats, tone: toneResult, deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null }
                       : { stats };
                     await apiService.saveAnalysis({
                       scopeId: activeScopeId,
@@ -712,6 +692,8 @@ export const AnalyticsView = ({
                       title={strings.nextFocusTitle}
                       items={toneResult.nextFocus ?? []}
                       onPick={handleNextFocusPick}
+                      pendingLabel={deepDiveChain.pendingTopic}
+                      disabled={deepDiveChain.isPending}
                     />
                   </div>
                 )}
@@ -719,19 +701,16 @@ export const AnalyticsView = ({
             </div>
           </div>
 
-          {deepDiveText && (
-            <div className="mt-8 w-full">
-              <DeepDiveCard
-                title={strings.deepDiveToneTitle}
-                text={deepDiveText}
-                onClose={() => {
-                  setDeepDiveText(null);
-                  setDeepDiveUsage(null);
-                }}
-                geminiUsageMetadata={deepDiveUsage || undefined}
-              />
-            </div>
-          )}
+          <div className="mt-8 w-full">
+            <DeepDiveStack
+              entries={deepDiveChain.entries}
+              pendingTopic={deepDiveChain.pendingTopic}
+              error={deepDiveChain.error}
+              focusId={deepDiveChain.focusId}
+              title={strings.deepDiveToneTitle}
+              onRemove={deepDiveChain.remove}
+            />
+          </div>
         </>
       )}
     </div>
