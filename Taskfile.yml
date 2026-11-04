@@ -164,6 +164,12 @@ tasks:
     cmds:
       - pnpm run build
 
+  frontend:preview:
+    desc: Preview the production frontend build locally (useful for accurate Lighthouse & Core Web Vitals audits)
+    dir: frontend
+    cmds:
+      - pnpm run preview -- --port 4173
+
   frontend:test:
     desc: Run frontend unit tests
     dir: frontend
