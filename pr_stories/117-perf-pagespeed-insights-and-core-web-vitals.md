@@ -76,6 +76,7 @@ A dedicated security audit report under `.security_audits/` is **not warranted**
 | ------ | -------- |
 | `VERSION` | Bump patch version from 3.15.0 to 3.15.1 |
 | `backend/internal/version/version.go` | Synchronize application release constant to 3.15.1 |
+| `backend/internal/middleware/auth_middleware.go` | Set `Secure: isProduction` and `SameSite: http.SameSiteLaxMode` when clearing expired or invalid JWT cookies |
 | `backend/main.go` | Implement granular `Cache-Control` policy for hashed assets, root files, and SPA HTML |
 | `backend/main_test.go` | Add unit tests verifying `Cache-Control` headers for hashed assets and SPA fallbacks |
 | `frontend/index.html` | Asynchronous non-render-blocking Google Fonts loading with preload and noscript fallback |

@@ -4,6 +4,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"os"
 
 	"github.com/mvirtai/clible-v3-go/internal/ctxkeys"
 	"github.com/mvirtai/clible-v3-go/internal/services"
@@ -24,12 +25,15 @@ func RequireAuth(authService *services.AuthService) func(http.Handler) http.Hand
 			userID, err := authService.ValidateToken(cookie.Value)
 			if err != nil {
 				// Tyhjennetään virheellinen eväste
+				isProduction := os.Getenv("ENV") == "production"
 				http.SetCookie(w, &http.Cookie{
 					Name:     "jwt",
 					Value:    "",
 					Path:     "/",
 					MaxAge:   -1,
 					HttpOnly: true,
+					Secure:   isProduction,
+					SameSite: http.SameSiteLaxMode,
 				})
 				http.Error(w, `{"error":"unauthorized, invalid token"}`, http.StatusUnauthorized)
 				return
