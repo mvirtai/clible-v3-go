@@ -17,6 +17,12 @@ func TestFrontendHandlerServesSPAAndAssets(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(frontendDir, "app.js"), []byte("asset"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.MkdirAll(filepath.Join(frontendDir, "assets"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(frontendDir, "assets", "index-123.js"), []byte("hashed-bundle"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	root, err := os.OpenRoot(frontendDir)
 	if err != nil {
@@ -30,11 +36,15 @@ func TestFrontendHandlerServesSPAAndAssets(t *testing.T) {
 
 	handler := frontendHandler(root)
 	for _, test := range []struct {
-		path string
-		want string
+		path        string
+		want        string
+		wantCache   string
 	}{
-		{path: "/app.js", want: "asset"},
-		{path: "/client/route", want: "spa"},
+		{path: "/app.js", want: "asset", wantCache: "public, max-age=86400"},
+		{path: "/assets/index-123.js", want: "hashed-bundle", wantCache: "public, max-age=31536000, immutable"},
+		{path: "/client/route", want: "spa", wantCache: "no-cache, must-revalidate"},
+		{path: "/", want: "spa", wantCache: "no-cache, must-revalidate"},
+		{path: "/index.html", want: "spa", wantCache: "no-cache, must-revalidate"},
 	} {
 		recorder := httptest.NewRecorder()
 		handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, test.path, nil))
@@ -43,6 +53,9 @@ func TestFrontendHandlerServesSPAAndAssets(t *testing.T) {
 		}
 		if body := strings.TrimSpace(recorder.Body.String()); body != test.want {
 			t.Errorf("GET %s returned body %q, want %q", test.path, body, test.want)
+		}
+		if gotCache := recorder.Header().Get("Cache-Control"); gotCache != test.wantCache {
+			t.Errorf("GET %s returned Cache-Control %q, want %q", test.path, gotCache, test.wantCache)
 		}
 	}
 }

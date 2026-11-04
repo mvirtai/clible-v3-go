@@ -356,6 +356,8 @@ func frontendHandler(root *os.Root) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
+
+		w.Header().Set("Cache-Control", "no-cache, must-revalidate")
 		http.ServeContent(w, r, "index.html", info.ModTime(), file)
 	}
 
@@ -370,7 +372,8 @@ func frontendHandler(root *os.Root) http.Handler {
 			return
 		}
 
-		name := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+		cleanPath := path.Clean(r.URL.Path)
+		name := strings.TrimPrefix(cleanPath, "/")
 		if name == "" {
 			name = "."
 		}
@@ -402,6 +405,15 @@ func frontendHandler(root *os.Root) http.Handler {
 		if info.IsDir() {
 			serveIndex(w, r)
 			return
+		}
+
+		// Cache-Control policy for static files
+		if strings.HasPrefix(cleanPath, "/assets/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else if cleanPath == "/" || cleanPath == "/index.html" || strings.HasSuffix(cleanPath, ".html") {
+			w.Header().Set("Cache-Control", "no-cache, must-revalidate")
+		} else {
+			w.Header().Set("Cache-Control", "public, max-age=86400")
 		}
 
 		http.ServeContent(w, r, filepath.Base(name), info.ModTime(), file)

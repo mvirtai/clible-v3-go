@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppHeader } from './components/layout/AppHeader';
 import { ViewModeTabs } from './components/layout/ViewModeTabs';
@@ -6,10 +6,6 @@ import { TranslationManager } from './components/translations/TranslationManager
 import { VerseReader } from './components/reader/VerseReader';
 import { SearchHub, type SearchSubModule } from './components/search/SearchHub';
 import { SearchHistory } from './components/search/SearchHistory';
-import { AnalyticsView } from './components/analytics/AnalyticsView';
-import { CompareView } from './components/compare/CompareView';
-import { OriginalStudyView } from './components/original/OriginalStudyView';
-import { NotebookCanvasView } from './components/notebook/NotebookCanvasView';
 import { LiturgicalView } from './views/LiturgicalView';
 import { ReadingPlansView } from './views/ReadingPlansView';
 import type { StudyMethodTemplate } from './types/studyMethods';
@@ -38,6 +34,20 @@ import {
   saveGuestCells,
 } from './utils/guestNotebookStorage';
 import { liturgicalToISLA } from './utils/liturgicalIslaExport';
+
+// Code-split heavy views to keep initial bundle light for Core Web Vitals (FCP / LCP)
+const AnalyticsView = lazy(() =>
+  import('./components/analytics/AnalyticsView').then((m) => ({ default: m.AnalyticsView }))
+);
+const CompareView = lazy(() =>
+  import('./components/compare/CompareView').then((m) => ({ default: m.CompareView }))
+);
+const OriginalStudyView = lazy(() =>
+  import('./components/original/OriginalStudyView').then((m) => ({ default: m.OriginalStudyView }))
+);
+const NotebookCanvasView = lazy(() =>
+  import('./components/notebook/NotebookCanvasView').then((m) => ({ default: m.NotebookCanvasView }))
+);
 
 interface LoadedSearchState {
   query: string;
@@ -740,69 +750,101 @@ export function App() {
             )}
 
             {viewMode === 'analytics' && (
-              <AnalyticsView
-                defaultTranslation={selectedTranslation}
-                activeReference={activeReference}
-                activeScopeId={activeScopeId}
-                onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
-                loadedSavedStats={loadedStats}
-                loadedSavedTone={loadedTone}
-                loadedSavedDeepDive={loadedDeepDive}
-              />
+              <Suspense
+                fallback={
+                  <div className="py-12 text-center text-sm text-[var(--muted)] animate-pulse">
+                    {strings.loadingLabel}
+                  </div>
+                }
+              >
+                <AnalyticsView
+                  defaultTranslation={selectedTranslation}
+                  activeReference={activeReference}
+                  activeScopeId={activeScopeId}
+                  onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
+                  loadedSavedStats={loadedStats}
+                  loadedSavedTone={loadedTone}
+                  loadedSavedDeepDive={loadedDeepDive}
+                />
+              </Suspense>
             )}
 
             {viewMode === 'compare' && (
-              <CompareView
-                installedTranslations={installedTranslations}
-                defaultTranslation={selectedTranslation}
-                activeReference={activeReference}
-                activeScopeId={activeScopeId}
-                onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
-                loadedSavedComparison={loadedComparison}
-                loadedSavedAi={loadedComparisonAi}
-                loadedSavedDeepDive={loadedComparisonDeepDive}
-              />
+              <Suspense
+                fallback={
+                  <div className="py-12 text-center text-sm text-[var(--muted)] animate-pulse">
+                    {strings.loadingLabel}
+                  </div>
+                }
+              >
+                <CompareView
+                  installedTranslations={installedTranslations}
+                  defaultTranslation={selectedTranslation}
+                  activeReference={activeReference}
+                  activeScopeId={activeScopeId}
+                  onWorkspaceUpdated={() => setWorkspaceTrigger((p) => !p)}
+                  loadedSavedComparison={loadedComparison}
+                  loadedSavedAi={loadedComparisonAi}
+                  loadedSavedDeepDive={loadedComparisonDeepDive}
+                />
+              </Suspense>
             )}
 
             {viewMode === 'original' && (
-              <OriginalStudyView
-                installedTranslations={installedTranslations}
-                activeTranslationId={selectedTranslation}
-                uiLanguage={lang}
-                installingTranslationId={installingTranslationId}
-                installError={installError}
-                installSuccess={installSuccess}
-                onInstallTranslation={handleInstallOriginalTranslation}
-                result={originalResult}
-                loading={originalLoading}
-                error={originalError}
-                defaultReference={activeReference}
-                onStudy={handleStudyOriginalLanguage}
-                onNextFocusPick={(it) => {
-                  setActiveReference(it.label);
-                }}
-                deepDiveText={originalDeepDive}
-                onDeepDiveClose={() => setOriginalDeepDive(null)}
-                activeScopeId={activeScopeId}
-                onWorkspaceUpdated={() => setWorkspaceTrigger((prev) => !prev)}
-              />
+              <Suspense
+                fallback={
+                  <div className="py-12 text-center text-sm text-[var(--muted)] animate-pulse">
+                    {strings.loadingLabel}
+                  </div>
+                }
+              >
+                <OriginalStudyView
+                  installedTranslations={installedTranslations}
+                  activeTranslationId={selectedTranslation}
+                  uiLanguage={lang}
+                  installingTranslationId={installingTranslationId}
+                  installError={installError}
+                  installSuccess={installSuccess}
+                  onInstallTranslation={handleInstallOriginalTranslation}
+                  result={originalResult}
+                  loading={originalLoading}
+                  error={originalError}
+                  defaultReference={activeReference}
+                  onStudy={handleStudyOriginalLanguage}
+                  onNextFocusPick={(it) => {
+                    setActiveReference(it.label);
+                  }}
+                  deepDiveText={originalDeepDive}
+                  onDeepDiveClose={() => setOriginalDeepDive(null)}
+                  activeScopeId={activeScopeId}
+                  onWorkspaceUpdated={() => setWorkspaceTrigger((prev) => !prev)}
+                />
+              </Suspense>
             )}
 
             {viewMode === 'notebooks' && (
-              <NotebookCanvasView
-                notebooks={notebooks}
-                onNotebooksChange={setNotebooks}
-                selectedNotebookId={selectedNotebookId}
-                onSelectNotebook={setSelectedNotebookId}
-                selectedTranslation={selectedTranslation}
-                onSelectVerse={(ref) => {
-                  handleSelectReference(ref);
-                  setViewMode('reader');
-                }}
-                onCreateNotebook={handleCreateNotebook}
-                onResetNotebookSizes={handleResetNotebookSizes}
-                isGuest={!user}
-              />
+              <Suspense
+                fallback={
+                  <div className="py-12 text-center text-sm text-[var(--muted)] animate-pulse">
+                    {strings.loadingNotebook}
+                  </div>
+                }
+              >
+                <NotebookCanvasView
+                  notebooks={notebooks}
+                  onNotebooksChange={setNotebooks}
+                  selectedNotebookId={selectedNotebookId}
+                  onSelectNotebook={setSelectedNotebookId}
+                  selectedTranslation={selectedTranslation}
+                  onSelectVerse={(ref) => {
+                    handleSelectReference(ref);
+                    setViewMode('reader');
+                  }}
+                  onCreateNotebook={handleCreateNotebook}
+                  onResetNotebookSizes={handleResetNotebookSizes}
+                  isGuest={!user}
+                />
+              </Suspense>
             )}
 
             {viewMode === 'liturgical' && (

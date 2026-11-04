@@ -118,6 +118,7 @@ export function UserMenuDropdown({
             setIsOpen(false);
             onToggleManager();
           }}
+          aria-label={showManager ? strings.hideLabel : strings.translationsLabel}
           className="w-full min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-2)] active:bg-[var(--surface-3)] transition-colors cursor-pointer text-left"
         >
           <Settings size={16} className="text-[var(--muted)] shrink-0" />
@@ -133,6 +134,7 @@ export function UserMenuDropdown({
             setIsOpen(false);
             navigate('/settings');
           }}
+          aria-label={strings.settingsTitle}
           className="w-full min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-2)] active:bg-[var(--surface-3)] transition-colors cursor-pointer text-left"
         >
           <Settings size={16} className="text-[var(--accent)] shrink-0" />
