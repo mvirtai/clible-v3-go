@@ -10,6 +10,7 @@ import { LanguageProvider } from '../../context/LanguageContext';
 vi.mock('../../services/api', () => ({
   apiService: {
     getVerses: vi.fn(),
+    getAiDeepDive: vi.fn(),
   },
 }));
 
@@ -292,5 +293,45 @@ describe('VerseReader', () => {
     expect(nextBtns[0].className).toContain('min-h-[44px]');
     expect(prevBtns[1].className).toContain('min-h-[44px]');
     expect(nextBtns[1].className).toContain('min-h-[44px]');
+  });
+
+  it('renders deep dive through useDeepDiveChain when next focus chip is picked', async () => {
+    vi.mocked(apiService.getVerses).mockResolvedValue(mockChapterData);
+    vi.mocked(apiService.getAiDeepDive).mockResolvedValue({
+      text: '## Grace Unfolded\nGrace is unmerited favor.',
+      nextFocus: [],
+    });
+
+    const mockInsight = {
+      text: 'Overview of John 3',
+      nextFocus: [{ label: 'Grace', kind: 'theme' as const, reason: 'Key theological theme' }],
+    };
+
+    const r = createRoot(container!);
+    root = r;
+    await act(async () => {
+      r.render(
+        <VerseReader
+          translation="web"
+          activeReference="JHN 3"
+          loadedSavedInsight={mockInsight}
+        />,
+      );
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    // NextFocus chip for Grace should be present
+    const chip = Array.from(container!.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Grace'),
+    );
+    expect(chip).toBeDefined();
+
+    await act(async () => {
+      chip!.click();
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    // Deep dive card should now be rendered with the result text
+    expect(container!.textContent).toContain('Grace Unfolded');
   });
 });

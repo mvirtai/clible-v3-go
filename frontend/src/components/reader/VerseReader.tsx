@@ -9,8 +9,11 @@ import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
 import { NextFocusChips } from '../search/NextFocusChips';
 import { DeepDiveCard } from '../layout/DeepDiveCard';
+import { DeepDiveSkeleton } from '../layout/DeepDiveSkeleton';
 import { GeminiUsage } from '../layout/GeminiUsage';
-import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
+import type { AiTextResponse, NextFocusItem } from '../../types/ai';
+import { useDeepDiveChain } from '../../hooks/useDeepDiveChain';
+import { serializeChain } from '../../utils/deepDiveSerialization';
 import { useLanguage } from '../../context/LanguageContext';
 import { getNextChapterRef, getPreviousChapterRef, getChapterCount, formatChapterRef } from '../../utils/readerNavigation';
 import { getBookGenre } from '../../utils/bookGenre';
@@ -80,8 +83,7 @@ export function VerseReader({
   const [aiInsight, setAiInsight] = useState<AiTextResponse | null>(() => loadedSavedInsight || null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [deepDiveText, setDeepDiveText] = useState<string | null>(() => loadedSavedDeepDive || null);
-  const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
+  const deepDiveChain = useDeepDiveChain({ savedText: loadedSavedDeepDive ?? null, scope: aiInsight });
   const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   // Reader Font Size state (persisted in localStorage, defaulting to 'xl')
@@ -141,8 +143,6 @@ export function VerseReader({
     setBackReference(null);
     if (!loadedSavedInsight) {
       setAiInsight(null);
-      setDeepDiveText(null);
-      setDeepDiveUsage(null);
     }
     const trimmed = activeReference.trim();
     if (trimmed && translation) {
@@ -160,14 +160,6 @@ export function VerseReader({
     setAiInsight(loadedSavedInsight);
   }
 
-  // Sync saved deep dive during render
-  const [prevSavedDeepDive, setPrevSavedDeepDive] = useState(loadedSavedDeepDive);
-  if (loadedSavedDeepDive && loadedSavedDeepDive !== prevSavedDeepDive) {
-    setPrevSavedDeepDive(loadedSavedDeepDive);
-    setDeepDiveText(loadedSavedDeepDive);
-    setDeepDiveUsage(null);
-  }
-
   const fetchVerses = React.useCallback(async (ref: string) => {
     const trimmed = ref.trim();
     if (!trimmed || !translation) return;
@@ -179,8 +171,6 @@ export function VerseReader({
     setError(null);
     if (!loadedSavedInsight) {
       setAiInsight(null);
-      setDeepDiveText(null);
-      setDeepDiveUsage(null);
     }
     setAiError(null);
     try {
@@ -228,7 +218,7 @@ export function VerseReader({
         paramsJson: JSON.stringify({}),
         resultJson: JSON.stringify({
           insight: aiInsight,
-          deepDive: deepDiveText
+          deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null
         })
       });
       setAiSaveStatus('success');
@@ -243,20 +233,12 @@ export function VerseReader({
     }
   };
 
-  const handleNextFocusPick = async (it: NextFocusItem) => {
+  const handleNextFocusPick = (it: NextFocusItem) => {
     if (it.kind === 'word' || it.kind === 'theme') {
-      setAiLoading(true);
-      setAiError(null);
-      try {
-        const res = await apiService.getAiDeepDive(it.label, aiLang, { reference: data?.reference || reference });
-        setDeepDiveText(res.text);
-        setDeepDiveUsage(res.geminiUsageMetadata || null);
-        setAiLoading(false);
-      } catch (err) {
-        const errorObj = err as Error;
-        setAiError(errorObj.message || strings.deepDiveFailed);
-        setAiLoading(false);
-      }
+      deepDiveChain.pick(it, {
+        language: aiLang,
+        context: { reference: data?.reference || reference },
+      });
     } else {
       setReference(it.label);
       fetchVerses(it.label);
@@ -712,19 +694,27 @@ export function VerseReader({
                 <NextFocusChips
                   title={strings.nextFocusTitle}
                   items={aiInsight.nextFocus ?? []}
-                  onPick={handleNextFocusPick}
+                  onPick={(it) => handleNextFocusPick(it)}
+                  pendingLabel={deepDiveChain.pendingTopic}
+                  disabled={deepDiveChain.isPending}
                 />
 
-                {deepDiveText && (
+                {deepDiveChain.entries.map((entry) => (
                   <DeepDiveCard
-                    title={strings.deepDiveToneTitle}
-                    text={deepDiveText}
-                    onClose={() => {
-                      setDeepDiveText(null);
-                      setDeepDiveUsage(null);
-                    }}
-                    geminiUsageMetadata={deepDiveUsage || undefined}
+                    key={entry.id}
+                    title={entry.topic || strings.deepDiveToneTitle}
+                    text={entry.text}
+                    onClose={() => deepDiveChain.remove(entry.id)}
+                    geminiUsageMetadata={entry.usage}
                   />
+                ))}
+
+                {deepDiveChain.pendingTopic && <DeepDiveSkeleton topic={deepDiveChain.pendingTopic} />}
+
+                {deepDiveChain.error && (
+                  <p className="text-xs text-red-500 font-semibold mt-2">
+                    {deepDiveChain.error.message || strings.deepDiveFailed}
+                  </p>
                 )}
               </div>
             )}
