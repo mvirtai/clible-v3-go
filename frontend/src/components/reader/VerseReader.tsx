@@ -1,5 +1,5 @@
 // src/components/VerseReader.tsx
-import React, { useState } from 'react';
+import React, { useState, type JSX } from 'react';
 import { apiService } from '../../services/api';
 import type { BibleResponse, Verse } from '../../types/bible';
 import { Search, Loader2, ArrowLeft, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -68,7 +68,7 @@ export function VerseReader({
   onWorkspaceUpdated,
   loadedSavedInsight,
   loadedSavedDeepDive
-}: VerseReaderProps) {
+}: VerseReaderProps): JSX.Element {
   const [reference, setReference] = useState(activeReference || '');
   const [prevActiveReference, setPrevActiveReference] = useState('');
   const [data, setData] = useState<BibleResponse | null>(null);
@@ -725,4 +725,4 @@ export function VerseReader({
       )}
     </div>
   );
-};
+}
