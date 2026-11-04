@@ -7,9 +7,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
 import { NextFocusChips } from '../search/NextFocusChips';
-import { DeepDiveCard } from '../layout/DeepDiveCard';
+import { DeepDiveStack } from '../layout/DeepDiveStack';
 import { GeminiUsage } from '../layout/GeminiUsage';
-import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
+import type { AiTextResponse, NextFocusItem } from '../../types/ai';
+import { useDeepDiveChain } from '../../hooks/useDeepDiveChain';
+import { serializeChain } from '../../utils/deepDiveSerialization';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSmartClearInput } from '../../utils/useSmartClearInput';
 import { X } from 'lucide-react';
@@ -103,8 +105,7 @@ export function CompareView({
     const [aiResult, setAiResult] = useState<AiTextResponse | null>(() => loadedSavedAi || null);
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
-    const [deepDiveText, setDeepDiveText] = useState<string | null>(() => loadedSavedDeepDive || null);
-    const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
+    const deepDiveChain = useDeepDiveChain({ savedText: loadedSavedDeepDive ?? null, scope: aiResult });
     const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
     const [prevLoadedSavedAi, setPrevLoadedSavedAi] = useState<AiTextResponse | null>(null);
@@ -112,14 +113,6 @@ export function CompareView({
     if (normalizedSavedAi !== prevLoadedSavedAi) {
         setAiResult(normalizedSavedAi);
         setPrevLoadedSavedAi(normalizedSavedAi);
-    }
-
-    const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
-    const normalizedSavedDeepDive = loadedSavedDeepDive || null;
-    if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
-        setDeepDiveText(normalizedSavedDeepDive);
-        setDeepDiveUsage(null);
-        setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
     }
 
     // Save form states
@@ -141,10 +134,6 @@ export function CompareView({
         if (!loadedSavedAi) {
             setAiResult(null);
         }
-        if (!loadedSavedDeepDive) {
-            setDeepDiveText(null);
-            setDeepDiveUsage(null);
-        }
         if (loadedSavedComparison.result) {
             setResult(loadedSavedComparison.result);
         }
@@ -165,7 +154,6 @@ export function CompareView({
         setLoading(true);
         setError(null);
         setAiResult(null);
-        setDeepDiveText(null);
         setAiError(null);
         try {
             const data = await apiService.compare(normalized, leftTr, rightTr);
@@ -221,7 +209,7 @@ export function CompareView({
                 analysisType: 'comparison',
                 translationId: leftTr,
                 paramsJson: JSON.stringify({ translationB: rightTr }),
-                resultJson: JSON.stringify({ result, ai: aiResult, deepDive: deepDiveText })
+                resultJson: JSON.stringify({ result, ai: aiResult, deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null })
             });
             setAiSaveStatus('success');
             if (onWorkspaceUpdated) {
@@ -235,31 +223,17 @@ export function CompareView({
         }
     };
 
-    const handleNextFocusPick = async (it: NextFocusItem) => {
-        if (it.kind === 'word' || it.kind === 'theme') {
-            setAiLoading(true);
-            setAiError(null);
-            try {
-                const normalized = reference.trim().replace(
-                    /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
-                    (match) => resolveBookId(match) ?? match,
-                );
-                const leftText = result?.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n') || '';
-                const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
-                const res = await apiService.getAiDeepDive(
-                    it.label,
-                    aiLang,
-                    { reference: normalized, translationA: leftTr, textA: leftText, translationB: rightTr, textB: rightText }
-                );
-                setDeepDiveText(res.text);
-                setDeepDiveUsage(res.geminiUsageMetadata || null);
-                setAiLoading(false);
-            } catch (err) {
-                const errorObj = err as Error;
-                setAiError(errorObj.message || strings.deepDiveFailed);
-                setAiLoading(false);
-            }
-        }
+    const handleNextFocusPick = (it: NextFocusItem) => {
+        const normalized = reference.trim().replace(
+            /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+            (match) => resolveBookId(match) ?? match,
+        );
+        const leftText = result?.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n') || '';
+        const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
+        deepDiveChain.pick(it, {
+            language: aiLang,
+            context: { reference: normalized, translationA: leftTr, textA: leftText, translationB: rightTr, textB: rightText },
+        });
     };
 
     const smartClear = useSmartClearInput(reference, setReference);
@@ -441,7 +415,7 @@ export function CompareView({
                                                     analysisType: 'comparison',
                                                     translationId: leftTr,
                                                     paramsJson: JSON.stringify({ translationB: rightTr }),
-                                                    resultJson: JSON.stringify(aiResult ? { result, ai: aiResult, deepDive: deepDiveText } : { result })
+                                                    resultJson: JSON.stringify(aiResult ? { result, ai: aiResult, deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null } : { result })
                                                 });
                                                 setSaveName('');
                                                 setShowSaveForm(false);
@@ -585,24 +559,23 @@ export function CompareView({
                                     title={strings.nextFocusTitle}
                                     items={aiResult.nextFocus ?? []}
                                     onPick={handleNextFocusPick}
+                                    pendingLabel={deepDiveChain.pendingTopic}
+                                    disabled={deepDiveChain.isPending}
                                 />
                             </div>
                         )}
                     </div>
 
-                    {deepDiveText && (
-                        <div className="mt-4 w-full">
-                            <DeepDiveCard
-                                title={strings.deepDiveCompareTitle}
-                                text={deepDiveText}
-                                onClose={() => {
-                                    setDeepDiveText(null);
-                                    setDeepDiveUsage(null);
-                                }}
-                                geminiUsageMetadata={deepDiveUsage || undefined}
-                            />
-                        </div>
-                    )}
+                    <div className="mt-4 w-full">
+                        <DeepDiveStack
+                            entries={deepDiveChain.entries}
+                            pendingTopic={deepDiveChain.pendingTopic}
+                            error={deepDiveChain.error}
+                            focusId={deepDiveChain.focusId}
+                            title={strings.deepDiveCompareTitle}
+                            onRemove={deepDiveChain.remove}
+                        />
+                    </div>
 
                     {/* Detailed aligned results */}
                     {result.alignedVerses.length > 0 && (
