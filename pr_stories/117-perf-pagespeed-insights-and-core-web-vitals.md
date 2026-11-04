@@ -80,8 +80,12 @@ A dedicated security audit report under `.security_audits/` is **not warranted**
 | `backend/main_test.go` | Add unit tests verifying `Cache-Control` headers for hashed assets and SPA fallbacks |
 | `frontend/index.html` | Asynchronous non-render-blocking Google Fonts loading with preload and noscript fallback |
 | `frontend/package.json` | Update frontend semantic version to 3.15.1 |
-| `frontend/src/App.tsx` | Lazy load `AnalyticsView`, `CompareView`, `OriginalStudyView`, and `NotebookCanvasView` with Suspense |
-| `frontend/src/components/layout/UserMenuDropdown.tsx` | Add accessible `aria-label` tags to translation management and settings triggers |
+| `frontend/src/App.tsx` | Lazy load `LiturgicalView`, `ReadingPlansView`, `AnalyticsView`, `CompareView`, `OriginalStudyView`, and `NotebookCanvasView` with Suspense |
+| `frontend/src/components/layout/UserAvatar.tsx` | Add explicit `role="img"` to avatar containers with `aria-label` to satisfy prohibited ARIA role rules |
+| `frontend/src/components/layout/UserMenuDropdown.tsx` | Add accessible `aria-label` tags, replace invalid `role="menu"` with `role="dialog"` matching child items |
+| `frontend/src/utils/i18n.ts` | Add localized `liturgicalSelectDate` strings for accessible datepicker labels |
+| `frontend/src/views/LiturgicalView.tsx` | Add accessible `aria-label` to date input, integrate skeleton placeholder to eliminate 0.93 CLS |
+| `frontend/src/views/LiturgicalViewSkeleton.tsx` | Create layout-preserving skeleton component preventing Cumulative Layout Shift during data load |
 | `frontend/src/utils/version.ts` | Synchronize client application version string to 3.15.1 |
 | `pr_stories/117-perf-pagespeed-insights-and-core-web-vitals.md` | Document Pull Request story and performance metrics |
 
@@ -130,5 +134,5 @@ $ vitest run -- --coverage --reporter=verbose
 Production build verification (`pnpm run build`):
 
 - `dist/index.html`: 11.52 kB (gzip: 3.80 kB)
-- `dist/assets/index-DeHI5hR4.js`: 733.82 kB (gzip: 206.13 kB)
-- Independent dynamically-imported chunks for analytics, comparison, original language study, and notebook canvas.
+- `dist/assets/index-B5o_GRoe.js`: 688.88 kB (gzip: 197.86 kB)
+- Independent dynamically-imported chunks for liturgical view, reading plans, analytics, comparison, original language study, and notebook canvas.

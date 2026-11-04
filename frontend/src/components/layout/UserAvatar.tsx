@@ -45,6 +45,7 @@ export function UserAvatar({
       const avatarTitle = lang === 'en' ? avatar.nameEn : avatar.nameFi;
       return (
         <div
+          role="img"
           className={`rounded-full bg-gradient-to-br ${gradient} text-white flex
           items-center justify-center border border-black/10 dark:border-white/20 shadow-xs
           shrink-0 ${sizeClass} ${ICON_PADDING[size]} ${className}`}
@@ -79,6 +80,7 @@ export function UserAvatar({
     const avatarTitle = lang === 'en' ? avatar.nameEn : avatar.nameFi;
     return (
       <div
+        role="img"
         className={`rounded-full bg-gradient-to-br ${gradient} text-white flex
         items-center justify-center border border-black/10 dark:border-white/20 shadow-xs
         shrink-0 ${sizeClass} ${ICON_PADDING[size]} ${className}`}
@@ -93,6 +95,7 @@ export function UserAvatar({
   // 4. Vierailija / Guest
   return (
     <div
+      role="img"
       className={`rounded-full bg-[var(--surface-2)] text-[var(--muted)] border border-[var(--border)] flex items-center justify-center shrink-0 ${sizeClass} ${className}`}
       aria-label={strings.userAccountGuest}
     >

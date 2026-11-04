@@ -256,8 +256,8 @@ export function UserMenuDropdown({
               : 'opacity-0 translate-y-2 pointer-events-none scale-95'
           }
         `}
-        role="menu"
-        aria-orientation="vertical"
+        role="dialog"
+        aria-label={strings.userMenuAria}
       >
         {menuContent}
       </div>

@@ -6,8 +6,7 @@ import { TranslationManager } from './components/translations/TranslationManager
 import { VerseReader } from './components/reader/VerseReader';
 import { SearchHub, type SearchSubModule } from './components/search/SearchHub';
 import { SearchHistory } from './components/search/SearchHistory';
-import { LiturgicalView } from './views/LiturgicalView';
-import { ReadingPlansView } from './views/ReadingPlansView';
+import { LiturgicalViewSkeleton } from './views/LiturgicalViewSkeleton';
 import type { StudyMethodTemplate } from './types/studyMethods';
 import { STUDY_TEMPLATES } from './data/studyTemplates';
 import { WorkspaceSidebar } from './components/layout/WorkspaceSidebar';
@@ -47,6 +46,12 @@ const OriginalStudyView = lazy(() =>
 );
 const NotebookCanvasView = lazy(() =>
   import('./components/notebook/NotebookCanvasView').then((m) => ({ default: m.NotebookCanvasView }))
+);
+const LiturgicalView = lazy(() =>
+  import('./views/LiturgicalView').then((m) => ({ default: m.LiturgicalView }))
+);
+const ReadingPlansView = lazy(() =>
+  import('./views/ReadingPlansView').then((m) => ({ default: m.ReadingPlansView }))
 );
 
 interface LoadedSearchState {
@@ -848,26 +853,36 @@ export function App() {
             )}
 
             {viewMode === 'liturgical' && (
-              <LiturgicalView
-                onSelectVerse={(ref) => {
-                  handleSelectReference(ref);
-                  setViewMode('reader');
-                }}
-                onExportToNotebook={handleExportLiturgicalToNotebook}
-              />
+              <Suspense fallback={<LiturgicalViewSkeleton />}>
+                <LiturgicalView
+                  onSelectVerse={(ref) => {
+                    handleSelectReference(ref);
+                    setViewMode('reader');
+                  }}
+                  onExportToNotebook={handleExportLiturgicalToNotebook}
+                />
+              </Suspense>
             )}
 
             {viewMode === 'plans' && (
-              <ReadingPlansView
-                onSelectVerse={(ref) => {
-                  handleSelectReference(ref);
-                  setViewMode('reader');
-                }}
-                onStudyInNotebook={(planTitle, references) => {
-                  const soapTemplate = STUDY_TEMPLATES.find((t) => t.id === 'soap');
-                  handleCreateNotebook(soapTemplate, planTitle, references);
-                }}
-              />
+              <Suspense
+                fallback={
+                  <div className="py-12 text-center text-sm text-[var(--muted)] animate-pulse">
+                    {strings.loadingLabel}
+                  </div>
+                }
+              >
+                <ReadingPlansView
+                  onSelectVerse={(ref) => {
+                    handleSelectReference(ref);
+                    setViewMode('reader');
+                  }}
+                  onStudyInNotebook={(planTitle, references) => {
+                    const soapTemplate = STUDY_TEMPLATES.find((t) => t.id === 'soap');
+                    handleCreateNotebook(soapTemplate, planTitle, references);
+                  }}
+                />
+              </Suspense>
             )}
           </div>
 

@@ -22,6 +22,7 @@ export interface Messages {
   tabNotebooks: string;
   tabLiturgical: string;
   liturgicalToday: string;
+  liturgicalSelectDate: string;
   liturgicalPrevDay: string;
   liturgicalNextDay: string;
   liturgicalColor: string;
@@ -623,6 +624,7 @@ export const strings: Record<UILanguage, Messages> = {
         tabNotebooks: 'Notebooks',
         tabLiturgical: 'Church Year',
         liturgicalToday: 'Today',
+        liturgicalSelectDate: 'Select date',
         liturgicalPrevDay: 'Previous Day',
         liturgicalNextDay: 'Next Day',
         liturgicalColor: 'Liturgical Color',
@@ -1220,6 +1222,7 @@ export const strings: Record<UILanguage, Messages> = {
     tabNotebooks: 'Muistikirjat',
     tabLiturgical: 'Kirkkovuosi',
     liturgicalToday: 'Tänään',
+    liturgicalSelectDate: 'Valitse päivämäärä',
     liturgicalPrevDay: 'Edellinen päivä',
     liturgicalNextDay: 'Seuraava päivä',
     liturgicalColor: 'Liturginen väri',
