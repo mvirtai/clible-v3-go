@@ -80,10 +80,25 @@ A dedicated security audit report under `.security_audits/` is **not warranted**
 | `backend/main_test.go` | Add unit tests verifying `Cache-Control` headers for hashed assets and SPA fallbacks |
 | `frontend/index.html` | Asynchronous non-render-blocking Google Fonts loading with preload and noscript fallback |
 | `frontend/package.json` | Update frontend semantic version to 3.15.1 |
+| `Taskfile.yml` | Add `frontend:preview` automation command targeting port 4173 for accurate Lighthouse audits |
 | `frontend/src/App.tsx` | Lazy load `LiturgicalView`, `ReadingPlansView`, `AnalyticsView`, `CompareView`, `OriginalStudyView`, and `NotebookCanvasView` with Suspense |
+| `frontend/src/AppRoutes.tsx` | Separate top-level routes and lazy load secondary routes (`/login`, `/register`, `/verify-email`, `/settings`) |
+| `frontend/src/main.tsx` | Connect `AppRoutes` wrapped in `<Suspense>` with pure root mounting |
+| `frontend/vite.config.ts` | Configure granular `manualChunks` (`vendor-react`, `vendor-charts`, `vendor-dnd`, `vendor-router`, `vendor-lucide`) |
+| `frontend/src/components/analytics/AnalyticsView.tsx` | Add accessible `aria-label` to reference input, upgrade clear button to min 44x44px touch target |
+| `frontend/src/components/compare/CompareView.tsx` | Connect `<label htmlFor>` to reference input with `aria-label`, expand clear button to 44x44px touch target |
 | `frontend/src/components/layout/UserAvatar.tsx` | Add explicit `role="img"` to avatar containers with `aria-label` to satisfy prohibited ARIA role rules |
 | `frontend/src/components/layout/UserMenuDropdown.tsx` | Add accessible `aria-label` tags, replace invalid `role="menu"` with `role="dialog"` matching child items |
-| `frontend/src/utils/i18n.ts` | Add localized `liturgicalSelectDate` strings for accessible datepicker labels |
+| `frontend/src/components/layout/WorkspaceSidebar.tsx` | Add accessible `aria-label` to new workspace input |
+| `frontend/src/components/notebook/NotebookEditor.tsx` | Add accessible `aria-label` to title edit input |
+| `frontend/src/components/original/OriginalStudyView.tsx` | Connect `<label htmlFor>` to reference input with `aria-label`, expand clear button to 44x44px touch target |
+| `frontend/src/components/reader/VerseReader.tsx` | Eliminate CLS with `VerseReaderSkeleton`, resolve WCAG 2.5.3 name mismatch on verses, expand clear button |
+| `frontend/src/components/reader/VerseReaderSkeleton.tsx` | Create layout placeholder skeleton preventing Cumulative Layout Shift during passage retrieval |
+| `frontend/src/components/reader/VerseReaderSkeleton.test.tsx` | Unit test verifying accessible `aria-busy` and `aria-label` attributes on `VerseReaderSkeleton` |
+| `frontend/src/views/LiturgicalViewSkeleton.test.tsx` | Unit test verifying accessible `aria-busy` and `aria-label` attributes on `LiturgicalViewSkeleton` |
+| `frontend/src/components/search/AiSemanticSearch.tsx` | Add accessible `aria-label` to semantic query and save title inputs |
+| `frontend/src/components/search/VerseSearch.tsx` | Add accessible `aria-label` to search input and save name, expand clear button touch target to 44x44px |
+| `frontend/src/utils/i18n.ts` | Add localized `liturgicalSelectDate`, `clearInputLabel`, and `referenceInputPlaceholder` strings |
 | `frontend/src/views/LiturgicalView.tsx` | Add accessible `aria-label` to date input, integrate skeleton placeholder to eliminate 0.93 CLS |
 | `frontend/src/views/LiturgicalViewSkeleton.tsx` | Create layout-preserving skeleton component preventing Cumulative Layout Shift during data load |
 | `frontend/src/utils/version.ts` | Synchronize client application version string to 3.15.1 |
