@@ -185,3 +185,16 @@ export function normalizeReference(raw: string): string {
   }
   return normalized.replace(/[\u2013\u2014\u2212]/g, '-');
 }
+
+/**
+ * Checks whether the given string is a recognizable Bible reference (e.g. "Joh. 3:16", "Jes. 7:14", "Matt 1", "1. Kor. 13").
+ * Returns false for topical labels, theological concepts, phrases, and questions (e.g. "Immanuel-profetia", "Armo").
+ */
+export function isBibleReference(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed) return false;
+  const refPattern = /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)\.?\s+(\d+(?:[:.][\d,-]+)?)$/;
+  const match = trimmed.match(refPattern);
+  if (!match || !match[1]) return false;
+  return resolveBookId(match[1]) !== null;
+}

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { apiService } from '../../services/api';
 import type { BibleResponse, Verse } from '../../types/bible';
 import { Search, Loader2, ArrowLeft, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
-import { parseReferenceForDisplay, normalizeReference } from '../../utils/bookNames';
+import { parseReferenceForDisplay, normalizeReference, isBibleReference } from '../../utils/bookNames';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
@@ -234,14 +234,16 @@ export function VerseReader({
   };
 
   const handleNextFocusPick = (it: NextFocusItem) => {
-    if (it.kind === 'word' || it.kind === 'theme') {
+    // Navigate to chapter/verse only if label is an explicit Bible reference (e.g. "Jes. 7:14").
+    // All concepts, phrases (e.g. "Immanuel-profetia"), words, themes, and questions trigger deep dive!
+    if (isBibleReference(it.label)) {
+      setReference(it.label);
+      fetchVerses(it.label);
+    } else {
       deepDiveChain.pick(it, {
         language: aiLang,
         context: { reference: data?.reference || reference },
       });
-    } else {
-      setReference(it.label);
-      fetchVerses(it.label);
     }
   };
 

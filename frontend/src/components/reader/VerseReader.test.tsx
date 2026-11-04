@@ -334,4 +334,49 @@ describe('VerseReader', () => {
     // Deep dive card should now be rendered with the result text
     expect(container!.textContent).toContain('Grace Unfolded');
   });
+
+  it('triggers deep dive for topical phrase nextFocus chips like Immanuel-profetia instead of navigating', async () => {
+    vi.clearAllMocks();
+    vi.mocked(apiService.getVerses).mockResolvedValue(mockChapterData);
+    vi.mocked(apiService.getAiDeepDive).mockResolvedValue({
+      text: '## Immanuelin merkitys\nSyventävä analyysi Jesajan profetiasta.',
+      nextFocus: [],
+    });
+
+    const mockInsight = {
+      text: 'Overview of Isaiah 7',
+      nextFocus: [{ label: 'Immanuel-profetia', kind: 'phrase' as const, reason: 'Messiaaninen teema' }],
+    };
+
+    const r = createRoot(container!);
+    root = r;
+    await act(async () => {
+      r.render(
+        <VerseReader
+          translation="web"
+          activeReference="JHN 3"
+          loadedSavedInsight={mockInsight}
+        />,
+      );
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    const chip = Array.from(container!.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Immanuel-profetia'),
+    );
+    expect(chip).toBeDefined();
+
+    await act(async () => {
+      chip!.click();
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    // Should call getAiDeepDive with 'Immanuel-profetia' and NOT navigate/search verses
+    expect(apiService.getAiDeepDive).toHaveBeenCalledWith(
+      'Immanuel-profetia',
+      expect.any(String),
+      expect.objectContaining({ reference: 'JHN 3' }),
+    );
+    expect(container!.textContent).toContain('Immanuelin merkitys');
+  });
 });
