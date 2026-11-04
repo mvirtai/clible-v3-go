@@ -8,8 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
 import { NextFocusChips } from '../search/NextFocusChips';
-import { DeepDiveCard } from '../layout/DeepDiveCard';
-import { DeepDiveSkeleton } from '../layout/DeepDiveSkeleton';
+import { DeepDiveStack } from '../layout/DeepDiveStack';
 import { GeminiUsage } from '../layout/GeminiUsage';
 import type { AiTextResponse, NextFocusItem } from '../../types/ai';
 import { useDeepDiveChain } from '../../hooks/useDeepDiveChain';
@@ -701,23 +700,14 @@ export function VerseReader({
                   disabled={deepDiveChain.isPending}
                 />
 
-                {deepDiveChain.entries.map((entry) => (
-                  <DeepDiveCard
-                    key={entry.id}
-                    title={entry.topic || strings.deepDiveToneTitle}
-                    text={entry.text}
-                    onClose={() => deepDiveChain.remove(entry.id)}
-                    geminiUsageMetadata={entry.usage}
-                  />
-                ))}
-
-                {deepDiveChain.pendingTopic && <DeepDiveSkeleton topic={deepDiveChain.pendingTopic} />}
-
-                {deepDiveChain.error && (
-                  <p className="text-xs text-red-500 font-semibold mt-2">
-                    {deepDiveChain.error.message || strings.deepDiveFailed}
-                  </p>
-                )}
+                <DeepDiveStack
+                  entries={deepDiveChain.entries}
+                  pendingTopic={deepDiveChain.pendingTopic}
+                  error={deepDiveChain.error}
+                  focusId={deepDiveChain.focusId}
+                  title={strings.deepDiveToneTitle}
+                  onRemove={deepDiveChain.remove}
+                />
               </div>
             )}
           </div>
