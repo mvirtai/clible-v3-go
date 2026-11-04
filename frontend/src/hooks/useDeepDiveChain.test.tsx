@@ -49,6 +49,7 @@ describe('useDeepDiveChain', () => {
           },
         ],
         error: null,
+        focusId: null,
       };
 
       const res = await chainReducer(state, {
@@ -74,6 +75,7 @@ describe('useDeepDiveChain', () => {
         scope: 'scope-1',
         entries: [],
         error: null,
+        focusId: null,
       };
 
       const res = await chainReducer(state, {
@@ -101,6 +103,7 @@ describe('useDeepDiveChain', () => {
         scope: 'scope-1',
         entries: [],
         error: null,
+        focusId: null,
       };
 
       const res = await chainReducer(state, {
@@ -230,6 +233,48 @@ describe('useDeepDiveChain', () => {
       });
 
       expect(hookHolder.current?.entries).toHaveLength(0);
+    });
+
+    it('identifies duplicate topic picks without duplicate network calls and sets focusId', async () => {
+      vi.mocked(apiService.getAiDeepDive).mockResolvedValue({
+        text: 'Insight on Grace',
+        nextFocus: [],
+      });
+
+      const hookHolder = { current: null as ReturnType<typeof useDeepDiveChain> | null };
+      const scope = { id: 'scope-b' };
+
+      await act(async () => {
+        root.render(
+          <TestConsumer
+            savedText={null}
+            scope={scope}
+            onHookState={(h) => {
+              hookHolder.current = h;
+            }}
+          />,
+        );
+      });
+
+      const pickBtn = container.querySelector('[data-testid="pick-btn"]') as HTMLButtonElement;
+      // First pick: should trigger API call
+      await act(async () => {
+        pickBtn.click();
+      });
+
+      expect(apiService.getAiDeepDive).toHaveBeenCalledTimes(1);
+      const firstEntryId = hookHolder.current?.entries[0]?.id;
+      expect(firstEntryId).toBeDefined();
+      expect(hookHolder.current?.focusId).toBe(firstEntryId);
+
+      // Second pick with same topic: should NOT trigger API call, but set focusId
+      await act(async () => {
+        pickBtn.click();
+      });
+
+      expect(apiService.getAiDeepDive).toHaveBeenCalledTimes(1);
+      expect(hookHolder.current?.entries).toHaveLength(1);
+      expect(hookHolder.current?.focusId).toBe(firstEntryId);
     });
   });
 });
