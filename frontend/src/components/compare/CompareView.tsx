@@ -284,20 +284,22 @@ export function CompareView({
 
                 <div className="space-y-3">
                     <div className="space-y-1">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+                        <label htmlFor="compare-reference-input" className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
                             {strings.compareReferenceLabel}
                         </label>
                         <div className="relative">
                             <input
+                                id="compare-reference-input"
                                 type="text"
                                 value={reference}
+                                aria-label={strings.compareReferenceLabel}
                                 onChange={(e) => {
                                     smartClear.markDirty();
                                     setReference(e.target.value);
                                 }}
                                 onFocus={smartClear.onFocus}
                                 onKeyDown={smartClear.onKeyDown}
-                                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-4 pr-10 py-2 text-sm outline-none focus:border-[var(--accent)] transition-colors"
+                                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-4 pr-12 py-2 text-sm outline-none focus:border-[var(--accent)] transition-colors"
                             />
                             {reference && (
                                 <button
@@ -306,10 +308,10 @@ export function CompareView({
                                         setReference('');
                                         smartClear.markDirty();
                                     }}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] rounded-full cursor-pointer"
                                     aria-label="Clear input"
                                 >
-                                    <X size={14} />
+                                    <X size={15} />
                                 </button>
                             )}
                         </div>
@@ -419,6 +421,7 @@ export function CompareView({
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
+                                        aria-label={strings.saveNamePlaceholder}
                                         placeholder={strings.saveNamePlaceholder}
                                         value={saveName}
                                         onChange={(e) => setSaveName(e.target.value)}

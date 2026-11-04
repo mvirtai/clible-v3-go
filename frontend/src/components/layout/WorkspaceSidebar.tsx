@@ -278,14 +278,15 @@ export function WorkspaceSidebar({
       {showAddForm && (
         <form onSubmit={handleCreateScope} className="flex gap-2">
           <input
-                      type="text"
-                      placeholder={strings.newScopePlaceholder}
-                      value={newScopeName}
-                      onChange={e => setNewScopeName(e.target.value)}
-                      className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border min-w-0"
-                      style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
-                      autoFocus
-                    />
+            type="text"
+            aria-label={strings.newScopePlaceholder}
+            placeholder={strings.newScopePlaceholder}
+            value={newScopeName}
+            onChange={e => setNewScopeName(e.target.value)}
+            className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border min-w-0"
+            style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+            autoFocus
+          />
           <button type="submit" className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-accent btn-tactile shrink-0">
             {strings.createLabel}
           </button>
