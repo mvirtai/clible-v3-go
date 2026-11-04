@@ -364,6 +364,12 @@ export interface Messages {
   nextFocusTitle: string;
   deepDiveToneTitle: string;
   deepDiveCompareTitle: string;
+  deepDivePendingTitle: string;
+  deepDiveLoadingAria: string;
+  deepDiveExpand: string;
+  deepDiveCollapse: string;
+  deepDivePathLabel: string;
+  deepDiveMaxDepth: string;
   englishLabel: string;
   finnishLabel: string;
   renameScopeTitle: string;
@@ -990,6 +996,12 @@ export const strings: Record<UILanguage, Messages> = {
     nextFocusTitle: 'Next focus',
     deepDiveToneTitle: 'Deep dive',
     deepDiveCompareTitle: 'Deep dive',
+    deepDivePendingTitle: 'Going deeper',
+    deepDiveLoadingAria: 'Loading deep dive',
+    deepDiveExpand: 'Expand',
+    deepDiveCollapse: 'Collapse',
+    deepDivePathLabel: 'Topic path',
+    deepDiveMaxDepth: 'Maximum depth reached',
     englishLabel: 'English',
     finnishLabel: 'Finnish',
     renameScopeTitle: 'Rename workspace',
@@ -1591,6 +1603,12 @@ export const strings: Record<UILanguage, Messages> = {
     nextFocusTitle: 'Seuraava painopiste',
     deepDiveToneTitle: 'Syvällinen tutkimus',
     deepDiveCompareTitle: 'Syvällinen tutkimus',
+    deepDivePendingTitle: 'Syvennetään aihetta',
+    deepDiveLoadingAria: 'Ladataan syventävää analyysiä',
+    deepDiveExpand: 'Avaa',
+    deepDiveCollapse: 'Tiivistä',
+    deepDivePathLabel: 'Aiheen polku',
+    deepDiveMaxDepth: 'Syvyysraja saavutettu',
     englishLabel: 'Englanti',
     finnishLabel: 'Suomi',
     renameScopeTitle: 'Nimeä työtila uudelleen',
