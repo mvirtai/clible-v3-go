@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -21,6 +21,10 @@ export interface DeepDiveCardProps {
   onClose: () => void;
   /** Optional token usage and latency metadata from the Gemini API. */
   geminiUsageMetadata?: GeminiUsageMetadata;
+  /** When true, only the header row is rendered. */
+  collapsed?: boolean;
+  /** Toggles collapsed state; if omitted, no toggle control is rendered. */
+  onToggle?: () => void;
 }
 
 /**
@@ -29,7 +33,15 @@ export interface DeepDiveCardProps {
  * @param props - Component properties conforming to {@link DeepDiveCardProps}.
  * @returns Formatted insight card or null if text is empty.
  */
-export function DeepDiveCard({ title, text, invert = false, onClose, geminiUsageMetadata }: DeepDiveCardProps) {
+export function DeepDiveCard({
+  title,
+  text,
+  invert = false,
+  onClose,
+  geminiUsageMetadata,
+  collapsed = false,
+  onToggle,
+}: DeepDiveCardProps) {
   const { strings } = useLanguage();
   if (!text.trim()) return null;
 
@@ -41,33 +53,53 @@ export function DeepDiveCard({ title, text, invert = false, onClose, geminiUsage
           : "border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
       }`}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
-          {title}
-        </div>
+      <div className={`flex items-center justify-between gap-3 ${collapsed ? '' : 'mb-3'}`}>
+        {onToggle ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={!collapsed}
+            className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
+          >
+            <ChevronDown
+              size={14}
+              className={`transition-transform duration-200 ${collapsed ? '-rotate-90' : 'rotate-0'}`}
+              aria-hidden="true"
+            />
+            <span>{title}</span>
+          </button>
+        ) : (
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+            {title}
+          </div>
+        )}
         <button
           type="button"
           onClick={onClose}
           className={invert ? "text-gray-400 hover:text-white cursor-pointer" : "text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"}
           aria-label={strings.hideLabel}
-         >
+        >
           <X size={16} />
         </button>
       </div>
-      <div className={invert ? "font-sans text-gray-200" : "font-sans text-[var(--text-2)]"}>
-        <ReactMarkdown 
-          remarkPlugins={[remarkGfm]}
-          components={markdownComponents({ invert, insightLayout: !invert, toneLayout: invert })}
-        >
-          {text}
-        </ReactMarkdown>
-      </div>
-      {geminiUsageMetadata && (
-        <div className="mt-4 pt-3 border-t border-[var(--border)]">
-          <GeminiUsage usage={geminiUsageMetadata} />
-        </div>
+
+      {!collapsed && (
+        <>
+          <div className={invert ? "font-sans text-gray-200" : "font-sans text-[var(--text-2)]"}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              components={markdownComponents({ invert, insightLayout: !invert, toneLayout: invert })}
+            >
+              {text}
+            </ReactMarkdown>
+          </div>
+          {geminiUsageMetadata && (
+            <div className="mt-4 pt-3 border-t border-[var(--border)]">
+              <GeminiUsage usage={geminiUsageMetadata} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
-
