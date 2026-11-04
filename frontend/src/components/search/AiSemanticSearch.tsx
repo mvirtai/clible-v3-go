@@ -291,6 +291,8 @@ export function AiSemanticSearch({
             <input
               name="query"
               type="text"
+              aria-label={strings.semanticSearchPlaceholder}
+              placeholder={strings.semanticSearchPlaceholder}
               value={queryInput}
               onChange={(e) => setQueryInput(e.target.value)}
               className="w-full pl-11 pr-4 py-3 rounded-xl text-sm bg-[var(--surface-2)] border border-[var(--border-soft)] text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
@@ -378,6 +380,7 @@ export function AiSemanticSearch({
                   name="title"
                   type="text"
                   required
+                  aria-label={strings.saveSemanticSearchPlaceholder}
                   placeholder={strings.saveSemanticSearchPlaceholder}
                   defaultValue={restored?.savedName ?? queryInput}
                   className="px-3 py-1.5 rounded-lg text-xs bg-[var(--surface)] border border-[var(--border-soft)] text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)] transition-colors min-w-[200px]"

@@ -16,6 +16,7 @@ import { getNextChapterRef, getPreviousChapterRef, getChapterCount, formatChapte
 import { getBookGenre } from '../../utils/bookGenre';
 import { useSmartClearInput } from '../../utils/useSmartClearInput';
 import { X } from 'lucide-react';
+import { VerseReaderSkeleton } from './VerseReaderSkeleton';
 
 
 
@@ -316,13 +317,15 @@ export function VerseReader({
           <input
             type="text"
             value={reference}
+            aria-label={strings.readByReference}
+            placeholder={strings.referenceInputPlaceholder}
             onChange={(e) => {
               smartClear.markDirty();
               setReference(e.target.value);
             }}
             onFocus={smartClear.onFocus}
             onKeyDown={smartClear.onKeyDown}
-            className="w-full rounded-full pl-4 sm:pl-5 pr-10 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
+            className="w-full rounded-full pl-4 sm:pl-5 pr-12 py-2 sm:py-2.5 text-xs sm:text-sm transition-all outline-none"
             style={{
               background: 'var(--surface-2)',
               border: '1px solid var(--border)',
@@ -336,10 +339,10 @@ export function VerseReader({
                 setReference('');
                 smartClear.markDirty();
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-full cursor-pointer"
-              aria-label="Clear input"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] rounded-full cursor-pointer"
+              aria-label={strings.clearInputLabel}
             >
-              <X size={14} />
+              <X size={15} />
             </button>
           )}
         </div>
@@ -358,7 +361,9 @@ export function VerseReader({
         <p className="text-sm" style={{ color: 'var(--error)' }}>{error}</p>
       )}
 
-
+      {loading && (
+        <VerseReaderSkeleton />
+      )}
 
       {data && (
         <div className="space-y-6">
@@ -479,14 +484,15 @@ export function VerseReader({
               ) : (
                 <div className="flex gap-2">
                   <input
-                                      type="text"
-                                      placeholder={strings.saveNamePlaceholder}
-                                      value={saveName}
-                                      onChange={e => setSaveName(e.target.value)}
-                                      className="flex-1 rounded-lg px-3 py-1 text-xs outline-none border"
-                                      style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
-                                      disabled={saveStatus === 'saving'}
-                                    />
+                    type="text"
+                    aria-label={strings.saveNamePlaceholder}
+                    placeholder={strings.saveNamePlaceholder}
+                    value={saveName}
+                    onChange={e => setSaveName(e.target.value)}
+                    className="flex-1 rounded-lg px-3 py-1 text-xs outline-none border"
+                    style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    disabled={saveStatus === 'saving'}
+                  />
                   <button
                     type="button"
                     onClick={async () => {
@@ -549,7 +555,7 @@ export function VerseReader({
                       handleVerseClick(v);
                     }
                   }}
-                  aria-label={`${strings.verseLabel} ${v.verse}: ${v.text}`}
+                  title={`${strings.verseLabel} ${v.verse}`}
                 >
                   <sup
                     className="font-sans text-[0.55em] font-semibold shrink-0"
@@ -579,7 +585,7 @@ export function VerseReader({
                       handleVerseClick(v);
                     }
                   }}
-                  aria-label={`${strings.verseLabel} ${v.verse}: ${v.text}`}
+                  title={`${strings.verseLabel} ${v.verse}`}
                 >
                   <sup className="mx-0.5 align-super font-sans text-[0.55em] font-semibold" style={{ color: 'var(--accent)' }} aria-hidden={true}>
                     {v.verse}

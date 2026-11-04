@@ -22,6 +22,7 @@ export interface Messages {
   tabNotebooks: string;
   tabLiturgical: string;
   liturgicalToday: string;
+  liturgicalSelectDate: string;
   liturgicalPrevDay: string;
   liturgicalNextDay: string;
   liturgicalColor: string;
@@ -102,6 +103,8 @@ export interface Messages {
   searchModeLexical: string;
   searchModeSemantic: string; 
   readByReference: string;
+  clearInputLabel: string;
+  referenceInputPlaceholder: string;
   versePlaceholder: string;
   fetchButtonLabel: string;
   fetchVersesFailed: string;
@@ -623,6 +626,7 @@ export const strings: Record<UILanguage, Messages> = {
         tabNotebooks: 'Notebooks',
         tabLiturgical: 'Church Year',
         liturgicalToday: 'Today',
+        liturgicalSelectDate: 'Select date',
         liturgicalPrevDay: 'Previous Day',
         liturgicalNextDay: 'Next Day',
         liturgicalColor: 'Liturgical Color',
@@ -713,6 +717,8 @@ export const strings: Record<UILanguage, Messages> = {
     translationDeactivationFailed: 'Deactivation failed. Please try again.',
     quickStart: 'Install a translation, then try reading John 3:16 or search for "light" in the text search below.',
     readByReference: 'Read by Reference',
+    clearInputLabel: 'Clear input',
+    referenceInputPlaceholder: 'e.g. John 3:16 or Psalm 23',
     versePlaceholder: 'John 3:16 · Joh. 3:16 · 1 Moos 1:1',
     fetchButtonLabel: 'Fetch',
     fetchVersesFailed: 'Failed to fetch verses. Check the reference (e.g. John 3:16, Joh. 3:16, 1 Genesis 1:1).',
@@ -1220,6 +1226,7 @@ export const strings: Record<UILanguage, Messages> = {
     tabNotebooks: 'Muistikirjat',
     tabLiturgical: 'Kirkkovuosi',
     liturgicalToday: 'Tänään',
+    liturgicalSelectDate: 'Valitse päivämäärä',
     liturgicalPrevDay: 'Edellinen päivä',
     liturgicalNextDay: 'Seuraava päivä',
     liturgicalColor: 'Liturginen väri',
@@ -1307,6 +1314,8 @@ export const strings: Record<UILanguage, Messages> = {
     translationDeactivationFailed: 'Käytöstä poisto epäonnistui. Yritä uudelleen.',
     quickStart: 'Asenna käännös, ja kokeile lukea esim. Joh. 3:16 tai hae sanaa "valo" tekstihakutoiminnolla.',
     readByReference: 'Lue viitteellä',
+    clearInputLabel: 'Tyhjennä syöte',
+    referenceInputPlaceholder: 'esim. Joh 3:16 tai Ps 23',
     versePlaceholder: 'Joh. 3:16 · John 3:16 · 1 Moos 1:1',
     fetchButtonLabel: 'Hae',
     fetchVersesFailed: 'Jakeiden haku epäonnistui. Tarkista viite (esim. Joh. 3:16, John 3:16, 1. Moos. 1:1).',

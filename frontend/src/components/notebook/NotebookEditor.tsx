@@ -408,6 +408,7 @@ export function NotebookEditor({ notebookId, translation, onSelectVerse, isGuest
               <input
                 type="text"
                 name="title"
+                aria-label={strings.notebookTitle}
                 defaultValue={notebook?.title || ''}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {

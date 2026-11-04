@@ -26,6 +26,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { getLiturgicalDay } from '../api/liturgical';
 import type { LiturgicalDay } from '../types/liturgical';
 import { officesToISLA } from '../utils/liturgicalIslaExport';
+import { LiturgicalViewSkeleton } from './LiturgicalViewSkeleton';
 
 export interface LiturgicalViewProps {
   onSelectVerse: (reference: string) => void;
@@ -365,6 +366,7 @@ export function LiturgicalView({ onSelectVerse, initialDate, onExportToNotebook 
             <input
               type="date"
               value={date}
+              aria-label={strings.liturgicalSelectDate}
               onChange={(e) => {
                 if (e.target.value) loadDate(e.target.value);
               }}
@@ -1226,6 +1228,10 @@ export function LiturgicalView({ onSelectVerse, initialDate, onExportToNotebook 
             </div>
           )}
         </>
+      )}
+
+      {!dayData && !error && (
+        <LiturgicalViewSkeleton />
       )}
     </div>
   );
