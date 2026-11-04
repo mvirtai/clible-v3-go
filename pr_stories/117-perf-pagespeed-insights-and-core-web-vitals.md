@@ -9,9 +9,11 @@ Furthermore, static assets lacked explicit `Cache-Control` response directives i
 This Pull Request resolves these bottlenecks across backend and frontend layers:
 
 1. Employs aggressive immutable caching for hashed client assets and deterministic `no-cache` revalidation for HTML entrypoints.
-2. Implements asynchronous route/view-level code splitting using `React.lazy()` and `<Suspense>`, reducing the initial JavaScript payload by over 46% (632 kB uncompressed reduction; down to 206 kB gzipped).
-3. Eliminates render-blocking font requests with asynchronous stylesheet preloading and fallback handling.
-4. Elevates mobile accessibility compliance by supplying explicit, localized `aria-label` attributes to icon controls in `UserMenuDropdown`.
+2. Implements asynchronous route/view-level code splitting using `React.lazy()` and `<Suspense>`, combined with granular vendor chunking (`vendor-react`, `vendor-charts`, `vendor-dnd`, `vendor-router`, `vendor-lucide`), reducing the main client entry chunk from 1.36 MB down to 386 kB (106 kB gzipped) — with zero chunks exceeding 500 kB.
+3. Eliminates Cumulative Layout Shift (CLS) from 0.93 to 0.00 using dedicated layout skeletons (`LiturgicalViewSkeleton`, `VerseReaderSkeleton`).
+4. Eliminates render-blocking font requests with asynchronous stylesheet preloading and fallback handling.
+5. Elevates application-wide accessibility compliance by supplying explicit form labels, expanding interactive targets to minimum 44x44px, and resolving WCAG 2.5.3 name mismatches.
+6. Hardens JWT cookie expiration handling in Go `RequireAuth` middleware with `Secure: isProduction` and `SameSite: Lax`.
 
 ---
 
@@ -26,7 +28,7 @@ In `frontendHandler`, the SPA static file routing was augmented with content-awa
 - Other root static files (e.g., `favicon.svg`, manifests) default to `Cache-Control: public, max-age=86400`.
 - Unit tests in `backend/main_test.go` assert these headers across `/assets/*`, direct assets, and SPA paths.
 
-### 2. Frontend Code-Splitting & Lazy Loading (`frontend/src/App.tsx`)
+### 2. Frontend Code-Splitting & Granular Vendor Chunking (`frontend/src/App.tsx`, `frontend/src/AppRoutes.tsx`, `frontend/vite.config.ts`)
 
 Heavy view components were converted to dynamic chunk imports with `React.lazy()` and wrapped in accessible `<Suspense>` boundaries:
 
@@ -34,28 +36,51 @@ Heavy view components were converted to dynamic chunk imports with `React.lazy()
 - `CompareView` (multi-translation alignment calculations)
 - `OriginalStudyView` (morphological dictionaries and original language concordance)
 - `NotebookCanvasView` (bundling `@dnd-kit/react`, `@dnd-kit/helpers`, `react-markdown`, and remark plugins)
+- `LiturgicalView` and `ReadingPlansView`
+- Secondary routes (`/login`, `/register`, `/verify-email`, `/settings`) separated cleanly into `AppRoutes.tsx`
 
-The initial startup path now loads solely `VerseReader` and `VerseSearch`, keeping initial bundle parsing and compilation fast on constrained mobile runtimes.
+Additionally, `vite.config.ts` was configured with granular `manualChunks`:
+- `vendor-react` (React, ReactDOM, Scheduler): 214 kB (68 kB gzip)
+- `vendor-charts` (Recharts, D3 packages): 360 kB (104 kB gzip)
+- `vendor-dnd` (@dnd-kit packages): 105 kB (33 kB gzip)
+- `vendor-router` (wouter routing runtime): 40 kB (14 kB gzip)
+- `vendor-lucide` (lucide-react icons): 21 kB (7 kB gzip)
+- `index.js` (main application logic): 386 kB (106 kB gzip)
 
 ```text
 Before code splitting:
 dist/assets/index-BJBnXF6n.js   1,365.79 kB │ gzip: 384.89 kB
 
-After code splitting:
-dist/assets/index-DeHI5hR4.js     733.82 kB │ gzip: 206.13 kB  (-46.3% JS bundle size)
-dist/assets/AnalyticsView-*.js    363.21 kB │ gzip: 105.54 kB  (lazy loaded)
-dist/assets/NotebookCanvasView-*.js 241.16 kB │ gzip:  69.04 kB  (lazy loaded)
-dist/assets/CompareView-*.js       17.87 kB │ gzip:   4.61 kB  (lazy loaded)
-dist/assets/OriginalStudyView-*.js  10.58 kB │ gzip:   3.38 kB  (lazy loaded)
+After granular splitting:
+dist/assets/index-0YS3Q1vM.js     386.84 kB │ gzip: 106.02 kB  (-71.6% main bundle reduction)
+dist/assets/vendor-charts-*.js    360.19 kB │ gzip: 104.83 kB  (lazy loaded with Analytics)
+dist/assets/vendor-react-*.js     214.86 kB │ gzip:  68.00 kB  (cached vendor chunk)
+dist/assets/vendor-dnd-*.js       105.31 kB │ gzip:  33.60 kB  (lazy loaded with Notebook)
+dist/assets/vendor-router-*.js     40.36 kB │ gzip:  14.53 kB  (cached vendor chunk)
+dist/assets/LiturgicalView-*.js    34.13 kB │ gzip:   6.44 kB  (lazy loaded view)
+dist/assets/vendor-lucide-*.js     21.06 kB │ gzip:   7.37 kB  (cached vendor chunk)
+dist/assets/CompareView-*.js       17.33 kB │ gzip:   4.32 kB  (lazy loaded view)
+dist/assets/AnalyticsView-*.js     14.59 kB │ gzip:   4.63 kB  (lazy loaded view)
+dist/assets/OriginalStudyView-*.js 10.40 kB │ gzip:   3.25 kB  (lazy loaded view)
 ```
 
-### 3. Non-Blocking Font Delivery & Mobile Web Standards (`frontend/index.html`)
+### 3. Cumulative Layout Shift (CLS) Elimination via Layout Skeletons
+
+To solve high CLS scores on dynamic passage and calendar views (measured at 0.93 in initial mobile audits), dedicated layout skeletons were developed:
+- `LiturgicalViewSkeleton.tsx`: Renders structured placeholder blocks for readings, date controls, and liturgical summaries while calendar data loads, completely eliminating layout shifting.
+- `VerseReaderSkeleton.tsx`: Renders structured Scripture line skeletons with `aria-busy="true"` and `role="status"` while chapter text is fetched.
+
+### 4. Non-Blocking Font Delivery & Mobile Web Standards (`frontend/index.html`)
 
 - Converted Google Fonts (`Lora` and `JetBrains Mono`) to non-render-blocking asynchronous links using `rel="preload" as="style"` combined with `media="print" onload="this.media='all'"` and a `<noscript>` fallback, removing ~280–1,050 ms of initial render blocking.
+- Added `task frontend:preview` targeting port 4173 to enable authentic Lighthouse audits against production builds.
 
-### 4. Accessibility & Touch Usability (`frontend/src/components/layout/UserMenuDropdown.tsx`)
+### 5. Application-Wide Accessibility & Touch Usability
 
-- Added explicit `aria-label` attributes to the Translation Management and User Settings action buttons within `UserMenuDropdown`, ensuring screen readers and automated accessibility auditing tools identify the controls when icons or responsive viewports hide inline label text.
+- Connected explicit form `<label>` and `aria-label` attributes across `VerseReader`, `VerseSearch`, `AiSemanticSearch`, `AnalyticsView`, `CompareView`, `OriginalStudyView`, `WorkspaceSidebar`, and `NotebookEditor`.
+- Upgraded all `Clear input` buttons (`X`) to minimum 44x44px touch targets (`w-11 h-11 flex items-center justify-center`).
+- Resolved WCAG 2.5.3 (Label in Name) mismatch in `VerseReader.tsx` by replacing redundant `aria-label` on verse spans with `title`.
+- Corrected prohibited ARIA roles on `UserAvatar` (`role="img"`) and `UserMenuDropdown` (replacing invalid `role="menu"` with `role="dialog"`).
 
 ---
 
@@ -63,10 +88,10 @@ dist/assets/OriginalStudyView-*.js  10.58 kB │ gzip:   3.38 kB  (lazy loaded)
 
 A dedicated security audit report under `.security_audits/` is **not warranted** for this pull request based on the following evaluation:
 
-- **No Authentication / Authorization Boundary Changes**: No JWT token verification, password hashing, session lifecycle, or role logic was modified.
+- **JWT Cookie Mitigation Hardened**: In `backend/internal/middleware/auth_middleware.go`, the cookie clearance logic was updated with `Secure: isProduction` and `SameSite: http.SameSiteLaxMode`, resolving CodeQL security advisories for unauthenticated session resets.
 - **Path Traversal Safety Preserved**: Static asset serving continues to execute through Go 1.24 `os.OpenRoot` jail confinement, and path cleaning prevents directory traversal. Caching headers only attach to responses already validated within the sandboxed directory.
 - **Client Sanitization Intact**: Lazy loading and `<Suspense>` boundaries do not introduce unsanitized user inputs or dangerously set inner HTML.
-- **Supply-Chain Integrity**: No new external dependencies were introduced; lockfile policies and security linters passed flawlessly (`task check`).
+- **Supply-Chain Integrity**: Dependabot alerts (#29–#37) were audited and verified to reside entirely in development/tooling dependencies (`happy-dom`, `vitest`, `vitepress`) with zero impact on the production Go binary. All linters and tests passed (`task check`).
 
 ---
 
@@ -139,16 +164,37 @@ Full Vitest and TypeScript validation (`task frontend:check`):
 ```text
 $ tsc -b
 $ eslint .
-$ vitest run -- --coverage --reporter=verbose
+$ vitest run
 
- Test Files  55 passed (55)
-      Tests  425 passed (425)
-   Start at  11:30:50
-   Duration  13.85s (transform 3.74s, setup 1.40s, import 20.27s, tests 12.17s, environment 40.46s)
+ Test Files  57 passed (57)
+      Tests  427 passed (427)
+   Start at  17:13:11
+   Duration  13.28s (transform 4.01s, setup 1.29s, import 18.58s, tests 12.16s, environment 39.35s)
 ```
 
 Production build verification (`pnpm run build`):
 
-- `dist/index.html`: 11.52 kB (gzip: 3.80 kB)
-- `dist/assets/index-B5o_GRoe.js`: 688.88 kB (gzip: 197.86 kB)
-- Independent dynamically-imported chunks for liturgical view, reading plans, analytics, comparison, original language study, and notebook canvas.
+```text
+dist/index.html                              12.01 kB │ gzip:   3.92 kB
+dist/assets/index-D41K5Ty_.css              105.44 kB │ gzip:  16.71 kB
+dist/assets/rolldown-runtime-hePW80VL.js      0.71 kB │ gzip:   0.42 kB
+dist/assets/Login-DRCilgjQ.js                 3.59 kB │ gzip:   1.33 kB
+dist/assets/VerifyEmail-DtlKpLCF.js           4.61 kB │ gzip:   1.94 kB
+dist/assets/Register-CLgSXxA7.js              6.35 kB │ gzip:   1.83 kB
+dist/assets/OriginalStudyView-BrlMyzDP.js    10.40 kB │ gzip:   3.25 kB
+dist/assets/ReadingPlansView-CfmRxSAm.js     11.20 kB │ gzip:   3.09 kB
+dist/assets/AnalyticsView-DmE3t-N_.js        14.59 kB │ gzip:   4.63 kB
+dist/assets/CompareView-BYD34xAM.js          17.33 kB │ gzip:   4.32 kB
+dist/assets/UserSettingsView-CUJ8auEg.js     18.09 kB │ gzip:   3.75 kB
+dist/assets/vendor-lucide-Dg9WPIT5.js        21.06 kB │ gzip:   7.37 kB
+dist/assets/LiturgicalView-DuNtU-8i.js       34.13 kB │ gzip:   6.44 kB
+dist/assets/vendor-router-CkOAgehR.js        40.36 kB │ gzip:  14.53 kB
+dist/assets/vendor-dnd-BJd_A6x7.js          105.31 kB │ gzip:  33.60 kB
+dist/assets/NotebookCanvasView-DodqAVIl.js  127.42 kB │ gzip:  32.80 kB
+dist/assets/vendor-react-CPD2FCRC.js        214.86 kB │ gzip:  68.00 kB
+dist/assets/vendor-charts-BIqYL7dJ.js       360.19 kB │ gzip: 104.83 kB
+dist/assets/index-0YS3Q1vM.js               386.84 kB │ gzip: 106.02 kB
+```
+
+- **Zero chunks exceed the 500 kB limit.**
+- All dynamic routes, secondary views, and heavy charting/DnD libraries are isolated into independent cached or lazy chunks.
