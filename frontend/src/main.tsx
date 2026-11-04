@@ -1,13 +1,9 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import App from './App.tsx';
-import Login from './pages/Login.tsx';
-import Register from './pages/Register.tsx';
-import VerifyEmail from './pages/VerifyEmail.tsx';
-import { UserSettingsView } from './views/UserSettingsView.tsx';
-import { AuthProvider } from './context/AuthContext.tsx';
-import { LanguageProvider } from './context/LanguageContext.tsx';
+import { BrowserRouter } from 'react-router-dom';
+import { AppRoutes } from './AppRoutes';
+import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -15,15 +11,9 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <LanguageProvider>
         <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/settings" element={<UserSettingsView />} />
-            <Route path="/guest" element={<App />} />
-            <Route path="/vierailija-yleinen" element={<Navigate to="/guest" replace />} />
-            <Route path="/*" element={<App />} />
-          </Routes>
+          <Suspense fallback={<div className="min-h-screen bg-[var(--bg)] flex items-center justify-center text-sm text-[var(--muted)] animate-pulse" />}>
+            <AppRoutes />
+          </Suspense>
         </AuthProvider>
       </LanguageProvider>
     </BrowserRouter>
