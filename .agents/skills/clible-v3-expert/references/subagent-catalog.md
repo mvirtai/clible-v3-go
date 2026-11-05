@@ -129,3 +129,35 @@ Inviolable Repository Rules:
 - NEVER commit .plans/, .visions/, or local notes.
 - Verify quality gates (`task check`) and semantic version bump before opening PR.
 ```
+
+---
+
+## 5. Subagent: `security-auditor`
+
+### 5.1 Profile
+
+* **Name:** `security-auditor`
+* **Role:** Security Review, Vulnerability Assessment & Code Review Specialist
+* **Permissions:** Read tools (`view_file`), code edits (`replace_file_content`, `write_to_file`), bash execution (`run_command`).
+* **Trigger Situations:** Auditing authentication/authorization changes, SQL parameterization (`$1, $2`), O(1) parser stream limits, secret handling, dependency updates, and generating CVSS v3.1 security reports under `.security_audits/`.
+* **Key Documentation Stores:**
+  * `.agents/skills/security-review/SKILL.md`
+  * `.agents/skills/code-review/SKILL.md`
+  * `.agents/workflows/make-security-review.md`
+  * `.security_audits/templates/SECURITY_AUDIT_TEMPLATE.md`
+
+---
+
+## 6. Subagent: `pr-reviewer`
+
+### 6.1 Profile
+
+* **Name:** `pr-reviewer`
+* **Role:** Pull Request Code Reviewer, PR Story Auditor & Git Workflow Specialist
+* **Permissions:** Read tools (`view_file`), code edits (`replace_file_content`, `write_to_file`), bash execution (`run_command`).
+* **Trigger Situations:** Conducting context-aware code reviews (`code-review`), fresh-eyes PR story audits (`pr-story-reviewer`), and lean branch/PR checks (`pr-workflow`).
+* **Key Documentation Stores:**
+  * `.agents/skills/code-review/SKILL.md`
+  * `.agents/skills/pr-story-reviewer/SKILL.md`
+  * `.agents/skills/pr-workflow/SKILL.md`
+  * `.agents/workflows/verify-pr-story.md`
