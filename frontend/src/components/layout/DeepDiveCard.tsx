@@ -3,8 +3,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { markdownComponents } from "../../utils/markdownComponents";
-import type { GeminiUsageMetadata } from "../../types/ai";
+import type { GeminiUsageMetadata, NextFocusItem } from "../../types/ai";
 import { GeminiUsage } from "./GeminiUsage";
+import { DeepDiveBreadcrumb } from "./DeepDiveBreadcrumb";
+import { NextFocusChips } from "../search/NextFocusChips";
 import { useLanguage } from "../../context/LanguageContext";
 
 /**
@@ -25,6 +27,16 @@ export interface DeepDiveCardProps {
   collapsed?: boolean;
   /** Toggles collapsed state; if omitted, no toggle control is rendered. */
   onToggle?: () => void;
+  /** Optional next focus suggestions returned by this deep dive. */
+  nextFocus?: NextFocusItem[];
+  /** Callback fired when user selects a next focus suggestion from this card. */
+  onPickNextFocus?: (item: NextFocusItem) => void;
+  /** Label of the currently loading next focus chip. */
+  pendingLabel?: string | null;
+  /** When true, disables next focus chip interactions. */
+  disabled?: boolean;
+  /** Hierarchical topic path from the root exploration to this card. */
+  path?: string[];
 }
 
 /**
@@ -41,6 +53,11 @@ export function DeepDiveCard({
   geminiUsageMetadata,
   collapsed = false,
   onToggle,
+  nextFocus,
+  onPickNextFocus,
+  pendingLabel,
+  disabled = false,
+  path,
 }: DeepDiveCardProps) {
   const { strings } = useLanguage();
   if (!text.trim()) return null;
@@ -53,7 +70,7 @@ export function DeepDiveCard({
           : "border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
       }`}
     >
-      <div className={`flex items-center justify-between gap-3 ${collapsed ? '' : 'mb-3'}`}>
+      <div className={`flex items-center justify-between gap-3 ${collapsed ? '' : 'mb-1'}`}>
         {onToggle ? (
           <button
             type="button"
@@ -83,9 +100,11 @@ export function DeepDiveCard({
         </button>
       </div>
 
+      {path && path.length > 0 && <DeepDiveBreadcrumb path={path} />}
+
       {!collapsed && (
         <>
-          <div className={invert ? "font-sans text-gray-200" : "font-sans text-[var(--text-2)]"}>
+          <div className={`${invert ? "font-sans text-gray-200" : "font-sans text-[var(--text-2)]"} ${path && path.length > 0 ? 'mt-2' : 'mt-3'}`}>
             <ReactMarkdown 
               remarkPlugins={[remarkGfm]}
               components={markdownComponents({ invert, insightLayout: !invert, toneLayout: invert })}
@@ -93,6 +112,19 @@ export function DeepDiveCard({
               {text}
             </ReactMarkdown>
           </div>
+
+          {onPickNextFocus && nextFocus && nextFocus.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-[var(--border)]">
+              <NextFocusChips
+                title={strings.nextFocusTitle}
+                items={nextFocus}
+                onPick={onPickNextFocus}
+                pendingLabel={pendingLabel}
+                disabled={disabled}
+              />
+            </div>
+          )}
+
           {geminiUsageMetadata && (
             <div className="mt-4 pt-3 border-t border-[var(--border)]">
               <GeminiUsage usage={geminiUsageMetadata} />

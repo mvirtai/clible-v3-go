@@ -1,5 +1,6 @@
 import { useState, type JSX } from 'react';
-import type { DeepDiveEntry } from '../../types/ai';
+import type { DeepDiveEntry, NextFocusItem } from '../../types/ai';
+import { pathTo, MAX_DEEP_DIVE_DEPTH } from '../../hooks/useDeepDiveChain';
 import { DeepDiveCard } from './DeepDiveCard';
 import { DeepDiveSkeleton } from './DeepDiveSkeleton';
 import { useLanguage } from '../../context/LanguageContext';
@@ -17,6 +18,10 @@ export interface DeepDiveStackProps {
   title: string;
   /** Callback fired when an entry is dismissed. */
   onRemove: (id: string) => void;
+  /** Callback fired when a child next focus chip is chosen. */
+  onPick?: (item: NextFocusItem, parentId?: string) => void;
+  /** When true, a child request is currently pending. */
+  isPending?: boolean;
   /** When true, renders high-contrast inverted card style. */
   invert?: boolean;
 }
@@ -32,6 +37,8 @@ export function DeepDiveStack({
   focusId,
   title,
   onRemove,
+  onPick,
+  isPending = false,
   invert = false,
 }: DeepDiveStackProps): JSX.Element | null {
   const { strings } = useLanguage();
@@ -62,18 +69,32 @@ export function DeepDiveStack({
 
   return (
     <div className="space-y-3">
-      {entries.map((entry) => (
-        <DeepDiveCard
-          key={entry.id}
-          title={entry.topic || title}
-          text={entry.text}
-          invert={invert}
-          collapsed={isCollapsed(entry.id)}
-          onToggle={() => handleToggle(entry.id)}
-          onClose={() => onRemove(entry.id)}
-          geminiUsageMetadata={entry.usage}
-        />
-      ))}
+      {entries.map((entry) => {
+        const path = pathTo(entries, entry.id);
+        const atMaxDepth = entry.depth >= MAX_DEEP_DIVE_DEPTH - 1;
+
+        return (
+          <div
+            key={entry.id}
+            style={{ marginLeft: Math.min(entry.depth, 2) * 12 }}
+          >
+            <DeepDiveCard
+              title={entry.topic || title}
+              text={entry.text}
+              invert={invert}
+              collapsed={isCollapsed(entry.id)}
+              onToggle={() => handleToggle(entry.id)}
+              onClose={() => onRemove(entry.id)}
+              geminiUsageMetadata={entry.usage}
+              path={path.length > 1 ? path : undefined}
+              nextFocus={entry.nextFocus}
+              onPickNextFocus={onPick ? (item) => onPick(item, entry.id) : undefined}
+              pendingLabel={pendingTopic}
+              disabled={isPending || atMaxDepth}
+            />
+          </div>
+        );
+      })}
 
       {pendingTopic && <DeepDiveSkeleton topic={pendingTopic} />}
 

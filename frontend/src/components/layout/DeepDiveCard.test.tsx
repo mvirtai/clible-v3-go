@@ -5,9 +5,6 @@ import { act } from 'react';
 import { DeepDiveCard } from './DeepDiveCard';
 import { LanguageProvider } from '../../context/LanguageContext';
 
-// @ts-expect-error React testing environment flag
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
 describe('DeepDiveCard', () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -79,5 +76,37 @@ describe('DeepDiveCard', () => {
       toggleBtn.click();
     });
     expect(onToggle).toHaveBeenCalled();
+  });
+
+  it('renders child NextFocusChips only when onPickNextFocus is provided and card is expanded', async () => {
+    const onPick = vi.fn();
+    const onClose = vi.fn();
+    const nextFocus = [{ label: 'Abrahamic Covenant', kind: 'theme' as const, reason: 'historical roots' }];
+
+    await act(async () => {
+      root.render(
+        <LanguageProvider>
+          <DeepDiveCard
+            title="Parent Card"
+            text="Body text here."
+            collapsed={false}
+            onClose={onClose}
+            nextFocus={nextFocus}
+            onPickNextFocus={onPick}
+            path={['Covenant', 'Abrahamic Covenant']}
+          />
+        </LanguageProvider>,
+      );
+    });
+
+    expect(container.textContent).toContain('Covenant');
+    expect(container.textContent).toContain('Abrahamic Covenant');
+    const chip = container.querySelector('button[title*="historical roots"]') as HTMLButtonElement;
+    expect(chip).not.toBeNull();
+
+    await act(async () => {
+      chip.click();
+    });
+    expect(onPick).toHaveBeenCalledWith(nextFocus[0]);
   });
 });
