@@ -24,10 +24,10 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DatabaseURL != expectedDefault {
 		t.Errorf("expected default DB URL %s, got %s", expectedDefault, cfg.DatabaseURL)
 	}
-	if cfg.GeminiModelInsight != "gemini-3.7-flash" {
+	if cfg.GeminiModelInsight != "gemini-3.8-flash" {
 		t.Errorf("expected default insight model gemini-3.7-flash, got %s", cfg.GeminiModelInsight)
 	}
-	if cfg.GeminiModelTone != "gemini-3.7-flash" {
+	if cfg.GeminiModelTone != "gemini-3.8-flash" {
 		t.Errorf("expected default tone model gemini-3.7-flash, got %s", cfg.GeminiModelTone)
 	}
 }
