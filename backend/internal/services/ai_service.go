@@ -39,6 +39,7 @@ const nextFocusFooterRule = "Next focus footer: append a FINAL JSON code block (
 const deepDiveSystemInstruction = "You write a focused theological deep dive on a single topic, for a reader who wants to go beyond the previous analysis. " +
 	theologicalStance + " " + languageConsistencyRule + " " + nextFocusFooterRule + " " +
 	"IMPORTANT: do NOT repeat the previous task type (do not re-run verse-by-verse comparison, tone analysis, or the original outline). " +
+	"If an exploration path is given in the context, go deeper than the earlier levels in that path and do not re-explain them. " +
 	"Your ONLY task is to explain the selected topic clearly and academically. " +
 	"Use real Markdown headings (## / ###), short paragraphs, and bullets when helpful."
 
@@ -422,6 +423,9 @@ func (s *aiServiceImpl) DeepDive(ctx context.Context, topic, outputLanguage stri
 		}
 		if val, ok := contextData["note"]; ok && val != nil {
 			contextLines = append(contextLines, fmt.Sprintf("- Note: %v", val))
+		}
+		if path, ok := contextData["path"].([]string); ok && len(path) > 0 {
+			contextLines = append(contextLines, fmt.Sprintf("- Exploration path so far: %s", strings.Join(path, " → ")))
 		}
 	}
 

@@ -2,9 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
@@ -145,6 +148,18 @@ func (h *AIHandler) GetDeepDive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	path, err := sanitizeDeepDivePath(req.Context["path"])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Context == nil {
+		req.Context = map[string]interface{}{}
+	}
+	if path != nil {
+		req.Context["path"] = path // typed []string for the service layer
+	}
+
 	resp, err := h.aiService.DeepDive(r.Context(), req.Topic, req.OutputLanguage, req.Context)
 	if err != nil {
 		h.handleError(w, err)
@@ -153,6 +168,39 @@ func (h *AIHandler) GetDeepDive(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+const (
+	maxDeepDivePathDepth = 5
+	maxDeepDivePathLabel = 200 // runes
+)
+
+// sanitizeDeepDivePath validates the optional "path" entry of the deep-dive
+// context and returns a cleaned copy. It returns (nil, nil) when absent.
+func sanitizeDeepDivePath(raw interface{}) ([]string, error) {
+	if raw == nil {
+		return nil, nil
+	}
+	items, ok := raw.([]interface{})
+	if !ok {
+		return nil, errors.New("'path' must be an array of strings")
+	}
+	if len(items) > maxDeepDivePathDepth {
+		return nil, fmt.Errorf("'path' exceeds maximum depth (%d)", maxDeepDivePathDepth)
+	}
+	out := make([]string, 0, len(items))
+	for _, it := range items {
+		s, ok := it.(string)
+		if !ok {
+			return nil, errors.New("'path' must contain only strings")
+		}
+		s = strings.TrimSpace(s)
+		if s == "" || utf8.RuneCountInString(s) > maxDeepDivePathLabel {
+			return nil, errors.New("'path' items must be 1-200 characters")
+		}
+		out = append(out, s)
+	}
+	return out, nil
 }
 
 // GetOriginalStudy handles POST /api/ai/original-study
