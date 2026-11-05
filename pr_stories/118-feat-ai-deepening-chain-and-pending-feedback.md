@@ -11,7 +11,9 @@
 ## 1. Executive Summary
 
 ### 1.1 Problem Statement
+
 In previous releases, Bible study AI insights across reader, comparison, and analytics views included actionable `next_focus` suggestions. However:
+
 1. Selecting a suggestion replaced the entire previous deep dive without retention, discarding prior context.
 2. Clicking a chip provided zero tactile pending feedback; users were uncertain if requests were dispatched.
 3. The backend lacked context path awareness, leading the LLM to potentially repeat previous insights when drilling down into subtopics.
@@ -19,7 +21,9 @@ In previous releases, Bible study AI insights across reader, comparison, and ana
 5. Saving analyses to the workspace automatically assigned arbitrary hardcoded names, and long accordion stacks forced cumbersome scrolling to access the single save button.
 
 ### 1.2 Proposed Solution
+
 This PR delivers an end-to-end chained AI deep dive architecture:
+
 1. **Frontend Chain State Machine (`useDeepDiveChain`):** Implements an accordion stack preserving exploration history, tracking per-chip pending state, and auto-scrolling to new drill-downs.
 2. **Context Path Propagation & Subtree Pruning:** Passes `context.path` (up to 5 breadcrumb segments) to backend prompts and gracefully prunes sibling subtrees when branching out.
 3. **Backend Validation & Security Hardening:** Validates `context.path` in `backend/internal/api/ai_handler.go` with strict depth (`maxPathDepth = 5`) and segment length limits (`maxSegmentRunes = 200`), and embeds parent context into Gemini prompts.
