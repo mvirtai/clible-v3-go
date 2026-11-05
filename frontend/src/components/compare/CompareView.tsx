@@ -15,6 +15,7 @@ import { serializeChain } from '../../utils/deepDiveSerialization';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSmartClearInput } from '../../utils/useSmartClearInput';
 import { X } from 'lucide-react';
+import { SaveAnalysisModal } from '../layout/SaveAnalysisModal';
 
 /**
  * Properties for {@link CompareView}.
@@ -107,6 +108,7 @@ export function CompareView({
     const [aiError, setAiError] = useState<string | null>(null);
     const deepDiveChain = useDeepDiveChain({ savedText: loadedSavedDeepDive ?? null, scope: aiResult });
     const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+    const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
     const [prevLoadedSavedAi, setPrevLoadedSavedAi] = useState<AiTextResponse | null>(null);
     const normalizedSavedAi = loadedSavedAi || null;
@@ -198,19 +200,20 @@ export function CompareView({
         }
     };
 
-    const handleSaveAiComparison = async () => {
+    const handleSaveAiComparison = async (customName: string) => {
         if (!activeScopeId || !aiResult || !reference) return;
         setAiSaveStatus('saving');
         try {
             await apiService.saveAnalysis({
                 scopeId: activeScopeId,
-                name: `${strings.aiCompareTitle}: ${reference} (${leftTr}/${rightTr})`,
+                name: customName,
                 reference: reference,
                 analysisType: 'comparison',
                 translationId: leftTr,
                 paramsJson: JSON.stringify({ translationB: rightTr }),
                 resultJson: JSON.stringify({ result, ai: aiResult, deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null })
             });
+            setIsSaveModalOpen(false);
             setAiSaveStatus('success');
             if (onWorkspaceUpdated) {
                 onWorkspaceUpdated();
@@ -544,7 +547,7 @@ export function CompareView({
                                     <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
                                         <button
                                             type="button"
-                                            onClick={handleSaveAiComparison}
+                                            onClick={() => setIsSaveModalOpen(true)}
                                             disabled={aiSaveStatus === 'saving'}
                                             className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                                         >
@@ -577,6 +580,30 @@ export function CompareView({
                             onRemove={deepDiveChain.remove}
                             onPick={handleNextFocusPick}
                             isPending={deepDiveChain.isPending}
+                        />
+
+                        {activeScopeId && deepDiveChain.entries.length > 0 && (
+                            <div className="flex justify-end pt-4 mt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSaveModalOpen(true)}
+                                    disabled={aiSaveStatus === 'saving'}
+                                    className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                                >
+                                    {aiSaveStatus === 'saving' && strings.savingLabel}
+                                    {aiSaveStatus === 'success' && strings.saveSuccess}
+                                    {aiSaveStatus === 'error' && strings.saveFail}
+                                    {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabCompare}`}
+                                </button>
+                            </div>
+                        )}
+
+                        <SaveAnalysisModal
+                            isOpen={isSaveModalOpen}
+                            defaultName={`${strings.aiCompareTitle}: ${reference} (${leftTr}/${rightTr})`}
+                            onSave={handleSaveAiComparison}
+                            onClose={() => setIsSaveModalOpen(false)}
+                            isSaving={aiSaveStatus === 'saving'}
                         />
                     </div>
 

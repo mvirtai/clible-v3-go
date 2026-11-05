@@ -40,6 +40,7 @@ import { GeminiUsage } from '../layout/GeminiUsage';
 import { useDeepDiveChain } from '../../hooks/useDeepDiveChain';
 import { serializeChain } from '../../utils/deepDiveSerialization';
 import type { AiTextResponse, NextFocusItem } from '../../types/ai';
+import { SaveAnalysisModal } from '../layout/SaveAnalysisModal';
 
 /**
  * Properties for {@link AnalyticsView}.
@@ -113,6 +114,7 @@ export const AnalyticsView = ({
   const [toneSaveStatus, setToneSaveStatus] = useState<
     'idle' | 'saving' | 'success' | 'error'
   >('idle');
+  const [isToneSaveModalOpen, setIsToneSaveModalOpen] = useState(false);
 
   // Save form states
   const [saveName, setSaveName] = useState('');
@@ -206,13 +208,13 @@ export const AnalyticsView = ({
     }
   };
 
-  const handleSaveToneAnalysis = async () => {
+  const handleSaveToneAnalysis = async (customName: string) => {
     if (!activeScopeId || !toneResult || !reference) return;
     setToneSaveStatus('saving');
     try {
       await apiService.saveAnalysis({
         scopeId: activeScopeId,
-        name: `${strings.deepDiveToneTitle}: ${reference}`,
+        name: customName,
         reference: reference,
         analysisType: 'tone',
         translationId: defaultTranslation,
@@ -225,6 +227,7 @@ export const AnalyticsView = ({
             : null,
         }),
       });
+      setIsToneSaveModalOpen(false);
       setToneSaveStatus('success');
       if (onWorkspaceUpdated) {
         onWorkspaceUpdated();
@@ -696,7 +699,7 @@ export const AnalyticsView = ({
                       <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
                         <button
                           type="button"
-                          onClick={handleSaveToneAnalysis}
+                          onClick={() => setIsToneSaveModalOpen(true)}
                           disabled={toneSaveStatus === 'saving'}
                           className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                         >
@@ -733,6 +736,32 @@ export const AnalyticsView = ({
               onRemove={deepDiveChain.remove}
               onPick={handleNextFocusPick}
               isPending={deepDiveChain.isPending}
+            />
+
+            {activeScopeId && deepDiveChain.entries.length > 0 && (
+              <div className="flex justify-end pt-4 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsToneSaveModalOpen(true)}
+                  disabled={toneSaveStatus === 'saving'}
+                  className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                >
+                  {(toneSaveStatus === 'saving' &&
+                    strings.savingLabel) ||
+                    (toneSaveStatus === 'success' &&
+                      strings.saveSuccess) ||
+                    (toneSaveStatus === 'error' && strings.saveFail) ||
+                    `${strings.saveLabel} ${strings.tabAnalytics}`}
+                </button>
+              </div>
+            )}
+
+            <SaveAnalysisModal
+              isOpen={isToneSaveModalOpen}
+              defaultName={`${strings.deepDiveToneTitle}: ${reference}`}
+              onSave={handleSaveToneAnalysis}
+              onClose={() => setIsToneSaveModalOpen(false)}
+              isSaving={toneSaveStatus === 'saving'}
             />
           </div>
         </>

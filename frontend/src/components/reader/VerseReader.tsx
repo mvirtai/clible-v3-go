@@ -19,6 +19,7 @@ import { getBookGenre } from '../../utils/bookGenre';
 import { useSmartClearInput } from '../../utils/useSmartClearInput';
 import { X } from 'lucide-react';
 import { VerseReaderSkeleton } from './VerseReaderSkeleton';
+import { SaveAnalysisModal } from '../layout/SaveAnalysisModal';
 
 
 
@@ -84,6 +85,7 @@ export function VerseReader({
   const [aiError, setAiError] = useState<string | null>(null);
   const deepDiveChain = useDeepDiveChain({ savedText: loadedSavedDeepDive ?? null, scope: aiInsight });
   const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
   // Reader Font Size state (persisted in localStorage, defaulting to 'xl')
   type ReaderFontSize = 'sm' | 'base' | 'lg' | 'xl' | '2xl';
@@ -204,13 +206,13 @@ export function VerseReader({
     }
   };
 
-  const handleSaveAiInsight = async () => {
+  const handleSaveAiInsight = async (customName: string) => {
     if (!activeScopeId || !aiInsight || !data) return;
     setAiSaveStatus('saving');
     try {
       await apiService.saveAnalysis({
         scopeId: activeScopeId,
-        name: `${strings.aiAnalysisTitle}: ${parseReferenceForDisplay(data.reference, lang)}`,
+        name: customName,
         reference: data.reference,
         analysisType: 'insight',
         translationId: translation,
@@ -220,6 +222,7 @@ export function VerseReader({
           deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null
         })
       });
+      setIsSaveModalOpen(false);
       setAiSaveStatus('success');
       if (onWorkspaceUpdated) {
         onWorkspaceUpdated();
@@ -681,14 +684,14 @@ export function VerseReader({
                   <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
                     <button
                       type="button"
-                      onClick={handleSaveAiInsight}
+                      onClick={() => setIsSaveModalOpen(true)}
                       disabled={aiSaveStatus === 'saving'}
                       className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                     >
                       {aiSaveStatus === 'saving' && strings.savingLabel}
-                                            {aiSaveStatus === 'success' && strings.saveSuccess}
-                                            {aiSaveStatus === 'error' && strings.saveFail}
-                                            {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabAnalytics}` }
+                      {aiSaveStatus === 'success' && strings.saveSuccess}
+                      {aiSaveStatus === 'error' && strings.saveFail}
+                      {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabAnalytics}`}
                     </button>
                   </div>
                 )}
@@ -711,6 +714,32 @@ export function VerseReader({
                   onPick={handleNextFocusPick}
                   isPending={deepDiveChain.isPending}
                 />
+
+                {activeScopeId && deepDiveChain.entries.length > 0 && (
+                  <div className="flex justify-end pt-4 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsSaveModalOpen(true)}
+                      disabled={aiSaveStatus === 'saving'}
+                      className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                    >
+                      {aiSaveStatus === 'saving' && strings.savingLabel}
+                      {aiSaveStatus === 'success' && strings.saveSuccess}
+                      {aiSaveStatus === 'error' && strings.saveFail}
+                      {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabAnalytics}`}
+                    </button>
+                  </div>
+                )}
+
+                {data && (
+                  <SaveAnalysisModal
+                    isOpen={isSaveModalOpen}
+                    defaultName={`${strings.aiAnalysisTitle}: ${parseReferenceForDisplay(data.reference, lang)}`}
+                    onSave={handleSaveAiInsight}
+                    onClose={() => setIsSaveModalOpen(false)}
+                    isSaving={aiSaveStatus === 'saving'}
+                  />
+                )}
               </div>
             )}
           </div>
