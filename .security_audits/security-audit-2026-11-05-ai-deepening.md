@@ -52,44 +52,50 @@ Tarkastelun kohteena olivat seuraavat osa-alueet:
 
 ### 3.1 Autentikaatio ja käyttöoikeuksien tarkistus (CWE-285)
 
-* **Tarkasteltu:** Onko `POST /api/ai/deep-dive` suojattu kirjautumattomalta väärinkäytöltä?
-* **Havainto:** Päätepiste vaatii todennetun käyttäjän (`RequireAuth(authService)`). Vieraspyynnöt hylätään koodilla `401 Unauthorized`. Käyttäjän pyynnöt lasketaan käyttäjäkohtaiseen token-kiintiöön.
-* **Tila:** HYVÄKSYTTY (PASSED)
+- **Tarkasteltu:** Onko `POST /api/ai/deep-dive` suojattu kirjautumattomalta väärinkäytöltä?
+- **Havainto:** Päätepiste vaatii todennetun käyttäjän (`RequireAuth(authService)`). Vieraspyynnöt hylätään koodilla `401 Unauthorized`. Käyttäjän pyynnöt lasketaan käyttäjäkohtaiseen token-kiintiöön.
+- **Tila:** HYVÄKSYTTY (PASSED)
 
 ### 3.2 Syötteiden sanitointi ja DoS-suojaus (CWE-400, CWE-20)
 
-* **Tarkasteltu:** Miten backend käsittelee asiakkaan toimittamaa `context.path`-taulukkoa?
-* **Havainto:** `backend/internal/api/ai_handler.go`:ssa funktio `sanitizeDeepDivePath` suorittaa tiukan validoinnin:
+- **Tarkasteltu:** Miten backend käsittelee asiakkaan toimittamaa `context.path`-taulukkoa?
+- **Havainto:** `backend/internal/api/ai_handler.go`:ssa funktio `sanitizeDeepDivePath` suorittaa tiukan validoinnin:
   1. Hylkää pyynnön virheellä `400 Bad Request`, jos `path` ei ole taulukko (`[]interface{}`).
   2. Hylkää pyynnön, jos polussa on enemmän kuin 5 alkiota (`maxPathDepth = 5`).
   3. Hylkää ei-merkkijonot, tyhjät alkiot ja yli 200 runea pitkät aihenimet (`maxSegmentRunes = 200`).
   4. Tämä estää laajat prompt injection -hyökkäykset ja token-tulvat.
-* **Tila:** HYVÄKSYTTY (PASSED)
+- **Tila:** HYVÄKSYTTY (PASSED)
 
 ### 3.3 Prompt-rakenteen eheys ja XSS-suojaus (CWE-116, CWE-79)
 
-* **Tarkasteltu:** Miten polkuhierarkia toimitetaan kielimallille ja käyttöliittymään?
-* **Havainto:** `backend/internal/services/ai_service.go` yhdistää sanitoidut alkiot muotoon `Aihe 1 → Aihe 2` osaksi erillistä kontekstiosiota ilman kontrollimerkkien tulkintaa. Käyttöliittymässä (`DeepDiveBreadcrumb`, `NextFocusChips`) tekstit renderöidään Reactin tekstisolmuina ilman `dangerouslySetInnerHTML`-kutsuja.
-* **Tila:** HYVÄKSYTTY (PASSED)
+- **Tarkasteltu:** Miten polkuhierarkia toimitetaan kielimallille ja käyttöliittymään?
+- **Havainto:** `backend/internal/services/ai_service.go` yhdistää sanitoidut alkiot muotoon `Aihe 1 → Aihe 2` osaksi erillistä kontekstiosiota ilman kontrollimerkkien tulkintaa. Käyttöliittymässä (`DeepDiveBreadcrumb`, `NextFocusChips`) tekstit renderöidään Reactin tekstisolmuina ilman `dangerouslySetInnerHTML`-kutsuja.
+- **Tila:** HYVÄKSYTTY (PASSED)
 
 ---
 
 ## 4. Suoritetut työkalut ja tarkistuskomennot
 
-* **Backend-laatuportti:**
+- **Backend-laatuportti:**
+
   ```bash
   task backend:check
   ```
+
   Tulos: Kaikki yksikkö- ja taulukkotestit hyväksytty, linter puhdas, testikattavuus 77.6 %.
-* **Frontend-laatuportti:**
+- **Frontend-laatuportti:**
+
   ```bash
   task frontend:check
   ```
+
   Tulos: TypeScript (`tsc -b`) 0 virhettä, ESLint 0 virhettä, Vitest 65 tiedostoa / 461 testiä hyväksytty.
-* **Kokonaisvaltainen laatuportti:**
+- **Kokonaisvaltainen laatuportti:**
+
   ```bash
   task check
   ```
+
   Tulos: Kaikki järjestelmätestit läpäisty.
 
 ---
