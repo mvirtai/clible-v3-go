@@ -12,9 +12,6 @@ vi.mock('@/services/api', () => ({
   },
 }));
 
-// @ts-expect-error React testing environment flag
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
 describe('useDeepDiveChain', () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -275,6 +272,135 @@ describe('useDeepDiveChain', () => {
       expect(apiService.getAiDeepDive).toHaveBeenCalledTimes(1);
       expect(hookHolder.current?.entries).toHaveLength(1);
       expect(hookHolder.current?.focusId).toBe(firstEntryId);
+    });
+
+    it('calculates recursive depth and passes context.path on child picks', async () => {
+      vi.mocked(apiService.getAiDeepDive).mockResolvedValue({
+        text: 'Covenant details',
+        nextFocus: [],
+      });
+
+      const hookHolder = { current: null as ReturnType<typeof useDeepDiveChain> | null };
+      const scope = { id: 'scope-c' };
+
+      await act(async () => {
+        root.render(
+          <TestConsumer
+            savedText={null}
+            scope={scope}
+            onHookState={(h) => {
+              hookHolder.current = h;
+            }}
+          />,
+        );
+      });
+
+      // 1. Root pick (Topic A)
+      await act(async () => {
+        hookHolder.current?.pick(
+          { label: 'Covenant', kind: 'theme', reason: 'root' },
+          { language: 'en', context: { reference: 'Gen 15:1' } },
+        );
+      });
+
+      expect(hookHolder.current?.entries).toHaveLength(1);
+      const rootEntry = hookHolder.current!.entries[0]!;
+      expect(rootEntry.depth).toBe(0);
+
+      // 2. Child pick (Topic B with parentId = rootEntry.id)
+      await act(async () => {
+        hookHolder.current?.pick(
+          { label: 'Abrahamic Covenant', kind: 'theme', reason: 'child' },
+          { parentId: rootEntry.id, language: 'en', context: { reference: 'Gen 15:1' } },
+        );
+      });
+
+      expect(hookHolder.current?.entries).toHaveLength(2);
+      const childEntry = hookHolder.current!.entries[1]!;
+      expect(childEntry.depth).toBe(1);
+      expect(childEntry.parentId).toBe(rootEntry.id);
+
+      // Check that apiService was called with path: ['Covenant']
+      expect(apiService.getAiDeepDive).toHaveBeenLastCalledWith(
+        'Abrahamic Covenant',
+        'en',
+        expect.objectContaining({
+          path: ['Covenant'],
+        }),
+      );
+    });
+
+    it('stops network requests when MAX_DEEP_DIVE_DEPTH (5) is reached', async () => {
+      vi.mocked(apiService.getAiDeepDive).mockResolvedValue({
+        text: 'Deep content',
+        nextFocus: [],
+      });
+
+      const hookHolder = { current: null as ReturnType<typeof useDeepDiveChain> | null };
+      const scope = { id: 'scope-depth' };
+
+      await act(async () => {
+        root.render(
+          <TestConsumer
+            savedText={null}
+            scope={scope}
+            onHookState={(h) => {
+              hookHolder.current = h;
+            }}
+          />,
+        );
+      });
+
+      let parentId: string | undefined = undefined;
+      for (let i = 0; i < 5; i++) {
+        await act(async () => {
+          hookHolder.current?.pick(
+            { label: `Level ${i}`, kind: 'theme', reason: 'step' },
+            { parentId, language: 'en', context: { reference: 'Rom 8:1' } },
+          );
+        });
+        parentId = hookHolder.current?.entries.at(-1)?.id;
+      }
+
+      expect(hookHolder.current?.entries).toHaveLength(5);
+      expect(apiService.getAiDeepDive).toHaveBeenCalledTimes(5);
+
+      // 6th pick (depth would be 5 >= MAX_DEEP_DIVE_DEPTH) -> should not trigger API call
+      await act(async () => {
+        hookHolder.current?.pick(
+          { label: 'Level 5 (blocked)', kind: 'theme', reason: 'step' },
+          { parentId, language: 'en', context: { reference: 'Rom 8:1' } },
+        );
+      });
+
+      expect(hookHolder.current?.entries).toHaveLength(5);
+      expect(apiService.getAiDeepDive).toHaveBeenCalledTimes(5);
+    });
+
+    it('removes parent entry along with its entire descendant subtree', async () => {
+      const state = {
+        source: null,
+        scope: 'scope-tree',
+        entries: [
+          { id: '1', parentId: null, depth: 0, topic: 'Root', text: 'T1', nextFocus: [] },
+          { id: '2', parentId: '1', depth: 1, topic: 'Child 1', text: 'T2', nextFocus: [] },
+          { id: '3', parentId: '2', depth: 2, topic: 'Grandchild 1', text: 'T3', nextFocus: [] },
+          { id: '4', parentId: null, depth: 0, topic: 'Another Root', text: 'T4', nextFocus: [] },
+        ],
+        error: null,
+        focusId: null,
+      };
+
+      const res = await chainReducer(state, {
+        type: 'remove',
+        id: '1',
+        source: null,
+        scope: 'scope-tree',
+      });
+
+      // Removing '1' should also purge '2' and '3', leaving only '4'
+      expect(res.entries).toHaveLength(1);
+      expect(res.entries[0]?.id).toBe('4');
     });
   });
 });

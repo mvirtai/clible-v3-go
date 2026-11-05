@@ -9,4 +9,5 @@ if (!globalThis.fetch) {
   globalThis.fetch = vi.fn();
 }
 
-// Add other global setups, teardowns, or API mocks here if needed in the future.
+// Tell React that act() is being used in a test environment
+(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

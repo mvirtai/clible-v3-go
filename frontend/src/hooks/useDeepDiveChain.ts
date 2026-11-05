@@ -3,12 +3,44 @@ import { apiService } from '@/services/api';
 import type { DeepDiveEntry, NextFocusItem } from '@/types/ai';
 import { parseChain } from '@/utils/deepDiveSerialization';
 
+export const MAX_DEEP_DIVE_DEPTH = 5;
+
+/** Topics from the root down to (and including) the given entry. */
+export function pathTo(entries: DeepDiveEntry[], id: string | null): string[] {
+  const path: string[] = [];
+  let currentId = id;
+  while (currentId) {
+    const entry = entries.find((e) => e.id === currentId);
+    if (!entry) break;
+    path.unshift(entry.topic);
+    currentId = entry.parentId;
+  }
+  return path;
+}
+
+/** Entry ids of `id` and all its descendants. */
+export function subtreeIds(entries: DeepDiveEntry[], id: string): Set<string> {
+  const ids = new Set([id]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const e of entries) {
+      if (e.parentId && ids.has(e.parentId) && !ids.has(e.id)) {
+        ids.add(e.id);
+        grew = true;
+      }
+    }
+  }
+  return ids;
+}
+
 export interface DeepDiveRequestContext {
   reference: string;
   translationA?: string;
   textA?: string;
   translationB?: string;
   textB?: string;
+  path?: string[];
 }
 
 export interface ChainState {
@@ -40,12 +72,26 @@ export async function chainReducer(prev: ChainState, action: ChainAction): Promi
   const base = valid ? prev.entries : parseChain(action.source);
 
   if (action.type === 'remove') {
+    const gone = subtreeIds(base, action.id);
     return {
       source: action.source,
       scope: action.scope,
-      entries: base.filter((e) => e.id !== action.id),
+      entries: base.filter((e) => !gone.has(e.id)),
       error: null,
       focusId: null,
+    };
+  }
+
+  const parent = action.parentId ? base.find((e) => e.id === action.parentId) : undefined;
+  const depth = parent ? parent.depth + 1 : 0;
+  if (depth >= MAX_DEEP_DIVE_DEPTH) {
+    // Reached maximum allowed depth
+    return {
+      source: action.source,
+      scope: action.scope,
+      entries: base,
+      error: null,
+      focusId: parent ? parent.id : null,
     };
   }
 
@@ -63,11 +109,17 @@ export async function chainReducer(prev: ChainState, action: ChainAction): Promi
   }
 
   try {
-    const res = await apiService.getAiDeepDive(action.item.label, action.language, action.context);
+    const requestPath = pathTo(base, action.parentId);
+    const requestContext: DeepDiveRequestContext = {
+      ...action.context,
+      ...(requestPath.length > 0 ? { path: requestPath } : {}),
+    };
+
+    const res = await apiService.getAiDeepDive(action.item.label, action.language, requestContext);
     const entry: DeepDiveEntry = {
       id: crypto.randomUUID(),
       parentId: action.parentId,
-      depth: 0, // Phase 3 calculates proper recursive depth
+      depth,
       topic: action.item.label,
       text: res.text,
       nextFocus: res.nextFocus ?? [],

@@ -5,9 +5,6 @@ import { act } from 'react';
 import { DeepDiveSkeleton } from './DeepDiveSkeleton';
 import { LanguageProvider } from '../../context/LanguageContext';
 
-// @ts-expect-error React testing environment flag
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
 describe('DeepDiveSkeleton', () => {
   let container: HTMLDivElement;
   let root: Root;

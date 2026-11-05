@@ -5,9 +5,6 @@ import { act } from 'react';
 import { NextFocusChips } from './NextFocusChips';
 import type { NextFocusItem } from '../../types/ai';
 
-// @ts-expect-error React testing environment flag
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
 describe('NextFocusChips', () => {
   let container: HTMLDivElement;
   let root: Root;
