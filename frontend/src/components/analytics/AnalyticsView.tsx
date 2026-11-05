@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 import {
   BarChart3,
   Hash,
@@ -10,8 +10,8 @@ import {
   Save,
   Type,
   X,
-} from "lucide-react";
-import { useSmartClearInput } from "../../utils/useSmartClearInput";
+} from 'lucide-react';
+import { useSmartClearInput } from '../../utils/useSmartClearInput';
 import {
   BarChart,
   Bar,
@@ -20,29 +20,26 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-} from "recharts";
-import { apiService } from "../../services/api";
-import { WordCloud } from "./WordCloud";
-import type { TextStats } from "../../types/bible";
+} from 'recharts';
+import { apiService } from '../../services/api';
+import { WordCloud } from './WordCloud';
+import type { TextStats } from '../../types/bible';
 import {
   getFrequencyChartHeight,
   selectFrequencyData,
   type FrequencyLevel,
-} from "./frequencyData";
-import { resolveBookId, isBibleReference } from "../../utils/bookNames";
-import ReactMarkdown from "react-markdown";
-import { useLanguage } from "../../context/LanguageContext";
-import remarkGfm from "remark-gfm";
-import { markdownComponents } from "../../utils/markdownComponents";
-import { NextFocusChips } from "../search/NextFocusChips";
-import { DeepDiveStack } from "../layout/DeepDiveStack";
-import { GeminiUsage } from "../layout/GeminiUsage";
-import { useDeepDiveChain } from "../../hooks/useDeepDiveChain";
-import { serializeChain } from "../../utils/deepDiveSerialization";
-import type {
-  AiTextResponse,
-  NextFocusItem,
-} from "../../types/ai";
+} from './frequencyData';
+import { resolveBookId, isBibleReference } from '../../utils/bookNames';
+import ReactMarkdown from 'react-markdown';
+import { useLanguage } from '../../context/LanguageContext';
+import remarkGfm from 'remark-gfm';
+import { markdownComponents } from '../../utils/markdownComponents';
+import { NextFocusChips } from '../search/NextFocusChips';
+import { DeepDiveStack } from '../layout/DeepDiveStack';
+import { GeminiUsage } from '../layout/GeminiUsage';
+import { useDeepDiveChain } from '../../hooks/useDeepDiveChain';
+import { serializeChain } from '../../utils/deepDiveSerialization';
+import type { AiTextResponse, NextFocusItem } from '../../types/ai';
 
 /**
  * Properties for {@link AnalyticsView}.
@@ -85,15 +82,14 @@ export const AnalyticsView = ({
 }: AnalyticsViewProps) => {
   const { strings, aiLang } = useLanguage();
   const [reference, setReference] = useState<string>(
-    () => activeReference || "John 3",
+    () => activeReference || 'John 3',
   );
   const [stats, setStats] = useState<TextStats | null>(
     () => loadedSavedStats?.stats ?? null,
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [frequencyLevel, setFrequencyLevel] =
-    useState<FrequencyLevel>("words");
+  const [frequencyLevel, setFrequencyLevel] = useState<FrequencyLevel>('words');
 
   // AI states
   const [toneResult, setToneResult] = useState<AiTextResponse | null>(
@@ -115,15 +111,15 @@ export const AnalyticsView = ({
   }
 
   const [toneSaveStatus, setToneSaveStatus] = useState<
-    "idle" | "saving" | "success" | "error"
-  >("idle");
+    'idle' | 'saving' | 'success' | 'error'
+  >('idle');
 
   // Save form states
-  const [saveName, setSaveName] = useState("");
+  const [saveName, setSaveName] = useState('');
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">(
-    "idle",
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>(
+    'idle',
   );
 
   // Restore saved analysis from workspace during render phase
@@ -139,7 +135,7 @@ export const AnalyticsView = ({
     if (loadedSavedStats.stats) {
       setStats(loadedSavedStats.stats);
     } else {
-      // Note: Triggering side effects in render is dangerous; 
+      // Note: Triggering side effects in render is dangerous;
       // this logic should ideally be extracted to a controlled effect if it requires async fetching.
       // This is a minimal refactor as requested by instructions.
       setLoading(true);
@@ -147,7 +143,8 @@ export const AnalyticsView = ({
         /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
         (match) => resolveBookId(match) ?? match,
       );
-      apiService.analyze(normalized, loadedSavedStats.translationId)
+      apiService
+        .analyze(normalized, loadedSavedStats.translationId)
         .then(setStats)
         .catch(() => setError(strings.analyticsFetchFailed))
         .finally(() => setLoading(false));
@@ -171,7 +168,9 @@ export const AnalyticsView = ({
       setStats(data);
       setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : strings.analyticsFetchFailed);
+      setError(
+        err instanceof Error ? err.message : strings.analyticsFetchFailed,
+      );
       setLoading(false);
     }
   };
@@ -192,13 +191,13 @@ export const AnalyticsView = ({
         normalized,
         defaultTranslation,
       );
-      const text = resData.verses.map((v) => v.text).join("\n");
+      const text = resData.verses.map((v) => v.text).join('\n');
       const res = await apiService.getAiTone(text, undefined, aiLang);
       setToneResult(res);
       setToneLoading(false);
     } catch (err) {
       const errorObj = err as Error;
-      if (errorObj.message && errorObj.message.includes("503")) {
+      if (errorObj.message && errorObj.message.includes('503')) {
         setToneError(strings.aiUnavailable);
       } else {
         setToneError(errorObj.message || strings.toneAnalysisFailed);
@@ -209,34 +208,36 @@ export const AnalyticsView = ({
 
   const handleSaveToneAnalysis = async () => {
     if (!activeScopeId || !toneResult || !reference) return;
-    setToneSaveStatus("saving");
+    setToneSaveStatus('saving');
     try {
       await apiService.saveAnalysis({
         scopeId: activeScopeId,
         name: `${strings.deepDiveToneTitle}: ${reference}`,
         reference: reference,
-        analysisType: "tone",
+        analysisType: 'tone',
         translationId: defaultTranslation,
         paramsJson: JSON.stringify({}),
         resultJson: JSON.stringify({
           stats,
           tone: toneResult,
-          deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null,
+          deepDive: deepDiveChain.entries.length
+            ? serializeChain(deepDiveChain.entries)
+            : null,
         }),
       });
-      setToneSaveStatus("success");
+      setToneSaveStatus('success');
       if (onWorkspaceUpdated) {
         onWorkspaceUpdated();
       }
-      setTimeout(() => setToneSaveStatus("idle"), 3000);
+      setTimeout(() => setToneSaveStatus('idle'), 3000);
     } catch (err) {
-      console.error("Failed to save tone analysis", err);
-      setToneSaveStatus("error");
-      setTimeout(() => setToneSaveStatus("idle"), 4000);
+      console.error('Failed to save tone analysis', err);
+      setToneSaveStatus('error');
+      setTimeout(() => setToneSaveStatus('idle'), 4000);
     }
   };
 
-  const handleNextFocusPick = async (it: NextFocusItem) => {
+  const handleNextFocusPick = async (it: NextFocusItem, parentId?: string) => {
     if (isBibleReference(it.label)) {
       setReference(it.label);
       const normalized = it.label
@@ -258,6 +259,7 @@ export const AnalyticsView = ({
       }
     } else {
       deepDiveChain.pick(it, {
+        parentId,
         language: aiLang,
         context: { reference },
       });
@@ -265,9 +267,7 @@ export const AnalyticsView = ({
   };
 
   const smartClear = useSmartClearInput(reference, setReference);
-  const frequencyData = stats
-    ? selectFrequencyData(stats, frequencyLevel)
-    : [];
+  const frequencyData = (stats ? selectFrequencyData(stats, frequencyLevel) : null) ?? [];
   const frequencyLabels: Record<FrequencyLevel, string> = {
     words: strings.frequencyWordsLabel,
     bigrams: strings.frequencyBigramsLabel,
@@ -294,7 +294,9 @@ export const AnalyticsView = ({
               type="text"
               value={reference}
               aria-label={strings.tabAnalytics}
-              placeholder={strings.originalReferencePlaceholder || strings.tabAnalytics}
+              placeholder={
+                strings.originalReferencePlaceholder || strings.tabAnalytics
+              }
               onChange={(e) => {
                 smartClear.markDirty();
                 setReference(e.target.value);
@@ -364,7 +366,7 @@ export const AnalyticsView = ({
           <div className="flex justify-between items-center">
             <span
               className="text-xs font-semibold"
-              style={{ color: "var(--text)" }}
+              style={{ color: 'var(--text)' }}
             >
               {strings.saveAnalysisWorkspacePrompt}
             </span>
@@ -377,12 +379,12 @@ export const AnalyticsView = ({
                 >
                   <Save size={12} /> {strings.saveLabel}
                 </button>
-                {saveStatus === "success" && (
+                {saveStatus === 'success' && (
                   <span className="text-xs font-semibold text-emerald-500">
                     {strings.saveSuccess}
                   </span>
                 )}
-                {saveStatus === "error" && (
+                {saveStatus === 'error' && (
                   <span className="text-xs font-semibold text-red-500">
                     {strings.saveFail}
                   </span>
@@ -401,9 +403,9 @@ export const AnalyticsView = ({
                 onChange={(e) => setSaveName(e.target.value)}
                 className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none border"
                 style={{
-                  background: "var(--surface)",
-                  borderColor: "var(--border)",
-                  color: "var(--text)",
+                  background: 'var(--surface)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text)',
                 }}
               />
               <button
@@ -413,26 +415,32 @@ export const AnalyticsView = ({
                   setSaving(true);
                   try {
                     const resultPayload = toneResult
-                      ? { stats, tone: toneResult, deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null }
+                      ? {
+                          stats,
+                          tone: toneResult,
+                          deepDive: deepDiveChain.entries.length
+                            ? serializeChain(deepDiveChain.entries)
+                            : null,
+                        }
                       : { stats };
                     await apiService.saveAnalysis({
                       scopeId: activeScopeId,
                       name: saveName.trim(),
                       reference: reference,
-                      analysisType: toneResult ? "tone" : "single_stats",
+                      analysisType: toneResult ? 'tone' : 'single_stats',
                       translationId: defaultTranslation,
-                      paramsJson: "{}",
+                      paramsJson: '{}',
                       resultJson: JSON.stringify(resultPayload),
                     });
-                    setSaveName("");
+                    setSaveName('');
                     setShowSaveForm(false);
-                    setSaveStatus("success");
-                    setTimeout(() => setSaveStatus("idle"), 3000);
+                    setSaveStatus('success');
+                    setTimeout(() => setSaveStatus('idle'), 3000);
                     if (onWorkspaceUpdated) onWorkspaceUpdated();
                     setSaving(false);
                   } catch {
-                    setSaveStatus("error");
-                    setTimeout(() => setSaveStatus("idle"), 3000);
+                    setSaveStatus('error');
+                    setTimeout(() => setSaveStatus('idle'), 3000);
                     setSaving(false);
                   }
                 }}
@@ -485,12 +493,14 @@ export const AnalyticsView = ({
               },
               ...(stats.hapaxLegomenaCount !== undefined &&
               stats.hapaxLegomenaRatio !== undefined
-                ? [{
-                    label: strings.hapaxLegomenaLabel,
-                    value: stats.hapaxLegomenaCount,
-                    detail: `${(stats.hapaxLegomenaRatio * 100).toFixed(1)}% ${strings.hapaxLegomenaShareLabel}`,
-                    icon: Hash,
-                  }]
+                ? [
+                    {
+                      label: strings.hapaxLegomenaLabel,
+                      value: stats.hapaxLegomenaCount,
+                      detail: `${(stats.hapaxLegomenaRatio * 100).toFixed(1)}% ${strings.hapaxLegomenaShareLabel}`,
+                      icon: Hash,
+                    },
+                  ]
                 : []),
             ].map((card, i) => (
               <div
@@ -507,7 +517,9 @@ export const AnalyticsView = ({
                   {card.value}
                 </div>
                 {'detail' in card && card.detail && (
-                  <div className="mt-1 break-words text-xs text-[var(--muted)]">{card.detail}</div>
+                  <div className="mt-1 break-words text-xs text-[var(--muted)]">
+                    {card.detail}
+                  </div>
                 )}
               </div>
             ))}
@@ -529,9 +541,9 @@ export const AnalyticsView = ({
                   >
                     {(
                       [
-                        ["words", strings.frequencyWordsLabel],
-                        ["bigrams", strings.frequencyBigramsLabel],
-                        ["trigrams", strings.frequencyTrigramsLabel],
+                        ['words', strings.frequencyWordsLabel],
+                        ['bigrams', strings.frequencyBigramsLabel],
+                        ['trigrams', strings.frequencyTrigramsLabel],
                       ] as const
                     ).map(([level, label]) => (
                       <button
@@ -539,7 +551,7 @@ export const AnalyticsView = ({
                         type="button"
                         onClick={() => setFrequencyLevel(level)}
                         aria-pressed={frequencyLevel === level}
-                        className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-colors cursor-pointer ${frequencyLevel === level ? "bg-[var(--surface)] shadow-xs text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+                        className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-colors cursor-pointer ${frequencyLevel === level ? 'bg-[var(--surface)] shadow-xs text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
                       >
                         {label}
                       </button>
@@ -550,12 +562,19 @@ export const AnalyticsView = ({
 
               <div
                 className="w-full flex items-center justify-center overflow-hidden"
-                style={{ height: `${getFrequencyChartHeight(frequencyData.length)}px` }}
+                style={{
+                  height: `${getFrequencyChartHeight(frequencyData.length)}px`,
+                }}
               >
                 {frequencyData.length === 0 ? (
-                  <p className="text-sm text-[var(--muted)]">{strings.noResults}</p>
+                  <p className="text-sm text-[var(--muted)]">
+                    {strings.noResults}
+                  </p>
                 ) : (
-                  <div className="h-full w-full" aria-label={frequencyLabels[frequencyLevel]}>
+                  <div
+                    className="h-full w-full"
+                    aria-label={frequencyLabels[frequencyLevel]}
+                  >
                     <div className="h-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
@@ -570,7 +589,7 @@ export const AnalyticsView = ({
                             width={180}
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fontSize: 11, fill: "currentColor" }}
+                            tick={{ fontSize: 11, fill: 'currentColor' }}
                             tickFormatter={(value: string) =>
                               value.length > 28
                                 ? `${value.slice(0, 27)}…`
@@ -580,14 +599,14 @@ export const AnalyticsView = ({
                             interval={0}
                           />
                           <Tooltip
-                            cursor={{ fill: "var(--surface-2)" }}
+                            cursor={{ fill: 'var(--surface-2)' }}
                             contentStyle={{
-                              borderRadius: "12px",
-                              border: "1px solid var(--border)",
-                              background: "var(--surface)",
+                              borderRadius: '12px',
+                              border: '1px solid var(--border)',
+                              background: 'var(--surface)',
                             }}
-                            itemStyle={{ color: "var(--text)" }}
-                            labelStyle={{ color: "var(--text-2)" }}
+                            itemStyle={{ color: 'var(--text)' }}
+                            labelStyle={{ color: 'var(--text-2)' }}
                           />
                           <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                             {frequencyData.map((_, i) => (
@@ -611,10 +630,12 @@ export const AnalyticsView = ({
                 <Cloud size={16} aria-hidden="true" /> {strings.topWordsTitle}
               </h3>
               <div className="min-h-[21.25rem] flex items-center justify-center">
-                {stats.topWords.length > 0 ? (
+                {(stats.topWords?.length ?? 0) > 0 ? (
                   <WordCloud words={stats.topWords} />
                 ) : (
-                  <p className="text-sm text-[var(--muted)]">{strings.noResults}</p>
+                  <p className="text-sm text-[var(--muted)]">
+                    {strings.noResults}
+                  </p>
                 )}
               </div>
             </div>
@@ -623,7 +644,8 @@ export const AnalyticsView = ({
             <div className="bg-[var(--surface-2)] border border-[var(--border)] p-6 rounded-3xl shadow-sm space-y-4 relative overflow-hidden flex flex-col justify-between text-left md:col-span-3">
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-2">
-                  <Sparkles size={16} className="text-[var(--accent)]" /> {strings.aiToneTitle}
+                  <Sparkles size={16} className="text-[var(--accent)]" />{' '}
+                  {strings.aiToneTitle}
                 </h3>
 
                 {!toneResult && !toneLoading && (
@@ -675,14 +697,14 @@ export const AnalyticsView = ({
                         <button
                           type="button"
                           onClick={handleSaveToneAnalysis}
-                          disabled={toneSaveStatus === "saving"}
+                          disabled={toneSaveStatus === 'saving'}
                           className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                         >
-                          {(toneSaveStatus === "saving" &&
+                          {(toneSaveStatus === 'saving' &&
                             strings.savingLabel) ||
-                            (toneSaveStatus === "success" &&
+                            (toneSaveStatus === 'success' &&
                               strings.saveSuccess) ||
-                            (toneSaveStatus === "error" && strings.saveFail) ||
+                            (toneSaveStatus === 'error' && strings.saveFail) ||
                             `${strings.saveLabel} ${strings.tabAnalytics}`}
                         </button>
                       </div>
@@ -709,6 +731,8 @@ export const AnalyticsView = ({
               focusId={deepDiveChain.focusId}
               title={strings.deepDiveToneTitle}
               onRemove={deepDiveChain.remove}
+              onPick={handleNextFocusPick}
+              isPending={deepDiveChain.isPending}
             />
           </div>
         </>

@@ -223,7 +223,7 @@ export function CompareView({
         }
     };
 
-    const handleNextFocusPick = (it: NextFocusItem) => {
+    const handleNextFocusPick = (it: NextFocusItem, parentId?: string) => {
         const normalized = reference.trim().replace(
             /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
             (match) => resolveBookId(match) ?? match,
@@ -231,6 +231,7 @@ export function CompareView({
         const leftText = result?.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n') || '';
         const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
         deepDiveChain.pick(it, {
+            parentId,
             language: aiLang,
             context: { reference: normalized, translationA: leftTr, textA: leftText, translationB: rightTr, textB: rightText },
         });
@@ -574,6 +575,8 @@ export function CompareView({
                             focusId={deepDiveChain.focusId}
                             title={strings.deepDiveCompareTitle}
                             onRemove={deepDiveChain.remove}
+                            onPick={handleNextFocusPick}
+                            isPending={deepDiveChain.isPending}
                         />
                     </div>
 

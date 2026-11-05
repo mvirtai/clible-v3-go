@@ -232,7 +232,7 @@ export function VerseReader({
     }
   };
 
-  const handleNextFocusPick = (it: NextFocusItem) => {
+  const handleNextFocusPick = (it: NextFocusItem, parentId?: string) => {
     // Navigate to chapter/verse only if label is an explicit Bible reference (e.g. "Jes. 7:14").
     // All concepts, phrases (e.g. "Immanuel-profetia"), words, themes, and questions trigger deep dive!
     if (isBibleReference(it.label)) {
@@ -240,6 +240,7 @@ export function VerseReader({
       fetchVerses(it.label);
     } else {
       deepDiveChain.pick(it, {
+        parentId,
         language: aiLang,
         context: { reference: data?.reference || reference },
       });
@@ -707,6 +708,8 @@ export function VerseReader({
                   focusId={deepDiveChain.focusId}
                   title={strings.deepDiveToneTitle}
                   onRemove={deepDiveChain.remove}
+                  onPick={handleNextFocusPick}
+                  isPending={deepDiveChain.isPending}
                 />
               </div>
             )}
