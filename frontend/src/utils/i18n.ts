@@ -376,6 +376,9 @@ export interface Messages {
   nextFocusDeepDiveTooltip: string;
   nextFocusBibleNavAria: string;
   nextFocusDeepDiveAria: string;
+  saveAnalysisModalTitle: string;
+  saveAnalysisNameLabel: string;
+  saveAnalysisLengthHint: string;
   englishLabel: string;
   finnishLabel: string;
   renameScopeTitle: string;
@@ -1014,6 +1017,9 @@ export const strings: Record<UILanguage, Messages> = {
     nextFocusDeepDiveTooltip: 'Explore deep dive',
     nextFocusBibleNavAria: 'Open passage in reader',
     nextFocusDeepDiveAria: 'Explore topic with AI',
+    saveAnalysisModalTitle: 'Save analysis to workspace',
+    saveAnalysisNameLabel: 'Analysis name',
+    saveAnalysisLengthHint: 'Name must be 2–30 characters long',
     englishLabel: 'English',
     finnishLabel: 'Finnish',
     renameScopeTitle: 'Rename workspace',
@@ -1627,6 +1633,9 @@ export const strings: Record<UILanguage, Messages> = {
     nextFocusDeepDiveTooltip: 'Syvenny analyysiin',
     nextFocusBibleNavAria: 'Avaa raamatunkohta lukunäkymässä',
     nextFocusDeepDiveAria: 'Syvenny aiheeseen tekoälyllä',
+    saveAnalysisModalTitle: 'Tallenna analyysi työtilaan',
+    saveAnalysisNameLabel: 'Analyysin nimi',
+    saveAnalysisLengthHint: 'Nimen tulee olla 2–30 merkkiä pitkä',
     englishLabel: 'Englanti',
     finnishLabel: 'Suomi',
     renameScopeTitle: 'Nimeä työtila uudelleen',
