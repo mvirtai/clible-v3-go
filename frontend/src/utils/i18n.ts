@@ -370,6 +370,12 @@ export interface Messages {
   deepDiveCollapse: string;
   deepDivePathLabel: string;
   deepDiveMaxDepth: string;
+  nextFocusLegendBible: string;
+  nextFocusLegendDeepDive: string;
+  nextFocusBibleNavTooltip: string;
+  nextFocusDeepDiveTooltip: string;
+  nextFocusBibleNavAria: string;
+  nextFocusDeepDiveAria: string;
   englishLabel: string;
   finnishLabel: string;
   renameScopeTitle: string;
@@ -1002,6 +1008,12 @@ export const strings: Record<UILanguage, Messages> = {
     deepDiveCollapse: 'Collapse',
     deepDivePathLabel: 'Topic path',
     deepDiveMaxDepth: 'Maximum depth reached',
+    nextFocusLegendBible: 'Reference (opens in reader)',
+    nextFocusLegendDeepDive: 'Topic (opens deep dive)',
+    nextFocusBibleNavTooltip: 'Navigate to chapter',
+    nextFocusDeepDiveTooltip: 'Explore deep dive',
+    nextFocusBibleNavAria: 'Open passage in reader',
+    nextFocusDeepDiveAria: 'Explore topic with AI',
     englishLabel: 'English',
     finnishLabel: 'Finnish',
     renameScopeTitle: 'Rename workspace',
@@ -1609,6 +1621,12 @@ export const strings: Record<UILanguage, Messages> = {
     deepDiveCollapse: 'Tiivistä',
     deepDivePathLabel: 'Aiheen polku',
     deepDiveMaxDepth: 'Syvyysraja saavutettu',
+    nextFocusLegendBible: 'Raamatunpaikka (avaa lukijassa)',
+    nextFocusLegendDeepDive: 'Aihe (syventyy analyysiin)',
+    nextFocusBibleNavTooltip: 'Siirry lukuun',
+    nextFocusDeepDiveTooltip: 'Syvenny analyysiin',
+    nextFocusBibleNavAria: 'Avaa raamatunkohta lukunäkymässä',
+    nextFocusDeepDiveAria: 'Syvenny aiheeseen tekoälyllä',
     englishLabel: 'Englanti',
     finnishLabel: 'Suomi',
     renameScopeTitle: 'Nimeä työtila uudelleen',
