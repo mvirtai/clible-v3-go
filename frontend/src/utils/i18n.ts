@@ -364,6 +364,21 @@ export interface Messages {
   nextFocusTitle: string;
   deepDiveToneTitle: string;
   deepDiveCompareTitle: string;
+  deepDivePendingTitle: string;
+  deepDiveLoadingAria: string;
+  deepDiveExpand: string;
+  deepDiveCollapse: string;
+  deepDivePathLabel: string;
+  deepDiveMaxDepth: string;
+  nextFocusLegendBible: string;
+  nextFocusLegendDeepDive: string;
+  nextFocusBibleNavTooltip: string;
+  nextFocusDeepDiveTooltip: string;
+  nextFocusBibleNavAria: string;
+  nextFocusDeepDiveAria: string;
+  saveAnalysisModalTitle: string;
+  saveAnalysisNameLabel: string;
+  saveAnalysisLengthHint: string;
   englishLabel: string;
   finnishLabel: string;
   renameScopeTitle: string;
@@ -990,6 +1005,21 @@ export const strings: Record<UILanguage, Messages> = {
     nextFocusTitle: 'Next focus',
     deepDiveToneTitle: 'Deep dive',
     deepDiveCompareTitle: 'Deep dive',
+    deepDivePendingTitle: 'Going deeper',
+    deepDiveLoadingAria: 'Loading deep dive',
+    deepDiveExpand: 'Expand',
+    deepDiveCollapse: 'Collapse',
+    deepDivePathLabel: 'Topic path',
+    deepDiveMaxDepth: 'Maximum depth reached',
+    nextFocusLegendBible: 'Reference (opens in reader)',
+    nextFocusLegendDeepDive: 'Topic (opens deep dive)',
+    nextFocusBibleNavTooltip: 'Navigate to chapter',
+    nextFocusDeepDiveTooltip: 'Explore deep dive',
+    nextFocusBibleNavAria: 'Open passage in reader',
+    nextFocusDeepDiveAria: 'Explore topic with AI',
+    saveAnalysisModalTitle: 'Save analysis to workspace',
+    saveAnalysisNameLabel: 'Analysis name',
+    saveAnalysisLengthHint: 'Name must be 2–40 characters long',
     englishLabel: 'English',
     finnishLabel: 'Finnish',
     renameScopeTitle: 'Rename workspace',
@@ -1591,6 +1621,21 @@ export const strings: Record<UILanguage, Messages> = {
     nextFocusTitle: 'Seuraava painopiste',
     deepDiveToneTitle: 'Syvällinen tutkimus',
     deepDiveCompareTitle: 'Syvällinen tutkimus',
+    deepDivePendingTitle: 'Syvennetään aihetta',
+    deepDiveLoadingAria: 'Ladataan syventävää analyysiä',
+    deepDiveExpand: 'Avaa',
+    deepDiveCollapse: 'Tiivistä',
+    deepDivePathLabel: 'Aiheen polku',
+    deepDiveMaxDepth: 'Syvyysraja saavutettu',
+    nextFocusLegendBible: 'Raamatunpaikka (avaa lukijassa)',
+    nextFocusLegendDeepDive: 'Aihe (syventyy analyysiin)',
+    nextFocusBibleNavTooltip: 'Siirry lukuun',
+    nextFocusDeepDiveTooltip: 'Syvenny analyysiin',
+    nextFocusBibleNavAria: 'Avaa raamatunkohta lukunäkymässä',
+    nextFocusDeepDiveAria: 'Syvenny aiheeseen tekoälyllä',
+    saveAnalysisModalTitle: 'Tallenna analyysi työtilaan',
+    saveAnalysisNameLabel: 'Analyysin nimi',
+    saveAnalysisLengthHint: 'Nimen tulee olla 2–40 merkkiä pitkä',
     englishLabel: 'Englanti',
     finnishLabel: 'Suomi',
     renameScopeTitle: 'Nimeä työtila uudelleen',

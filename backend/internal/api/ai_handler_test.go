@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mvirtai/clible-v3-go/internal/services"
@@ -148,6 +150,92 @@ func TestAIHandler_GetDeepDive_Success(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected status OK, got %v", rr.Code)
 	}
+}
+
+func TestAIHandler_GetDeepDive_PathValidation(t *testing.T) {
+	tests := []struct {
+		name       string
+		pathJSON   string
+		wantStatus int
+	}{
+		{
+			name:       "valid 3 elements",
+			pathJSON:   `["Covenant", "Abrahamic Covenant", "Circumcision"]`,
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "exceeds maximum depth 5",
+			pathJSON:   `["1", "2", "3", "4", "5", "6"]`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "non-string element",
+			pathJSON:   `["valid", 123]`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "empty string element",
+			pathJSON:   `["valid", "   "]`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "item exceeds 200 runes",
+			pathJSON:   `["` + strings.Repeat("a", 201) + `"]`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "path is not an array",
+			pathJSON:   `"invalid-string"`,
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockSvc := &mockAIService{
+				deepDive: func(ctx context.Context, topic, outputLanguage string, contextData map[string]interface{}) (*services.AIResponse, error) {
+					return &services.AIResponse{Text: "OK"}, nil
+				},
+			}
+			handler := NewAIHandler(mockSvc)
+			body := fmt.Sprintf(`{"topic": "Grace", "outputLanguage": "en", "context": {"path": %s}}`, tt.pathJSON)
+			req := httptest.NewRequest("POST", "/api/ai/deep-dive", bytes.NewBufferString(body))
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			handler.GetDeepDive(rr, req)
+
+			if rr.Code != tt.wantStatus {
+				t.Errorf("expected status %d, got %d. body=%s", tt.wantStatus, rr.Code, rr.Body.String())
+			}
+		})
+	}
+
+	t.Run("passes typed string slice to service", func(t *testing.T) {
+		var receivedPath []string
+		mockSvc := &mockAIService{
+			deepDive: func(ctx context.Context, topic, outputLanguage string, contextData map[string]interface{}) (*services.AIResponse, error) {
+				if p, ok := contextData["path"].([]string); ok {
+					receivedPath = p
+				}
+				return &services.AIResponse{Text: "OK"}, nil
+			},
+		}
+		handler := NewAIHandler(mockSvc)
+		body := `{"topic": "Grace", "outputLanguage": "en", "context": {"path": ["A", "B"]}}`
+		req := httptest.NewRequest("POST", "/api/ai/deep-dive", bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		rr := httptest.NewRecorder()
+		handler.GetDeepDive(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected status OK, got %d", rr.Code)
+		}
+		if len(receivedPath) != 2 || receivedPath[0] != "A" || receivedPath[1] != "B" {
+			t.Errorf("expected receivedPath [A B], got %v", receivedPath)
+		}
+	})
 }
 
 func TestAIHandler_AISearch_Success(t *testing.T) {

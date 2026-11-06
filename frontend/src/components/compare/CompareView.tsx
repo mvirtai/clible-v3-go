@@ -2,17 +2,20 @@ import { useState, useMemo } from 'react';
 import { GitCompareArrows, Loader2, Save, Brain } from 'lucide-react';
 import { apiService } from '../../services/api';
 import type { InstalledTranslation, ComparisonResult } from '../../types/bible';
-import { resolveBookId } from '../../utils/bookNames';
+import { resolveBookId, isBibleReference } from '../../utils/bookNames';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
 import { NextFocusChips } from '../search/NextFocusChips';
-import { DeepDiveCard } from '../layout/DeepDiveCard';
+import { DeepDiveStack } from '../layout/DeepDiveStack';
 import { GeminiUsage } from '../layout/GeminiUsage';
-import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
+import type { AiTextResponse, NextFocusItem } from '../../types/ai';
+import { useDeepDiveChain } from '../../hooks/useDeepDiveChain';
+import { serializeChain } from '../../utils/deepDiveSerialization';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSmartClearInput } from '../../utils/useSmartClearInput';
 import { X } from 'lucide-react';
+import { SaveAnalysisModal } from '../layout/SaveAnalysisModal';
 
 /**
  * Properties for {@link CompareView}.
@@ -103,23 +106,15 @@ export function CompareView({
     const [aiResult, setAiResult] = useState<AiTextResponse | null>(() => loadedSavedAi || null);
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
-    const [deepDiveText, setDeepDiveText] = useState<string | null>(() => loadedSavedDeepDive || null);
-    const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
+    const deepDiveChain = useDeepDiveChain({ savedText: loadedSavedDeepDive ?? null, scope: aiResult });
     const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+    const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
     const [prevLoadedSavedAi, setPrevLoadedSavedAi] = useState<AiTextResponse | null>(null);
     const normalizedSavedAi = loadedSavedAi || null;
     if (normalizedSavedAi !== prevLoadedSavedAi) {
         setAiResult(normalizedSavedAi);
         setPrevLoadedSavedAi(normalizedSavedAi);
-    }
-
-    const [prevLoadedSavedDeepDive, setPrevLoadedSavedDeepDive] = useState<string | null>(null);
-    const normalizedSavedDeepDive = loadedSavedDeepDive || null;
-    if (normalizedSavedDeepDive !== prevLoadedSavedDeepDive) {
-        setDeepDiveText(normalizedSavedDeepDive);
-        setDeepDiveUsage(null);
-        setPrevLoadedSavedDeepDive(normalizedSavedDeepDive);
     }
 
     // Save form states
@@ -141,10 +136,6 @@ export function CompareView({
         if (!loadedSavedAi) {
             setAiResult(null);
         }
-        if (!loadedSavedDeepDive) {
-            setDeepDiveText(null);
-            setDeepDiveUsage(null);
-        }
         if (loadedSavedComparison.result) {
             setResult(loadedSavedComparison.result);
         }
@@ -165,7 +156,6 @@ export function CompareView({
         setLoading(true);
         setError(null);
         setAiResult(null);
-        setDeepDiveText(null);
         setAiError(null);
         try {
             const data = await apiService.compare(normalized, leftTr, rightTr);
@@ -210,19 +200,20 @@ export function CompareView({
         }
     };
 
-    const handleSaveAiComparison = async () => {
+    const handleSaveAiComparison = async (customName: string) => {
         if (!activeScopeId || !aiResult || !reference) return;
         setAiSaveStatus('saving');
         try {
             await apiService.saveAnalysis({
                 scopeId: activeScopeId,
-                name: `${strings.aiCompareTitle}: ${reference} (${leftTr}/${rightTr})`,
+                name: customName,
                 reference: reference,
                 analysisType: 'comparison',
                 translationId: leftTr,
                 paramsJson: JSON.stringify({ translationB: rightTr }),
-                resultJson: JSON.stringify({ result, ai: aiResult, deepDive: deepDiveText })
+                resultJson: JSON.stringify({ result, ai: aiResult, deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null })
             });
+            setIsSaveModalOpen(false);
             setAiSaveStatus('success');
             if (onWorkspaceUpdated) {
                 onWorkspaceUpdated();
@@ -235,31 +226,22 @@ export function CompareView({
         }
     };
 
-    const handleNextFocusPick = async (it: NextFocusItem) => {
-        if (it.kind === 'word' || it.kind === 'theme') {
-            setAiLoading(true);
-            setAiError(null);
-            try {
-                const normalized = reference.trim().replace(
-                    /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
-                    (match) => resolveBookId(match) ?? match,
-                );
-                const leftText = result?.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n') || '';
-                const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
-                const res = await apiService.getAiDeepDive(
-                    it.label,
-                    aiLang,
-                    { reference: normalized, translationA: leftTr, textA: leftText, translationB: rightTr, textB: rightText }
-                );
-                setDeepDiveText(res.text);
-                setDeepDiveUsage(res.geminiUsageMetadata || null);
-                setAiLoading(false);
-            } catch (err) {
-                const errorObj = err as Error;
-                setAiError(errorObj.message || strings.deepDiveFailed);
-                setAiLoading(false);
-            }
+    const handleNextFocusPick = (it: NextFocusItem, parentId?: string) => {
+        if (isBibleReference(it.label)) {
+            setReference(it.label);
+            return;
         }
+        const normalized = reference.trim().replace(
+            /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
+            (match) => resolveBookId(match) ?? match,
+        );
+        const leftText = result?.alignedVerses.map(r => `${r.verse}: ${r.textA}`).join('\n') || '';
+        const rightText = result?.alignedVerses.map(r => `${r.verse}: ${r.textB}`).join('\n') || '';
+        deepDiveChain.pick(it, {
+            parentId,
+            language: aiLang,
+            context: { reference: normalized, translationA: leftTr, textA: leftText, translationB: rightTr, textB: rightText },
+        });
     };
 
     const smartClear = useSmartClearInput(reference, setReference);
@@ -441,7 +423,7 @@ export function CompareView({
                                                     analysisType: 'comparison',
                                                     translationId: leftTr,
                                                     paramsJson: JSON.stringify({ translationB: rightTr }),
-                                                    resultJson: JSON.stringify(aiResult ? { result, ai: aiResult, deepDive: deepDiveText } : { result })
+                                                    resultJson: JSON.stringify(aiResult ? { result, ai: aiResult, deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null } : { result })
                                                 });
                                                 setSaveName('');
                                                 setShowSaveForm(false);
@@ -569,7 +551,7 @@ export function CompareView({
                                     <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
                                         <button
                                             type="button"
-                                            onClick={handleSaveAiComparison}
+                                            onClick={() => setIsSaveModalOpen(true)}
                                             disabled={aiSaveStatus === 'saving'}
                                             className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                                         >
@@ -585,24 +567,50 @@ export function CompareView({
                                     title={strings.nextFocusTitle}
                                     items={aiResult.nextFocus ?? []}
                                     onPick={handleNextFocusPick}
+                                    pendingLabel={deepDiveChain.pendingTopic}
+                                    disabled={deepDiveChain.isPending}
                                 />
                             </div>
                         )}
                     </div>
 
-                    {deepDiveText && (
-                        <div className="mt-4 w-full">
-                            <DeepDiveCard
-                                title={strings.deepDiveCompareTitle}
-                                text={deepDiveText}
-                                onClose={() => {
-                                    setDeepDiveText(null);
-                                    setDeepDiveUsage(null);
-                                }}
-                                geminiUsageMetadata={deepDiveUsage || undefined}
-                            />
-                        </div>
-                    )}
+                    <div className="mt-4 w-full">
+                        <DeepDiveStack
+                            entries={deepDiveChain.entries}
+                            pendingTopic={deepDiveChain.pendingTopic}
+                            error={deepDiveChain.error}
+                            focusId={deepDiveChain.focusId}
+                            title={strings.deepDiveCompareTitle}
+                            onRemove={deepDiveChain.remove}
+                            onPick={handleNextFocusPick}
+                            isPending={deepDiveChain.isPending}
+                        />
+
+                        {activeScopeId && deepDiveChain.entries.length > 0 && (
+                            <div className="flex justify-end pt-4 mt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSaveModalOpen(true)}
+                                    disabled={aiSaveStatus === 'saving'}
+                                    className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                                >
+                                    {aiSaveStatus === 'saving' && strings.savingLabel}
+                                    {aiSaveStatus === 'success' && strings.saveSuccess}
+                                    {aiSaveStatus === 'error' && strings.saveFail}
+                                    {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabCompare}`}
+                                </button>
+                            </div>
+                        )}
+
+                        <SaveAnalysisModal
+                            key={`${reference}-${leftTr}-${rightTr}`}
+                            isOpen={isSaveModalOpen}
+                            defaultName={`${strings.aiCompareTitle}: ${reference} (${leftTr}/${rightTr})`}
+                            onSave={handleSaveAiComparison}
+                            onClose={() => setIsSaveModalOpen(false)}
+                            isSaving={aiSaveStatus === 'saving'}
+                        />
+                    </div>
 
                     {/* Detailed aligned results */}
                     {result.alignedVerses.length > 0 && (

@@ -1,22 +1,25 @@
 // src/components/VerseReader.tsx
-import React, { useState } from 'react';
+import React, { useState, type JSX } from 'react';
 import { apiService } from '../../services/api';
 import type { BibleResponse, Verse } from '../../types/bible';
 import { Search, Loader2, ArrowLeft, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
-import { parseReferenceForDisplay, normalizeReference } from '../../utils/bookNames';
+import { parseReferenceForDisplay, normalizeReference, isBibleReference } from '../../utils/bookNames';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
 import { NextFocusChips } from '../search/NextFocusChips';
-import { DeepDiveCard } from '../layout/DeepDiveCard';
+import { DeepDiveStack } from '../layout/DeepDiveStack';
 import { GeminiUsage } from '../layout/GeminiUsage';
-import type { AiTextResponse, NextFocusItem, GeminiUsageMetadata } from '../../types/ai';
+import type { AiTextResponse, NextFocusItem } from '../../types/ai';
+import { useDeepDiveChain } from '../../hooks/useDeepDiveChain';
+import { serializeChain } from '../../utils/deepDiveSerialization';
 import { useLanguage } from '../../context/LanguageContext';
 import { getNextChapterRef, getPreviousChapterRef, getChapterCount, formatChapterRef } from '../../utils/readerNavigation';
 import { getBookGenre } from '../../utils/bookGenre';
 import { useSmartClearInput } from '../../utils/useSmartClearInput';
 import { X } from 'lucide-react';
 import { VerseReaderSkeleton } from './VerseReaderSkeleton';
+import { SaveAnalysisModal } from '../layout/SaveAnalysisModal';
 
 
 
@@ -65,7 +68,7 @@ export function VerseReader({
   onWorkspaceUpdated,
   loadedSavedInsight,
   loadedSavedDeepDive
-}: VerseReaderProps) {
+}: VerseReaderProps): JSX.Element {
   const [reference, setReference] = useState(activeReference || '');
   const [prevActiveReference, setPrevActiveReference] = useState('');
   const [data, setData] = useState<BibleResponse | null>(null);
@@ -80,9 +83,9 @@ export function VerseReader({
   const [aiInsight, setAiInsight] = useState<AiTextResponse | null>(() => loadedSavedInsight || null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [deepDiveText, setDeepDiveText] = useState<string | null>(() => loadedSavedDeepDive || null);
-  const [deepDiveUsage, setDeepDiveUsage] = useState<GeminiUsageMetadata | null>(null);
+  const deepDiveChain = useDeepDiveChain({ savedText: loadedSavedDeepDive ?? null, scope: aiInsight });
   const [aiSaveStatus, setAiSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
   // Reader Font Size state (persisted in localStorage, defaulting to 'xl')
   type ReaderFontSize = 'sm' | 'base' | 'lg' | 'xl' | '2xl';
@@ -141,8 +144,6 @@ export function VerseReader({
     setBackReference(null);
     if (!loadedSavedInsight) {
       setAiInsight(null);
-      setDeepDiveText(null);
-      setDeepDiveUsage(null);
     }
     const trimmed = activeReference.trim();
     if (trimmed && translation) {
@@ -160,14 +161,6 @@ export function VerseReader({
     setAiInsight(loadedSavedInsight);
   }
 
-  // Sync saved deep dive during render
-  const [prevSavedDeepDive, setPrevSavedDeepDive] = useState(loadedSavedDeepDive);
-  if (loadedSavedDeepDive && loadedSavedDeepDive !== prevSavedDeepDive) {
-    setPrevSavedDeepDive(loadedSavedDeepDive);
-    setDeepDiveText(loadedSavedDeepDive);
-    setDeepDiveUsage(null);
-  }
-
   const fetchVerses = React.useCallback(async (ref: string) => {
     const trimmed = ref.trim();
     if (!trimmed || !translation) return;
@@ -179,8 +172,6 @@ export function VerseReader({
     setError(null);
     if (!loadedSavedInsight) {
       setAiInsight(null);
-      setDeepDiveText(null);
-      setDeepDiveUsage(null);
     }
     setAiError(null);
     try {
@@ -215,22 +206,23 @@ export function VerseReader({
     }
   };
 
-  const handleSaveAiInsight = async () => {
+  const handleSaveAiInsight = async (customName: string) => {
     if (!activeScopeId || !aiInsight || !data) return;
     setAiSaveStatus('saving');
     try {
       await apiService.saveAnalysis({
         scopeId: activeScopeId,
-        name: `${strings.aiAnalysisTitle}: ${parseReferenceForDisplay(data.reference, lang)}`,
+        name: customName,
         reference: data.reference,
         analysisType: 'insight',
         translationId: translation,
         paramsJson: JSON.stringify({}),
         resultJson: JSON.stringify({
           insight: aiInsight,
-          deepDive: deepDiveText
+          deepDive: deepDiveChain.entries.length ? serializeChain(deepDiveChain.entries) : null
         })
       });
+      setIsSaveModalOpen(false);
       setAiSaveStatus('success');
       if (onWorkspaceUpdated) {
         onWorkspaceUpdated();
@@ -243,23 +235,18 @@ export function VerseReader({
     }
   };
 
-  const handleNextFocusPick = async (it: NextFocusItem) => {
-    if (it.kind === 'word' || it.kind === 'theme') {
-      setAiLoading(true);
-      setAiError(null);
-      try {
-        const res = await apiService.getAiDeepDive(it.label, aiLang, { reference: data?.reference || reference });
-        setDeepDiveText(res.text);
-        setDeepDiveUsage(res.geminiUsageMetadata || null);
-        setAiLoading(false);
-      } catch (err) {
-        const errorObj = err as Error;
-        setAiError(errorObj.message || strings.deepDiveFailed);
-        setAiLoading(false);
-      }
-    } else {
+  const handleNextFocusPick = (it: NextFocusItem, parentId?: string) => {
+    // Navigate to chapter/verse only if label is an explicit Bible reference (e.g. "Jes. 7:14").
+    // All concepts, phrases (e.g. "Immanuel-profetia"), words, themes, and questions trigger deep dive!
+    if (isBibleReference(it.label)) {
       setReference(it.label);
       fetchVerses(it.label);
+    } else {
+      deepDiveChain.pick(it, {
+        parentId,
+        language: aiLang,
+        context: { reference: data?.reference || reference },
+      });
     }
   };
 
@@ -697,14 +684,14 @@ export function VerseReader({
                   <div className="flex justify-end border-t border-[var(--border-soft)] pt-3 mt-4">
                     <button
                       type="button"
-                      onClick={handleSaveAiInsight}
+                      onClick={() => setIsSaveModalOpen(true)}
                       disabled={aiSaveStatus === 'saving'}
                       className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
                     >
                       {aiSaveStatus === 'saving' && strings.savingLabel}
-                                            {aiSaveStatus === 'success' && strings.saveSuccess}
-                                            {aiSaveStatus === 'error' && strings.saveFail}
-                                            {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabAnalytics}` }
+                      {aiSaveStatus === 'success' && strings.saveSuccess}
+                      {aiSaveStatus === 'error' && strings.saveFail}
+                      {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabAnalytics}`}
                     </button>
                   </div>
                 )}
@@ -712,18 +699,46 @@ export function VerseReader({
                 <NextFocusChips
                   title={strings.nextFocusTitle}
                   items={aiInsight.nextFocus ?? []}
-                  onPick={handleNextFocusPick}
+                  onPick={(it) => handleNextFocusPick(it)}
+                  pendingLabel={deepDiveChain.pendingTopic}
+                  disabled={deepDiveChain.isPending}
                 />
 
-                {deepDiveText && (
-                  <DeepDiveCard
-                    title={strings.deepDiveToneTitle}
-                    text={deepDiveText}
-                    onClose={() => {
-                      setDeepDiveText(null);
-                      setDeepDiveUsage(null);
-                    }}
-                    geminiUsageMetadata={deepDiveUsage || undefined}
+                <DeepDiveStack
+                  entries={deepDiveChain.entries}
+                  pendingTopic={deepDiveChain.pendingTopic}
+                  error={deepDiveChain.error}
+                  focusId={deepDiveChain.focusId}
+                  title={strings.deepDiveToneTitle}
+                  onRemove={deepDiveChain.remove}
+                  onPick={handleNextFocusPick}
+                  isPending={deepDiveChain.isPending}
+                />
+
+                {activeScopeId && deepDiveChain.entries.length > 0 && (
+                  <div className="flex justify-end pt-4 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsSaveModalOpen(true)}
+                      disabled={aiSaveStatus === 'saving'}
+                      className="rounded-full px-4 py-1.5 text-xs font-semibold btn-accent btn-tactile cursor-pointer"
+                    >
+                      {aiSaveStatus === 'saving' && strings.savingLabel}
+                      {aiSaveStatus === 'success' && strings.saveSuccess}
+                      {aiSaveStatus === 'error' && strings.saveFail}
+                      {aiSaveStatus === 'idle' && `${strings.saveLabel} ${strings.tabAnalytics}`}
+                    </button>
+                  </div>
+                )}
+
+                {data && (
+                  <SaveAnalysisModal
+                    key={`${data.reference}-${lang}`}
+                    isOpen={isSaveModalOpen}
+                    defaultName={`${strings.aiAnalysisTitle}: ${parseReferenceForDisplay(data.reference, lang)}`}
+                    onSave={handleSaveAiInsight}
+                    onClose={() => setIsSaveModalOpen(false)}
+                    isSaving={aiSaveStatus === 'saving'}
                   />
                 )}
               </div>
@@ -733,4 +748,4 @@ export function VerseReader({
       )}
     </div>
   );
-};
+}

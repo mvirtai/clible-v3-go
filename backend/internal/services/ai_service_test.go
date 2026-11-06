@@ -197,6 +197,82 @@ func TestAIService_DeepDive(t *testing.T) {
 	}
 }
 
+func TestAIService_DeepDive_PathPrompt(t *testing.T) {
+	cfg := &config.Config{
+		GeminiAPIKey:       "test-key",
+		GeminiModelInsight: "gemini-model",
+	}
+
+	rawText := "## Deep Dive\nAnalysis\n\n```json\n{\"next_focus\": []}\n```"
+	mockJSONResponse := makeMockResponseJSON(rawText)
+
+	t.Run("includes exploration path when provided", func(t *testing.T) {
+		var capturedBody string
+		mockClient := &http.Client{
+			Transport: &mockTransport{
+				roundTrip: func(req *http.Request) (*http.Response, error) {
+					bodyBytes, _ := io.ReadAll(req.Body)
+					capturedBody = string(bodyBytes)
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(strings.NewReader(mockJSONResponse)),
+						Header:     make(http.Header),
+					}, nil
+				},
+			},
+		}
+
+		service := &aiServiceImpl{
+			cfg:    cfg,
+			client: mockClient,
+		}
+
+		ctx := context.Background()
+		_, err := service.DeepDive(ctx, "Circumcision", "en", map[string]interface{}{
+			"path": []string{"Covenant", "Abrahamic Covenant"},
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !strings.Contains(capturedBody, "Exploration path so far: Covenant → Abrahamic Covenant") {
+			t.Errorf("expected captured body to contain exploration path, got: %s", capturedBody)
+		}
+	})
+
+	t.Run("omits exploration path when path is absent or empty", func(t *testing.T) {
+		var capturedBody string
+		mockClient := &http.Client{
+			Transport: &mockTransport{
+				roundTrip: func(req *http.Request) (*http.Response, error) {
+					bodyBytes, _ := io.ReadAll(req.Body)
+					capturedBody = string(bodyBytes)
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(strings.NewReader(mockJSONResponse)),
+						Header:     make(http.Header),
+					}, nil
+				},
+			},
+		}
+
+		service := &aiServiceImpl{
+			cfg:    cfg,
+			client: mockClient,
+		}
+
+		ctx := context.Background()
+		_, err := service.DeepDive(ctx, "Circumcision", "en", nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if strings.Contains(capturedBody, "Exploration path") {
+			t.Errorf("expected captured body NOT to contain exploration path, got: %s", capturedBody)
+		}
+	})
+}
+
 func TestAIService_AISearch_Mocked(t *testing.T) {
 	// Setup in-memory SQLite database
 	dbConn, err := db.InitializeDB(":memory:")

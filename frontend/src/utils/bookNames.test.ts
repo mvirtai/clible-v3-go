@@ -7,6 +7,7 @@ import {
   bookNameLocalized,
   resolveBookId,
   normalizeReference,
+  isBibleReference,
 } from './bookNames';
 
 describe('bookNames utilities', () => {
@@ -116,6 +117,26 @@ describe('bookNames utilities', () => {
     it('handles empty input gracefully', () => {
       expect(normalizeReference('')).toBe('');
       expect(normalizeReference('   ')).toBe('');
+    });
+  });
+
+  describe('isBibleReference', () => {
+    it('identifies genuine scripture references correctly', () => {
+      expect(isBibleReference('Joh 3:16')).toBe(true);
+      expect(isBibleReference('Jes. 7:14')).toBe(true);
+      expect(isBibleReference('Matt 1:23')).toBe(true);
+      expect(isBibleReference('1. Moos. 1')).toBe(true);
+      expect(isBibleReference('Ap. t. 2:1-4')).toBe(true);
+      expect(isBibleReference('Rom 8:28')).toBe(true);
+    });
+
+    it('rejects thematic concepts, phrases, and questions', () => {
+      expect(isBibleReference('Immanuel-profetia')).toBe(false);
+      expect(isBibleReference('Armo ja totuus')).toBe(false);
+      expect(isBibleReference('Mitä sana almah tarkoittaa?')).toBe(false);
+      expect(isBibleReference('Messiaaninen toivo')).toBe(false);
+      expect(isBibleReference('')).toBe(false);
+      expect(isBibleReference('   ')).toBe(false);
     });
   });
 });

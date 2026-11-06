@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "3.15.1",
+  "version": "3.16.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -54,6 +54,7 @@
   "overrides": {
     "brace-expansion": "^5.0.12",
     "browserslist": "^4.28.7",
+    "minimatch": "^11.0.1",
     "nanoid": "^3.3.18",
     "postcss": "^8.5.28"
   }

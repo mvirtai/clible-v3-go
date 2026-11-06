@@ -32,6 +32,8 @@ Related non-skill workflow: [workflows/plan_feature.md](workflows/plan_feature.m
 | Architecture, Go/React/Neon/ISLA overview | `clible-v3-expert` |
 | `task check`, tests, lint, coverage, version bump | `clible-quality-gates` |
 | Code review of Clible changes | `code-review` |
+| Security review of auth, SQL, parsers, APIs, deps | `security-review` |
+| Branch, commit, and PR workflow | `pr-workflow` |
 | ISLA v2 DSL grammar or notebook execution | `isla-dsl-architecture` |
 | React 19.2 / React Compiler rules | `react-compiler-audit` |
 | `pr_stories/` audit | `pr-story-reviewer` |
@@ -49,6 +51,8 @@ Project-specific skills for the Clible v3 codebase:
 | **clible-v3-expert** | [SKILL.md](skills/clible-v3-expert/SKILL.md) | Solution Architect guide: Go 1.22+ backend, React 19.2 + React Compiler, ISLA v2, Neon PostgreSQL, release hygiene. |
 | **clible-quality-gates** | [SKILL.md](skills/clible-quality-gates/SKILL.md) | Taskfile automation, Go and Vitest suites, linter, coverage, semantic version bumps. |
 | **code-review** | [SKILL.md](skills/code-review/SKILL.md) | Architectural, security, and quality review against Clible backend, React Compiler, dual-DB, and i18n rules. |
+| **security-review** | [SKILL.md](skills/security-review/SKILL.md) | Focused security review for changes touching auth, input handling, queries, APIs, secrets, or dependencies. |
+| **pr-workflow** | [SKILL.md](skills/pr-workflow/SKILL.md) | Lean branch, commit, and pull request workflow using repo conventions and Conventional Commits. |
 | **isla-dsl-architecture** | [SKILL.md](skills/isla-dsl-architecture/SKILL.md) | ISLA v2 object-method DSL architecture and grammar for notebooks. |
 | **react-compiler-audit** | [SKILL.md](skills/react-compiler-audit/SKILL.md) | Enforces zero `useEffect` for state sync, `useSyncExternalStore`, `useActionState`, derived state, full i18n. |
 | **pr-story-reviewer** | [SKILL.md](skills/pr-story-reviewer/SKILL.md) | Fresh-eyes review of `pr_stories/` markdown: facts, tone, verified tests, purposeful diagrams. |

@@ -663,6 +663,7 @@ export class ApiService {
       textA?: string;
       translationB?: string;
       textB?: string;
+      path?: string[];
     },
   ): Promise<AiTextResponse> {
     const res = await fetch(`${this.baseUrl}/ai/deep-dive`, {

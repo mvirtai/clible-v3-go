@@ -145,17 +145,49 @@ export function ViewModeTabs({
     }
   };
 
+  const getTopLevelDesktopButtons = (): HTMLButtonElement[] => {
+    const nav = navigationRef.current;
+    if (!nav) return [];
+    const readerBtn = nav.querySelector<HTMLButtonElement>(
+      '[data-view-mode="reader"][data-view-variant="desktop"]',
+    );
+    const notebooksBtn = nav.querySelector<HTMLButtonElement>(
+      '[data-view-mode="notebooks"][data-view-variant="desktop"]',
+    );
+    return [
+      readerBtn,
+      exploreTriggerRef.current,
+      planningTriggerRef.current,
+      notebooksBtn,
+    ].filter((btn): btn is HTMLButtonElement => btn !== null);
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape' && openMenu) {
-      event.preventDefault();
-      closeMenu(true);
-      return;
+    const target = event.target instanceof HTMLButtonElement ? event.target : null;
+
+    if (event.key === 'Escape') {
+      if (openMenu) {
+        event.preventDefault();
+        closeMenu(true);
+        return;
+      }
+      if (target) {
+        event.preventDefault();
+        target.blur();
+        return;
+      }
     }
 
     if (event.altKey || event.ctrlKey || event.metaKey) return;
 
-    const target = event.target instanceof HTMLButtonElement ? event.target : null;
-    const isArrowNavigationKey = ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key);
+    const isArrowNavigationKey = [
+      'ArrowDown',
+      'ArrowUp',
+      'ArrowLeft',
+      'ArrowRight',
+      'Home',
+      'End',
+    ].includes(event.key);
     if (!isArrowNavigationKey || !target) return;
 
     const controlledMenu = target.getAttribute('aria-controls');
@@ -167,6 +199,24 @@ export function ViewModeTabs({
           : controlledMenu === 'planning-view-options'
             ? 'planning'
             : null;
+
+    if (
+      !openMenu &&
+      (event.key === 'ArrowLeft' || event.key === 'ArrowRight') &&
+      (triggerMenu === 'explore' ||
+        triggerMenu === 'planning' ||
+        target.dataset.viewVariant === 'desktop')
+    ) {
+      const topButtons = getTopLevelDesktopButtons();
+      const idx = topButtons.indexOf(target);
+      if (idx >= 0 && topButtons.length > 0) {
+        event.preventDefault();
+        const offset = event.key === 'ArrowRight' ? 1 : -1;
+        const nextIdx = (idx + offset + topButtons.length) % topButtons.length;
+        topButtons[nextIdx]?.focus();
+        return;
+      }
+    }
 
     if (
       !openMenu &&
@@ -264,28 +314,31 @@ export function ViewModeTabs({
   }, [openMenu]);
 
   useEffect(() => {
-    const handleBodyArrowKey = (event: globalThis.KeyboardEvent) => {
+    const handleMenuShortcut = (event: globalThis.KeyboardEvent) => {
+      // Only trigger primary navigation focus via explicit Alt+M or Alt+ArrowDown/Up shortcut.
+      // Bare ArrowDown/ArrowUp must never be hijacked from document.body so long texts and AI deep dives scroll naturally.
+      const isAltM = event.altKey && (event.key.toLowerCase() === 'm' || event.code === 'KeyM');
+      const isAltArrow =
+        event.altKey && (event.key === 'ArrowDown' || event.key === 'ArrowUp');
+
+      if ((!isAltM && !isAltArrow) || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      const activeEl = document.activeElement;
       if (
-        event.target !== document.body ||
-        document.activeElement !== document.body ||
-        event.altKey ||
-        event.ctrlKey ||
-        event.metaKey ||
-        (event.key !== 'ArrowDown' && event.key !== 'ArrowUp')
+        activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        activeEl instanceof HTMLSelectElement ||
+        (activeEl instanceof HTMLElement && activeEl.isContentEditable)
       ) {
         return;
       }
 
-      const currentIndex = MENU_OPTIONS.findIndex((option) => option.id === viewMode);
-      if (currentIndex < 0) return;
-
-      const offset = event.key === 'ArrowDown' ? 1 : -1;
-      const nextIndex = (currentIndex + offset + MENU_OPTIONS.length) % MENU_OPTIONS.length;
-      const nextOption = MENU_OPTIONS[nextIndex];
       event.preventDefault();
 
       if (window.innerWidth < 640) {
-        const request: PendingArrowFocus = { menu: 'mobile', optionId: nextOption.id };
+        const request: PendingArrowFocus = { menu: 'mobile', optionId: viewMode };
         if (openMenu === 'mobile') {
           focusMenuOption(navigationRef.current, request);
         } else {
@@ -296,15 +349,22 @@ export function ViewModeTabs({
       }
 
       const group = VIEW_GROUPS.find((item) =>
-        item.options.some((option) => option.id === nextOption.id),
+        item.options.some((option) => option.id === viewMode),
       );
       if (group) {
-        const request: PendingArrowFocus = { menu: group.id, optionId: nextOption.id };
-        if (openMenu === group.id) {
-          focusMenuOption(navigationRef.current, request);
+        if (isAltArrow) {
+          const request: PendingArrowFocus = { menu: group.id, optionId: viewMode };
+          if (openMenu === group.id) {
+            focusMenuOption(navigationRef.current, request);
+          } else {
+            pendingArrowFocus.current = request;
+            setOpenMenu(group.id);
+          }
         } else {
-          pendingArrowFocus.current = request;
-          setOpenMenu(group.id);
+          setOpenMenu(null);
+          const trigger =
+            group.id === 'explore' ? exploreTriggerRef.current : planningTriggerRef.current;
+          trigger?.focus();
         }
         return;
       }
@@ -312,13 +372,13 @@ export function ViewModeTabs({
       setOpenMenu(null);
       navigationRef.current
         ?.querySelector<HTMLButtonElement>(
-          `[data-view-mode="${nextOption.id}"][data-view-variant="desktop"]`,
+          `[data-view-mode="${viewMode}"][data-view-variant="desktop"]`,
         )
         ?.focus();
     };
 
-    document.addEventListener('keydown', handleBodyArrowKey);
-    return () => document.removeEventListener('keydown', handleBodyArrowKey);
+    document.addEventListener('keydown', handleMenuShortcut);
+    return () => document.removeEventListener('keydown', handleMenuShortcut);
   }, [openMenu, viewMode]);
 
   const handleBlur = (event: FocusEvent<HTMLDivElement>) => {

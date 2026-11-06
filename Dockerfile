@@ -12,7 +12,7 @@ WORKDIR /app/frontend
 RUN npm install -g pnpm@12
 
 # Copy dependency manifests and install packages utilizing BuildKit cache
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 

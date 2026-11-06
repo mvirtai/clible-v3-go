@@ -182,48 +182,115 @@ describe('ViewModeTabs', () => {
     expect(document.activeElement).toBe(searchOption);
   });
 
-  it('starts arrow navigation from body focus at the current view without a mouse click', () => {
+  it('does not hijack bare ArrowDown/ArrowUp on document.body so page scrolling works naturally', () => {
     renderTabs('reader');
 
     const exploreOptions = container?.querySelector('#explore-view-options') as HTMLDivElement;
     expect(document.activeElement).toBe(document.body);
 
+    let defaultPrevented = false;
     act(() => {
-      document.body.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-      );
+      const event = new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        bubbles: true,
+        cancelable: true,
+      });
+      document.body.dispatchEvent(event);
+      defaultPrevented = event.defaultPrevented;
     });
 
-    expect(exploreOptions.hidden).toBe(false);
-    expect(document.activeElement).toBe(buttonWithText(exploreOptions, 'Haku'));
-
-    act(() => {
-      buttonWithText(exploreOptions, 'Haku').dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
-      );
-    });
-    expect(document.activeElement).toBe(buttonWithText(exploreOptions, 'Käännösvertailu'));
+    expect(defaultPrevented).toBe(false);
+    expect(exploreOptions.hidden).toBe(true);
+    expect(document.activeElement).toBe(document.body);
   });
 
-  it('starts mobile arrow navigation from body focus and does not intercept focused inputs', () => {
+  it('jumps to primary navigation with Alt+M or Alt+ArrowDown and supports ArrowLeft/ArrowRight and Escape blur', () => {
+    renderTabs('reader');
+
+    const desktopNav = container!.querySelector('.hidden.sm\\:flex')!;
+    const readerBtn = buttonWithText(desktopNav, 'Lukija');
+    const exploreTrigger = buttonWithText(desktopNav, 'Tutki');
+    const planningTrigger = buttonWithText(desktopNav, 'Suunnittele');
+    const notebooksBtn = buttonWithText(desktopNav, 'Muistikirjat');
+
+    expect(document.activeElement).toBe(document.body);
+
+    // Jump into primary navigation via Alt+M
+    act(() => {
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'm',
+          code: 'KeyM',
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+    expect(document.activeElement).toBe(readerBtn);
+
+    // Move horizontally across top-level tabs with ArrowRight / ArrowLeft
+    act(() => {
+      readerBtn.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(exploreTrigger);
+
+    act(() => {
+      exploreTrigger.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+      );
+    });
+    expect(document.activeElement).toBe(planningTrigger);
+
+    act(() => {
+      planningTrigger.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+      );
+    });
+    expect(document.activeElement).toBe(notebooksBtn);
+
+    act(() => {
+      notebooksBtn.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(planningTrigger);
+
+    // Pressing Escape when no dropdown is open blurs the navigation button to resume scrolling
+    act(() => {
+      planningTrigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('opens mobile navigation with Alt+ArrowDown and ignores shortcuts when typing in an input', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
     renderTabs('reader');
 
     const mobileOptions = container?.querySelector('#mobile-view-options') as HTMLDivElement;
     act(() => {
       document.body.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', {
+          key: 'ArrowDown',
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
       );
     });
     expect(mobileOptions.hidden).toBe(false);
-    expect(document.activeElement).toBe(buttonWithText(mobileOptions, 'Haku'));
+    expect(document.activeElement).toBe(buttonWithText(mobileOptions, 'Lukija'));
 
     const input = document.createElement('input');
     container?.appendChild(input);
     act(() => input.focus());
     act(() => {
       input.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', {
+          key: 'm',
+          code: 'KeyM',
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
       );
     });
     expect(document.activeElement).toBe(input);

@@ -1,9 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 import { CompareView } from './CompareView';
 import { LanguageProvider } from '../../context/LanguageContext';
+import { apiService } from '../../services/api';
 import type { ComparisonResult, InstalledTranslation } from '../../types/bible';
+
+vi.mock('../../services/api', () => ({
+  apiService: {
+    compare: vi.fn(),
+    getAiDeepDive: vi.fn(),
+  },
+}));
 
 describe('CompareView', () => {
   let container: HTMLDivElement | null = null;
@@ -229,5 +237,48 @@ describe('CompareView', () => {
     });
 
     expect(input.value).toBe('');
+  });
+
+  it('renders deep dive stack and handles pick in CompareView', async () => {
+    vi.mocked(apiService.getAiDeepDive).mockResolvedValueOnce({
+      text: '## Nuances of Ahavah\nDetailed comparison on love in Hebrew vs Greek.',
+      nextFocus: [],
+    });
+
+    const mockSavedAi = {
+      text: 'AI Translation Comparison Summary',
+      nextFocus: [{ label: 'Ahavah', kind: 'theme' as const, reason: 'Hebrew concept of love' }],
+    };
+
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <LanguageProvider>
+          <CompareView
+            installedTranslations={mockTranslations}
+            activeReference="John 3:16"
+            loadedSavedComparison={{
+              reference: 'John 3:16',
+              translationA: 'fin-1992',
+              translationB: 'web',
+              result: mockComparisonResult,
+            }}
+            loadedSavedAi={mockSavedAi}
+          />
+        </LanguageProvider>
+      );
+    });
+
+    const chip = Array.from(container!.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Ahavah'),
+    );
+    expect(chip).toBeDefined();
+
+    await act(async () => {
+      chip!.click();
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    expect(container!.textContent).toContain('Nuances of Ahavah');
   });
 });
