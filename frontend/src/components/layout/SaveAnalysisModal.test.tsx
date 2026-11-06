@@ -39,7 +39,7 @@ describe('SaveAnalysisModal', () => {
     expect(container.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it('renders dialog with defaultName and validates length (2-30 chars)', async () => {
+  it('renders dialog with defaultName and validates length (2-40 chars)', async () => {
     const onSave = vi.fn();
     const onClose = vi.fn();
 

@@ -733,6 +733,7 @@ export function VerseReader({
 
                 {data && (
                   <SaveAnalysisModal
+                    key={`${data.reference}-${lang}`}
                     isOpen={isSaveModalOpen}
                     defaultName={`${strings.aiAnalysisTitle}: ${parseReferenceForDisplay(data.reference, lang)}`}
                     onSave={handleSaveAiInsight}

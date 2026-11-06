@@ -24,11 +24,11 @@ In previous releases, Bible study AI insights across reader, comparison, and ana
 
 This PR delivers an end-to-end chained AI deep dive architecture:
 
-1. **Frontend Chain State Machine (`useDeepDiveChain`):** Implements an accordion stack preserving exploration history, tracking per-chip pending state, and auto-scrolling to new drill-downs.
+1. **Frontend Chain State Machine (`useDeepDiveChain`):** Implements an accordion stack preserving exploration history, tracking per-chip pending state, and auto-expanding new drill-downs.
 2. **Context Path Propagation & Subtree Pruning:** Passes `context.path` (up to 5 breadcrumb segments) to backend prompts and gracefully prunes sibling subtrees when branching out.
-3. **Backend Validation & Security Hardening:** Validates `context.path` in `backend/internal/api/ai_handler.go` with strict depth (`maxPathDepth = 5`) and segment length limits (`maxSegmentRunes = 200`), and embeds parent context into Gemini prompts.
+3. **Backend Validation & Security Hardening:** Validates `context.path` in `backend/internal/api/ai_handler.go` with strict depth (`maxDeepDivePathDepth = 5`) and segment length limits (`maxDeepDivePathLabel = 200`), and embeds parent context into Gemini prompts.
 4. **Visual Differentiation & Micro-Legend (`NextFocusChips`):** Visually bifurcates navigation verse references (📖 Blue) from AI deep dives (✨ Purple) with accessible ARIA descriptions and a subtle micro-legend.
-5. **Interactive Named Workspace Saving (`SaveAnalysisModal`):** Prompts users with an accessible modal dialog requiring an explicit title (2–30 characters), prevents saving on cancellation, and adds a second save button at the bottom of long exploration stacks.
+5. **Interactive Named Workspace Saving (`SaveAnalysisModal`):** Prompts users with an accessible modal dialog requiring an explicit title (2–40 characters), prevents saving on cancellation, and adds a second save button at the bottom of long exploration stacks.
 
 ---
 
@@ -49,7 +49,7 @@ sequenceDiagram
     Chips->>Hook: pick({ label: "Historical Context" }, parentId)
     Hook->>Hook: Set pendingTopic & render DeepDiveSkeleton in accordion
     Hook->>API: POST /api/ai/deep-dive { topic, context: { path: ["David", "Historical Context"] } }
-    API->>API: sanitizeDeepDivePath(maxDepth=5, maxRunes=200)
+    API->>API: sanitizeDeepDivePath(maxDeepDivePathDepth=5, maxDeepDivePathLabel=200)
     API->>Svc: DeepDive(ctx, topic, lang, contextData)
     Svc->>LLM: GenerateContent(prompt with Context Path hierarchy)
     LLM-->>Svc: Response text + next_focus JSON
@@ -71,7 +71,7 @@ flowchart TD
     subgraph Modal ["Named Save Workflow"]
         E --> F["SaveAnalysisModal (Accessible Dialog)"]
         F -->|"Cancel / Esc"| G["No-op: Abort save"]
-        F -->|"Submit: 2-30 chars"| H["saveToWorkspace(customTitle, serializedMarkdown)"]
+        F -->|"Submit: 2-40 chars"| H["saveToWorkspace(customTitle, serializedMarkdown)"]
     end
 
     subgraph State ["Hook & Engine Layer"]
@@ -96,12 +96,12 @@ flowchart TD
 | `frontend/src/hooks/useDeepDiveChain.ts` | New hook managing chained accordion state, pending feedback, and subtree pruning. |
 | `frontend/src/hooks/useDeepDiveChain.test.tsx` | 13 Vitest tests verifying chain state, pruning, errors, and reset behavior. |
 | `frontend/src/components/layout/DeepDiveStack.tsx` | Accordion component displaying breadcrumbed exploration steps. |
-| `frontend/src/components/layout/DeepDiveStack.test.tsx` | Unit tests for accordion toggling, active cards, and auto-scroll behavior. |
+| `frontend/src/components/layout/DeepDiveStack.test.tsx` | Unit tests for accordion toggling, active cards, and auto-expand behavior. |
 | `frontend/src/components/layout/DeepDiveCard.tsx` | Individual card rendering markdown, nested `NextFocusChips`, and breadcrumbs. |
 | `frontend/src/components/layout/DeepDiveCard.test.tsx` | Unit tests for card rendering, chip propagation, and copy actions. |
 | `frontend/src/components/layout/DeepDiveBreadcrumb.tsx` | Visual breadcrumb component tracing exploratory lineage. |
 | `frontend/src/components/layout/DeepDiveSkeleton.tsx` | Shimmer loading skeleton with tactile feedback. |
-| `frontend/src/components/layout/SaveAnalysisModal.tsx` | Accessible modal prompting user for custom analysis name (2–30 chars). |
+| `frontend/src/components/layout/SaveAnalysisModal.tsx` | Accessible modal prompting user for custom analysis name (2–40 chars). |
 | `frontend/src/components/layout/SaveAnalysisModal.test.tsx` | Unit tests validating length bounds, keyboard actions, and callbacks. |
 | `frontend/src/components/search/NextFocusChips.tsx` | Bifurcated chips (Verse 📖 vs AI ✨) and micro-legend. |
 | `frontend/src/components/search/NextFocusChips.test.tsx` | Unit tests for visual differentiation, keyboard access, and legend. |
@@ -109,8 +109,10 @@ flowchart TD
 | `frontend/src/components/compare/CompareView.tsx` | Integrated `useDeepDiveChain`, dual save buttons, and `SaveAnalysisModal`. |
 | `frontend/src/components/analytics/AnalyticsView.tsx` | Integrated `useDeepDiveChain`, dual save buttons, and `SaveAnalysisModal`. |
 | `frontend/src/utils/deepDiveSerialization.ts` | Marker-based markdown serializer/deserializer for multi-step chains. |
-| `frontend/src/utils/bookNames.ts` | Refined Finnish & English Bible book regex matching. |
+| `frontend/src/utils/bookNames.ts` | Refined Finnish & English Bible book regex matching (`isBibleReference`). |
 | `frontend/src/utils/i18n.ts` | Added bilingual keys for modal, legend, chips, and deep dive actions. |
+| `frontend/src/index.css`, `services/api.ts`, `vitest.setup.ts` | Added shimmer utility keyframes, deep dive context parameter, and test setup refinements. |
+| `.agents/agents/`, `.agents/skills/`, `.agents/SKILL.md` | Added `pr-reviewer` and `security-auditor` subagent definitions and registered review skills. |
 | `.security_audits/security-audit-2026-11-05-ai-deepening.md` | Security audit covering CWE-285, CWE-400, CWE-20, CWE-116, and CWE-79. |
 | `VERSION`, `package.json`, `version.go`, `version.ts` | Bumped version to `3.16.0`. |
 

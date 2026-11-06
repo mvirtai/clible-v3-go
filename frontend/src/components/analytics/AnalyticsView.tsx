@@ -757,6 +757,7 @@ export const AnalyticsView = ({
             )}
 
             <SaveAnalysisModal
+              key={reference}
               isOpen={isToneSaveModalOpen}
               defaultName={`${strings.deepDiveToneTitle}: ${reference}`}
               onSave={handleSaveToneAnalysis}

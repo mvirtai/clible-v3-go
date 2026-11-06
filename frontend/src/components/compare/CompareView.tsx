@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { GitCompareArrows, Loader2, Save, Brain } from 'lucide-react';
 import { apiService } from '../../services/api';
 import type { InstalledTranslation, ComparisonResult } from '../../types/bible';
-import { resolveBookId } from '../../utils/bookNames';
+import { resolveBookId, isBibleReference } from '../../utils/bookNames';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
@@ -227,6 +227,10 @@ export function CompareView({
     };
 
     const handleNextFocusPick = (it: NextFocusItem, parentId?: string) => {
+        if (isBibleReference(it.label)) {
+            setReference(it.label);
+            return;
+        }
         const normalized = reference.trim().replace(
             /^((?:\d+[\s.]*)?[a-zA-ZÀ-ÿ]+(?:\.?\s+[a-zA-ZÀ-ÿ]+)*)/,
             (match) => resolveBookId(match) ?? match,
@@ -599,6 +603,7 @@ export function CompareView({
                         )}
 
                         <SaveAnalysisModal
+                            key={`${reference}-${leftTr}-${rightTr}`}
                             isOpen={isSaveModalOpen}
                             defaultName={`${strings.aiCompareTitle}: ${reference} (${leftTr}/${rightTr})`}
                             onSave={handleSaveAiComparison}

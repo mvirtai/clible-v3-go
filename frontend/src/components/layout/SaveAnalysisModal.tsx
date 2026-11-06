@@ -24,7 +24,7 @@ export function SaveAnalysisModal({
   if (!isOpen) return null;
 
   const trimmed = name.trim();
-  const isValid = trimmed.length >= 2 && trimmed.length <= 30;
+  const isValid = trimmed.length >= 2 && trimmed.length <= 40;
 
   const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
@@ -84,14 +84,14 @@ export function SaveAnalysisModal({
               disabled={isSaving}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              maxLength={30}
+              maxLength={40}
               placeholder={strings.saveNamePlaceholder}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all"
             />
             <div className="flex justify-between items-center text-[10px] text-[var(--muted)]">
               <span>{strings.saveAnalysisLengthHint}</span>
-              <span className={trimmed.length > 30 || trimmed.length < 2 ? 'text-amber-500 font-medium' : ''}>
-                {trimmed.length}/30
+              <span className={trimmed.length > 40 || trimmed.length < 2 ? 'text-amber-500 font-medium' : ''}>
+                {trimmed.length}/40
               </span>
             </div>
           </div>
