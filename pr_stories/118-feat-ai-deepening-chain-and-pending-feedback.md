@@ -19,6 +19,7 @@ In previous releases, Bible study AI insights across reader, comparison, and ana
 3. The backend lacked context path awareness, leading the LLM to potentially repeat previous insights when drilling down into subtopics.
 4. Bible verse references (which navigate to reader passages) and conceptual deep dive topics (which trigger AI explorations) were visually indistinguishable.
 5. Saving analyses to the workspace automatically assigned arbitrary hardcoded names, and long accordion stacks forced cumbersome scrolling to access the single save button.
+6. Global `document.body` `ArrowDown`/`ArrowUp` listeners in `ViewModeTabs` hijacked bare arrow keys, preventing natural keyboard page scrolling across long AI deep dive chains.
 
 ### 1.2 Proposed Solution
 
@@ -29,6 +30,7 @@ This PR delivers an end-to-end chained AI deep dive architecture:
 3. **Backend Validation & Security Hardening:** Validates `context.path` in `backend/internal/api/ai_handler.go` with strict depth (`maxDeepDivePathDepth = 5`) and segment length limits (`maxDeepDivePathLabel = 200`), and embeds parent context into Gemini prompts.
 4. **Visual Differentiation & Micro-Legend (`NextFocusChips`):** Visually bifurcates navigation verse references (📖 Blue) from AI deep dives (✨ Purple) with accessible ARIA descriptions and a subtle micro-legend.
 5. **Interactive Named Workspace Saving (`SaveAnalysisModal`):** Prompts users with an accessible modal dialog requiring an explicit title (2–40 characters), prevents saving on cancellation, and adds a second save button at the bottom of long exploration stacks.
+6. **Scroll-Safe Primary Navigation (`ViewModeTabs`):** Releases bare `ArrowDown`/`ArrowUp` keys on `document.body` for unobstructed page scrolling; activates menu navigation only when focused via `Tab` or the `Alt+M` / `Alt+Arrow` shortcut, with `ArrowLeft`/`ArrowRight` tab cycling and `Escape` blur.
 
 ---
 
@@ -103,6 +105,8 @@ flowchart TD
 | `frontend/src/components/layout/DeepDiveSkeleton.tsx` | Shimmer loading skeleton with tactile feedback. |
 | `frontend/src/components/layout/SaveAnalysisModal.tsx` | Accessible modal prompting user for custom analysis name (2–40 chars). |
 | `frontend/src/components/layout/SaveAnalysisModal.test.tsx` | Unit tests validating length bounds, keyboard actions, and callbacks. |
+| `frontend/src/components/layout/ViewModeTabs.tsx` | Released bare body arrow keys for scrolling; added `Alt+M`/`Alt+Arrow` shortcut, `ArrowLeft`/`ArrowRight` tab cycling, and `Escape` blur. |
+| `frontend/src/components/layout/ViewModeTabs.test.tsx` | Unit tests verifying unobstructed arrow scrolling, `Alt+M`/`Alt+Arrow`, and horizontal arrow cycling. |
 | `frontend/src/components/search/NextFocusChips.tsx` | Bifurcated chips (Verse 📖 vs AI ✨) and micro-legend. |
 | `frontend/src/components/search/NextFocusChips.test.tsx` | Unit tests for visual differentiation, keyboard access, and legend. |
 | `frontend/src/components/reader/VerseReader.tsx` | Integrated `useDeepDiveChain`, dual save buttons, and `SaveAnalysisModal`. |
@@ -126,6 +130,6 @@ flowchart TD
 - **Frontend Quality Gates (`task frontend:check`):**
   - TypeScript compilation (`tsc -b`): 0 errors.
   - ESLint validation: 0 warnings, 0 errors.
-  - Vitest test suite: **66 test files passed, 465 unit & integration tests passed (100%)**.
+  - Vitest test suite: **66 test files passed, 466 unit & integration tests passed (100%)**.
 - **Security Audit:**
   - Full static audit completed and documented under `.security_audits/security-audit-2026-11-05-ai-deepening.md`.

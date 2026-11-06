@@ -89,7 +89,7 @@ Tarkastelun kohteena olivat seuraavat osa-alueet:
   task frontend:check
   ```
 
-  Tulos: TypeScript (`tsc -b`) 0 virhettä, ESLint 0 virhettä, Vitest 66 tiedostoa / 465 testiä hyväksytty.
+  Tulos: TypeScript (`tsc -b`) 0 virhettä, ESLint 0 virhettä, Vitest 66 tiedostoa / 466 testiä hyväksytty.
 - **Kokonaisvaltainen laatuportti:**
 
   ```bash
