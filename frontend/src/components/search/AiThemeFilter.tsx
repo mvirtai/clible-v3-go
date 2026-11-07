@@ -62,7 +62,7 @@ export function AiThemeFilter({
               type="button"
               onClick={onClearRefinement}
               className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
-              aria-label={strings.aiRefineClearAria ?? 'Poista teemat'}
+              aria-label={strings.aiRefineClearAria ?? 'Clear themes'}
             >
               <X size={14} />
             </button>

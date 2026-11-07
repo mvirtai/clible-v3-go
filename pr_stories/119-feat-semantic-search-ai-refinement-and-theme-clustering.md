@@ -37,7 +37,7 @@ sequenceDiagram
     participant Guard as Prompt & Canonical Sanitizer
     participant LLM as Google Gemini API
 
-    User->>UI: Enters refinement intent ("vain evankeliumien tekstit")
+    User->>UI: Enters refinement intent ("only gospel texts")
     UI->>API: POST /api/ai/search/refine { query, refinementPrompt, verses, uiLanguage }
     API->>API: Validate bounds (MaxBytes=250KB, prompt<=500 runes, verses<=300)
     API->>Svc: RefineSearch(ctx, query, refinementPrompt, verses[:300], uiLanguage)
@@ -45,7 +45,7 @@ sequenceDiagram
     alt Prompt Injection Detected (Layer 1)
         Guard-->>Svc: InvalidRefinementIntentError
         Svc-->>API: Error (400 Bad Request)
-        API-->>UI: { "error": "Jatkokarsintaohje hylättiin..." }
+        API-->>UI: { "error": "Refinement instruction was rejected..." }
     else Valid Refinement Input
         Svc->>Guard: Tag verses with canonicalBookCategory & resolveDeterministicAllowedBooks
         Svc->>LLM: generateContent (XML-delimited <user_query>, <user_refinement_intent>, <verses>)
@@ -95,6 +95,8 @@ flowchart TD
 - **Canonical Literary Tagging & Deterministic Corpus Whitelisting:**
   - `canonicalBookCategory` resolves each verse's `BookID` via `parsers.ResolveBookID` and attaches an explicit literary classification in `<verses>` (e.g., `MAT 16:16 [NT: Gospel]` vs. `ACT 2:36 [NT: Acts/History (NOT a Gospel)]`).
   - `resolveDeterministicAllowedBooks` and the model's `allowedBookIds` array enforce a strict canonical book whitelist inside `sanitizeRefinementOutput`, guaranteeing that requests such as *"vain evankeliumien tekstit"* (`MAT`, `MRK`, `LUK`, `JHN`) deterministically strip any verses from `ACT` or Old Testament books from both `acceptedVerseIds` and `themes`.
+- **Theme Schema Hygiene & Language Quality:**
+  - Enforces that `themes[].id` is strictly an English `kebab-case` identifier (never mangled non-English slugs), guarantees `themes[].title` is never empty (with deterministic fallback in `sanitizeRefinementOutput`), and routes refinement through `GeminiModelInsight` (falling back to `GeminiModelSearch`) with strict instructions to ground Finnish headings in authentic biblical vocabulary from `<verses>`.
 - **Complete Binary Partition & Extended Evaluation Window (`maxRefineEvaluated = 300`):**
   - Raised the evaluation cap from 100 to 300 verses so canonical books appearing after the Gospels (such as `ACT` and the Epistles) are never truncated away in broad FTS queries.
   - `sanitizeRefinementOutput` deterministically places every evaluated verse not present in `AcceptedVerseIDs` into `RejectedVerseIDs`, eliminating unreviewed stragglers when the LLM omits rejected IDs for brevity.

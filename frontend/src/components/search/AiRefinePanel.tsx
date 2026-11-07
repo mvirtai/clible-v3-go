@@ -18,9 +18,9 @@ export function AiRefinePanel({
   const [prompt, setPrompt] = useState('');
 
   const suggestions = strings.aiRefineSuggestions ?? [
-    'Vain keskeiset liittojen solmimiskohdat: Nooa, Aabraham, Mooses ja Uusi liitto',
-    'Vain Uuden testamentin viittaukset liittoon',
-    'Laki ja lupaus liittojen yhteydessä',
+    'Focus only on key covenant inaugurations: Noah, Abraham, Moses, and the New Covenant',
+    'Only New Testament references to the covenant',
+    'Law and promise in the context of covenants',
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,7 +41,7 @@ export function AiRefinePanel({
           type="button"
           onClick={onClose}
           className="text-[var(--muted)] hover:text-[var(--text)] p-1 rounded-md cursor-pointer transition-colors"
-          aria-label={strings.aiRefineCloseAria ?? 'Sulje'}
+          aria-label={strings.aiRefineCloseAria ?? 'Close'}
         >
           <X size={14} />
         </button>

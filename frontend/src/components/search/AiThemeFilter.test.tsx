@@ -11,15 +11,15 @@ describe('AiThemeFilter', () => {
 
   const themes: SearchThemeCluster[] = [
     {
-      id: 'noah',
-      title: 'Nooan liitto',
-      summary: 'Sateenkaaren liitto',
+      id: 'noah-covenant',
+      title: 'Noahic Covenant',
+      summary: 'Rainbow covenant',
       verseIds: ['gen-9-1', 'gen-9-2'],
     },
     {
-      id: 'new',
-      title: 'Uusi liitto',
-      summary: 'Jeremian ja UT:n liitto',
+      id: 'new-covenant',
+      title: 'New Covenant',
+      summary: 'Jeremiah and NT covenant',
       verseIds: ['jer-31-31'],
     },
   ];
@@ -46,7 +46,7 @@ describe('AiThemeFilter', () => {
       root = createRoot(container!);
       root.render(
         <AiThemeFilter
-          strings={strings.fi}
+          strings={strings.en}
           themes={themes}
           activeThemeId={null}
           onSelectTheme={vi.fn()}
@@ -58,11 +58,11 @@ describe('AiThemeFilter', () => {
     });
 
     expect(container!.textContent).toContain(
-      strings.fi.aiRefineRecommendationTitle(3, 10)
+      strings.en.aiRefineRecommendationTitle(3, 10)
     );
-    expect(container!.textContent).toContain(strings.fi.aiRefineAllThemes);
-    expect(container!.textContent).toContain('Nooan liitto (2)');
-    expect(container!.textContent).toContain('Uusi liitto (1)');
+    expect(container!.textContent).toContain(strings.en.aiRefineAllThemes);
+    expect(container!.textContent).toContain('Noahic Covenant (2)');
+    expect(container!.textContent).toContain('New Covenant (1)');
   });
 
   it('triggers onSelectTheme when a theme pill or All Themes is clicked', () => {
@@ -71,9 +71,9 @@ describe('AiThemeFilter', () => {
       root = createRoot(container!);
       root.render(
         <AiThemeFilter
-          strings={strings.fi}
+          strings={strings.en}
           themes={themes}
-          activeThemeId="noah"
+          activeThemeId="noah-covenant"
           onSelectTheme={onSelectTheme}
           recommendedCount={2}
           totalFilteredCount={5}
@@ -83,13 +83,13 @@ describe('AiThemeFilter', () => {
     });
 
     const buttons = Array.from(container!.querySelectorAll('button'));
-    const newThemeBtn = buttons.find((b) => b.textContent?.includes('Uusi liitto (1)'));
-    const allThemesBtn = buttons.find((b) => b.textContent === strings.fi.aiRefineAllThemes);
+    const newThemeBtn = buttons.find((b) => b.textContent?.includes('New Covenant (1)'));
+    const allThemesBtn = buttons.find((b) => b.textContent === strings.en.aiRefineAllThemes);
 
     act(() => {
       newThemeBtn?.click();
     });
-    expect(onSelectTheme).toHaveBeenCalledWith('new');
+    expect(onSelectTheme).toHaveBeenCalledWith('new-covenant');
 
     act(() => {
       allThemesBtn?.click();

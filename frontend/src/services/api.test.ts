@@ -436,10 +436,10 @@ describe('ApiService', () => {
         } as Response);
 
         const result = await apiService.refineAiSearch(
-            'liitot',
-            'vain Nooa',
-            [{ id: 'gen-9-1', bookId: 'GEN', chapter: 9, verse: 1, text: 'Ja Jumala siunasi Nooan...' }],
-            'fi',
+            'covenants',
+            'only Noah',
+            [{ id: 'gen-9-1', bookId: 'GEN', chapter: 9, verse: 1, text: 'And God blessed Noah...' }],
+            'en',
         );
 
         expect(result).toEqual(mockResponse);
@@ -449,10 +449,10 @@ describe('ApiService', () => {
                 method: 'POST',
                 credentials: 'include',
                 body: JSON.stringify({
-                    query: 'liitot',
-                    refinementPrompt: 'vain Nooa',
-                    verses: [{ id: 'gen-9-1', bookId: 'GEN', chapter: 9, verse: 1, text: 'Ja Jumala siunasi Nooan...' }],
-                    uiLanguage: 'fi',
+                    query: 'covenants',
+                    refinementPrompt: 'only Noah',
+                    verses: [{ id: 'gen-9-1', bookId: 'GEN', chapter: 9, verse: 1, text: 'And God blessed Noah...' }],
+                    uiLanguage: 'en',
                 }),
             }),
         );
