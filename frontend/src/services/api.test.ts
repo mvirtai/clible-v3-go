@@ -419,6 +419,44 @@ describe('ApiService', () => {
             expect.objectContaining({ credentials: 'include' })
         );
     });
+
+    it('refines semantic search results with intent (refineAiSearch)', async () => {
+        const mockResponse = {
+            themes: [
+                { id: 'covenant-noah', title: 'Noahic Covenant', summary: 'Rainbow covenant', verseIds: ['gen-9-1'] },
+            ],
+            acceptedVerseIds: ['gen-9-1'],
+            rejectedVerseIds: [],
+            rationale: 'Core covenant verse.',
+        };
+
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockResponse,
+        } as Response);
+
+        const result = await apiService.refineAiSearch(
+            'liitot',
+            'vain Nooa',
+            [{ id: 'gen-9-1', bookId: 'GEN', chapter: 9, verse: 1, text: 'Ja Jumala siunasi Nooan...' }],
+            'fi',
+        );
+
+        expect(result).toEqual(mockResponse);
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/ai/search/refine'),
+            expect.objectContaining({
+                method: 'POST',
+                credentials: 'include',
+                body: JSON.stringify({
+                    query: 'liitot',
+                    refinementPrompt: 'vain Nooa',
+                    verses: [{ id: 'gen-9-1', bookId: 'GEN', chapter: 9, verse: 1, text: 'Ja Jumala siunasi Nooan...' }],
+                    uiLanguage: 'fi',
+                }),
+            }),
+        );
+    });
 });
 
 

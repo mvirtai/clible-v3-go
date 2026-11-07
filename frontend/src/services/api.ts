@@ -14,7 +14,10 @@ import type {
   ScopeWorkspace,
 } from '../types/workspace';
 import type { AiTextResponse } from '../types/ai';
-import type { AiSearchResponse } from '../types/aiSearch';
+import type {
+  AiSearchResponse,
+  SearchRefinementResponse,
+} from '../types/aiSearch';
 import type { OriginalStudyResult } from '../types/originalStudy';
 import type { AiUsageStats, AiUsageSummary } from '../types/aiUsage';
 import type { UpdateUserSettingsPayload, UserSettings } from '../types/user';
@@ -697,6 +700,33 @@ export class ApiService {
     });
     if (!res.ok)
       await this.handleError(res, 'POST /ai/search');
+    return await res.json();
+  }
+
+  /**
+   * Refines semantic search results by clustering verses into themes and providing
+   * auto-triage recommendations based on user intent.
+   */
+  async refineAiSearch(
+    query: string,
+    refinementPrompt: string,
+    verses: Array<{ id: string; bookId: string; chapter: number; verse: number; text: string }>,
+    uiLanguage: 'fi' | 'en',
+  ): Promise<SearchRefinementResponse> {
+    const res = await fetch(`${this.baseUrl}/ai/search/refine`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        refinementPrompt,
+        verses,
+        uiLanguage,
+      }),
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      await this.handleError(res, 'POST /ai/search/refine');
+    }
     return await res.json();
   }
 
