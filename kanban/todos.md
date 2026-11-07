@@ -2,6 +2,26 @@
 
 ## To Do
 
+### Alkukielitutkimuksen laajuus- ja kielivalinnan automaatio (max 1 luku)
+
+- due: 2026-11-25
+- tags: [original-study, ai, ui, frontend, token-optimization]
+- priority: high
+- workload: Medium
+- defaultExpanded: true
+- steps:
+  - [ ] Poista manuaaliset "JAE", "LUKU" ja "KIRJA" -valintapainikkeet ja alkukielen alasvetovalikko OriginalStudyView'stä
+  - [ ] Toteuta viitteen automaattinen laajuustunnistus (jae/jaeväli -> verse, yksittäinen luku -> chapter)
+  - [ ] Rajoita enimmäislaajuus yhteen lukuun (kirjatason ja monilukuisten jaksojen esto token-kuorman rajaamiseksi ja ohjaava palaute)
+  - [ ] Määritä alkukieli automaattisesti testamentin mukaan (VT = heprea heb-leningrad, UT = kreikka sblgnt) ja näytä se badgena
+  - [ ] Tarkista tarvittavan alkukielipaketin asennus ja tarjoa yhden klikkauksen asennus puuttuvalle testamentille
+  - [ ] Päivitä kaksikielisyys (i18n fi/en) ja suorita laatuportit (task frontend:check, task check)
+
+    ```md
+    Suunnitelma: [.plans/todos/07-alkukielitutkimuksen-automaattinen-laajuus-ja-kielivalinta.md](file:///home/vivaldev/code/clible-v3-go/.plans/todos/07-alkukielitutkimuksen-automaattinen-laajuus-ja-kielivalinta.md)
+    Tavoite: Poistaa manuaaliset laajuus- ja kielivalinnat, tunnistaa laajuus ja testamenttikohtainen alkukieli automaattisesti syötteestä, sekä suojata tekoälyn token-määrää rajoittamalla tutkimus enintään yhteen lukuun kerrallaan.
+    ```
+
 ### Reader Viewin käyttöliittymäuudistus ja kutsuva lukunäkymä
 
 - due: 2026-09-29
@@ -49,25 +69,25 @@
 
 ## In Progress
 
+## Done
+
 ### Semanttisen haun tekoäly-jatkokarsinta ja teemaryhmittely
 
 - due: 2026-10-15
 - tags: [ai, search, refinement, clustering, triage]
 - priority: high
 - workload: Medium
-- defaultExpanded: true
+- defaultExpanded: false
 - steps:
-  - [ ] Vaihe 1: Go Backend - AI Refine -rajapinta ja Gemini Structured Output
-  - [ ] Vaihe 2: Frontend API - Tyypit ja API-kutsut
-  - [ ] Vaihe 3: React 19.2 UI - Teemaryhmittely, tarkennussyöte ja pika-triage
-  - [ ] Vaihe 4: Kaksikielisyys (i18n), laatuportit ja testaus
+  - [x] Vaihe 1: Go Backend - AI Refine -rajapinta ja Gemini Structured Output
+  - [x] Vaihe 2: Frontend API - Tyypit ja API-kutsut
+  - [x] Vaihe 3: React 19.2 UI - Teemaryhmittely, tarkennussyöte ja pika-triage
+  - [x] Vaihe 4: Kaksikielisyys (i18n), laatuportit ja testaus
 
     ```md
     Suunnitelma: [.plans/semantic-search-ai-refinement/00-overview.md](file:///home/vivaldev/code/clible-v3-go/.plans/semantic-search-ai-refinement/00-overview.md)
-    Mahdollistaa laajojen semanttisten hakutulosten jatkokarsinnan ja teemaryhmittelyn tekoälyn avulla.
+    Mahdollistaa laajojen semanttisten hakutulosten jatkokarsinnan ja teemaryhmittelyn tekoälyn avulla. Sisältää kaksitasoisen prompt injection -torjunnan, deterministisen kanonisen kirjarajauksen sekä 100 % binääriosituksen hyväksyttyjen ja hylättyjen jakeiden välillä.
     ```
-
-## Done
 
 ### VitePressin semanttisen haun kuvaus ja suomenkielisen dokumentaation oikoluku
 
