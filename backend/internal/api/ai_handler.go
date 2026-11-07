@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/mvirtai/clible-v3-go/internal/models"
 	"github.com/mvirtai/clible-v3-go/internal/services"
 )
 
@@ -316,6 +317,82 @@ func (h *AIHandler) GetComparison(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.aiService.GetComparison(r.Context(), req.Reference, req.TranslationA, req.TextA, req.TranslationB, req.TextB, req.Focus, req.OutputLanguage)
 	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+const (
+	maxRefinePromptRunes = 500
+	maxRefinePayloadList = 500
+	maxRefineEvaluated   = 300
+	maxRefineVerseIDLen  = 64
+	maxRefineBookIDLen   = 32
+	maxRefineVerseRunes  = 1000
+)
+
+// RefineSearch handles POST /api/ai/search/refine
+func (h *AIHandler) RefineSearch(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 250*1024)
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Query            string         `json:"query"`
+		RefinementPrompt string         `json:"refinementPrompt"`
+		Verses           []models.Verse `json:"verses"`
+		UILanguage       string         `json:"uiLanguage"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if utf8.RuneCountInString(req.RefinementPrompt) > maxRefinePromptRunes || utf8.RuneCountInString(req.Query) > maxRefinePromptRunes {
+		http.Error(w, "Input prompt exceeds maximum allowed length (500 characters)", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.RefinementPrompt) == "" {
+		http.Error(w, "Missing required 'refinementPrompt' field", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Verses) > maxRefinePayloadList {
+		http.Error(w, "Verses list exceeds maximum allowed count", http.StatusBadRequest)
+		return
+	}
+
+	evalLimit := len(req.Verses)
+	if evalLimit > maxRefineEvaluated {
+		evalLimit = maxRefineEvaluated
+	}
+	for i := 0; i < evalLimit; i++ {
+		v := req.Verses[i]
+		if strings.TrimSpace(v.ID) == "" || len(v.ID) > maxRefineVerseIDLen || len(v.BookID) > maxRefineBookIDLen || utf8.RuneCountInString(v.Text) > maxRefineVerseRunes {
+			http.Error(w, "Invalid verse entry in refinement payload", http.StatusBadRequest)
+			return
+		}
+	}
+
+	resp, err := h.aiService.RefineSearch(r.Context(), req.Query, req.RefinementPrompt, req.Verses[:evalLimit], req.UILanguage)
+	if err != nil {
+		var invalidIntentErr *services.InvalidRefinementIntentError
+		if errors.As(err, &invalidIntentErr) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": invalidIntentErr.Message,
+			})
+			return
+		}
 		h.handleError(w, err)
 		return
 	}
