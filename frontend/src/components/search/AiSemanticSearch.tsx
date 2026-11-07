@@ -1,12 +1,19 @@
-import { useState, useActionState, startTransition } from 'react';
+import { useState, useActionState, useTransition, startTransition } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownComponents } from '../../utils/markdownComponents';
 import { apiService } from '../../services/api';
-import type { AiSearchResponse, AiVerseMatch, SemanticSearchSnapshot } from '../../types/aiSearch';
+import type {
+  AiSearchResponse,
+  AiVerseMatch,
+  SearchRefinementResponse,
+  SemanticSearchSnapshot,
+} from '../../types/aiSearch';
 import { VerseCurationHeader, type CurationFilter } from './VerseCurationHeader';
 import { CuratedVerseCard } from './CuratedVerseCard';
 import { CurationUnreviewedBanner } from './CurationPromptModal';
+import { AiRefinePanel } from './AiRefinePanel';
+import { AiThemeFilter } from './AiThemeFilter';
 import {
   Sparkles,
   Search,
@@ -79,6 +86,13 @@ export function AiSemanticSearch({
   const [curationFilter, setCurationFilter] = useState<CurationFilter>('all');
   const [showUnreviewedPrompt, setShowUnreviewedPrompt] = useState(false);
   const [committedVerses, setCommittedVerses] = useState<AiVerseMatch[] | null>(null);
+  const [refinementResult, setRefinementResult] = useState<SearchRefinementResponse | null>(
+    restored?.refinementResult ?? null
+  );
+  const [activeThemeId, setActiveThemeId] = useState<string | null>(null);
+  const [showRefinePanel, setShowRefinePanel] = useState(false);
+  const [isRefining, startRefineTransition] = useTransition();
+  const [refineError, setRefineError] = useState<string | null>(null);
 
   // Pure derived state: localized search suggestions
   const examples =
@@ -114,6 +128,10 @@ export function AiSemanticSearch({
       setCurationFilter('all');
       setCommittedVerses(null);
       setShowUnreviewedPrompt(false);
+      setRefinementResult(null);
+      setActiveThemeId(null);
+      setShowRefinePanel(false);
+      setRefineError(null);
       return { data: resp, translationId: translation, error: null };
     } catch (err: unknown) {
       console.error('Semantic search failed:', err);
@@ -234,6 +252,92 @@ export function AiSemanticSearch({
       }
     : null;
   const error = searchState.error;
+
+  const applyRefinementToCuration = (res: SearchRefinementResponse, verses: AiVerseMatch[]) => {
+    const acceptedSet = new Set(res.acceptedVerseIds);
+    // Complete binary partition: every verse not accepted by the refinement filter is marked rejected
+    const rejectedSet = new Set(
+      verses.filter((v) => !acceptedSet.has(v.id)).map((v) => v.id),
+    );
+    setAcceptedIds(acceptedSet);
+    setRejectedIds(rejectedSet);
+  };
+
+  const handleRefineSubmit = (refinePrompt: string) => {
+    if (!data?.search?.verses || !translation) return;
+    setRefineError(null);
+    const inputVerses = data.search.verses;
+
+    // Temporary debug console output to trace AI refinement pipeline
+    const inputBooks = inputVerses.reduce<Record<string, number>>((acc, v) => {
+      acc[v.bookId] = (acc[v.bookId] ?? 0) + 1;
+      return acc;
+    }, {});
+    console.info('[AI Refine Debug] Sending refinement request:', {
+      query: queryInput,
+      refinePrompt,
+      totalVerses: inputVerses.length,
+      inputBooks,
+    });
+
+    startRefineTransition(async () => {
+      try {
+        const targetLang = aiLang === 'auto' ? lang : (aiLang as 'fi' | 'en');
+        const res = await apiService.refineAiSearch(
+          queryInput,
+          refinePrompt,
+          inputVerses,
+          targetLang,
+        );
+
+        const acceptedSet = new Set(res.acceptedVerseIds);
+        const acceptedBooks = inputVerses
+          .filter((v) => acceptedSet.has(v.id))
+          .reduce<Record<string, number>>((acc, v) => {
+            acc[v.bookId] = (acc[v.bookId] ?? 0) + 1;
+            return acc;
+          }, {});
+        const rejectedBooks = inputVerses
+          .filter((v) => !acceptedSet.has(v.id))
+          .reduce<Record<string, number>>((acc, v) => {
+            acc[v.bookId] = (acc[v.bookId] ?? 0) + 1;
+            return acc;
+          }, {});
+
+        console.info('[AI Refine Debug] Received refinement response:', {
+          rationale: res.rationale,
+          allowedBookIds: res.allowedBookIds ?? [],
+          acceptedCount: res.acceptedVerseIds.length,
+          rejectedCount: inputVerses.length - res.acceptedVerseIds.length,
+          acceptedBooks,
+          rejectedBooks,
+          themes: res.themes.map((t) => ({
+            id: t.id,
+            title: t.title,
+            verseCount: t.verseIds.length,
+          })),
+        });
+
+        setRefinementResult(res);
+        applyRefinementToCuration(res, inputVerses);
+        setActiveThemeId(null);
+        setShowRefinePanel(false);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Refinement failed';
+        console.warn('[AI Refine Debug] Refinement rejected or failed:', {
+          refinePrompt,
+          error: msg,
+        });
+        setRefineError(msg);
+      }
+    });
+  };
+
+  const handleApplyRefinementSuggestion = () => {
+    if (!refinementResult || !data?.search?.verses) return;
+    applyRefinementToCuration(refinementResult, data.search.verses);
+    setCurationFilter('accepted');
+  };
 
   const handleCommitCuration = (forceRemaining?: 'accept' | 'reject') => {
     if (!data?.search?.verses) return;
@@ -474,7 +578,15 @@ export function AiSemanticSearch({
           {/* 4. Scripture Verse Hits */}
           {(() => {
             const allVerses = data.search?.verses || [];
-            const displayedVerses = allVerses.filter((v) => {
+            const activeCluster =
+              activeThemeId && refinementResult
+                ? refinementResult.themes.find((t) => t.id === activeThemeId)
+                : null;
+            const themeFilteredVerses = activeCluster
+              ? allVerses.filter((v) => activeCluster.verseIds.includes(v.id))
+              : allVerses;
+
+            const displayedVerses = themeFilteredVerses.filter((v) => {
               if (curationFilter === 'accepted') return acceptedIds.has(v.id);
               if (curationFilter === 'rejected') return rejectedIds.has(v.id);
               return true;
@@ -512,7 +624,46 @@ export function AiSemanticSearch({
                       onAcceptAll={() => handleAcceptAll(allVerses)}
                       onResetCuration={handleResetCuration}
                       onCommitSelection={() => handleCommitCuration()}
+                      onToggleAiRefine={() => setShowRefinePanel((prev) => !prev)}
+                      hasRefinement={refinementResult !== null}
                     />
+
+                    {showRefinePanel && (
+                      <AiRefinePanel
+                        strings={strings}
+                        isLoading={isRefining}
+                        onRefine={handleRefineSubmit}
+                        onClose={() => setShowRefinePanel(false)}
+                      />
+                    )}
+
+                    {refineError && (
+                      <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-600 dark:text-red-400">
+                        {refineError}
+                      </div>
+                    )}
+
+                    {refinementResult && (
+                      <AiThemeFilter
+                        strings={strings}
+                        themes={refinementResult.themes}
+                        activeThemeId={activeThemeId}
+                        onSelectTheme={setActiveThemeId}
+                        recommendedCount={refinementResult.acceptedVerseIds.length}
+                        totalFilteredCount={allVerses.length}
+                        rationale={refinementResult.rationale}
+                        allowedBookIds={refinementResult.allowedBookIds}
+                        isRecommendationApplied={
+                          curationFilter === 'accepted' &&
+                          refinementResult.acceptedVerseIds.every((id) => acceptedIds.has(id))
+                        }
+                        onApplyRecommendation={handleApplyRefinementSuggestion}
+                        onClearRefinement={() => {
+                          setRefinementResult(null);
+                          setActiveThemeId(null);
+                        }}
+                      />
+                    )}
 
                     {showUnreviewedPrompt && (
                       <CurationUnreviewedBanner

@@ -44,6 +44,28 @@ export interface AiSearchResponse {
 }
 
 /**
+ * Represents a single thematic cluster of verses identified by the AI refiner.
+ */
+export interface SearchThemeCluster {
+    id: string;
+    title: string;
+    summary: string;
+    verseIds: string[];
+}
+
+/**
+ * Result payload from POST /api/ai/search/refine.
+ */
+export interface SearchRefinementResponse {
+    themes: SearchThemeCluster[];
+    acceptedVerseIds: string[];
+    rejectedVerseIds: string[];
+    rationale: string;
+    invalidIntent?: boolean;
+    allowedBookIds?: string[];
+}
+
+/**
  * A completed semantic search retained outside the search view.
  * `translationId` is the translation that produced `data`; the verse text
  * in `data` is only valid for that translation.
@@ -54,5 +76,6 @@ export interface SemanticSearchSnapshot {
     data: AiSearchResponse;
     savedSearchId?: string;
     savedName?: string;
+    refinementResult?: SearchRefinementResponse;
 }
 

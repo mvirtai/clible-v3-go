@@ -489,6 +489,19 @@ export interface Messages {
   curateCancelCommit: string;
   curateCommitSuccess: (keptCount: number, discardedCount: number) => string;
 
+  // AI Search Refinement & Theme Clustering
+  aiRefineTitle: string;
+  aiRefinePlaceholder: string;
+  aiRefineButton: string;
+  aiRefineRunning: string;
+  aiRefineRecommendationTitle: (recommended: number, total: number) => string;
+  aiRefineApplySuggestion: string;
+  aiRefineThemesLabel: string;
+  aiRefineAllThemes: string;
+  aiRefineSuggestions: string[];
+  aiRefineCloseAria: string;
+  aiRefineClearAria: string;
+
   // User Settings & Profile
   settingsSubtitle: string;
   profileSectionTitle: string;
@@ -1110,6 +1123,24 @@ export const strings: Record<UILanguage, Messages> = {
     curateCommitSuccess: (kept, discarded) =>
       `Selection applied: ${kept} verses kept, ${discarded} discarded.`,
 
+    // AI Search Refinement & Theme Clustering
+    aiRefineTitle: 'Refine Search with AI',
+    aiRefinePlaceholder: 'E.g. Focus only on key covenant inaugurations: Noah, Abraham, Moses, and the New Covenant...',
+    aiRefineButton: 'Filter & Cluster',
+    aiRefineRunning: 'AI is analyzing & clustering...',
+    aiRefineRecommendationTitle: (recommended, total) =>
+      `AI recommends ${recommended} core verses (${total - recommended} filtered as secondary).`,
+    aiRefineApplySuggestion: 'Apply Recommendation',
+    aiRefineThemesLabel: 'Theme Clusters',
+    aiRefineAllThemes: 'All Themes',
+    aiRefineSuggestions: [
+      'Focus only on key covenant inaugurations: Noah, Abraham, Moses, and the New Covenant',
+      'Only New Testament references to the covenant',
+      'Law and promise in the context of covenants',
+    ],
+    aiRefineCloseAria: 'Close',
+    aiRefineClearAria: 'Clear themes',
+
 
     // User Settings & Profile
     settingsSubtitle: 'Manage your account details, reading preferences, and security.',
@@ -1728,6 +1759,24 @@ export const strings: Record<UILanguage, Messages> = {
     curateCancelCommit: 'Jatka arviointia',
     curateCommitSuccess: (kept, discarded) =>
       `Valinnat toteutettu: ${kept} jaetta säilytetty, ${discarded} poistettu.`,
+
+    // AI-jatkokarsinta ja teemaryhmittely
+    aiRefineTitle: 'Tarkenna hakua tekoälyllä',
+    aiRefinePlaceholder: 'Esim. Rajaa vain keskeiset liittojen solmimiskohdat: Nooa, Aabraham, Mooses ja Uusi liitto...',
+    aiRefineButton: 'Karsi ja ryhmittele',
+    aiRefineRunning: 'Tekoäly analysoi ja ryhmittelee...',
+    aiRefineRecommendationTitle: (recommended, total) =>
+      `Tekoäly suosittelee ${recommended} keskeistä jaetta (${total - recommended} karsittu toissijaisina).`,
+    aiRefineApplySuggestion: 'Ota suositus käyttöön',
+    aiRefineThemesLabel: 'Teemaryhmät',
+    aiRefineAllThemes: 'Kaikki teemat',
+    aiRefineSuggestions: [
+      'Vain keskeiset liittojen solmimiskohdat: Nooa, Aabraham, Mooses ja Uusi liitto',
+      'Vain Uuden testamentin viittaukset liittoon',
+      'Laki ja lupaus liittojen yhteydessä',
+    ],
+    aiRefineCloseAria: 'Sulje',
+    aiRefineClearAria: 'Poista teemat',
 
     // Käyttäjäasetukset ja profiili
     settingsSubtitle: 'Hallitse tilitietojasi, lukupreferenssejäsi ja turvallisuutta.',

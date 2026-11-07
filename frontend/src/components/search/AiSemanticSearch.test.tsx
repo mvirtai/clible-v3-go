@@ -9,6 +9,7 @@ import type { AiSearchResponse } from '../../types/aiSearch';
 vi.mock('../../services/api', () => ({
   apiService: {
     executeAiSearch: vi.fn(),
+    refineAiSearch: vi.fn(),
     saveSearch: vi.fn().mockResolvedValue({}),
   },
 }));
@@ -443,6 +444,115 @@ describe('AiSemanticSearch state retention', () => {
       // Must only contain committed verse v1, rejected v2 must NOT be restored
       expect(parsedResult.search.verses).toHaveLength(1);
       expect(parsedResult.search.verses[0].id).toBe('v1');
+    });
+
+    it('refines search with AI, filters by theme cluster, and applies recommendation', async () => {
+      vi.mocked(apiService.refineAiSearch).mockResolvedValue({
+        themes: [
+          {
+            id: 'theme-mat',
+            title: 'Miracles in Matthew',
+            summary: 'Calming the storm',
+            verseIds: ['v1'],
+          },
+          {
+            id: 'theme-heb',
+            title: 'Hall of Faith',
+            summary: 'Definition of faith',
+            verseIds: ['v2'],
+          },
+        ],
+        acceptedVerseIds: ['v2'],
+        rejectedVerseIds: ['v1'],
+        rationale: 'Focus on Hebrews definition.',
+      });
+
+      act(() => {
+        root = createRoot(container!);
+        root.render(
+          <LanguageProvider>
+            <AiSemanticSearch
+              translation="web"
+              loadedData={{ query: 'faith', translationId: 'web', data: multiVerseResponse }}
+            />
+          </LanguageProvider>,
+        );
+      });
+
+      // Open AI refine panel
+      const refineToggleBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Filter & Cluster|Karsi ja ryhmittele/.test(b.textContent ?? ''),
+      );
+      expect(refineToggleBtn).toBeDefined();
+
+      act(() => {
+        refineToggleBtn!.click();
+      });
+
+      // Click first suggestion pill in AiRefinePanel
+      const suggestionBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Nooa|Noah/.test(b.textContent ?? ''),
+      );
+      expect(suggestionBtn).toBeDefined();
+      act(() => {
+        suggestionBtn!.click();
+      });
+
+      // Submit refinement form
+      const refineForm = suggestionBtn!.closest('form') as HTMLFormElement;
+      const refineSubmitBtn = refineForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+      await act(async () => {
+        refineSubmitBtn.click();
+      });
+
+      expect(apiService.refineAiSearch).toHaveBeenCalledTimes(1);
+
+      // Theme pills should be rendered
+      const hebThemeBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        (b.textContent ?? '').includes('Hall of Faith (1)'),
+      );
+      expect(hebThemeBtn).toBeDefined();
+
+      // Filter by 'Hall of Faith' theme
+      act(() => {
+        hebThemeBtn!.click();
+      });
+
+      expect(container!.querySelector('[data-testid="curated-verse-v2"]')).not.toBeNull();
+      expect(container!.querySelector('[data-testid="curated-verse-v1"]')).toBeNull();
+
+      // Switch back to All Themes and apply AI recommendation
+      const allThemesBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /All Themes|Kaikki teemat/.test(b.textContent ?? ''),
+      );
+      act(() => {
+        allThemesBtn!.click();
+      });
+
+      // On All Themes ('all' curation filter), both verses are visible with their triage statuses
+      const v1CardBefore = container!.querySelector('[data-testid="curated-verse-v1"]') as HTMLElement;
+      const v2CardBefore = container!.querySelector('[data-testid="curated-verse-v2"]') as HTMLElement;
+      expect(v1CardBefore.getAttribute('data-status')).toBe('rejected');
+      expect(v2CardBefore.getAttribute('data-status')).toBe('accepted');
+
+      const applyRecBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Apply Recommendation|Ota suositus käyttöön/.test(b.textContent ?? ''),
+      );
+      expect(applyRecBtn).toBeDefined();
+      act(() => {
+        applyRecBtn!.click();
+      });
+
+      // Applying recommendation hides the button and switches view to accepted verses only
+      const applyRecBtnAfter = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Apply Recommendation|Ota suositus käyttöön/.test(b.textContent ?? ''),
+      );
+      expect(applyRecBtnAfter).toBeUndefined();
+      expect(container!.querySelector('[data-testid="curated-verse-v1"]')).toBeNull();
+      const v2CardAfter = container!.querySelector('[data-testid="curated-verse-v2"]') as HTMLElement;
+      expect(v2CardAfter).not.toBeNull();
+      expect(v2CardAfter.getAttribute('data-status')).toBe('accepted');
     });
   });
 });
