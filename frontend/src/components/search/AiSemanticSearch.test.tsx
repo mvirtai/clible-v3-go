@@ -530,6 +530,12 @@ describe('AiSemanticSearch state retention', () => {
         allThemesBtn!.click();
       });
 
+      // On All Themes ('all' curation filter), both verses are visible with their triage statuses
+      const v1CardBefore = container!.querySelector('[data-testid="curated-verse-v1"]') as HTMLElement;
+      const v2CardBefore = container!.querySelector('[data-testid="curated-verse-v2"]') as HTMLElement;
+      expect(v1CardBefore.getAttribute('data-status')).toBe('rejected');
+      expect(v2CardBefore.getAttribute('data-status')).toBe('accepted');
+
       const applyRecBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
         /Apply Recommendation|Ota suositus käyttöön/.test(b.textContent ?? ''),
       );
@@ -538,10 +544,15 @@ describe('AiSemanticSearch state retention', () => {
         applyRecBtn!.click();
       });
 
-      const v1Card = container!.querySelector('[data-testid="curated-verse-v1"]') as HTMLElement;
-      const v2Card = container!.querySelector('[data-testid="curated-verse-v2"]') as HTMLElement;
-      expect(v1Card.getAttribute('data-status')).toBe('rejected');
-      expect(v2Card.getAttribute('data-status')).toBe('accepted');
+      // Applying recommendation hides the button and switches view to accepted verses only
+      const applyRecBtnAfter = Array.from(container!.querySelectorAll('button')).find((b) =>
+        /Apply Recommendation|Ota suositus käyttöön/.test(b.textContent ?? ''),
+      );
+      expect(applyRecBtnAfter).toBeUndefined();
+      expect(container!.querySelector('[data-testid="curated-verse-v1"]')).toBeNull();
+      const v2CardAfter = container!.querySelector('[data-testid="curated-verse-v2"]') as HTMLElement;
+      expect(v2CardAfter).not.toBeNull();
+      expect(v2CardAfter.getAttribute('data-status')).toBe('accepted');
     });
   });
 });

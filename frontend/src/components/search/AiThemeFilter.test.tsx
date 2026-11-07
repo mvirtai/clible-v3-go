@@ -132,4 +132,27 @@ describe('AiThemeFilter', () => {
     });
     expect(onClearRefinement).toHaveBeenCalledTimes(1);
   });
+
+  it('hides the apply recommendation button when isRecommendationApplied is true', () => {
+    act(() => {
+      root = createRoot(container!);
+      root.render(
+        <AiThemeFilter
+          strings={strings.fi}
+          themes={themes}
+          activeThemeId={null}
+          onSelectTheme={vi.fn()}
+          recommendedCount={2}
+          totalFilteredCount={5}
+          isRecommendationApplied={true}
+          onApplyRecommendation={vi.fn()}
+        />
+      );
+    });
+
+    const applyBtn = Array.from(container!.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes(strings.fi.aiRefineApplySuggestion)
+    );
+    expect(applyBtn).toBeUndefined();
+  });
 });

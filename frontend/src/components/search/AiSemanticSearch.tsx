@@ -336,6 +336,7 @@ export function AiSemanticSearch({
   const handleApplyRefinementSuggestion = () => {
     if (!refinementResult || !data?.search?.verses) return;
     applyRefinementToCuration(refinementResult, data.search.verses);
+    setCurationFilter('accepted');
   };
 
   const handleCommitCuration = (forceRemaining?: 'accept' | 'reject') => {
@@ -652,6 +653,10 @@ export function AiSemanticSearch({
                         totalFilteredCount={allVerses.length}
                         rationale={refinementResult.rationale}
                         allowedBookIds={refinementResult.allowedBookIds}
+                        isRecommendationApplied={
+                          curationFilter === 'accepted' &&
+                          refinementResult.acceptedVerseIds.every((id) => acceptedIds.has(id))
+                        }
                         onApplyRecommendation={handleApplyRefinementSuggestion}
                         onClearRefinement={() => {
                           setRefinementResult(null);

@@ -11,6 +11,7 @@ export interface AiThemeFilterProps {
   totalFilteredCount: number;
   rationale?: string;
   allowedBookIds?: string[];
+  isRecommendationApplied?: boolean;
   onApplyRecommendation: () => void;
   onClearRefinement?: () => void;
 }
@@ -24,6 +25,7 @@ export function AiThemeFilter({
   totalFilteredCount,
   rationale,
   allowedBookIds,
+  isRecommendationApplied = false,
   onApplyRecommendation,
   onClearRefinement,
 }: AiThemeFilterProps) {
@@ -49,14 +51,16 @@ export function AiThemeFilter({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onApplyRecommendation}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors"
-          >
-            <CheckCheck size={13} />
-            <span>{strings.aiRefineApplySuggestion}</span>
-          </button>
+          {!isRecommendationApplied && (
+            <button
+              type="button"
+              onClick={onApplyRecommendation}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors"
+            >
+              <CheckCheck size={13} />
+              <span>{strings.aiRefineApplySuggestion}</span>
+            </button>
+          )}
           {onClearRefinement && (
             <button
               type="button"
