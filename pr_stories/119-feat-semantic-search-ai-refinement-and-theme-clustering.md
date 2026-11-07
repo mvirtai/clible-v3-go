@@ -123,9 +123,10 @@ resp.RejectedVerseIDs = rejected
 ### 2. React 19.2 Refinement UI, Theme Clustering & Diagnostic Logging (`frontend/src/components/search/`)
 
 - **`AiRefinePanel.tsx`:** Collapsible refinement panel with a 500-character bounded `<textarea>`, quick-suggestion chips (`strings.aiRefineSuggestions`), and `useTransition`-driven loading feedback.
-- **`AiThemeFilter.tsx`:** Renders the AI recommendation banner (`recommendedCount` of `totalFilteredCount`), canonical book whitelist badge (`allowedBookIds`), AI `rationale` explanation, one-click recommendation application, and interactive theme cluster filter pills (`All Themes` + `themes.map(...)`).
-- **Immediate Triage Application & Diagnostic Telemetry (`AiSemanticSearch.tsx`):**
+- **`AiThemeFilter.tsx`:** Renders the AI recommendation banner (`recommendedCount` of `totalFilteredCount`), canonical book whitelist badge (`allowedBookIds`), AI `rationale` explanation, one-click recommendation application (automatically hidden via `isRecommendationApplied` when the accepted curation view and recommendation state are already active), and interactive theme cluster filter pills (`All Themes` + `themes.map(...)`).
+- **Immediate Triage Application, View Switching & Diagnostic Telemetry (`AiSemanticSearch.tsx`):**
   - Automatically applies the binary partition (`applyRefinementToCuration`) when `refineAiSearch` resolves so accepted and rejected verse statuses are immediately reflected in `VerseCurationHeader` counters and `CuratedVerseCard` badges.
+  - Clicking **Apply Recommendation** (`handleApplyRefinementSuggestion`) applies the binary partition, switches `curationFilter` to `'accepted'` so only accepted verses remain visible, and hides the recommendation button until the user switches back to `'all'` or modifies verse selection.
   - Includes structured `[AI Refine Debug]` console logging (`console.info` / `console.warn`) detailing input book distributions, accepted/rejected book breakdowns, `allowedBookIds`, and theme cluster counts.
 
 ---
@@ -134,8 +135,8 @@ resp.RejectedVerseIDs = rejected
 
 * **Evaluation Coverage Window:** Increased from `100` to `300` verses per refinement call (`3x` capacity), covering complete FTS result sets across all 66 canonical books.
 * **Partition Completeness:** `100%` binary partition across `acceptedVerseIds` and `rejectedVerseIds` (`0` uncategorized verses left behind after AI refinement).
-* **Backend Statement Coverage:** `77.7%` total statement coverage (`detectPromptInjection`: `100.0%`, `sanitizeDelimiterInput`: `100.0%`, `sanitizeRefinementOutput`: `89.8%`, `aiServiceImpl.RefineSearch`: `87.0%`, `AIHandler.RefineSearch`: `75.7%`).
-* **Frontend Test Suite:** `68` test files, `474` passing unit and component tests (including dedicated suites in `AiRefinePanel.test.tsx`, `AiThemeFilter.test.tsx`, `AiSemanticSearch.test.tsx`, and `api.test.ts`).
+* **Backend Statement Coverage:** `77.7%` total statement coverage (`detectPromptInjection`: `100.0%`, `sanitizeDelimiterInput`: `100.0%`, `aiServiceImpl.RefineSearch`: `88.4%`, `sanitizeRefinementOutput`: `88.1%`, `AIHandler.RefineSearch`: `75.7%`).
+* **Frontend Test Suite:** `68` test files, `475` passing unit and component tests (including dedicated suites in `AiRefinePanel.test.tsx`, `AiThemeFilter.test.tsx`, `AiSemanticSearch.test.tsx`, and `api.test.ts`).
 
 ---
 
@@ -169,10 +170,10 @@ resp.RejectedVerseIDs = rejected
 | `frontend/src/components/search/VerseCurationHeader.tsx` | Added AI Refine toggle button (`onToggleAiRefine`, `hasRefinement`) to the verse curation toolbar. |
 | `frontend/src/components/search/AiRefinePanel.tsx` | Created collapsible AI refinement input panel with suggestion chips and 500-char limit. |
 | `frontend/src/components/search/AiRefinePanel.test.tsx` | Added component tests for `AiRefinePanel` input, suggestion chips, submission, and close action. |
-| `frontend/src/components/search/AiThemeFilter.tsx` | Created theme cluster pill bar and recommendation banner displaying `rationale` and `allowedBookIds`. |
-| `frontend/src/components/search/AiThemeFilter.test.tsx` | Added component tests for `AiThemeFilter` rendering, theme selection, apply, and clear callbacks. |
-| `frontend/src/components/search/AiSemanticSearch.tsx` | Integrated `AiRefinePanel` and `AiThemeFilter`, automatic binary curation partitioning, and `[AI Refine Debug]` console telemetry. |
-| `frontend/src/components/search/AiSemanticSearch.test.tsx` | Added integration test verifying AI search refinement, theme cluster filtering, and recommendation application. |
+| `frontend/src/components/search/AiThemeFilter.tsx` | Created theme cluster pill bar and recommendation banner displaying `rationale`, `allowedBookIds`, and conditional `isRecommendationApplied` action visibility. |
+| `frontend/src/components/search/AiThemeFilter.test.tsx` | Added component tests for `AiThemeFilter` rendering, theme selection, apply/hide state (`isRecommendationApplied`), and clear callbacks. |
+| `frontend/src/components/search/AiSemanticSearch.tsx` | Integrated `AiRefinePanel` and `AiThemeFilter`, automatic binary curation partitioning, recommendation view switching (`curationFilter = 'accepted'`), and `[AI Refine Debug]` console telemetry. |
+| `frontend/src/components/search/AiSemanticSearch.test.tsx` | Added integration test verifying AI search refinement, theme cluster filtering, recommendation application view switching, and button hiding. |
 | `frontend/src/utils/i18n.ts` | Added bilingual (`fi` / `en`) localization strings for AI search refinement and theme clustering. |
 | `kanban/todos.md` | Updated Kanban board status for semantic search AI refinement to `Done`. |
 | `pr_stories/119-feat-semantic-search-ai-refinement-and-theme-clustering.md` | Added Extended PR Story documenting architecture, security hardening, and verification metrics. |
@@ -185,7 +186,7 @@ resp.RejectedVerseIDs = rejected
 
 #### Backend (Go Test Suite)
 
-* **Coverage:** `77.7%` of statements across `backend/internal/...` (`ai_service.go` `RefineSearch`: `87.0%`, `sanitizeRefinementOutput`: `89.8%`, `detectPromptInjection`: `100.0%`, `ai_handler.go` `RefineSearch`: `75.7%`).
+* **Coverage:** `77.7%` of statements across `backend/internal/...` (`ai_service.go` `RefineSearch`: `88.4%`, `sanitizeRefinementOutput`: `88.1%`, `detectPromptInjection`: `100.0%`, `ai_handler.go` `RefineSearch`: `75.7%`).
 * **Test Suite:** `task backend:check` (`golangci-lint` + `go test -coverprofile`).
 
 ```text
@@ -204,16 +205,16 @@ total:										(statements)				77.7%
 
 #### Frontend (Vitest & TypeScript Quality Gates)
 
-* **Test Suite:** `task frontend:check` (`tsc -b`, `eslint`, and Vitest suite: `68 passed` test files, `474 passed` tests).
+* **Test Suite:** `task frontend:check` (`tsc -b`, `eslint`, and Vitest suite: `68 passed` test files, `475 passed` tests).
 
 ```text
  ✓ src/components/search/AiRefinePanel.test.tsx (3 tests)
- ✓ src/components/search/AiThemeFilter.test.tsx (3 tests)
+ ✓ src/components/search/AiThemeFilter.test.tsx (4 tests)
  ✓ src/components/search/AiSemanticSearch.test.tsx (14 tests)
  ✓ src/services/api.test.ts (19 tests)
 
  Test Files  68 passed (68)
-      Tests  474 passed (474)
+      Tests  475 passed (475)
 ```
 
 ### Verification Scenarios Covered
