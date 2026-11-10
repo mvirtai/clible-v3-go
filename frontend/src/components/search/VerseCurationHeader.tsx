@@ -1,5 +1,5 @@
 import type { Messages } from '../../utils/i18n';
-import { Check, CheckCheck, RotateCcw } from 'lucide-react';
+import { Check, CheckCheck, RotateCcw, Sparkles } from 'lucide-react';
 
 export type CurationFilter = 'all' | 'accepted' | 'rejected';
 
@@ -13,6 +13,8 @@ export interface VerseCurationHeaderProps {
   onAcceptAll: () => void;
   onResetCuration: () => void;
   onCommitSelection?: () => void;
+  onToggleAiRefine?: () => void;
+  hasRefinement?: boolean;
 }
 
 export function VerseCurationHeader({
@@ -25,6 +27,8 @@ export function VerseCurationHeader({
   onAcceptAll,
   onResetCuration,
   onCommitSelection,
+  onToggleAiRefine,
+  hasRefinement,
 }: VerseCurationHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-[var(--surface-2)]/70 border border-[var(--border-soft)]">
@@ -82,6 +86,21 @@ export function VerseCurationHeader({
 
       {/* Pikatoiminnot */}
       <div className="flex items-center gap-2 self-end sm:self-auto">
+        {onToggleAiRefine && (
+          <button
+            type="button"
+            onClick={onToggleAiRefine}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+              hasRefinement
+                ? 'bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30'
+                : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
+            }`}
+          >
+            <Sparkles size={13} />
+            <span>{strings.aiRefineButton}</span>
+          </button>
+        )}
+
         {acceptedCount < totalCount && (
           <button
             type="button"

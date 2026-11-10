@@ -208,6 +208,7 @@ func main() {
 	mux.Handle("POST /api/ai/deep-dive", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetDeepDive))))
 	mux.Handle("POST /api/ai/original-study", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetOriginalStudy))))
 	mux.Handle("POST /api/ai/search", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.AISearch))))
+	mux.Handle("POST /api/ai/search/refine", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.RefineSearch))))
 	mux.Handle("POST /api/ai/compare", requireAuth(aiRateLimit(http.HandlerFunc(aiHandler.GetComparison))))
 	mux.Handle("GET /api/ai/usage/me", requireAuth(http.HandlerFunc(aiUsageHandler.GetMyUsage)))
 	mux.Handle("GET /api/ai/usage/summary", requireAuth(http.HandlerFunc(aiUsageHandler.GetSummary)))
@@ -297,6 +298,7 @@ func main() {
 		slog.Info("     POST  /api/ai/deep-dive       [protected, rate-limited]")
 		slog.Info("     POST  /api/ai/original-study  [protected, rate-limited]")
 		slog.Info("     POST  /api/ai/search          [protected, rate-limited]")
+		slog.Info("     POST  /api/ai/search/refine   [protected, rate-limited]")
 		slog.Info("     POST  /api/ai/compare         [protected, rate-limited]")
 		slog.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		slog.Info("✅ Server ready",
